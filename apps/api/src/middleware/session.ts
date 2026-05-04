@@ -14,7 +14,7 @@ export const requireSession = createMiddleware<AppContext>(async (c, next) => {
 		return c.json({ error: "unauthorized" }, 401);
 	}
 	c.set("userId", session.user.id);
-	await next();
+	return next();
 });
 
 export const requireWorkspace = createMiddleware<AppContext>(async (c, next) => {
@@ -31,5 +31,5 @@ export const requireWorkspace = createMiddleware<AppContext>(async (c, next) => 
 		return c.json({ error: "forbidden" }, 403);
 	}
 	c.set("workspaceId", workspaceId);
-	await next();
+	return next();
 });

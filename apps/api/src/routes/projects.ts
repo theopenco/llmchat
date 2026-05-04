@@ -17,8 +17,8 @@ const projectInput = z.object({
 	brandColor: z.string().default("#000000"),
 	welcomeMessage: z.string().default("Hi! How can I help you today?"),
 	escalationThreshold: z.number().int().min(1).default(3),
-	notifyEmail: z.string().email().nullable().optional(),
-	slackWebhookUrl: z.string().url().nullable().optional(),
+	notifyEmail: z.email().nullable().optional(),
+	slackWebhookUrl: z.url().nullable().optional(),
 });
 
 function generatePublicKey() {

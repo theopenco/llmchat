@@ -17,15 +17,16 @@ export function buildSystem(systemPrompt: string, knowledgeText: string) {
 	return `${systemPrompt}\n\n# Knowledge base\n\nUse the following knowledge to answer questions. If the answer is not in the knowledge base, say so and offer to escalate to a human.\n\n${knowledgeText}`;
 }
 
-export function streamChat(env: Env, input: LlmCallInput) {
+export async function streamChat(env: Env, input: LlmCallInput) {
 	const gateway = createLLMGateway({
 		apiKey: env.LLMGATEWAY_API_KEY,
 		baseURL: env.LLMGATEWAY_BASE_URL,
 	});
 
 	return streamText({
-		model: gateway(input.model),
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		model: gateway(input.model as any),
 		system: buildSystem(input.systemPrompt, input.knowledgeText),
-		messages: convertToModelMessages(input.messages),
+		messages: await convertToModelMessages(input.messages),
 	});
 }

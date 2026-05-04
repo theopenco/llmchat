@@ -4,6 +4,7 @@
 		"types": ["@cloudflare/workers-types"],
 		"jsx": "react-jsx",
 		"noEmit": true,
+		"declaration": false,
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["src/*"]

@@ -22,7 +22,7 @@ const chatBody = z.object({
 	projectKey: z.string(),
 	clientId: z.string(),
 	name: z.string().optional(),
-	email: z.string().email().optional(),
+	email: z.email().optional(),
 	messages: z.array(z.any()),
 });
 
@@ -30,7 +30,7 @@ const escalateBody = z.object({
 	projectKey: z.string(),
 	clientId: z.string(),
 	name: z.string().optional(),
-	email: z.string().email().optional(),
+	email: z.email().optional(),
 	messages: z.array(
 		z.object({ role: z.string(), content: z.string() }),
 	),
@@ -111,8 +111,10 @@ export const chat = new Hono<AppContext>()
 
 		const lastUser = messages[messages.length - 1] as UIMessage;
 		const userText = lastUser?.parts
-			?.filter((p: { type: string }) => p.type === "text")
-			.map((p: { text: string }) => p.text)
+			?.filter(
+				(p): p is { type: "text"; text: string } => p.type === "text",
+			)
+			.map((p) => p.text)
 			.join("");
 		const nextSeq = conv.messageCount + 1;
 		await db(c.env)
@@ -124,7 +126,7 @@ export const chat = new Hono<AppContext>()
 				sequence: nextSeq,
 			});
 
-		const result = streamChat(c.env, {
+		const result = await streamChat(c.env, {
 			model: project.model,
 			systemPrompt: project.systemPrompt,
 			knowledgeText: project.knowledgeText,

@@ -31,7 +31,7 @@ app.use(
 		origin: (origin, c) => {
 			const list = (c.env.WIDGET_ALLOWED_ORIGINS ?? "")
 				.split(",")
-				.map((s) => s.trim())
+				.map((s: string) => s.trim())
 				.filter(Boolean);
 			if (list.length === 0 || list.includes("*")) {
 				return origin ?? "*";

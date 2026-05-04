@@ -16,11 +16,11 @@
 		"@llmgateway/ai-sdk-provider": "3.7.0",
 		"ai": "6.0.27",
 		"better-auth": "1.6.9",
-		"drizzle-orm": "^0.36.0",
+		"drizzle-orm": "^0.45.2",
 		"hono": "^4.12.7",
 		"resend": "6.8.0",
 		"stripe": "18.1.1",
-		"zod": "^3.23.8"
+		"zod": "^4.0.0"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20241127.0",

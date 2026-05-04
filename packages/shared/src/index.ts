@@ -6,7 +6,7 @@ export const widgetMessage = z.object({
 	id: z.string(),
 	role: widgetMessageRole,
 	content: z.string(),
-	createdAt: z.string().datetime().optional(),
+	createdAt: z.iso.datetime().optional(),
 });
 export type WidgetMessage = z.infer<typeof widgetMessage>;
 
@@ -30,7 +30,7 @@ export const conversationSummary = z.object({
 	messageCount: z.number().int(),
 	escalatedAt: z.string().nullable(),
 	archivedAt: z.string().nullable(),
-	createdAt: z.string(),
-	updatedAt: z.string(),
+	createdAt: z.iso.datetime(),
+	updatedAt: z.iso.datetime(),
 });
 export type ConversationSummary = z.infer<typeof conversationSummary>;

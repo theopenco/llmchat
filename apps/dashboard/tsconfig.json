@@ -4,8 +4,10 @@
 		"jsx": "preserve",
 		"lib": ["DOM", "DOM.Iterable", "ES2022"],
 		"noEmit": true,
+		"declaration": false,
 		"incremental": true,
 		"plugins": [{ "name": "next" }],
+		"baseUrl": ".",
 		"paths": {
 			"@/*": ["src/*"]
 		}

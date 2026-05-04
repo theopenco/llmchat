@@ -1,0 +1,18 @@
+# Copy to .dev.vars for `ploy dev` (workerd local dev secrets).
+
+LLMGATEWAY_API_KEY=
+LLMGATEWAY_BASE_URL=https://api.llmgateway.io
+
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=support@example.com
+INBOUND_EMAIL_DOMAIN=inbound.example.com
+
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+BETTER_AUTH_SECRET=dev-secret-change-me
+BETTER_AUTH_URL=http://localhost:8787
+DASHBOARD_URL=http://localhost:3001
+
+# Origins allowed to embed the widget. Comma-separated, or "*" for any.
+WIDGET_ALLOWED_ORIGINS=*
