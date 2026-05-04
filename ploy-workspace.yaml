@@ -1,0 +1,10 @@
+name: llmchat
+
+# Shared resources between projects.
+# Projects bind these by name in their own ploy.yaml under db: / kv:.
+resources:
+  db:
+    - name: llmchat-db
+      owner: api
+  kv:
+    - name: llmchat-cache
