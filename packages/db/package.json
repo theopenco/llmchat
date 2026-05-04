@@ -1,0 +1,26 @@
+{
+	"name": "@llmchat/db",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./schema": "./src/schema.ts"
+	},
+	"scripts": {
+		"format": "prettier --write .",
+		"lint": "prettier --check .",
+		"migrate": "drizzle-kit migrate",
+		"migrations": "drizzle-kit generate",
+		"push": "drizzle-kit push --force"
+	},
+	"dependencies": {
+		"drizzle-orm": "^0.36.0"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20241127.0",
+		"better-sqlite3": "^11.5.0",
+		"drizzle-kit": "^0.28.0",
+		"typescript": "5.9.2"
+	}
+}
