@@ -1,0 +1,7 @@
+name: marketing
+runtime: nextjs
+build: pnpm --filter @llmchat/marketing build
+
+routes:
+  - llmchat.io/*
+  - www.llmchat.io/*
