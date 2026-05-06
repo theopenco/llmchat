@@ -1,4 +1,3 @@
-import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
@@ -15,7 +14,6 @@ export function createAuth(env: Env) {
 			enabled: true,
 		},
 		trustedOrigins: [env.DASHBOARD_URL],
-		plugins: [passkey()],
 	});
 }
 

@@ -1,10 +1,12 @@
-name: llmchat
+# Workspace-level config for `ploy dev`.
+# `ploy dev` from the repo root runs all worker/dynamic projects (api).
+# Next.js projects (dashboard, marketing) are skipped by workspace dev —
+# run them in their own dirs with `pnpm --filter @llmchat/<app> dev` or
+# `cd apps/<app> && ploy dev`.
 
-# Shared resources between projects.
-# Projects bind these by name in their own ploy.yaml under db: / kv:.
-resources:
-  db:
-    - name: llmchat-db
-      owner: api
-  kv:
-    - name: llmchat-cache
+dashboard:
+  port: 9787
+
+ports:
+  worker:
+    from: 8787

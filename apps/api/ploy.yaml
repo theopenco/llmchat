@@ -1,28 +1,26 @@
-name: api
-runtime: workers
-entry: src/index.ts
+kind: dynamic
 build: pnpm --filter @llmchat/api build
+out: dist
+main: src/index.ts
 
 db:
-  DB: llmchat-db
-  # owner: this project owns migrations
-  migrations: ../../packages/db/migrations
+  DB: llmchat_db
 
-kv:
-  CACHE: llmchat-cache
+state:
+  CACHE: llmchat_cache
 
-routes:
-  - api.llmchat.io/*
+env:
+  LLMGATEWAY_BASE_URL: $LLMGATEWAY_BASE_URL
+  RESEND_FROM_EMAIL: $RESEND_FROM_EMAIL
+  INBOUND_EMAIL_DOMAIN: $INBOUND_EMAIL_DOMAIN
+  BETTER_AUTH_URL: $BETTER_AUTH_URL
+  DASHBOARD_URL: $DASHBOARD_URL
+  WIDGET_ALLOWED_ORIGINS: $WIDGET_ALLOWED_ORIGINS
+  LLMGATEWAY_API_KEY: $LLMGATEWAY_API_KEY
+  RESEND_API_KEY: $RESEND_API_KEY
+  STRIPE_SECRET_KEY: $STRIPE_SECRET_KEY
+  STRIPE_WEBHOOK_SECRET: $STRIPE_WEBHOOK_SECRET
+  BETTER_AUTH_SECRET: $BETTER_AUTH_SECRET
 
-secrets:
-  - LLMGATEWAY_API_KEY
-  - LLMGATEWAY_BASE_URL
-  - RESEND_API_KEY
-  - RESEND_FROM_EMAIL
-  - INBOUND_EMAIL_DOMAIN
-  - STRIPE_SECRET_KEY
-  - STRIPE_WEBHOOK_SECRET
-  - BETTER_AUTH_SECRET
-  - BETTER_AUTH_URL
-  - DASHBOARD_URL
-  - WIDGET_ALLOWED_ORIGINS
+dev:
+  port: 8787

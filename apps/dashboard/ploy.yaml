@@ -1,9 +1,9 @@
-name: dashboard
-runtime: nextjs
+kind: nextjs
 build: pnpm --filter @llmchat/dashboard build
-
-routes:
-  - app.llmchat.io/*
+out: .next
 
 env:
   NEXT_PUBLIC_API_URL: https://api.llmchat.io
+
+dev:
+  port: 3001

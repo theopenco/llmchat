@@ -5,65 +5,79 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Stack & runtime
 
 - pnpm workspaces + Turborepo. Node >=22, TypeScript 5.9, strict mode (see `tsconfig.base.json`).
-- **api** runs on **workerd** (Cloudflare Workers runtime) via the **Ploy** platform (`ploy-workspace.yaml`, per-project `ploy.yaml`). Bindings are typed in `apps/api/src/env.ts` (`DB: D1Database`, `CACHE: KVNamespace`). Secrets flow in via `apps/api/.dev.vars` locally and Ploy secrets in prod.
-- **dashboard** and **marketing** are Next.js 15 / React 19 apps with `runtime: nextjs` in their ploy.yaml.
-- **db** is a single shared D1 (SQLite) database (`llmchat-db`) with **api as the migrations owner** (declared `migrations: ../../packages/db/migrations` in `apps/api/ploy.yaml`).
-- **cache / rate-limit** is a single shared KV namespace (`llmchat-cache`).
-- Inference uses a single backend, **LLM Gateway**, via `@llmgateway/ai-sdk-provider` + `ai` (Vercel AI SDK v6 — `streamText`, `UIMessage`, `convertToModelMessages`).
+- **api** runs on **workerd** via the **Ploy** platform (https://docs.meetploy.com). Each project has its own `ploy.yaml`; the repo root has a `ploy-workspace.yaml`.
+- **dashboard** and **marketing** are Next.js 15 / React 19 apps, declared as `kind: nextjs` in their ploy.yaml.
+- **db** is a single Ploy `db:` binding (D1-compatible SQLite). Migrations live at `apps/api/migrations/` (Ploy auto-discovers and applies them on `ploy dev` and deploy). The Drizzle schema is in `packages/db/src/schema.ts` and emits SQL into that directory via `packages/db/drizzle.config.ts` (`out: ../../apps/api/migrations`).
+- **cache / rate-limit** uses a Ploy `state:` binding (KV-compatible API: `get`/`put`/`delete`/`list`).
+- Inference uses **LLM Gateway** via `@llmgateway/ai-sdk-provider` + `ai` (Vercel AI SDK v6 — `streamText`, `UIMessage`, `convertToModelMessages`).
+
+## Authoritative Ploy config (used here)
+
+The Ploy yaml schema only accepts the fields documented in `packages/tools/src/ploy-config.ts` of `polarlightsllc/ploy`. Confirmed shape:
+
+- Top-level: `kind` (`worker` | `dynamic` | `nextjs` | `static`), `name`, `build`, `out`, `main`, `base`, `dev: { port?, host? }`, `compatibility_date`, `compatibility_flags`, `agentSDK`, `ai`.
+- Bindings (each is a binding-name → resource-name map; binding names UPPER_SNAKE, resource names lower_snake): `db`, `state`, `queue`, `workflow`, `cron`, `timer`, `fs`, `env`. There is **no `kv:` field** — KV is `state:`. There is **no `routes:` or `secrets:` field** — domains are dashboard-managed and secrets come from `.env` (interpolated via `$VAR` references inside the `env:` block).
+- `ploy-workspace.yaml` accepts `exclude`, `env`, `ports.worker.from`, `dashboard.port`. Nothing else.
+- Migrations: there is no `migrations:` field. The Ploy build/emulator scans `<project>/migrations/` and applies `*.sql` files to all DB bindings (or `<project>/migrations/<BINDING>/*.sql` for a specific binding).
+
+`ploy dev` from the repo root runs **workspace mode**: starts each `worker`/`dynamic` project, allocates ports starting at 8787, and serves a shared dashboard on 9787. Next.js projects are skipped in workspace mode — run them separately. Per-project `dev: { port }` is honored for worker projects but ignored for Next.js (Next.js defaults to 3000).
 
 ## Commands
 
 ```sh
 pnpm install
-pnpm dev            # = ploy dev — boots api + dashboard + marketing with shared D1 + KV
-pnpm build          # turbo run build across all workspaces
-pnpm lint           # turbo run lint (prettier --check in each package)
-pnpm format         # turbo run format (prettier --write)
-pnpm migrations     # drizzle-kit generate (in @llmchat/db)
-pnpm migrate        # drizzle-kit migrate (in @llmchat/db)
-pnpm clean          # remove dist/.turbo/.next/.ploy
+pnpm dev                                  # = ploy dev — boots api on :8787 (skips Next.js)
+pnpm --filter @llmchat/dashboard dev      # next dev on :3001
+pnpm --filter @llmchat/marketing dev      # next dev on :3002
+pnpm build                                # turbo run build across all workspaces
+pnpm lint                                 # turbo run lint (prettier --check)
+pnpm format                               # turbo run format (prettier --write)
+pnpm migrations                           # drizzle-kit generate → apps/api/migrations/
+pnpm clean                                # remove dist/.turbo/.next/.ploy
 ```
 
 Per-package:
+- `pnpm --filter @llmchat/api build` — `tsc --noEmit`. The actual worker bundle is built by `ploy build` (esbuild under the hood) at deploy time; entry is auto-detected as `src/index.ts`.
+- `pnpm --filter @llmchat/widget build` — Vite IIFE lib → `packages/widget/dist/widget.js`. The api serves this at `/widget.js` (currently a placeholder in `apps/api/src/routes/widget-asset.ts`).
 
-- `pnpm --filter @llmchat/api build` — `tsc --noEmit` (workerd entry is `apps/api/src/index.ts`, no bundling step in this repo).
-- `pnpm --filter @llmchat/widget build` — Vite IIFE lib build → `packages/widget/dist/widget.js`. The api project serves this at `/widget.js` (currently a placeholder in `apps/api/src/routes/widget-asset.ts` until wired to the real bundle).
-- `pnpm --filter @llmchat/dashboard dev` — `next dev -p 3001`.
+There is no test runner configured (turbo `test` task exists but no package implements it).
 
-There is no test runner configured in this repo yet (turbo `test` task exists but no package implements it).
-
-Local secrets: copy `apps/api/.dev.vars.example` → `apps/api/.dev.vars`. `ploy dev` reads it for the workerd worker.
+Local env: `cp apps/api/.env.example apps/api/.env` and fill in keys. `ploy dev` interpolates `.env` values into the `env:` block of `apps/api/ploy.yaml` (each value uses `$VAR_NAME`).
 
 ## Architecture
 
-### Request paths
-- **Public widget** (`/v1/*`, CORS via `WIDGET_ALLOWED_ORIGINS`): `POST /v1/chat` streams a UI message stream back to the embedded widget; `POST /v1/escalate` flips the conversation to escalated and emails `project.notifyEmail` with a `Reply-To` of `reply+<inboundEmailLocal>@<INBOUND_EMAIL_DOMAIN>`.
-- **Dashboard API** (`/api/*`, CORS pinned to `DASHBOARD_URL`, credentials): `workspaces`, `projects`, `conversations`, `billing`. All sit behind `requireSession` + `requireWorkspace` middleware (`apps/api/src/middleware/session.ts`) — workspace membership is asserted via the `member` table using the `x-workspace-id` header.
-- **Auth** (`/api/auth/*`): Better Auth with the Drizzle adapter, email+password, and `@better-auth/passkey` plugin. `createAuth(env)` is called per-request because env is a workerd binding, not a module-scope value.
+### Workerd-compat constraint
+The api ships to workerd. Avoid Node-only deps — they fail to bundle. Already removed for this reason: `resend` SDK (replaced with direct `fetch` in `lib/email.ts` because the SDK pulled in `svix`), `@better-auth/passkey` (pulled in `@simplewebauthn/server` → `@peculiar/x509` + `asn1js`). Email+password auth only, for now. Same risk applies to `@llmgateway/ai-sdk-provider` — if a future version pulls Node deps, swap to a direct `fetch` against `${LLMGATEWAY_BASE_URL}/v1/chat/completions`.
+
+### Request paths (`apps/api/src/index.ts`)
+- **Public widget** (`/v1/*`, CORS via `WIDGET_ALLOWED_ORIGINS`): `POST /v1/chat` streams a UI message stream to the embedded widget; `POST /v1/escalate` flips the conversation to escalated and emails `project.notifyEmail` with a `Reply-To` of `reply+<inboundEmailLocal>@<INBOUND_EMAIL_DOMAIN>`.
+- **Dashboard API** (`/api/*`, CORS pinned to `DASHBOARD_URL`, credentials): `workspaces`, `projects`, `conversations`, `billing`. Sits behind `requireSession` + `requireWorkspace` (`apps/api/src/middleware/session.ts`); workspace membership is asserted via the `member` table using the `x-workspace-id` header.
+- **Auth** (`/api/auth/*`): Better Auth with the Drizzle adapter, email+password. `createAuth(env)` is called per-request because env is a Ploy binding, not a module-scope value.
 - **Widget asset** (`/widget.js`): served by api with `cache-control: public, max-age=300`.
-- **Inbound email** (`/inbound-email`-ish via `routes/inbound-email.ts`): Resend webhook for replies; `email Message-ID` is stored on `message.emailMessageId` so reply matching can find the conversation.
+- **Inbound email** (`routes/inbound-email.ts`): Resend webhook for replies; `email Message-ID` is stored on `message.emailMessageId` so reply matching can find the conversation.
 
 ### Data model (`packages/db/src/schema.ts`)
-- Better Auth tables (`user`, `session`, `account`, `verification`, `passkey`).
-- `workspace` (billing entity) → `member` (RBAC: owner/admin/agent) → `project` (the embed unit, has `publicKey` for widget bootstrap and `inboundEmailLocal` for reply email).
+- Better Auth tables (`user`, `session`, `account`, `verification`, `passkey` — kept in schema for future use even though the runtime plugin is removed).
+- `workspace` (billing entity) → `member` (RBAC: owner/admin/agent) → `project` (the embed unit; `publicKey` for widget bootstrap, `inboundEmailLocal` for reply email).
 - `conversation` keyed by `(projectId, clientId)`; messages are append-only with a per-conversation `sequence`. `message.role` is one of `user | assistant | admin`.
-- `usageEvent` is the source of truth for metering (workspace + project + tokens + cost). Stripe billing is currently a 501 stub in `apps/api/src/routes/billing.ts`.
-- IDs: `crypto.randomUUID()` defaults via Drizzle `$defaultFn`. Timestamps stored as unix seconds (`integer({ mode: "timestamp" })`).
+- `usageEvent` is the source of truth for metering. Stripe billing is a 501 stub in `apps/api/src/routes/billing.ts`.
+- IDs default via `crypto.randomUUID()` (`$defaultFn`). Timestamps stored as unix seconds.
 
 ### Streaming chat write pattern (`apps/api/src/routes/chat.ts`)
-The handler returns `result.toUIMessageStreamResponse()` immediately and uses `c.executionCtx.waitUntil(...)` to persist the assistant message + bump `conversation.messageCount` + insert the `usageEvent` *after* the stream finishes. When changing chat persistence, keep DB writes inside `waitUntil` so they don't block the response, and increment `sequence` from the pre-fetched `messageCount` (user message = N+1, assistant = N+2).
+The handler returns `result.toUIMessageStreamResponse()` immediately and uses `c.executionCtx.waitUntil(...)` to persist the assistant message + bump `conversation.messageCount` + insert the `usageEvent` *after* the stream finishes. When changing chat persistence, keep DB writes inside `waitUntil` so they don't block the response. Increment `sequence` from the pre-fetched `messageCount` (user = N+1, assistant = N+2).
 
 ### Path aliases & imports
 - `apps/api` uses `@/*` → `src/*` (see `apps/api/tsconfig.json`).
-- `@llmchat/db` re-exports tables and the `eq`/query operators from drizzle-orm so route files can `import { eq, conversation } from "@llmchat/db"` rather than mixing two import sources.
-- `@llmchat/shared` is Zod-only (note `z.email()`, `z.url()`, `z.iso.datetime()` — Zod v4 syntax, not v3).
+- `@llmchat/db` re-exports tables and `eq`/query operators from drizzle-orm so route files can `import { eq, conversation } from "@llmchat/db"`.
+- `@llmchat/shared` is Zod-only (Zod v4: `z.email()`, `z.url()`, `z.iso.datetime()`).
 
 ### Widget
-`packages/widget` is a Vite IIFE lib (`vite.config.ts`: `formats: ["iife"]`, `inlineDynamicImports: true`, `cssCodeSplit: false`) intended to be a single self-contained `widget.js` mounted into a shadow DOM on customer sites. Currently uses `@ai-sdk/react` + `ai` for the SSE consumer, which is heavy for a public embed; if you need to optimize bundle size, the planned route is replacing the AI SDK with a hand-rolled SSE client.
+`packages/widget` is a Vite IIFE lib (`vite.config.ts`: `formats: ["iife"]`, `inlineDynamicImports: true`, `cssCodeSplit: false`) — a single self-contained `widget.js` mounted into a shadow DOM. Currently pulls in `@ai-sdk/react` + `ai` (~227KB gzip), too heavy for a public embed; planned: replace with a hand-rolled SSE client.
 
 ## Conventions
 
-- Prettier with **tabs** (see `.editorconfig`, `.prettierrc`). Don't reformat to spaces.
-- Drizzle `casing: "snake_case"` — TS field names are camelCase, DB columns are snake_case automatically. Define columns without explicit names unless overriding.
-- Errors from API routes return `c.json({ error: "..." }, status)`; route files return `Hono` instances and are mounted in `apps/api/src/index.ts`.
-- D1 is the only database; do not introduce other DB drivers. KV is for ephemeral state (rate limits, caches), not source-of-truth data.
+- Prettier with **tabs** (see `.editorconfig`, `.prettierrc`).
+- Drizzle `casing: "snake_case"` — TS fields are camelCase, DB columns are snake_case automatically.
+- Routes return `c.json({ error: "..." }, status)` on errors; each route file exports a `Hono` instance mounted in `apps/api/src/index.ts`.
+- The Ploy `db:` binding is the only database; the `state:` binding is for ephemeral data (rate limits, caches), not source-of-truth.
+- Resource names (right-hand side of binding maps) must be lowercase + underscores (e.g. `llmchat_db`, not `llmchat-db`). Ploy validation rejects hyphens.

@@ -1,7 +1,6 @@
-name: marketing
-runtime: nextjs
+kind: nextjs
 build: pnpm --filter @llmchat/marketing build
+out: .next
 
-routes:
-  - llmchat.io/*
-  - www.llmchat.io/*
+dev:
+  port: 3002

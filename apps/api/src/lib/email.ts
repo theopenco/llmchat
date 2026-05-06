@@ -1,5 +1,3 @@
-import { Resend } from "resend";
-
 import type { Env } from "@/env";
 
 export interface SendArgs {
@@ -12,20 +10,27 @@ export interface SendArgs {
 }
 
 export async function sendEmail(env: Env, args: SendArgs) {
-	const resend = new Resend(env.RESEND_API_KEY);
-	const result = await resend.emails.send({
-		from: env.RESEND_FROM_EMAIL,
-		to: args.to,
-		subject: args.subject,
-		html: args.html,
-		text: args.text,
-		replyTo: args.replyTo,
-		headers: args.headers,
+	const res = await fetch("https://api.resend.com/emails", {
+		method: "POST",
+		headers: {
+			authorization: `Bearer ${env.RESEND_API_KEY}`,
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({
+			from: env.RESEND_FROM_EMAIL,
+			to: args.to,
+			subject: args.subject,
+			html: args.html,
+			text: args.text,
+			reply_to: args.replyTo,
+			headers: args.headers,
+		}),
 	});
-	if (result.error) {
-		throw new Error(`Resend error: ${result.error.message}`);
+	if (!res.ok) {
+		const body = await res.text();
+		throw new Error(`Resend error ${res.status}: ${body}`);
 	}
-	return result.data;
+	return (await res.json()) as { id: string };
 }
 
 export function buildReplyToAddress(env: Env, inboundEmailLocal: string) {
