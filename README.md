@@ -31,19 +31,10 @@ packages/
 ```sh
 pnpm install
 cp apps/api/.env.example apps/api/.env   # fill in keys before running
-
-# Run the api (worker) via Ploy workspace mode:
-pnpm dev                                 # = ploy dev — boots api on :8787
-
-# Run a Next.js app (workspace mode skips them):
-pnpm --filter @llmchat/dashboard dev     # next dev on :3001
-pnpm --filter @llmchat/marketing dev     # next dev on :3002
-
-# Or run a single project under Ploy directly:
-cd apps/dashboard && pnpm exec ploy dev  # next dev + Ploy mock dashboard
+pnpm dev                                 # = ploy dev — boots all apps
 ```
 
-`ploy dev` from the repo root uses workspace mode. Workspace mode currently runs **worker/dynamic projects only** — Next.js apps are skipped with a warning and need to be started separately. Defaults: api worker on `8787`, workspace Ploy dashboard on `9787`.
+`ploy dev` at the repo root runs all projects together: api on `:8787`, dashboard on `:3001`, marketing on `:3002`, and the shared Ploy dashboard on `:9787`.
 
 Migrations live at `apps/api/migrations/` (Ploy convention) and are applied automatically by `ploy dev`. To regenerate from the Drizzle schema:
 

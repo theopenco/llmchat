@@ -20,15 +20,13 @@ The Ploy yaml schema only accepts the fields documented in `packages/tools/src/p
 - `ploy-workspace.yaml` accepts `exclude`, `env`, `ports.worker.from`, `dashboard.port`. Nothing else.
 - Migrations: there is no `migrations:` field. The Ploy build/emulator scans `<project>/migrations/` and applies `*.sql` files to all DB bindings (or `<project>/migrations/<BINDING>/*.sql` for a specific binding).
 
-`ploy dev` from the repo root runs **workspace mode**: starts each `worker`/`dynamic` project, allocates ports starting at 8787, and serves a shared dashboard on 9787. Next.js projects are skipped in workspace mode — run them separately. Per-project `dev: { port }` is honored for worker projects but ignored for Next.js (Next.js defaults to 3000).
+`ploy dev` from the repo root runs **workspace mode**: starts every project (worker, dynamic, and Next.js), allocates ports per each `dev: { port }` in their ploy.yaml, and serves a shared Ploy dashboard on 9787. As of `@meetploy/cli@1.35.0`, Next.js apps are included.
 
 ## Commands
 
 ```sh
 pnpm install
-pnpm dev                                  # = ploy dev — boots api on :8787 (skips Next.js)
-pnpm --filter @llmchat/dashboard dev      # next dev on :3001
-pnpm --filter @llmchat/marketing dev      # next dev on :3002
+pnpm dev                                  # = ploy dev — boots api :8787, dashboard :3001, marketing :3002
 pnpm build                                # turbo run build across all workspaces
 pnpm lint                                 # turbo run lint (prettier --check)
 pnpm format                               # turbo run format (prettier --write)

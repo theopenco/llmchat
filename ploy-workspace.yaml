@@ -1,8 +1,7 @@
 # Workspace-level config for `ploy dev`.
-# `ploy dev` from the repo root runs all worker/dynamic projects (api).
-# Next.js projects (dashboard, marketing) are skipped by workspace dev —
-# run them in their own dirs with `pnpm --filter @llmchat/<app> dev` or
-# `cd apps/<app> && ploy dev`.
+# `ploy dev` from the repo root boots every project (api worker, dashboard
+# Next.js, marketing Next.js). Per-project ports come from each ploy.yaml's
+# `dev:` block.
 
 dashboard:
   port: 9787

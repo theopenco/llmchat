@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@meetploy/cli':
-        specifier: ^1.34.0
-        version: 1.34.0(@cloudflare/workers-types@4.20260504.1)
+        specifier: ^1.35.0
+        version: 1.35.0(@cloudflare/workers-types@4.20260504.1)
       '@types/node':
         specifier: ^22.10.0
         version: 22.19.17
@@ -1504,8 +1504,8 @@ packages:
   '@llmgateway/models@1.74.2':
     resolution: {integrity: sha512-zxzyC5WLVC0iqGNvAcQzryWxYxVgK1xTapxIgpomUQRC1k4jMbWQoLZvPMbGsG0P6gMyl5rKU6x/xsz/1zuf7w==}
 
-  '@meetploy/cli@1.34.0':
-    resolution: {integrity: sha512-6wQf6hpaA5pKmV29eJEe4PmuajMKppDIxM8xPvnJ4DjeyT5EwSGJMAtSCLlYpjfkEdMME8v9AKQcnied28aC6w==}
+  '@meetploy/cli@1.35.0':
+    resolution: {integrity: sha512-CkYPqUZcpVwXmFksqp/AwX5gW0EMYqIpEYZ6V6RitH4I3XLZqutFvngYREXf9h1vIeZv09s1dN/gZ8ndjkhq8Q==}
     hasBin: true
 
   '@next/env@15.1.0':
@@ -3750,7 +3750,7 @@ snapshots:
 
   '@llmgateway/models@1.74.2': {}
 
-  '@meetploy/cli@1.34.0(@cloudflare/workers-types@4.20260504.1)':
+  '@meetploy/cli@1.35.0(@cloudflare/workers-types@4.20260504.1)':
     dependencies:
       '@hono/node-server': 1.19.14(hono@4.12.16)
       chokidar: 4.0.3
