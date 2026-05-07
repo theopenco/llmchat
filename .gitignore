@@ -17,3 +17,6 @@ dist/
 *.db-journal
 out/
 coverage/
+.claude/
+.playwright-mcp/
+next-env.d.ts
