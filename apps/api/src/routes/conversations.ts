@@ -130,7 +130,7 @@ export const conversations = new Hono<AppContext>()
 			}
 
 			const nextSeq = conv.messageCount + 1;
-			const messageId = `${crypto.randomUUID()}@${c.env.INBOUND_EMAIL_DOMAIN}`;
+			const messageId = `${crypto.randomUUID()}@${c.env.vars.INBOUND_EMAIL_DOMAIN}`;
 
 			await db(c.env).insert(messageTable).values({
 				conversationId: conv.id,

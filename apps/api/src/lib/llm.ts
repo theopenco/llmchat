@@ -19,8 +19,8 @@ export function buildSystem(systemPrompt: string, knowledgeText: string) {
 
 export async function streamChat(env: Env, input: LlmCallInput) {
 	const gateway = createLLMGateway({
-		apiKey: env.LLMGATEWAY_API_KEY,
-		baseURL: env.LLMGATEWAY_BASE_URL,
+		apiKey: env.vars.LLMGATEWAY_API_KEY,
+		baseURL: env.vars.LLMGATEWAY_BASE_URL,
 	});
 
 	return streamText({

@@ -13,11 +13,11 @@ export async function sendEmail(env: Env, args: SendArgs) {
 	const res = await fetch("https://api.resend.com/emails", {
 		method: "POST",
 		headers: {
-			authorization: `Bearer ${env.RESEND_API_KEY}`,
+			authorization: `Bearer ${env.vars.RESEND_API_KEY}`,
 			"content-type": "application/json",
 		},
 		body: JSON.stringify({
-			from: env.RESEND_FROM_EMAIL,
+			from: env.vars.RESEND_FROM_EMAIL,
 			to: args.to,
 			subject: args.subject,
 			html: args.html,
@@ -34,7 +34,7 @@ export async function sendEmail(env: Env, args: SendArgs) {
 }
 
 export function buildReplyToAddress(env: Env, inboundEmailLocal: string) {
-	return `reply+${inboundEmailLocal}@${env.INBOUND_EMAIL_DOMAIN}`;
+	return `reply+${inboundEmailLocal}@${env.vars.INBOUND_EMAIL_DOMAIN}`;
 }
 
 export function escapeHtml(text: string) {

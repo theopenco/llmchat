@@ -1,7 +1,4 @@
-export interface Env {
-	DB: D1Database;
-	CACHE: KVNamespace;
-
+export interface EnvVars {
 	LLMGATEWAY_API_KEY: string;
 	LLMGATEWAY_BASE_URL: string;
 
@@ -17,6 +14,12 @@ export interface Env {
 	DASHBOARD_URL: string;
 
 	WIDGET_ALLOWED_ORIGINS: string;
+}
+
+export interface Env {
+	DB: D1Database;
+	CACHE: KVNamespace;
+	vars: EnvVars;
 }
 
 export interface Variables {

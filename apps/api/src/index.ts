@@ -18,7 +18,7 @@ app.use(
 	"/api/*",
 	cors({
 		origin: (origin, c) => {
-			const allowed = c.env.DASHBOARD_URL;
+			const allowed = c.env.vars.DASHBOARD_URL;
 			return origin === allowed ? origin : null;
 		},
 		credentials: true,
@@ -29,7 +29,7 @@ app.use(
 	"/v1/*",
 	cors({
 		origin: (origin, c) => {
-			const list = (c.env.WIDGET_ALLOWED_ORIGINS ?? "")
+			const list = (c.env.vars.WIDGET_ALLOWED_ORIGINS ?? "")
 				.split(",")
 				.map((s: string) => s.trim())
 				.filter(Boolean);

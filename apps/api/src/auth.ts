@@ -3,17 +3,22 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
 import { db } from "@/lib/db";
 
+import { account, session, user, verification } from "@llmchat/db";
+
 import type { Env } from "@/env";
 
 export function createAuth(env: Env) {
 	return betterAuth({
-		database: drizzleAdapter(db(env), { provider: "sqlite" }),
-		secret: env.BETTER_AUTH_SECRET,
-		baseURL: env.BETTER_AUTH_URL,
+		database: drizzleAdapter(db(env), {
+			provider: "sqlite",
+			schema: { user, session, account, verification },
+		}),
+		secret: env.vars.BETTER_AUTH_SECRET,
+		baseURL: env.vars.BETTER_AUTH_URL,
 		emailAndPassword: {
 			enabled: true,
 		},
-		trustedOrigins: [env.DASHBOARD_URL],
+		trustedOrigins: [env.vars.DASHBOARD_URL],
 	});
 }
 
