@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+const dashboardUrl =
+	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
+
 const features = [
 	{
 		title: "Drop-in widget",
@@ -37,7 +40,7 @@ export default function Home() {
 						Features
 					</a>
 					<Link
-						href="https://app.llmchat.io"
+						href={dashboardUrl}
 						className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
 					>
 						Sign in
@@ -56,7 +59,7 @@ export default function Home() {
 				</p>
 				<div className="mt-8 flex gap-3">
 					<Link
-						href="https://app.llmchat.io"
+						href={dashboardUrl}
 						className="rounded-md bg-gray-900 px-5 py-3 text-white"
 					>
 						Get started free
