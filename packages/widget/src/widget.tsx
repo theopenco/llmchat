@@ -50,7 +50,7 @@ export function Widget({ projectKey, apiUrl, brandColor }: WidgetProps) {
 			new Chat({
 				transport: new DefaultChatTransport({
 					api: `${apiUrl}/v1/chat`,
-					body: { projectKey, clientId, name, email },
+					body: { projectKey, clientId, name, email: email || undefined },
 				}),
 			}),
 		[apiUrl, projectKey, clientId, name, email],
@@ -94,7 +94,7 @@ export function Widget({ projectKey, apiUrl, brandColor }: WidgetProps) {
 					projectKey,
 					clientId,
 					name,
-					email,
+					email: email || undefined,
 					messages: messages.map((m) => ({
 						role: m.role,
 						content: getText(m),

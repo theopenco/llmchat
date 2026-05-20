@@ -22,7 +22,7 @@ const chatBody = z.object({
 	projectKey: z.string(),
 	clientId: z.string(),
 	name: z.string().optional(),
-	email: z.email().optional(),
+	email: z.union([z.email(), z.literal("")]).optional().transform((v) => v || undefined),
 	messages: z.array(z.any()),
 });
 
@@ -30,7 +30,7 @@ const escalateBody = z.object({
 	projectKey: z.string(),
 	clientId: z.string(),
 	name: z.string().optional(),
-	email: z.email().optional(),
+	email: z.union([z.email(), z.literal("")]).optional().transform((v) => v || undefined),
 	messages: z.array(
 		z.object({ role: z.string(), content: z.string() }),
 	),
