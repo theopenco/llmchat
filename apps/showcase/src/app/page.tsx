@@ -1,4 +1,6 @@
-export function App() {
+import { WidgetMount } from "@/components/WidgetMount";
+
+export default function Page() {
 	return (
 		<main className="page">
 			<header className="topbar">
@@ -56,8 +58,11 @@ export function App() {
 
 			<footer className="footer">
 				Showcase only. Edit{" "}
-				<code>apps/showcase/src/main.tsx</code> to change widget config.
+				<code>apps/showcase/src/components/WidgetMount.tsx</code> to change
+				widget config.
 			</footer>
+
+			<WidgetMount />
 		</main>
 	);
 }

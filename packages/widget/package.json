@@ -5,7 +5,7 @@
 	"type": "module",
 	"exports": {
 		".": "./src/widget.tsx",
-		"./styles.css": "./src/styles.css"
+		"./styles": "./src/styles.ts"
 	},
 	"scripts": {
 		"build": "vite build",

@@ -1,0 +1,6 @@
+kind: nextjs
+build: pnpm --filter @llmchat/showcase build
+out: .next
+
+dev:
+  port: 3003

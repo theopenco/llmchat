@@ -1,3 +1,7 @@
+// Source of truth for the widget's shadow-DOM stylesheet. Exported as a
+// string so it can be consumed from both Vite (IIFE bundle) and Next.js
+// (server-rendered host page) without bundler-specific `?inline` syntax.
+export const widgetStyles = `
 :host,
 .llmchat {
 	font-family:
@@ -145,3 +149,4 @@
 	gap: 0.5rem;
 	align-items: flex-end;
 }
+`;

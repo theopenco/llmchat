@@ -4,21 +4,22 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "vite build",
-		"dev": "vite",
+		"build": "next build",
+		"dev": "next dev -p 3003",
 		"format": "prettier --write .",
-		"lint": "prettier --check ."
+		"lint": "prettier --check .",
+		"start": "next start -p 3003"
 	},
 	"dependencies": {
 		"@llmchat/widget": "workspace:*",
+		"next": "15.1.0",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0"
 	},
 	"devDependencies": {
+		"@types/node": "^22.10.0",
 		"@types/react": "^19.0.0",
 		"@types/react-dom": "^19.0.0",
-		"@vitejs/plugin-react": "^4.3.0",
-		"typescript": "5.9.2",
-		"vite": "^7.3.2"
+		"typescript": "5.9.2"
 	}
 }

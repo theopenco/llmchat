@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { Widget } from "./widget";
-import styles from "./styles.css?inline";
+import { widgetStyles } from "./styles";
 
 interface BootConfig {
 	projectKey: string;
@@ -29,7 +29,7 @@ function mount() {
 	const shadow = host.attachShadow({ mode: "open" });
 
 	const styleEl = document.createElement("style");
-	styleEl.textContent = styles;
+	styleEl.textContent = widgetStyles;
 	shadow.appendChild(styleEl);
 
 	const reactRoot = document.createElement("div");
