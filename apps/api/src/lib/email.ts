@@ -10,6 +10,14 @@ export interface SendArgs {
 }
 
 export async function sendEmail(env: Env, args: SendArgs) {
+	if (!env.vars.RESEND_API_KEY) {
+		console.log("[email] RESEND_API_KEY not set — logging instead of sending");
+		console.log(`[email] to: ${args.to}`);
+		console.log(`[email] subject: ${args.subject}`);
+		if (args.replyTo) console.log(`[email] reply-to: ${args.replyTo}`);
+		console.log(`[email] body: ${args.html}`);
+		return { id: "dev-noop" };
+	}
 	const res = await fetch("https://api.resend.com/emails", {
 		method: "POST",
 		headers: {
