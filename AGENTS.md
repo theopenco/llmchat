@@ -6,7 +6,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 - pnpm workspaces + Turborepo. Node >=22, TypeScript 5.9, strict mode (see `tsconfig.base.json`).
 - **api** runs on **workerd** via the **Ploy** platform (https://docs.meetploy.com). Each project has its own `ploy.yaml`; the repo root has a `ploy-workspace.yaml`.
-- **dashboard** and **marketing** are Next.js 15 / React 19 apps, declared as `kind: nextjs` in their ploy.yaml.
+- **dashboard**, **marketing**, and **showcase** are Next.js 15 / React 19 apps, declared as `kind: nextjs` in their ploy.yaml. Note: Ploy 1.35 workspace mode only launches `worker | dynamic | nextjs` — Vite apps are skipped, so anything that needs `pnpm dev` integration has to be Next.js.
 - **db** is a single Ploy `db:` binding (D1-compatible SQLite). Migrations live at `apps/api/migrations/` (Ploy auto-discovers and applies them on `ploy dev` and deploy). The Drizzle schema is in `packages/db/src/schema.ts` and emits SQL into that directory via `packages/db/drizzle.config.ts` (`out: ../../apps/api/migrations`).
 - **cache / rate-limit** uses a Ploy `state:` binding (KV-compatible API: `get`/`put`/`delete`/`list`).
 - Inference uses **LLM Gateway** via `@llmgateway/ai-sdk-provider` + `ai` (Vercel AI SDK v6 — `streamText`, `UIMessage`, `convertToModelMessages`).
@@ -26,7 +26,7 @@ The Ploy yaml schema only accepts the fields documented in `packages/tools/src/p
 
 ```sh
 pnpm install
-pnpm dev                                  # = ploy dev — boots api :8787, dashboard :3001, marketing :3002
+pnpm dev                                  # = ploy dev — boots api :8787, dashboard :3001, marketing :3002, showcase :3003
 pnpm build                                # turbo run build across all workspaces
 pnpm lint                                 # turbo run lint (prettier --check)
 pnpm format                               # turbo run format (prettier --write)
@@ -41,6 +41,23 @@ Per-package:
 There is no test runner configured (turbo `test` task exists but no package implements it).
 
 Local env: `cp apps/api/.env.example apps/api/.env` and fill in keys. `ploy dev` interpolates `.env` values into the `env:` block of `apps/api/ploy.yaml` (each value uses `$VAR_NAME`).
+
+### Zero-setup local dev
+
+`apps/api/migrations/0001_dev_seed.sql` is an idempotent (`INSERT OR IGNORE`) seed applied automatically by `ploy dev`. It creates:
+
+- **Admin user:** `admin@example.com` / `admin@example.com` (Better Auth scrypt hash with a fixed salt — only matches that literal password, safe to commit).
+- **Dev workspace + owner member** for the user.
+- **Demo project** with `publicKey = local-dev-key`, `inboundEmailLocal = dev`, brand `#4f46e5`.
+
+To exercise the full loop locally:
+
+1. `pnpm dev` — boots api, dashboard, marketing, showcase; migrations apply the seed.
+2. Open `http://localhost:3003` — the **showcase** (`apps/showcase`) is a fake "Acme Tools" landing page that embeds the widget via `WidgetMount.tsx`, pinned to `local-dev-key` and `http://localhost:8787`.
+3. Chat with the bubble; send 3+ messages to trigger "Talk to a human".
+4. Sign in at `http://localhost:3001` with the admin credentials to see the conversation in the dashboard inbox.
+
+The seed hash is computed for scrypt `{ N: 16384, r: 16, p: 1, dkLen: 64 }` — Better Auth's defaults via `@better-auth/utils/password`. If they ever change those params, regenerate the hash and update `0001_dev_seed.sql`.
 
 ## Architecture
 
@@ -71,6 +88,12 @@ The handler returns `result.toUIMessageStreamResponse()` immediately and uses `c
 
 ### Widget
 `packages/widget` is a Vite IIFE lib (`vite.config.ts`: `formats: ["iife"]`, `inlineDynamicImports: true`, `cssCodeSplit: false`) — a single self-contained `widget.js` mounted into a shadow DOM. Currently pulls in `@ai-sdk/react` + `ai` (~227KB gzip), too heavy for a public embed; planned: replace with a hand-rolled SSE client.
+
+Two entry points exposed via package `exports`:
+- `@llmchat/widget` → `src/widget.tsx` (the `Widget` React component, for in-tree consumers like `apps/showcase`).
+- `@llmchat/widget/styles` → `src/styles.ts` (a `widgetStyles` string for injecting into a shadow root `<style>` element).
+
+The CSS lives as a TS template literal rather than a `.css` file because Next.js (the showcase consumer) doesn't grok Vite's `?inline` syntax — keeping it as a string export works for both bundlers.
 
 ## Conventions
 
