@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
@@ -30,25 +30,12 @@ interface Project {
 }
 
 export default function InboxPage() {
-	const { workspaceId, setWorkspaceId } = useWorkspace();
+	const { workspaces, workspaceId, isLoading: workspacesLoading } =
+		useWorkspace();
+	const qc = useQueryClient();
 	const [projectId, setProjectId] = useState<string | null>(null);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [reply, setReply] = useState("");
-
-	const workspaces = useQuery({
-		queryKey: ["workspaces"],
-		queryFn: () =>
-			api<{ workspaces: { workspace: { id: string; name: string } }[] }>(
-				"/api/workspaces",
-			),
-	});
-
-	useEffect(() => {
-		const first = workspaces.data?.workspaces[0]?.workspace.id;
-		if (!workspaceId && first) {
-			setWorkspaceId(first);
-		}
-	}, [workspaces.data, workspaceId, setWorkspaceId]);
 
 	const projects = useQuery({
 		queryKey: ["projects", workspaceId],
@@ -102,7 +89,11 @@ export default function InboxPage() {
 		await conversations.refetch();
 	}
 
-	if (!workspaces.data?.workspaces.length) {
+	if (workspacesLoading) {
+		return null;
+	}
+
+	if (workspaces.length === 0) {
 		return (
 			<div className="p-8">
 				<p className="mb-4">No workspace yet. Create one to get started.</p>
@@ -113,7 +104,7 @@ export default function InboxPage() {
 							method: "POST",
 							body: { name: "My workspace" },
 						});
-						await workspaces.refetch();
+						await qc.invalidateQueries({ queryKey: ["workspaces"] });
 					}}
 				>
 					Create workspace

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useSession } from "@/lib/auth-client";
+import { useWorkspace } from "@/lib/workspace";
 
 export default function InboxLayout({
 	children,
@@ -12,6 +13,7 @@ export default function InboxLayout({
 	children: React.ReactNode;
 }) {
 	const { data, isPending } = useSession();
+	const { workspaces, workspaceId } = useWorkspace();
 	const router = useRouter();
 
 	useEffect(() => {
@@ -24,6 +26,8 @@ export default function InboxLayout({
 		return null;
 	}
 
+	const currentWorkspace = workspaces.find((w) => w.id === workspaceId);
+
 	return (
 		<div className="flex min-h-screen flex-col">
 			<header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
@@ -31,6 +35,11 @@ export default function InboxLayout({
 					<Link href="/inbox" className="font-semibold">
 						llmchat
 					</Link>
+					{currentWorkspace && (
+						<span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+							{currentWorkspace.name}
+						</span>
+					)}
 					<nav className="flex gap-4 text-sm text-gray-600">
 						<Link href="/inbox">Inbox</Link>
 						<Link href="/settings/projects">Projects</Link>
