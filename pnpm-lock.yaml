@@ -141,6 +141,34 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  apps/showcase:
+    dependencies:
+      '@llmchat/widget':
+        specifier: workspace:*
+        version: link:../../packages/widget
+      react:
+        specifier: ^19.0.0
+        version: 19.2.5
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.5(react@19.2.5)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.14)
+      '@vitejs/plugin-react':
+        specifier: ^4.3.0
+        version: 4.7.0(vite@7.3.2(@types/node@22.19.17)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.1))
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vite:
+        specifier: ^7.3.2
+        version: 7.3.2(@types/node@22.19.17)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.1)
+
   packages/db:
     dependencies:
       drizzle-orm:

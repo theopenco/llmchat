@@ -1,0 +1,47 @@
+-- Dev seed: a default admin user, workspace, and project so the showcase
+-- and dashboard work out-of-the-box without manual signup.
+--
+-- Sign in:   admin@example.com  /  admin@example.com
+-- Widget key: local-dev-key
+--
+-- The password hash is scrypt(N=16384,r=16,p=1,dkLen=64) in better-auth's
+-- "<saltHex>:<keyHex>" format. Salt is fixed so this seed is reproducible.
+-- Safe to ship because it only matches the literal password "admin@example.com".
+
+INSERT OR IGNORE INTO `user` (`id`, `name`, `email`, `email_verified`)
+VALUES ('dev-admin', 'Local Admin', 'admin@example.com', 1);
+
+INSERT OR IGNORE INTO `account` (`id`, `user_id`, `account_id`, `provider_id`, `password`)
+VALUES (
+	'dev-admin-credential',
+	'dev-admin',
+	'dev-admin',
+	'credential',
+	'00112233445566778899aabbccddeeff:6aa30175b1e2659cbb0b45ea9f596ceb4ea420c505b22c28b7586a38cac986936f2746c188fe58479ea438173abfe48ef33e82de00103d698478e1573d8e87f3'
+);
+
+INSERT OR IGNORE INTO `workspace` (`id`, `name`, `owner_id`)
+VALUES ('dev-workspace', 'Dev Workspace', 'dev-admin');
+
+INSERT OR IGNORE INTO `member` (`id`, `workspace_id`, `user_id`, `role`)
+VALUES ('dev-member', 'dev-workspace', 'dev-admin', 'owner');
+
+INSERT OR IGNORE INTO `project` (
+	`id`,
+	`workspace_id`,
+	`name`,
+	`public_key`,
+	`system_prompt`,
+	`welcome_message`,
+	`brand_color`,
+	`inbound_email_local`
+) VALUES (
+	'dev-project',
+	'dev-workspace',
+	'Acme Tools (demo)',
+	'local-dev-key',
+	'You are the support bot for Acme Tools, a fictional SaaS for managing hardware inventory. Keep replies short and friendly.',
+	'Hi! Ask me anything about Acme Tools.',
+	'#4f46e5',
+	'dev'
+);

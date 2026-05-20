@@ -6,6 +6,7 @@
 		"build": "turbo run build",
 		"clean": "find . -path \"./node_modules\" -prune -o \\( -type d -name \"dist\" -o -name \".turbo\" -o -name \".next\" -o -name \".ploy\" \\) -exec rm -rf {} +",
 		"dev": "ploy dev",
+		"dev:showcase": "pnpm --filter @llmchat/showcase dev",
 		"format": "turbo run format",
 		"lint": "turbo run lint",
 		"migrate": "pnpm --filter @llmchat/db migrate",
