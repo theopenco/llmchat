@@ -5,9 +5,8 @@
 		"jsx": "react-jsx",
 		"noEmit": true,
 		"declaration": false,
-		"baseUrl": ".",
 		"paths": {
-			"@/*": ["src/*"]
+			"@/*": ["./src/*"]
 		}
 	},
 	"include": ["src"]

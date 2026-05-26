@@ -11,9 +11,8 @@
 				"name": "next"
 			}
 		],
-		"baseUrl": ".",
 		"paths": {
-			"@/*": ["src/*"]
+			"@/*": ["./src/*"]
 		},
 		"allowJs": true
 	},
