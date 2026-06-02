@@ -42,6 +42,9 @@ export default function Home() {
 					<Link href="/blog" className="text-gray-600 hover:text-gray-900">
 						Blog
 					</Link>
+					<Link href="/compare" className="text-gray-600 hover:text-gray-900">
+						Compare
+					</Link>
 					<Link
 						href={dashboardUrl}
 						className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
