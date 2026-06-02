@@ -8,11 +8,10 @@ import { rateLimit } from "@/lib/kv";
 import { streamChat } from "@/lib/llm";
 
 import {
-	conversation,
-	eq,
-	message as messageTable,
-	project,
-	usageEvent,
+    conversation,
+    eq,
+    message as messageTable,
+    usageEvent
 } from "@llmchat/db";
 
 import type { AppContext } from "@/env";
@@ -126,10 +125,30 @@ export const chat = new Hono<AppContext>()
 				sequence: nextSeq,
 			});
 
+		let activePromptContent = project.systemPrompt;
+		const activePromptId = project.activeSystemPromptId;
+		if (activePromptId) {
+			const active = await db(c.env).query.systemPrompt.findFirst({
+				where: (sp, { and: a, eq: e }) =>
+					a(e(sp.id, activePromptId), e(sp.projectId, project.id)),
+			});
+			if (active) activePromptContent = active.content;
+		}
+
+		const activeSources = await db(c.env).query.source.findMany({
+			where: (s, { and: a, eq: e }) =>
+				a(e(s.projectId, project.id), e(s.active, true)),
+		});
+
 		const result = await streamChat(c.env, {
 			model: project.model,
-			systemPrompt: project.systemPrompt,
+			systemPrompt: activePromptContent,
 			knowledgeText: project.knowledgeText,
+			sources: activeSources.map((s) => ({
+				title: s.title || s.url,
+				url: s.url,
+				content: s.content,
+			})),
 			messages: messages as UIMessage[],
 		});
 
