@@ -8,6 +8,8 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
+
+
 const id = () =>
 	text()
 		.primaryKey()
@@ -131,9 +133,12 @@ export const project = sqliteTable(
 		name: text().notNull(),
 		publicKey: text().notNull().unique(),
 		systemPrompt: text().notNull().default(""),
+		activeSystemPromptId: text(),
+		favorite: integer({ mode: "boolean" }).notNull().default(false),
+		pinned: integer({ mode: "boolean" }).notNull().default(false),
 		// Plain-text knowledge base for v1; replaced by RAG later.
 		knowledgeText: text().notNull().default(""),
-		model: text().notNull().default("openai/gpt-4o-mini"),
+		model: text().notNull().default("gpt-4o-search-preview"),
 		brandColor: text().notNull().default("#000000"),
 		welcomeMessage: text()
 			.notNull()
@@ -177,6 +182,42 @@ export const conversation = sqliteTable(
 		index("conversation_client").on(t.projectId, t.clientId),
 	],
 );
+
+export const systemPrompt = sqliteTable(
+	"system_prompt",
+	{
+		id: id(),
+		projectId: text()
+			.notNull()
+			.references(() => project.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		content: text().notNull().default(""),
+		favorite: integer({ mode: "boolean" }).notNull().default(false),
+		createdAt: createdAt(),
+		updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+	},
+	(t) => [index("system_prompt_project").on(t.projectId)],
+);
+
+export const source = sqliteTable(
+	"source",
+	{
+		id: id(),
+		projectId: text()
+			.notNull()
+			.references(() => project.id, { onDelete: "cascade" }),
+		url: text().notNull(),
+		title: text().notNull().default(""),
+		content: text().notNull().default(""),
+		active: integer({ mode: "boolean" }).notNull().default(true),
+		lastFetchedAt: timestamp(),
+		lastError: text(),
+		createdAt: createdAt(),
+		updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+	},
+	(t) => [index("source_project").on(t.projectId)],
+);
+
 
 export const message = sqliteTable(
 	"message",
