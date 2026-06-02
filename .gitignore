@@ -20,3 +20,4 @@ coverage/
 .claude/
 .playwright-mcp/
 next-env.d.ts
+.soulforge
