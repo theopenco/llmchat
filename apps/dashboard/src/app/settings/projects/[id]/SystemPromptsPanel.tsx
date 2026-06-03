@@ -5,17 +5,47 @@ import { useMemo, useState, useEffect } from "react";
 
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Sparkles, Plus, Star, Trash2, Check, Search, LayoutTemplate } from "lucide-react";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+	Sparkles,
+	Plus,
+	Star,
+	Trash2,
+	Check,
+	Search,
+	LayoutTemplate,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 
 interface SystemPrompt {
@@ -107,8 +137,7 @@ export function SystemPromptsPanel({
 			if (filter === "active" && p.id !== activeId) return false;
 			if (!q) return true;
 			return (
-				p.name.toLowerCase().includes(q) ||
-				p.content.toLowerCase().includes(q)
+				p.name.toLowerCase().includes(q) || p.content.toLowerCase().includes(q)
 			);
 		});
 	}, [sorted, search, filter, activeId]);
@@ -118,9 +147,7 @@ export function SystemPromptsPanel({
 	useEffect(() => {
 		if (!promptsQ.data) return;
 		if (selectedId && prompts.some((p) => p.id === selectedId)) return;
-		const next = activeId
-			? prompts.find((p) => p.id === activeId)
-			: sorted[0];
+		const next = activeId ? prompts.find((p) => p.id === activeId) : sorted[0];
 		if (next) {
 			setSelectedId(next.id);
 			setEditName(next.name);
@@ -230,8 +257,7 @@ export function SystemPromptsPanel({
 			return { prev };
 		},
 		onError: (_e, _v, ctx) => {
-			if (ctx?.prev)
-				qc.setQueryData(["system-prompts", projectId], ctx.prev);
+			if (ctx?.prev) qc.setQueryData(["system-prompts", projectId], ctx.prev);
 		},
 		onSettled: () => {
 			qc.invalidateQueries({ queryKey: ["system-prompts", projectId] });
@@ -406,9 +432,7 @@ export function SystemPromptsPanel({
 								</ToggleGroupItem>
 								<ToggleGroupItem value="favorites" className="flex-1">
 									Starred
-									<span className="ml-1 text-muted-foreground">
-										{favCount}
-									</span>
+									<span className="ml-1 text-muted-foreground">{favCount}</span>
 								</ToggleGroupItem>
 								<ToggleGroupItem value="active" className="flex-1">
 									Active
@@ -591,9 +615,7 @@ export function SystemPromptsPanel({
 												disabled={activateM.isPending}
 											>
 												<Check />
-												{activateM.isPending
-													? "Activating…"
-													: "Set as Active"}
+												{activateM.isPending ? "Activating…" : "Set as Active"}
 											</Button>
 										)}
 										<Button
@@ -649,9 +671,7 @@ export function SystemPromptsPanel({
 								<div className="flex flex-wrap items-center justify-between gap-2">
 									<p className="text-[11px] text-muted-foreground">
 										{dirty ? (
-											<span className="text-warning">
-												● Unsaved changes
-											</span>
+											<span className="text-warning">● Unsaved changes</span>
 										) : (
 											<>
 												Updated{" "}

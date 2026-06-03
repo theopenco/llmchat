@@ -5,17 +5,47 @@ import { useMemo, useState } from "react";
 
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Globe, Plus, RefreshCw, Trash2, Link as LinkIcon, Check, Search, ExternalLink } from "lucide-react";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+	Globe,
+	Plus,
+	RefreshCw,
+	Trash2,
+	Link as LinkIcon,
+	Check,
+	Search,
+	ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 
 interface Source {
@@ -90,8 +120,7 @@ export function SourcesPanel({
 			if (filter === "errors" && !s.lastError) return false;
 			if (!q) return true;
 			return (
-				s.url.toLowerCase().includes(q) ||
-				s.title.toLowerCase().includes(q)
+				s.url.toLowerCase().includes(q) || s.title.toLowerCase().includes(q)
 			);
 		});
 	}, [sources, search, filter]);
@@ -290,9 +319,7 @@ export function SourcesPanel({
 						</ToggleGroupItem>
 						<ToggleGroupItem value="active">
 							Active
-							<span className="ml-1 text-muted-foreground">
-								{activeCount}
-							</span>
+							<span className="ml-1 text-muted-foreground">{activeCount}</span>
 						</ToggleGroupItem>
 						<ToggleGroupItem value="inactive">
 							Off
@@ -302,9 +329,7 @@ export function SourcesPanel({
 						</ToggleGroupItem>
 						<ToggleGroupItem value="errors">
 							Errors
-							<span className="ml-1 text-muted-foreground">
-								{errorCount}
-							</span>
+							<span className="ml-1 text-muted-foreground">{errorCount}</span>
 						</ToggleGroupItem>
 					</ToggleGroup>
 				</CardContent>
@@ -324,8 +349,8 @@ export function SourcesPanel({
 								</EmptyMedia>
 								<EmptyTitle>No sources yet</EmptyTitle>
 								<EmptyDescription>
-									Paste a URL above. We&apos;ll fetch the page and let the
-									agent reference it in answers.
+									Paste a URL above. We&apos;ll fetch the page and let the agent
+									reference it in answers.
 								</EmptyDescription>
 							</EmptyHeader>
 						</Empty>
@@ -356,16 +381,12 @@ export function SourcesPanel({
 														onCheckedChange={(active) =>
 															toggleM.mutate({ id: s.id, active })
 														}
-														aria-label={
-															s.active ? "Deactivate" : "Activate"
-														}
+														aria-label={s.active ? "Deactivate" : "Activate"}
 													/>
 												</div>
 												<button
 													type="button"
-													onClick={() =>
-														setExpandedId(isOpen ? null : s.id)
-													}
+													onClick={() => setExpandedId(isOpen ? null : s.id)}
 													className="min-w-0 flex-1 text-left"
 												>
 													<div className="flex items-center gap-2">
@@ -457,9 +478,7 @@ export function SourcesPanel({
 												<div className="border-t px-4 py-3">
 													{s.lastError ? (
 														<div className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
-															<p className="font-semibold">
-																Last fetch failed
-															</p>
+															<p className="font-semibold">Last fetch failed</p>
 															<p className="mt-0.5 font-mono text-[11px]">
 																{s.lastError}
 															</p>

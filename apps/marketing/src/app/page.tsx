@@ -53,9 +53,9 @@ export default function Home() {
 					AI support that actually escalates
 				</h1>
 				<p className="mt-4 text-lg text-gray-600">
-					Drop a single script tag on your site. The bot answers from your
-					docs, hands off to your team when it can&apos;t, and threads replies
-					through email — all from one inbox.
+					Drop a single script tag on your site. The bot answers from your docs,
+					hands off to your team when it can&apos;t, and threads replies through
+					email — all from one inbox.
 				</p>
 				<div className="mt-8 flex gap-3">
 					<Link
@@ -75,10 +75,7 @@ export default function Home() {
 
 			<section id="features" className="mt-24 grid gap-6 sm:grid-cols-2">
 				{features.map((f) => (
-					<div
-						key={f.title}
-						className="rounded-xl border border-gray-200 p-6"
-					>
+					<div key={f.title} className="rounded-xl border border-gray-200 p-6">
 						<h2 className="font-semibold">{f.title}</h2>
 						<p className="mt-2 text-sm text-gray-600">{f.body}</p>
 					</div>

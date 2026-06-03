@@ -12,7 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 
 interface Conversation {
@@ -189,9 +196,7 @@ export default function InboxPage() {
 									<span className="text-sm font-medium">
 										{c.name ?? "Anonymous"}
 									</span>
-									{c.escalatedAt && (
-										<Badge variant="warning">escalated</Badge>
-									)}
+									{c.escalatedAt && <Badge variant="warning">escalated</Badge>}
 								</div>
 								<div className="text-xs text-muted-foreground">
 									{c.email ?? "—"}
@@ -222,8 +227,7 @@ export default function InboxPage() {
 											"ml-auto bg-primary text-primary-foreground",
 										m.role === "admin" &&
 											"ml-auto bg-success/15 text-foreground",
-										m.role === "assistant" &&
-											"bg-muted text-foreground",
+										m.role === "assistant" && "bg-muted text-foreground",
 									)}
 								>
 									<div className="mb-0.5 text-xs opacity-70">{m.role}</div>

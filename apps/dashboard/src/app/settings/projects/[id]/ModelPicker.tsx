@@ -1,18 +1,28 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
-import { Globe } from "lucide-react";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Check, ChevronsUpDown, X } from "lucide-react";
+import { useMemo, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@/components/ui/command";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface GatewayProvider {
 	providerId: string;
-	tools?: boolean;
-	reasoning?: boolean;
-	vision?: boolean;
-	pricing?: { prompt?: string; completion?: string };
 }
 
 interface GatewayModel {
@@ -20,11 +30,8 @@ interface GatewayModel {
 	name: string;
 	description?: string;
 	family?: string;
-	context_length?: number;
 	providers?: GatewayProvider[];
-	architecture?: { input_modalities?: string[] };
-	deprecated_at?: string;
-	deactivated_at?: string;
+	supported_parameters?: string[];
 }
 
 interface GatewayResponse {
@@ -33,53 +40,70 @@ interface GatewayResponse {
 
 const GATEWAY_URL = "https://api.llmgateway.io/v1/models";
 
-/** Default web-search model for new/unset projects. */
-export const DEFAULT_WEB_SEARCH_MODEL = "gpt-4o-search-preview";
+export const DEFAULT_MODEL = "gpt-4o-mini";
+const ALL_FILTER = "all";
 
-/**
- * Web-search-capable models on llmgateway: the Perplexity Sonar family
- * (online search built in) and OpenAI's *-search-preview models.
- */
-function isWebSearchModel(m: GatewayModel): boolean {
-	if (m.deactivated_at && new Date(m.deactivated_at) < new Date()) return false;
-	if (m.family === "perplexity") return true;
-	if (/search/i.test(m.id)) return true;
-	return false;
+function hashString(value: string) {
+	let hash = 0;
+	for (let i = 0; i < value.length; i += 1) {
+		hash = (hash << 5) - hash + value.charCodeAt(i);
+		hash |= 0;
+	}
+	return Math.abs(hash);
 }
 
-const FAMILY_META: Record<
-	string,
-	{ label: string; dot: string; chip: string }
-> = {
-	perplexity: {
-		label: "Perplexity",
-		dot: "bg-teal-500",
-		chip: "bg-teal-50 text-teal-700 ring-teal-100",
-	},
-	openai: {
-		label: "OpenAI",
-		dot: "bg-emerald-500",
-		chip: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-	},
-};
+function modelColor(value: string) {
+	const hash = hashString(value);
+	const hue = hash % 360;
+	const saturation = 62 + (hash % 22);
+	const lightness = 42 + ((hash >> 4) % 14);
 
-function familyMeta(family?: string) {
-	return (
-		FAMILY_META[family ?? ""] ?? {
-			label: family ?? "Other",
-			dot: "bg-gray-400",
-			chip: "bg-gray-50 text-gray-600 ring-gray-100",
-		}
+	return `hsl(${hue} ${saturation}% ${lightness}%)`;
+}
+
+function titleCase(value: string) {
+	return value
+		.split(/[\s_-]+/)
+		.filter(Boolean)
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join(" ");
+}
+
+function familyLabel(family?: string) {
+	return family ? titleCase(family) : "Other";
+}
+
+function providerIds(providers?: GatewayProvider[]) {
+	return [...new Set(providers?.map((provider) => provider.providerId) ?? [])];
+}
+
+function providerLabel(providers?: GatewayProvider[]) {
+	const ids = providerIds(providers);
+	if (!ids.length) return "No provider";
+	if (ids.length <= 2) return ids.map(titleCase).join(", ");
+	return `${ids.slice(0, 2).map(titleCase).join(", ")} +${ids.length - 2}`;
+}
+
+function modelSearchText(model: GatewayModel) {
+	return [
+		model.id,
+		model.name,
+		model.description,
+		model.family,
+		...(model.supported_parameters ?? []),
+		...providerIds(model.providers),
+	]
+		.filter(Boolean)
+		.join(" ")
+		.toLowerCase();
+}
+
+function filterButtonClassName(active: boolean) {
+	return cn(
+		"h-7 shrink-0 rounded-full px-2.5 text-xs",
+		active &&
+			"border-primary bg-primary text-primary-foreground hover:bg-primary/90",
 	);
-}
-
-function formatPrice(model: GatewayModel): string | null {
-	const p = model.providers?.[0]?.pricing?.prompt;
-	if (!p) return null;
-	const perToken = Number(p);
-	if (!Number.isFinite(perToken) || perToken === 0) return null;
-	const perMillion = perToken * 1_000_000;
-	return `$${perMillion.toFixed(2)}/M`;
 }
 
 export function ModelPicker({
@@ -89,6 +113,9 @@ export function ModelPicker({
 	value: string;
 	onChange: (id: string) => void;
 }) {
+	const [open, setOpen] = useState(false);
+	const [query, setQuery] = useState("");
+	const [providerFilter, setProviderFilter] = useState(ALL_FILTER);
 	const modelsQ = useQuery({
 		queryKey: ["gateway-models"],
 		staleTime: 1000 * 60 * 30,
@@ -96,75 +123,211 @@ export function ModelPicker({
 			const res = await fetch(GATEWAY_URL);
 			if (!res.ok) throw new Error(`Gateway ${res.status}`);
 			const json = (await res.json()) as GatewayResponse;
-			return json.data.filter(isWebSearchModel);
+			return json.data ?? [];
 		},
 	});
 
-	const models = useMemo(() => {
-		const list = modelsQ.data ?? [];
-		return [...list].sort((a, b) => {
-			if (a.family !== b.family)
-				return (a.family ?? "").localeCompare(b.family ?? "");
-			return a.name.localeCompare(b.name);
-		});
+	const selectedModel = useMemo(() => {
+		const selectedId = value || DEFAULT_MODEL;
+		return modelsQ.data?.find((model) => model.id === selectedId);
+	}, [modelsQ.data, value]);
+
+	const providerOptions = useMemo(() => {
+		const counts = new Map<string, number>();
+		for (const model of modelsQ.data ?? []) {
+			for (const provider of providerIds(model.providers)) {
+				counts.set(provider, (counts.get(provider) ?? 0) + 1);
+			}
+		}
+
+		return Array.from(counts.entries())
+			.map(([provider, count]) => ({
+				value: provider,
+				label: titleCase(provider),
+				count,
+			}))
+			.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 	}, [modelsQ.data]);
 
-	const grouped = useMemo(() => {
+	const filteredFamilies = useMemo(() => {
+		const needle = query.trim().toLowerCase();
 		const map = new Map<string, GatewayModel[]>();
-		for (const m of models) {
-			const key = m.family ?? "other";
-			const arr = map.get(key) ?? [];
-			arr.push(m);
-			map.set(key, arr);
+
+		for (const model of modelsQ.data ?? []) {
+			const providers = providerIds(model.providers);
+			if (
+				providerFilter !== ALL_FILTER &&
+				!providers.includes(providerFilter)
+			) {
+				continue;
+			}
+			if (needle && !modelSearchText(model).includes(needle)) {
+				continue;
+			}
+
+			const family = model.family ?? "other";
+			const items = map.get(family) ?? [];
+			items.push(model);
+			map.set(family, items);
 		}
-		return Array.from(map.entries());
-	}, [models]);
+
+		return Array.from(map.entries())
+			.map(([family, items]) => ({
+				family,
+				label: familyLabel(family),
+				items: [...items].sort((a, b) => a.name.localeCompare(b.name)),
+			}))
+			.sort((a, b) => a.label.localeCompare(b.label));
+	}, [modelsQ.data, providerFilter, query]);
+
+	const hasFilters = query.trim().length > 0 || providerFilter !== ALL_FILTER;
+
+	function clearFilters() {
+		setQuery("");
+		setProviderFilter(ALL_FILTER);
+	}
 
 	if (modelsQ.isLoading) {
 		return <Skeleton className="h-10 w-full" />;
 	}
 
+	if (modelsQ.isError) {
+		return (
+			<div className="rounded-md border border-destructive/30 px-3 py-2 text-sm text-destructive">
+				Could not load models.
+			</div>
+		);
+	}
+
 	return (
-		<Select
-			value={value || DEFAULT_WEB_SEARCH_MODEL}
-			onValueChange={onChange}
-		>
-			<SelectTrigger>
-				<SelectValue placeholder="Select a web-search model…" />
-			</SelectTrigger>
-			<SelectContent>
-				{grouped.map(([family, items]) => {
-					const meta = familyMeta(family);
-					return (
-						<SelectGroup key={family}>
-							<SelectLabel className="flex items-center gap-1.5">
-								<Globe className="size-3 text-info" />
-								{meta.label}
-							</SelectLabel>
-							{items.map((m) => {
-								const price = formatPrice(m);
-								return (
-									<SelectItem key={m.id} value={m.id}>
-										<span className="flex flex-col">
-											<span className="flex items-center gap-2">
-												<span className="font-medium">{m.name}</span>
-												{price && (
-													<Badge variant="secondary" className="font-mono">
-														{price}
-													</Badge>
-												)}
+		<Popover open={open} onOpenChange={setOpen}>
+			<PopoverTrigger asChild>
+				<Button
+					type="button"
+					variant="outline"
+					role="combobox"
+					aria-expanded={open}
+					className="h-auto min-h-10 w-full justify-between px-3 py-2"
+				>
+					<span className="flex min-w-0 items-center gap-2">
+						<span
+							className="size-2.5 shrink-0 rounded-full"
+							style={{
+								backgroundColor: modelColor(selectedModel?.id ?? value),
+							}}
+						/>
+						<span className="min-w-0 text-left">
+							<span className="block truncate">
+								{(selectedModel?.name ?? value) || "Select a model"}
+							</span>
+							{selectedModel && (
+								<span className="block truncate font-mono text-xs font-normal text-muted-foreground">
+									{selectedModel.id}
+								</span>
+							)}
+						</span>
+					</span>
+					<ChevronsUpDown className="opacity-50" />
+				</Button>
+			</PopoverTrigger>
+			<PopoverContent
+				align="start"
+				className="w-[min(42rem,var(--radix-popover-trigger-width))] p-0"
+			>
+				<Command shouldFilter={false}>
+					<CommandInput
+						value={query}
+						onValueChange={setQuery}
+						placeholder="Search model, provider, or family..."
+					/>
+					<div className="flex flex-col gap-2 border-b p-3">
+						<div className="flex items-center justify-between gap-3">
+							<span className="text-xs font-medium text-muted-foreground">
+								Providers
+							</span>
+							{hasFilters && (
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="h-7 px-2 text-xs"
+									onClick={clearFilters}
+								>
+									<X />
+									Clear
+								</Button>
+							)}
+						</div>
+						<div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto pr-1">
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								className={filterButtonClassName(providerFilter === ALL_FILTER)}
+								onClick={() => setProviderFilter(ALL_FILTER)}
+							>
+								All
+							</Button>
+							{providerOptions.map((provider) => (
+								<Button
+									key={provider.value}
+									type="button"
+									variant="outline"
+									size="sm"
+									className={filterButtonClassName(
+										providerFilter === provider.value,
+									)}
+									onClick={() => setProviderFilter(provider.value)}
+								>
+									{provider.label}
+									<span className="font-mono opacity-70">{provider.count}</span>
+								</Button>
+							))}
+						</div>
+					</div>
+					<CommandList className="max-h-80">
+						{filteredFamilies.length === 0 && (
+							<CommandEmpty>No models found.</CommandEmpty>
+						)}
+						{filteredFamilies.map(({ family, label, items }) => (
+							<CommandGroup key={family} heading={label}>
+								{items.map((model) => (
+									<CommandItem
+										key={model.id}
+										value={model.id}
+										onSelect={() => {
+											onChange(model.id);
+											setQuery("");
+											setOpen(false);
+										}}
+										className="items-start py-2"
+									>
+										<span
+											className="mt-1 size-2.5 shrink-0 rounded-full"
+											style={{ backgroundColor: modelColor(model.id) }}
+										/>
+										<span className="flex min-w-0 flex-1 flex-col gap-0.5">
+											<span className="truncate font-medium">{model.name}</span>
+											<span className="truncate font-mono text-xs text-muted-foreground">
+												{model.id}
 											</span>
-											<span className="font-mono text-[11px] text-muted-foreground">
-												{m.id}
+											<span className="truncate text-xs text-muted-foreground">
+												{providerLabel(model.providers)}
 											</span>
 										</span>
-									</SelectItem>
-								);
-							})}
-						</SelectGroup>
-					);
-				})}
-			</SelectContent>
-		</Select>
+										<Check
+											className={cn(
+												"mt-1 opacity-0",
+												model.id === (value || DEFAULT_MODEL) && "opacity-100",
+											)}
+										/>
+									</CommandItem>
+								))}
+							</CommandGroup>
+						))}
+					</CommandList>
+				</Command>
+			</PopoverContent>
+		</Popover>
 	);
 }

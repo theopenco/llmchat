@@ -43,10 +43,7 @@ export default function InboxLayout({
 						<Link href="/inbox" className="hover:text-foreground">
 							Inbox
 						</Link>
-						<Link
-							href="/settings/projects"
-							className="hover:text-foreground"
-						>
+						<Link href="/settings/projects" className="hover:text-foreground">
 							Projects
 						</Link>
 					</nav>

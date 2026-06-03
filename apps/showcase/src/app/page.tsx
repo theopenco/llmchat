@@ -16,9 +16,9 @@ export default function Page() {
 				<p className="kicker">llmchat showcase</p>
 				<h1>Inventory software for hardware teams.</h1>
 				<p className="lede">
-					This is a fake landing page. The real point is the chat bubble in
-					the bottom-right — that&apos;s the embedded llmchat widget, pointed
-					at your local API.
+					This is a fake landing page. The real point is the chat bubble in the
+					bottom-right — that&apos;s the embedded llmchat widget, pointed at
+					your local API.
 				</p>
 				<div className="cta-row">
 					<button type="button" className="cta-primary">
@@ -34,8 +34,8 @@ export default function Page() {
 				<div className="card">
 					<h2>Try it out</h2>
 					<p>
-						Click the chat bubble. Ask anything. Messages stream from the
-						local API using the seeded project (<code>local-dev-key</code>).
+						Click the chat bubble. Ask anything. Messages stream from the local
+						API using the seeded project (<code>local-dev-key</code>).
 					</p>
 				</div>
 				<div className="card">
@@ -50,8 +50,8 @@ export default function Page() {
 					<p>
 						Sign in to the dashboard at{" "}
 						<a href="http://localhost:3001">localhost:3001</a> with{" "}
-						<code>admin@example.com</code> / <code>admin@example.com</code>{" "}
-						to see the conversation land.
+						<code>admin@example.com</code> / <code>admin@example.com</code> to
+						see the conversation land.
 					</p>
 				</div>
 			</section>

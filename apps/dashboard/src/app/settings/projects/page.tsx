@@ -1,6 +1,6 @@
 "use client";
 
-import { } from "@shimmer-from-structure/react";
+import {} from "@shimmer-from-structure/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -8,18 +8,58 @@ import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import { toast } from "sonner";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FolderPlus, Plus, Search, Star, Pin, Trash2, X, FolderOpen, Settings } from "lucide-react";
+import {
+	FolderPlus,
+	Plus,
+	Search,
+	Star,
+	Pin,
+	Trash2,
+	X,
+	FolderOpen,
+	Settings,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+	SelectGroup,
+} from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 
 interface Project {
@@ -67,7 +107,10 @@ export default function ProjectsPage() {
 			setName("");
 			toast.success("Project created");
 		},
-		onError: (e) => toast.error("Failed to create project", { description: e instanceof Error ? e.message : undefined }),
+		onError: (e) =>
+			toast.error("Failed to create project", {
+				description: e instanceof Error ? e.message : undefined,
+			}),
 	});
 
 	const remove = useMutation({
@@ -81,15 +124,14 @@ export default function ProjectsPage() {
 			setDeleteId(null);
 			toast.success("Project deleted");
 		},
-		onError: (e) => toast.error("Failed to delete project", { description: e instanceof Error ? e.message : undefined }),
+		onError: (e) =>
+			toast.error("Failed to delete project", {
+				description: e instanceof Error ? e.message : undefined,
+			}),
 	});
 
 	const toggle = useMutation({
-		mutationFn: (input: {
-			id: string;
-			favorite?: boolean;
-			pinned?: boolean;
-		}) =>
+		mutationFn: (input: { id: string; favorite?: boolean; pinned?: boolean }) =>
 			api<{ project: Project }>(`/api/projects/${input.id}`, {
 				method: "PATCH",
 				body:
@@ -116,8 +158,7 @@ export default function ProjectsPage() {
 			return { prev };
 		},
 		onError: (_e, _v, ctx) => {
-			if (ctx?.prev)
-				qc.setQueryData(["projects", workspaceId], ctx.prev);
+			if (ctx?.prev) qc.setQueryData(["projects", workspaceId], ctx.prev);
 		},
 		onSettled: () => {
 			qc.invalidateQueries({ queryKey: ["projects", workspaceId] });
@@ -139,10 +180,7 @@ export default function ProjectsPage() {
 		});
 		rows = [...rows].sort((a, b) => {
 			if (sort === "name") return a.name.localeCompare(b.name);
-			return (
-				new Date(b.createdAt).getTime() -
-				new Date(a.createdAt).getTime()
-			);
+			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 		});
 		return rows;
 	}, [list, search, favOnly, sort]);
@@ -194,7 +232,9 @@ export default function ProjectsPage() {
 						pressed={favOnly}
 						onPressedChange={setFavOnly}
 						title="Show favorites only"
-						className={cn(favOnly && "text-warning border-warning/30 bg-warning/10")}
+						className={cn(
+							favOnly && "text-warning border-warning/30 bg-warning/10",
+						)}
 					>
 						<Star className={cn(favOnly && "fill-warning text-warning")} />
 						Favorites
@@ -213,7 +253,15 @@ export default function ProjectsPage() {
 				</div>
 			)}
 
-			<Dialog open={showCreate} onOpenChange={(open) => { if (!open) { setShowCreate(false); setName(""); } else setShowCreate(true); }}>
+			<Dialog
+				open={showCreate}
+				onOpenChange={(open) => {
+					if (!open) {
+						setShowCreate(false);
+						setName("");
+					} else setShowCreate(true);
+				}}
+			>
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>Create a new project</DialogTitle>
@@ -251,10 +299,7 @@ export default function ProjectsPage() {
 							>
 								Cancel
 							</Button>
-							<Button
-								type="submit"
-								disabled={create.isPending || !name.trim()}
-							>
+							<Button type="submit" disabled={create.isPending || !name.trim()}>
 								{create.isPending ? "Creating…" : "Create Project"}
 							</Button>
 						</DialogFooter>
@@ -387,9 +432,7 @@ export default function ProjectsPage() {
 									? "text-warning hover:text-warning"
 									: "text-muted-foreground/50",
 							)}
-							onClick={() =>
-								toggle.mutate({ id: p.id, favorite: !p.favorite })
-							}
+							onClick={() => toggle.mutate({ id: p.id, favorite: !p.favorite })}
 							title={p.favorite ? "Unfavorite" : "Favorite"}
 						>
 							<Star className={cn(p.favorite && "fill-warning")} />
@@ -402,9 +445,7 @@ export default function ProjectsPage() {
 								"size-8",
 								p.pinned ? "text-foreground" : "text-muted-foreground/50",
 							)}
-							onClick={() =>
-								toggle.mutate({ id: p.id, pinned: !p.pinned })
-							}
+							onClick={() => toggle.mutate({ id: p.id, pinned: !p.pinned })}
 							title={p.pinned ? "Unpin" : "Pin"}
 						>
 							<Pin className={cn(p.pinned && "fill-current")} />

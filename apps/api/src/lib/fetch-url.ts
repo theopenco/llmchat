@@ -125,7 +125,12 @@ function assertSafeUrl(input: string): void {
 	// IPv6 loopback / link-local / unique-local.
 	if (host.startsWith("[")) {
 		const h = host.slice(1, -1);
-		if (h === "::1" || h.startsWith("fe80:") || h.startsWith("fc") || h.startsWith("fd")) {
+		if (
+			h === "::1" ||
+			h.startsWith("fe80:") ||
+			h.startsWith("fc") ||
+			h.startsWith("fd")
+		) {
 			throw new Error("blocked IP");
 		}
 	}

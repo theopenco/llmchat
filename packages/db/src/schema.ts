@@ -8,8 +8,6 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
-
-
 const id = () =>
 	text()
 		.primaryKey()
@@ -31,7 +29,9 @@ export const user = sqliteTable("user", {
 	emailVerified: integer({ mode: "boolean" }).notNull().default(false),
 	image: text(),
 	createdAt: createdAt(),
-	updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+	updatedAt: timestamp()
+		.notNull()
+		.default(sql`(unixepoch())`),
 });
 
 export const session = sqliteTable("session", {
@@ -44,7 +44,9 @@ export const session = sqliteTable("session", {
 	ipAddress: text(),
 	userAgent: text(),
 	createdAt: createdAt(),
-	updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+	updatedAt: timestamp()
+		.notNull()
+		.default(sql`(unixepoch())`),
 });
 
 export const account = sqliteTable("account", {
@@ -62,7 +64,9 @@ export const account = sqliteTable("account", {
 	scope: text(),
 	password: text(),
 	createdAt: createdAt(),
-	updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+	updatedAt: timestamp()
+		.notNull()
+		.default(sql`(unixepoch())`),
 });
 
 export const verification = sqliteTable("verification", {
@@ -71,7 +75,9 @@ export const verification = sqliteTable("verification", {
 	value: text().notNull(),
 	expiresAt: timestamp().notNull(),
 	createdAt: createdAt(),
-	updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+	updatedAt: timestamp()
+		.notNull()
+		.default(sql`(unixepoch())`),
 });
 
 export const passkey = sqliteTable("passkey", {
@@ -140,9 +146,7 @@ export const project = sqliteTable(
 		knowledgeText: text().notNull().default(""),
 		model: text().notNull().default("gpt-4o-search-preview"),
 		brandColor: text().notNull().default("#000000"),
-		welcomeMessage: text()
-			.notNull()
-			.default("Hi! How can I help you today?"),
+		welcomeMessage: text().notNull().default("Hi! How can I help you today?"),
 		escalationThreshold: integer().notNull().default(3),
 		notifyEmail: text(),
 		slackWebhookUrl: text(),
@@ -171,14 +175,12 @@ export const conversation = sqliteTable(
 		escalatedAt: timestamp(),
 		archivedAt: timestamp(),
 		createdAt: createdAt(),
-		updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+		updatedAt: timestamp()
+			.notNull()
+			.default(sql`(unixepoch())`),
 	},
 	(t) => [
-		index("conversation_inbox").on(
-			t.projectId,
-			t.archivedAt,
-			t.updatedAt,
-		),
+		index("conversation_inbox").on(t.projectId, t.archivedAt, t.updatedAt),
 		index("conversation_client").on(t.projectId, t.clientId),
 	],
 );
@@ -194,7 +196,9 @@ export const systemPrompt = sqliteTable(
 		content: text().notNull().default(""),
 		favorite: integer({ mode: "boolean" }).notNull().default(false),
 		createdAt: createdAt(),
-		updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+		updatedAt: timestamp()
+			.notNull()
+			.default(sql`(unixepoch())`),
 	},
 	(t) => [index("system_prompt_project").on(t.projectId)],
 );
@@ -213,11 +217,12 @@ export const source = sqliteTable(
 		lastFetchedAt: timestamp(),
 		lastError: text(),
 		createdAt: createdAt(),
-		updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+		updatedAt: timestamp()
+			.notNull()
+			.default(sql`(unixepoch())`),
 	},
 	(t) => [index("source_project").on(t.projectId)],
 );
-
 
 export const message = sqliteTable(
 	"message",
@@ -252,7 +257,9 @@ export const readStatus = sqliteTable(
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
 		lastReadMessageCount: integer().notNull().default(0),
-		readAt: timestamp().notNull().default(sql`(unixepoch())`),
+		readAt: timestamp()
+			.notNull()
+			.default(sql`(unixepoch())`),
 	},
 	(t) => [uniqueIndex("read_status_conv_user").on(t.conversationId, t.userId)],
 );

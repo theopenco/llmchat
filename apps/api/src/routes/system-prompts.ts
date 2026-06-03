@@ -85,48 +85,42 @@ export const systemPrompts = new Hono<AppContext>()
 			return c.json({ prompt: updated });
 		},
 	)
-	.post(
-		"/projects/:projectId/system-prompts/:id/activate",
-		async (c) => {
-			const { projectId, id } = c.req.param();
-			const workspaceId = c.get("workspaceId");
-			const proj = await ensureProject(c.env, projectId, workspaceId);
-			if (!proj) return c.json({ error: "not found" }, 404);
-			const existing = await db(c.env).query.systemPrompt.findFirst({
-				where: (sp, { and: a, eq: e }) =>
-					a(e(sp.id, id), e(sp.projectId, projectId)),
+	.post("/projects/:projectId/system-prompts/:id/activate", async (c) => {
+		const { projectId, id } = c.req.param();
+		const workspaceId = c.get("workspaceId");
+		const proj = await ensureProject(c.env, projectId, workspaceId);
+		if (!proj) return c.json({ error: "not found" }, 404);
+		const existing = await db(c.env).query.systemPrompt.findFirst({
+			where: (sp, { and: a, eq: e }) =>
+				a(e(sp.id, id), e(sp.projectId, projectId)),
+		});
+		if (!existing) return c.json({ error: "not found" }, 404);
+		await db(c.env)
+			.update(project)
+			.set({ activeSystemPromptId: id })
+			.where(eq(project.id, projectId));
+		return c.json({ ok: true, activeSystemPromptId: id });
+	})
+	.delete("/projects/:projectId/system-prompts/:id", async (c) => {
+		const { projectId, id } = c.req.param();
+		const workspaceId = c.get("workspaceId");
+		const proj = await ensureProject(c.env, projectId, workspaceId);
+		if (!proj) return c.json({ error: "not found" }, 404);
+		await db(c.env)
+			.delete(systemPrompt)
+			.where(
+				and(eq(systemPrompt.id, id), eq(systemPrompt.projectId, projectId)),
+			);
+		// If the deleted one was active, fall back to another (or null).
+		if (proj.activeSystemPromptId === id) {
+			const next = await db(c.env).query.systemPrompt.findFirst({
+				where: (sp, { eq: e }) => e(sp.projectId, projectId),
+				orderBy: (sp, { asc }) => asc(sp.createdAt),
 			});
-			if (!existing) return c.json({ error: "not found" }, 404);
 			await db(c.env)
 				.update(project)
-				.set({ activeSystemPromptId: id })
+				.set({ activeSystemPromptId: next?.id ?? null })
 				.where(eq(project.id, projectId));
-			return c.json({ ok: true, activeSystemPromptId: id });
-		},
-	)
-	.delete(
-		"/projects/:projectId/system-prompts/:id",
-		async (c) => {
-			const { projectId, id } = c.req.param();
-			const workspaceId = c.get("workspaceId");
-			const proj = await ensureProject(c.env, projectId, workspaceId);
-			if (!proj) return c.json({ error: "not found" }, 404);
-			await db(c.env)
-				.delete(systemPrompt)
-				.where(
-					and(eq(systemPrompt.id, id), eq(systemPrompt.projectId, projectId)),
-				);
-			// If the deleted one was active, fall back to another (or null).
-			if (proj.activeSystemPromptId === id) {
-				const next = await db(c.env).query.systemPrompt.findFirst({
-					where: (sp, { eq: e }) => e(sp.projectId, projectId),
-					orderBy: (sp, { asc }) => asc(sp.createdAt),
-				});
-				await db(c.env)
-					.update(project)
-					.set({ activeSystemPromptId: next?.id ?? null })
-					.where(eq(project.id, projectId));
-			}
-			return c.json({ ok: true });
-		},
-	);
+		}
+		return c.json({ ok: true });
+	});

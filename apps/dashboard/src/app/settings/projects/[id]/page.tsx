@@ -10,10 +10,25 @@ import { useWorkspace } from "@/lib/workspace";
 import { SourcesPanel } from "./SourcesPanel";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { toast } from "sonner";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ModelPicker } from "./ModelPicker";
 import { Book, Check, ChevronLeft, Copy, Trash2 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -214,21 +229,14 @@ export default function ProjectSettingsPage() {
 							<Input
 								id="name"
 								value={draft.name ?? ""}
-								onChange={(e) =>
-									setDraft({ ...draft, name: e.target.value })
-								}
+								onChange={(e) => setDraft({ ...draft, name: e.target.value })}
 							/>
 						</div>
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="model">Model</Label>
-							<p className="text-xs text-muted-foreground">
-								Models with live web search · powered by llmgateway.io
-							</p>
 							<ModelPicker
 								value={draft.model ?? ""}
-								onChange={(modelId) =>
-									setDraft({ ...draft, model: modelId })
-								}
+								onChange={(modelId) => setDraft({ ...draft, model: modelId })}
 							/>
 						</div>
 						<div className="grid grid-cols-2 gap-5">
@@ -282,15 +290,9 @@ export default function ProjectSettingsPage() {
 					</CardContent>
 				</Card>
 
-				<SystemPromptsPanel
-					projectId={id}
-					workspaceId={workspaceId!}
-				/>
+				<SystemPromptsPanel projectId={id} workspaceId={workspaceId!} />
 
-				<SourcesPanel
-					projectId={id}
-					workspaceId={workspaceId!}
-				/>
+				<SourcesPanel projectId={id} workspaceId={workspaceId!} />
 
 				<Card>
 					<CardHeader>
@@ -334,9 +336,7 @@ export default function ProjectSettingsPage() {
 				<Card>
 					<CardHeader>
 						<CardTitle>Notifications</CardTitle>
-						<CardDescription>
-							Where to send escalation alerts
-						</CardDescription>
+						<CardDescription>Where to send escalation alerts</CardDescription>
 					</CardHeader>
 					<Separator />
 					<CardContent className="flex flex-col gap-5 pt-5">
@@ -380,11 +380,7 @@ export default function ProjectSettingsPage() {
 				</Card>
 
 				<div className="sticky bottom-6 flex items-center justify-end gap-3 rounded-2xl border bg-background/80 px-6 py-4 shadow-lg backdrop-blur-md">
-					<Button
-						type="button"
-						variant="ghost"
-						asChild
-					>
+					<Button type="button" variant="ghost" asChild>
 						<Link href="/settings/projects">Cancel</Link>
 					</Button>
 					<Button type="submit" disabled={save.isPending}>

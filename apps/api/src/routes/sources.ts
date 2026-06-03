@@ -106,11 +106,7 @@ export const sources = new Hono<AppContext>()
 				// Reject if the new URL collides with another source in this project.
 				const collision = await db(c.env).query.source.findFirst({
 					where: (s, { and: a, eq: e, ne }) =>
-						a(
-							e(s.projectId, projectId),
-							e(s.url, data.url!),
-							ne(s.id, id),
-						),
+						a(e(s.projectId, projectId), e(s.url, data.url!), ne(s.id, id)),
 				});
 				if (collision) {
 					return c.json({ error: "url already added" }, 409);
