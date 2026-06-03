@@ -63,8 +63,7 @@ export function Widget({ projectKey, apiUrl, brandColor }: WidgetProps) {
 	}, [messages]);
 
 	const userMessageCount = messages.filter((m) => m.role === "user").length;
-	const showEscalation =
-		!escalated && userMessageCount >= ESCALATION_THRESHOLD;
+	const showEscalation = !escalated && userMessageCount >= ESCALATION_THRESHOLD;
 
 	function handleIdentify(e: React.FormEvent) {
 		e.preventDefault();

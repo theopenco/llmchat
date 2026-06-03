@@ -32,9 +32,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 	const query = useQuery({
 		queryKey: ["workspaces"],
 		queryFn: () =>
-			api<{ workspaces: { workspace: WorkspaceSummary }[] }>(
-				"/api/workspaces",
-			),
+			api<{ workspaces: { workspace: WorkspaceSummary }[] }>("/api/workspaces"),
 		retry: false,
 	});
 
