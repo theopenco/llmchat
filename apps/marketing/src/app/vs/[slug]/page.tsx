@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { notFound } from "next/navigation";
 import { competitors, getCompetitor } from "@/lib/competitors";
+import { SiteHeader } from "@/components/SiteHeader";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -37,28 +38,7 @@ export default async function VsPage({
 
 	return (
 		<main className="mx-auto max-w-5xl px-6 py-16">
-			<header className="flex items-center justify-between">
-				<Link href="/" className="text-lg font-semibold">
-					llmchat
-				</Link>
-				<nav className="flex items-center gap-4 text-sm">
-					<a href="/#features" className="text-gray-600 hover:text-gray-900">
-						Features
-					</a>
-					<Link href="/blog" className="text-gray-600 hover:text-gray-900">
-						Blog
-					</Link>
-					<Link href="/compare" className="text-gray-600 hover:text-gray-900">
-						Compare
-					</Link>
-					<Link
-						href={dashboardUrl}
-						className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
-					>
-						Sign in
-					</Link>
-				</nav>
-			</header>
+			<SiteHeader active="compare" />
 
 			{/* Breadcrumb */}
 			<div className="mt-8">

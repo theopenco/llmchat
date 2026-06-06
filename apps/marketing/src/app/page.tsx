@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SiteHeader } from "@/components/SiteHeader";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -33,26 +34,7 @@ const features = [
 export default function Home() {
 	return (
 		<main className="mx-auto max-w-5xl px-6 py-16">
-			<header className="flex items-center justify-between">
-				<div className="text-lg font-semibold">llmchat</div>
-				<nav className="flex items-center gap-4 text-sm">
-					<a href="#features" className="text-gray-600 hover:text-gray-900">
-						Features
-					</a>
-					<Link href="/blog" className="text-gray-600 hover:text-gray-900">
-						Blog
-					</Link>
-					<Link href="/compare" className="text-gray-600 hover:text-gray-900">
-						Compare
-					</Link>
-					<Link
-						href={dashboardUrl}
-						className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
-					>
-						Sign in
-					</Link>
-				</nav>
-			</header>
+			<SiteHeader active="features" />
 
 			<section className="mt-20 max-w-3xl">
 				<h1 className="text-4xl font-semibold leading-tight sm:text-5xl">

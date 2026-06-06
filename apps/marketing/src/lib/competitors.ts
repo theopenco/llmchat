@@ -150,12 +150,12 @@ export const featureGroups: FeatureGroup[] = [
 			{
 				label: "Model-agnostic (swap LLMs)",
 				llmchat: "yes",
-				chatbase: "no",
+				chatbase: "partial",
 				fin: "no",
 				intercom: "no",
 				chatwoot: "no",
 				crisp: "no",
-				note: "llmchat is built on LLM Gateway — change the underlying model per project without any code changes.",
+				note: "llmchat runs any model or provider — including custom and self-hosted endpoints — via LLM Gateway. Chatbase lets you pick from its supported models (premium ones gated to higher plans); Fin, Intercom, Chatwoot, and Crisp are fixed to their own AI stack.",
 			},
 			{
 				label: "Custom system prompt",
@@ -246,9 +246,10 @@ export const featureGroups: FeatureGroup[] = [
 				llmchat: "no",
 				chatbase: "no",
 				fin: "yes",
-				intercom: "no",
+				intercom: "yes",
 				chatwoot: "no",
 				crisp: "no",
+				note: "Intercom offers a pay-as-you-go Phone channel and Fin voice; Fin (standalone) also supports voice.",
 			},
 		],
 	},
@@ -262,13 +263,13 @@ export const featureGroups: FeatureGroup[] = [
 				fin: "no",
 				intercom: "no",
 				chatwoot: "yes",
-				crisp: "no",
-				note: "Chatwoot's free tier is self-hosted only.",
+				crisp: "partial",
+				note: "Chatwoot is free self-hosted (community) plus a limited free cloud 'Hacker' plan (live chat only, no AI). Crisp has a permanent free plan (2 seats) but no AI. Chatbase's free plan is 1 agent on basic models. llmchat's free tier includes AI.",
 			},
 			{
 				label: "Pricing model",
 				llmchat: "Usage-based",
-				chatbase: "Seat + usage",
+				chatbase: "Sub + credits",
 				fin: "$0.99/outcome",
 				intercom: "Per seat",
 				chatwoot: "Per seat",
@@ -277,9 +278,9 @@ export const featureGroups: FeatureGroup[] = [
 			{
 				label: "Publicly listed pricing",
 				llmchat: "yes",
-				chatbase: "no",
+				chatbase: "yes",
 				fin: "yes",
-				intercom: "no",
+				intercom: "yes",
 				chatwoot: "yes",
 				crisp: "yes",
 			},
@@ -300,15 +301,15 @@ export const competitors: Competitor[] = [
 		bestFor:
 			"Teams that need multi-channel AI support and have enterprise security requirements.",
 		notFor:
-			"Teams wanting a simple drop-in widget or the ability to swap LLMs.",
-		pricing: "Paid plans — pricing not publicly listed",
+			"Teams wanting a simple drop-in widget, or the freedom to run a custom or self-hosted model.",
+		pricing: "Free plan (1 agent, basic models); paid from $40/mo (Hobby) to ~$500/mo (Pro), credit-based; Enterprise custom",
 
 		heroSubtext:
-			"llmchat is a single script tag that goes live in minutes — no platform onboarding, no SDK. Unlike Chatbase, you choose your AI model and can self-host on your own infrastructure.",
+			"llmchat is a single script tag that goes live in minutes — no platform onboarding, no SDK. Chatbase lets you pick from its supported models on higher-priced plans; llmchat runs any model or provider — including custom and self-hosted endpoints — on every plan, and you can self-host the whole stack.",
 		heroBadges: ["One script tag", "Model-agnostic", "Self-hostable", "Free tier"],
 		tableSummary: {
 			llmchat: "Open & self-hostable — from $0",
-			competitor: "Managed SaaS — pricing not public",
+			competitor: "Managed SaaS — from $40/mo, credit-based",
 		},
 		vsCategories: [
 			{
@@ -342,12 +343,12 @@ export const competitors: Competitor[] = [
 					{
 						label: "AI model",
 						llmchat: "Any model via LLM Gateway",
-						competitor: "Chatbase managed AI stack",
+						competitor: "GPT-4o, Claude, Gemini, DeepSeek — premium models on higher tiers",
 					},
 					{
 						label: "Swap models",
 						llmchat: "Per-project config change — no code",
-						competitor: "Locked to Chatbase's models",
+						competitor: "Pick from supported models; no custom or self-hosted endpoints",
 					},
 					{
 						label: "Knowledge base",
@@ -382,12 +383,12 @@ export const competitors: Competitor[] = [
 					{
 						label: "Free tier",
 						llmchat: "Yes — usage-based",
-						competitor: "Limited trial",
+						competitor: "Free plan — 1 agent, basic models, deleted when idle",
 					},
 					{
 						label: "Pricing model",
 						llmchat: "Pay for LLM usage only",
-						competitor: "Seat + usage (not publicly listed)",
+						competitor: "Subscription + message credits (premium models cost more credits)",
 					},
 					{
 						label: "Self-hostable",
@@ -415,6 +416,7 @@ export const competitors: Competitor[] = [
 		],
 		competitorWins: [
 			"Multi-channel: web, WhatsApp, Slack, and Messenger",
+			"Choose from multiple LLMs (GPT-4o, Claude, Gemini, DeepSeek) on higher tiers",
 			"Enterprise-grade security — SOC 2 Type II certified",
 			"More integrations and a larger customer ecosystem",
 			"Workflow automation (update subscriptions, change addresses, etc.)",
@@ -457,7 +459,7 @@ export const competitors: Competitor[] = [
 				llmchat:
 					"Built on LLM Gateway — you choose the AI model per project and switch it with a config change, not a code change. Run a smaller, cheaper model for routine questions and a more capable one for complex queries.",
 				competitor:
-					"Runs on their own managed AI stack. You're on their models, with their updates, at their pace. The upside is they handle model optimization; the downside is you can't route to a specific provider.",
+					"Lets you choose from a list of supported models (GPT-4o, Claude, Gemini, DeepSeek, Meta), but the more capable ones are gated behind higher-priced plans and premium models burn credits faster. You can't bring a custom or self-hosted endpoint.",
 				bottomLine:
 					"Choose llmchat if you care about model choice, cost optimization across tiers, or vendor diversity. Choose Chatbase if you'd rather not think about the model layer.",
 			},
@@ -485,14 +487,14 @@ export const competitors: Competitor[] = [
 		bestFor:
 			"Enterprise teams who want outcome-based pricing and already use Zendesk or Salesforce.",
 		notFor: "Small teams or those wanting predictable flat-rate pricing.",
-		pricing: "$0.99 per resolved outcome (50/month minimum)",
+		pricing: "$0.99 per resolved outcome (usage-based)",
 
 		heroSubtext:
-			"Fin charges $0.99 per resolved outcome with a 50-outcome monthly minimum — there's a floor even when things are quiet. llmchat uses LLM usage-based pricing with no minimums and a free tier.",
+			"Fin charges $0.99 per resolved outcome and runs on its own proprietary model (Fin Apex) — you can't choose the model. llmchat uses LLM usage-based pricing with a free tier and lets you run any model you choose.",
 		heroBadges: ["No per-outcome fees", "Model-agnostic", "Self-hostable", "Free tier"],
 		tableSummary: {
 			llmchat: "Usage-based — from $0, no minimums",
-			competitor: "$0.99/outcome — 50/mo minimum ($49.50 floor)",
+			competitor: "$0.99 per resolved outcome — proprietary model",
 		},
 		vsCategories: [
 			{
@@ -506,7 +508,7 @@ export const competitors: Competitor[] = [
 					{
 						label: "Monthly minimum",
 						llmchat: "None",
-						competitor: "50 outcomes ($49.50/mo floor)",
+						competitor: "Pay-as-you-go per resolution",
 					},
 					{
 						label: "Free tier",
@@ -526,7 +528,7 @@ export const competitors: Competitor[] = [
 					{
 						label: "AI stack",
 						llmchat: "Any LLM via LLM Gateway",
-						competitor: "Fin AI Engine™ (proprietary models)",
+						competitor: "Fin Apex — proprietary in-house model",
 					},
 					{
 						label: "Model flexibility",
@@ -620,7 +622,7 @@ export const competitors: Competitor[] = [
 				llmchat:
 					"Usage-based pricing tied to LLM token consumption. Costs scale linearly with actual usage and there's a free tier with no minimums. You know what you're spending before the month ends.",
 				competitor:
-					"$0.99 per resolved outcome with a 50-outcome minimum per month. Powerful if your AI resolves thousands of tickets — you only pay when it works. But there's a floor even in quiet months, and costs can be harder to predict.",
+					"$0.99 per resolved outcome, billed only when Fin resolves a conversation. Powerful if your AI resolves thousands of tickets — you pay for success, not seats. The trade-off is that per-outcome costs can be harder to forecast than usage-based or flat pricing.",
 				bottomLine:
 					"Choose Fin if you have high, consistent resolution volume and want to pay per success. Choose llmchat if predictable flat costs or low-volume usage matters more.",
 			},
@@ -667,14 +669,14 @@ export const competitors: Competitor[] = [
 			"Mid-market and enterprise teams wanting a single platform for support, sales, and marketing.",
 		notFor:
 			"Teams that only need a support widget — full platform pricing applies regardless.",
-		pricing: "From ~$74/month, enterprise by quote",
+		pricing: "From $29/seat/mo (annual) + $0.99 per Fin outcome; enterprise by quote",
 
 		heroSubtext:
-			"Intercom is a full customer communication platform — support, sales, and marketing. If you only need a support widget, you're paying for a lot you won't use, starting at $74/month. llmchat is purpose-built for support and starts free.",
+			"Intercom is a full customer communication platform — support, sales, and marketing. If you only need a support widget, you're paying for a lot you won't use, starting at $29/seat/month plus $0.99 per Fin resolution. llmchat is purpose-built for support and starts free.",
 		heroBadges: ["Support-only focus", "Model-agnostic", "Self-hostable", "Free tier"],
 		tableSummary: {
 			llmchat: "Support widget — from $0",
-			competitor: "Full platform — from ~$74/month",
+			competitor: "Full platform — from $29/seat/mo + usage",
 		},
 		vsCategories: [
 			{
@@ -728,7 +730,7 @@ export const competitors: Competitor[] = [
 					{
 						label: "Starting price",
 						llmchat: "Free",
-						competitor: "~$74/month",
+						competitor: "$29/seat/mo + $0.99/outcome",
 					},
 					{
 						label: "Pricing model",
@@ -806,7 +808,7 @@ export const competitors: Competitor[] = [
 				llmchat:
 					"Free tier available, then usage-based pricing. Costs scale with actual LLM consumption. A team with modest volume can run for well under $50/month. No seats to buy, no minimum commitments.",
 				competitor:
-					"Starts around $74/month and scales with seat count, usage, and add-ons. The per-seat model means costs grow with your team size. Enterprise plans require a sales conversation.",
+					"Starts around $29/seat/month (annual) and scales with seat count, usage, and add-ons — plus $0.99 per Fin resolution. The per-seat model means costs grow with your team size, and enterprise plans require a sales conversation.",
 				bottomLine:
 					"The cost difference is most meaningful at smaller team sizes. At enterprise scale, the calculus changes — Intercom's platform breadth often justifies the investment when you're using more of it.",
 			},
@@ -844,7 +846,7 @@ export const competitors: Competitor[] = [
 			"Teams wanting open-source ownership and multi-channel support who are comfortable running infrastructure.",
 		notFor:
 			"Teams wanting a minimal drop-in widget — Chatwoot is a full platform.",
-		pricing: "Free self-hosted; cloud from ~$19/month",
+		pricing: "Free self-hosted (community) & a free cloud 'Hacker' plan (live chat only, no AI); paid cloud from $19/agent/mo",
 
 		heroSubtext:
 			"Both self-hostable — but different stacks. Chatwoot runs on Ruby on Rails with PostgreSQL and Redis. llmchat runs serverless on Cloudflare's edge: no database to provision, no app server to maintain.",
@@ -880,7 +882,7 @@ export const competitors: Competitor[] = [
 					{
 						label: "AI model flexibility",
 						llmchat: "Any LLM via LLM Gateway",
-						competitor: "Fixed AI stack (Captain AI)",
+						competitor: "Captain AI on OpenAI GPT — fixed model",
 					},
 					{
 						label: "Shadow DOM widget",
@@ -920,7 +922,7 @@ export const competitors: Competitor[] = [
 					{
 						label: "Managed cloud free tier",
 						llmchat: "Yes",
-						competitor: "Self-hosted only (free)",
+						competitor: "Free 'Hacker' cloud plan (live chat only, no AI) + free self-hosted",
 					},
 					{
 						label: "Cloud starting price",
@@ -1020,14 +1022,14 @@ export const competitors: Competitor[] = [
 			"Small to mid-sized teams wanting an all-in-one support + CRM platform with European data hosting.",
 		notFor:
 			"Teams wanting model flexibility or a lightweight website integration.",
-		pricing: "From ~$25/month",
+		pricing: "Free plan (2 seats, no AI); AI from ~€45/mo (Mini); Essentials €95, Plus €295",
 
 		heroSubtext:
 			"Crisp is all-in-one: chat, email, CRM, knowledge base, and push notifications. llmchat is focused: support widget with model-agnostic AI. If you need CRM, use Crisp. If you want a drop-in widget with full model flexibility and self-hosting, use llmchat.",
-		heroBadges: ["Model-agnostic", "Self-hostable", "Open architecture", "Free tier"],
+		heroBadges: ["Model-agnostic", "Self-hostable", "Open architecture", "AI on the free tier"],
 		tableSummary: {
 			llmchat: "Focused widget — from $0, any AI model",
-			competitor: "All-in-one platform — from ~$25/month",
+			competitor: "All-in-one — free plan (no AI); AI from ~€45/mo",
 		},
 		vsCategories: [
 			{
@@ -1096,7 +1098,7 @@ export const competitors: Competitor[] = [
 					{
 						label: "Free tier",
 						llmchat: "Yes",
-						competitor: "14-day trial only",
+						competitor: "Free plan (2 seats) — but no AI features",
 					},
 					{
 						label: "Pricing model",
@@ -1106,7 +1108,7 @@ export const competitors: Competitor[] = [
 					{
 						label: "Starting price",
 						llmchat: "Free",
-						competitor: "~$25/month",
+						competitor: "Free; AI from ~€45/mo (Mini)",
 					},
 				],
 			},
@@ -1159,7 +1161,7 @@ export const competitors: Competitor[] = [
 				llmchat:
 					"Usage-based — you pay for actual LLM token consumption. Costs scale down when things are quiet. Free tier available. Better for low-to-medium volume teams or those with variable traffic.",
 				competitor:
-					"Flat-rate monthly pricing starting around $25/month. Predictable and easy to budget. Better for high-volume teams where a fixed cost is lower than per-usage costs.",
+					"Flat-rate monthly pricing with a permanent free plan, though AI features start on the Mini plan (~€45/mo). Predictable and easy to budget. Better for high-volume teams where a fixed cost is lower than per-usage costs.",
 				bottomLine:
 					"Choose Crisp for flat-rate predictability at consistent volume. Choose llmchat for usage-based costs that scale down when things are quiet.",
 			},

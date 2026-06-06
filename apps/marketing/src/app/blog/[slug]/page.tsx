@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { posts, formatDate } from "../data";
-
-const dashboardUrl =
-	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
+import { SiteHeader } from "@/components/SiteHeader";
 
 export function generateStaticParams() {
 	return posts.map((p) => ({ slug: p.slug }));
@@ -56,28 +54,7 @@ export default async function PostPage({
 
 	return (
 		<main className="mx-auto max-w-5xl px-6 py-16">
-			<header className="flex items-center justify-between">
-				<Link href="/" className="text-lg font-semibold">
-					llmchat
-				</Link>
-				<nav className="flex items-center gap-4 text-sm">
-					<a href="/#features" className="text-gray-600 hover:text-gray-900">
-						Features
-					</a>
-					<Link href="/blog" className="font-medium text-gray-900">
-						Blog
-					</Link>
-					<Link href="/compare" className="text-gray-600 hover:text-gray-900">
-						Compare
-					</Link>
-					<Link
-						href={dashboardUrl}
-						className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
-					>
-						Sign in
-					</Link>
-				</nav>
-			</header>
+			<SiteHeader active="resources" />
 
 			<article className="mt-16 max-w-2xl">
 				<div className="flex items-center gap-3 text-xs">

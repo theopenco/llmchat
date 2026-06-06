@@ -7,6 +7,7 @@ import {
 	competitors,
 } from "@/lib/competitors";
 import { ComparisonCell } from "@/components/ComparisonCell";
+import { SiteHeader } from "@/components/SiteHeader";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -20,28 +21,7 @@ export const metadata = {
 export default function ComparePage() {
 	return (
 		<main className="mx-auto max-w-5xl px-6 py-16">
-			<header className="flex items-center justify-between">
-				<Link href="/" className="text-lg font-semibold">
-					llmchat
-				</Link>
-				<nav className="flex items-center gap-4 text-sm">
-					<a href="/#features" className="text-gray-600 hover:text-gray-900">
-						Features
-					</a>
-					<Link href="/blog" className="text-gray-600 hover:text-gray-900">
-						Blog
-					</Link>
-					<Link href="/compare" className="font-medium text-gray-900">
-						Compare
-					</Link>
-					<Link
-						href={dashboardUrl}
-						className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
-					>
-						Sign in
-					</Link>
-				</nav>
-			</header>
+			<SiteHeader active="compare" />
 
 			{/* Hero */}
 			<section className="mt-16 max-w-3xl">
@@ -154,46 +134,6 @@ export default function ComparePage() {
 						</tbody>
 					</table>
 				</div>
-			</section>
-
-			{/* Where llmchat falls short */}
-			<section className="mt-16">
-				<h2 className="font-semibold">Where llmchat falls short</h2>
-				<p className="mt-2 text-sm leading-relaxed text-gray-600">
-					We think it's worth being upfront about this. llmchat is a focused
-					tool, not a platform — and that's a deliberate tradeoff.
-				</p>
-				<ul className="mt-4 space-y-2 text-sm text-gray-600">
-					<li className="flex gap-2">
-						<span className="mt-0.5 text-gray-300">—</span>
-						<span>
-							<strong className="text-gray-900">Web-only for now.</strong> No
-							WhatsApp, SMS, voice, or social channel support. If multi-channel
-							is a requirement today, Intercom, Chatwoot, or Chatbase are the
-							better fit.
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="mt-0.5 text-gray-300">—</span>
-						<span>
-							<strong className="text-gray-900">Newer product.</strong> Less
-							ecosystem, fewer integrations, and a smaller community than
-							Intercom or Chatwoot. If ecosystem depth matters, those are more
-							mature options.
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="mt-0.5 text-gray-300">—</span>
-						<span>
-							<strong className="text-gray-900">
-								No enterprise features yet.
-							</strong>{" "}
-							SSO, audit logs, advanced analytics, and SLA guarantees are not
-							available. Fin and Intercom serve enterprise compliance requirements
-							better.
-						</span>
-					</li>
-				</ul>
 			</section>
 
 			{/* Competitor cards */}
