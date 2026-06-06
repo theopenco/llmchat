@@ -70,41 +70,36 @@ export const conversations = new Hono<AppContext>()
 					.select({ conversationId: messageTable.conversationId })
 					.from(messageTable)
 					.where(like(messageTable.content, `%${search}%`));
-				const matchSet = new Set(
-					matchingMessages.map((m) => m.conversationId),
-				);
+				const matchSet = new Set(matchingMessages.map((m) => m.conversationId));
 				filtered = rows.filter((r) => matchSet.has(r.id));
 			}
 
 			return c.json({ conversations: filtered });
 		},
 	)
-	.get(
-		"/projects/:projectId/conversations/:id",
-		async (c) => {
-			const { projectId, id } = c.req.param();
-			const workspaceId = c.get("workspaceId");
-			const proj = await db(c.env).query.project.findFirst({
-				where: (pt, { and: a, eq: e }) =>
-					a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
-			});
-			if (!proj) {
-				return c.json({ error: "not found" }, 404);
-			}
-			const conv = await db(c.env).query.conversation.findFirst({
-				where: (ct, { and: a, eq: e }) =>
-					a(e(ct.id, id), e(ct.projectId, projectId)),
-			});
-			if (!conv) {
-				return c.json({ error: "not found" }, 404);
-			}
-			const messages = await db(c.env).query.message.findMany({
-				where: (mt, { eq: e }) => e(mt.conversationId, id),
-				orderBy: (mt, { asc }) => asc(mt.sequence),
-			});
-			return c.json({ conversation: conv, messages });
-		},
-	)
+	.get("/projects/:projectId/conversations/:id", async (c) => {
+		const { projectId, id } = c.req.param();
+		const workspaceId = c.get("workspaceId");
+		const proj = await db(c.env).query.project.findFirst({
+			where: (pt, { and: a, eq: e }) =>
+				a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+		});
+		if (!proj) {
+			return c.json({ error: "not found" }, 404);
+		}
+		const conv = await db(c.env).query.conversation.findFirst({
+			where: (ct, { and: a, eq: e }) =>
+				a(e(ct.id, id), e(ct.projectId, projectId)),
+		});
+		if (!conv) {
+			return c.json({ error: "not found" }, 404);
+		}
+		const messages = await db(c.env).query.message.findMany({
+			where: (mt, { eq: e }) => e(mt.conversationId, id),
+			orderBy: (mt, { asc }) => asc(mt.sequence),
+		});
+		return c.json({ conversation: conv, messages });
+	})
 	.post(
 		"/projects/:projectId/conversations/:id/reply",
 		zValidator("json", z.object({ content: z.string().min(1) })),

@@ -84,7 +84,7 @@ The handler returns `result.toUIMessageStreamResponse()` immediately and uses `c
 ### Path aliases & imports
 - `apps/api` uses `@/*` → `src/*` (see `apps/api/tsconfig.json`).
 - `@llmchat/db` re-exports tables and `eq`/query operators from drizzle-orm so route files can `import { eq, conversation } from "@llmchat/db"`.
-- `@llmchat/shared` is Zod-only (Zod v4: `z.email()`, `z.url()`, `z.iso.datetime()`).
+- `@llmchat/shared` holds Zod schemas (Zod v4: `z.email()`, `z.url()`, `z.iso.datetime()`) **and** the analytics event taxonomy (`ANALYTICS_EVENTS`) — the single source of truth for event names across all apps.
 
 ### Widget
 `packages/widget` is a Vite IIFE lib (`vite.config.ts`: `formats: ["iife"]`, `inlineDynamicImports: true`, `cssCodeSplit: false`) — a single self-contained `widget.js` mounted into a shadow DOM. Currently pulls in `@ai-sdk/react` + `ai` (~227KB gzip), too heavy for a public embed; planned: replace with a hand-rolled SSE client.
@@ -94,6 +94,13 @@ Two entry points exposed via package `exports`:
 - `@llmchat/widget/styles` → `src/styles.ts` (a `widgetStyles` string for injecting into a shadow root `<style>` element).
 
 The CSS lives as a TS template literal rather than a `.css` file because Next.js (the showcase consumer) doesn't grok Vite's `?inline` syntax — keeping it as a string export works for both bundlers.
+
+### Analytics (PostHog)
+Event names live in `@llmchat/shared` (`ANALYTICS_EVENTS`, object-action / lowercase_snake). All instrumentation imports from there so names never drift. Analytics is **optional everywhere** — every integration no-ops when its key is unset, so local dev needs no PostHog setup.
+
+- **marketing** + **dashboard** use `posthog-js` via a `PostHogProvider` (manual `$pageview` on App Router navigation, autocapture on). Marketing is anonymous (`person_profiles: "identified_only"`); the dashboard `identify()`s the Better Auth user. Fire custom events with the `track()` helper in each app's `src/lib/analytics.ts`; `<TrackedLink>` / `<TrackView>` (marketing) cover CTA clicks and page-view conversions. Env: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` (defaults to `https://us.i.posthog.com`).
+- **api** (workerd) captures widget/server events (`conversation_started`, `widget_message_sent`, `conversation_escalated`) via a direct `fetch` to the PostHog capture API in `lib/posthog.ts` — the Node SDK's timers/batching don't fit a Worker. Always called inside `executionCtx.waitUntil(...)`, never PII (distinct_id = the widget's anonymous `clientId`). Env: `POSTHOG_API_KEY`, `POSTHOG_HOST` (wired in `apps/api/ploy.yaml` → set in `apps/api/.env`). The widget itself is **not** instrumented client-side — keeping its bundle lean — so its events come from the api.
+- **Privacy:** no PII in event properties; EU/UK cookie consent (a CMP gate before `posthog.init`) is still a TODO.
 
 ## Conventions
 

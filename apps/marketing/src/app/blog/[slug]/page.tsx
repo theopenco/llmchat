@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { allPosts } from "content-collections";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { TrackView } from "@/components/TrackView";
 import { formatDate } from "@/lib/format";
 
 export function generateStaticParams() {
@@ -39,6 +41,10 @@ export default async function PostPage({
 
 	return (
 		<>
+			<TrackView
+				event={ANALYTICS_EVENTS.blogPostRead}
+				props={{ slug: post.slug, category: post.category }}
+			/>
 			<SiteHeader active="resources" />
 
 			<main className="mx-auto max-w-6xl px-6">

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Fragment } from "react";
 import { matrix, allCompetitors } from "content-collections";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ComparisonCell } from "@/components/ComparisonCell";
+import { TrackedLink } from "@/components/TrackedLink";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -212,12 +214,14 @@ export default function ComparePage() {
 						One script tag. No credit card. See if it fits.
 					</h2>
 					<div className="mt-8 flex flex-wrap justify-center gap-3">
-						<Link
+						<TrackedLink
 							href={dashboardUrl}
+							event={ANALYTICS_EVENTS.signupStarted}
+							eventProps={{ source: "compare_cta" }}
 							className="rounded-full bg-paper px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-accent hover:text-paper"
 						>
 							Get started free
-						</Link>
+						</TrackedLink>
 						<Link
 							href="/blog"
 							className="rounded-full border border-paper/30 px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-paper/10"

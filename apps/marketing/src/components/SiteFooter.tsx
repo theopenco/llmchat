@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { allCompetitors } from "content-collections";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
+import { TrackedLink } from "@/components/TrackedLink";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -26,12 +28,14 @@ export function SiteFooter() {
 							AI support that answers from your docs and escalates to humans —
 							one script tag, any model.
 						</p>
-						<Link
+						<TrackedLink
 							href={dashboardUrl}
+							event={ANALYTICS_EVENTS.signupStarted}
+							eventProps={{ source: "footer" }}
 							className="mt-6 inline-block rounded-full bg-ink px-5 py-2.5 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 						>
 							Get started free
-						</Link>
+						</TrackedLink>
 					</div>
 
 					<div>

@@ -29,7 +29,9 @@ export const user = sqliteTable("user", {
 	emailVerified: integer({ mode: "boolean" }).notNull().default(false),
 	image: text(),
 	createdAt: createdAt(),
-	updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+	updatedAt: timestamp()
+		.notNull()
+		.default(sql`(unixepoch())`),
 });
 
 export const session = sqliteTable("session", {
@@ -42,7 +44,9 @@ export const session = sqliteTable("session", {
 	ipAddress: text(),
 	userAgent: text(),
 	createdAt: createdAt(),
-	updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+	updatedAt: timestamp()
+		.notNull()
+		.default(sql`(unixepoch())`),
 });
 
 export const account = sqliteTable("account", {
@@ -60,7 +64,9 @@ export const account = sqliteTable("account", {
 	scope: text(),
 	password: text(),
 	createdAt: createdAt(),
-	updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+	updatedAt: timestamp()
+		.notNull()
+		.default(sql`(unixepoch())`),
 });
 
 export const verification = sqliteTable("verification", {
@@ -69,7 +75,9 @@ export const verification = sqliteTable("verification", {
 	value: text().notNull(),
 	expiresAt: timestamp().notNull(),
 	createdAt: createdAt(),
-	updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+	updatedAt: timestamp()
+		.notNull()
+		.default(sql`(unixepoch())`),
 });
 
 export const passkey = sqliteTable("passkey", {
@@ -131,13 +139,14 @@ export const project = sqliteTable(
 		name: text().notNull(),
 		publicKey: text().notNull().unique(),
 		systemPrompt: text().notNull().default(""),
+		activeSystemPromptId: text(),
+		favorite: integer({ mode: "boolean" }).notNull().default(false),
+		pinned: integer({ mode: "boolean" }).notNull().default(false),
 		// Plain-text knowledge base for v1; replaced by RAG later.
 		knowledgeText: text().notNull().default(""),
-		model: text().notNull().default("openai/gpt-4o-mini"),
+		model: text().notNull().default("gpt-4o-search-preview"),
 		brandColor: text().notNull().default("#000000"),
-		welcomeMessage: text()
-			.notNull()
-			.default("Hi! How can I help you today?"),
+		welcomeMessage: text().notNull().default("Hi! How can I help you today?"),
 		escalationThreshold: integer().notNull().default(3),
 		notifyEmail: text(),
 		slackWebhookUrl: text(),
@@ -166,16 +175,53 @@ export const conversation = sqliteTable(
 		escalatedAt: timestamp(),
 		archivedAt: timestamp(),
 		createdAt: createdAt(),
-		updatedAt: timestamp().notNull().default(sql`(unixepoch())`),
+		updatedAt: timestamp()
+			.notNull()
+			.default(sql`(unixepoch())`),
 	},
 	(t) => [
-		index("conversation_inbox").on(
-			t.projectId,
-			t.archivedAt,
-			t.updatedAt,
-		),
+		index("conversation_inbox").on(t.projectId, t.archivedAt, t.updatedAt),
 		index("conversation_client").on(t.projectId, t.clientId),
 	],
+);
+
+export const systemPrompt = sqliteTable(
+	"system_prompt",
+	{
+		id: id(),
+		projectId: text()
+			.notNull()
+			.references(() => project.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		content: text().notNull().default(""),
+		favorite: integer({ mode: "boolean" }).notNull().default(false),
+		createdAt: createdAt(),
+		updatedAt: timestamp()
+			.notNull()
+			.default(sql`(unixepoch())`),
+	},
+	(t) => [index("system_prompt_project").on(t.projectId)],
+);
+
+export const source = sqliteTable(
+	"source",
+	{
+		id: id(),
+		projectId: text()
+			.notNull()
+			.references(() => project.id, { onDelete: "cascade" }),
+		url: text().notNull(),
+		title: text().notNull().default(""),
+		content: text().notNull().default(""),
+		active: integer({ mode: "boolean" }).notNull().default(true),
+		lastFetchedAt: timestamp(),
+		lastError: text(),
+		createdAt: createdAt(),
+		updatedAt: timestamp()
+			.notNull()
+			.default(sql`(unixepoch())`),
+	},
+	(t) => [index("source_project").on(t.projectId)],
 );
 
 export const message = sqliteTable(
@@ -211,7 +257,9 @@ export const readStatus = sqliteTable(
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
 		lastReadMessageCount: integer().notNull().default(0),
-		readAt: timestamp().notNull().default(sql`(unixepoch())`),
+		readAt: timestamp()
+			.notNull()
+			.default(sql`(unixepoch())`),
 	},
 	(t) => [uniqueIndex("read_status_conv_user").on(t.conversationId, t.userId)],
 );

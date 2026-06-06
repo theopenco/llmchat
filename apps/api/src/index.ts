@@ -7,6 +7,8 @@ import { chat } from "@/routes/chat";
 import { conversations } from "@/routes/conversations";
 import { inboundEmail } from "@/routes/inbound-email";
 import { projects } from "@/routes/projects";
+import { sources } from "@/routes/sources";
+import { systemPrompts } from "@/routes/system-prompts";
 import { widgetAsset } from "@/routes/widget-asset";
 import { workspaces } from "@/routes/workspaces";
 
@@ -50,6 +52,8 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => {
 app.route("/v1", chat);
 app.route("/api", workspaces);
 app.route("/api", projects);
+app.route("/api", systemPrompts);
+app.route("/api", sources);
 app.route("/api", conversations);
 app.route("/", inboundEmail);
 app.route("/api", billing);

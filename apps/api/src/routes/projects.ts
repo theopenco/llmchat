@@ -12,13 +12,16 @@ import type { AppContext } from "@/env";
 const projectInput = z.object({
 	name: z.string().min(1),
 	systemPrompt: z.string().default(""),
+	activeSystemPromptId: z.string().nullable().optional(),
 	knowledgeText: z.string().default(""),
-	model: z.string().default("openai/gpt-4o-mini"),
+	model: z.string().default("gpt-4o-mini"),
 	brandColor: z.string().default("#000000"),
 	welcomeMessage: z.string().default("Hi! How can I help you today?"),
 	escalationThreshold: z.number().int().min(1).default(3),
 	notifyEmail: z.email().nullable().optional(),
 	slackWebhookUrl: z.url().nullable().optional(),
+	favorite: z.boolean().optional(),
+	pinned: z.boolean().optional(),
 });
 
 function generatePublicKey() {

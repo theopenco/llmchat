@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export * from "./analytics";
+
 export const widgetMessageRole = z.enum(["user", "assistant", "admin"]);
 
 export const widgetMessage = z.object({

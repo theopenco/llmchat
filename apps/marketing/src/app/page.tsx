@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { TrackedLink } from "@/components/TrackedLink";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -58,12 +60,14 @@ export default function Home() {
 						through email — all from one inbox.
 					</p>
 					<div className="mt-9 flex flex-wrap gap-3">
-						<Link
+						<TrackedLink
 							href={dashboardUrl}
+							event={ANALYTICS_EVENTS.signupStarted}
+							eventProps={{ source: "home_hero" }}
 							className="rounded-full bg-ink px-7 py-3.5 font-mono text-[0.74rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 						>
 							Get started free
-						</Link>
+						</TrackedLink>
 						<a
 							href="#features"
 							className="rounded-full border border-rule px-7 py-3.5 font-mono text-[0.74rem] uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-ink"
@@ -116,12 +120,14 @@ export default function Home() {
 						Your docs already know the answers. Let them reply.
 					</h2>
 					<div className="mt-9 flex flex-wrap justify-center gap-3">
-						<Link
+						<TrackedLink
 							href={dashboardUrl}
+							event={ANALYTICS_EVENTS.signupStarted}
+							eventProps={{ source: "home_closing" }}
 							className="rounded-full bg-paper px-7 py-3.5 font-mono text-[0.74rem] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-accent hover:text-paper"
 						>
 							Get started free
-						</Link>
+						</TrackedLink>
 						<Link
 							href="/compare"
 							className="rounded-full border border-paper/30 px-7 py-3.5 font-mono text-[0.74rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-paper/10"

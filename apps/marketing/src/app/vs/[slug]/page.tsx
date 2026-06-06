@@ -2,8 +2,11 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { notFound } from "next/navigation";
 import { allCompetitors } from "content-collections";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { TrackedLink } from "@/components/TrackedLink";
+import { TrackView } from "@/components/TrackView";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -41,6 +44,10 @@ export default async function VsPage({
 
 	return (
 		<>
+			<TrackView
+				event={ANALYTICS_EVENTS.comparisonViewed}
+				props={{ competitor: competitor.id }}
+			/>
 			<SiteHeader active="compare" />
 
 			<main className="mx-auto max-w-5xl px-6">
@@ -80,12 +87,14 @@ export default async function VsPage({
 					</div>
 
 					<div className="mt-8 flex flex-wrap gap-3">
-						<Link
+						<TrackedLink
 							href={dashboardUrl}
+							event={ANALYTICS_EVENTS.signupStarted}
+							eventProps={{ source: "vs_page", competitor: competitor.id }}
 							className="rounded-full bg-ink px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 						>
 							Get started free →
-						</Link>
+						</TrackedLink>
 						<Link
 							href="/compare"
 							className="rounded-full border border-rule px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-ink"

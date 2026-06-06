@@ -14,6 +14,10 @@ export interface EnvVars {
 	DASHBOARD_URL: string;
 
 	WIDGET_ALLOWED_ORIGINS: string;
+
+	// Optional — analytics is a no-op when unset.
+	POSTHOG_API_KEY?: string;
+	POSTHOG_HOST?: string;
 }
 
 export interface Env {

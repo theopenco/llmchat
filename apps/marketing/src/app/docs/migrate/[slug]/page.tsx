@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { allMigrations, matrix } from "content-collections";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CodeBlock } from "@/components/CodeBlock";
+import { TrackView } from "@/components/TrackView";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -41,6 +43,10 @@ export default async function MigratePage({
 
 	return (
 		<>
+			<TrackView
+				event={ANALYTICS_EVENTS.migrationGuideViewed}
+				props={{ competitor: guide.slug }}
+			/>
 			<SiteHeader active="resources" />
 
 			<main className="mx-auto max-w-3xl px-6">
