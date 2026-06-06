@@ -37,10 +37,7 @@ export const inboundEmail = new Hono<AppContext>().post(
 			return c.json({ error: "project not found" }, 404);
 		}
 
-		const inReplyTo = payload.headers?.["In-Reply-To"]?.replace(
-			/[<>]/g,
-			"",
-		);
+		const inReplyTo = payload.headers?.["In-Reply-To"]?.replace(/[<>]/g, "");
 		let conv = inReplyTo
 			? await db(c.env).query.conversation.findFirst({
 					where: (ct, { and, eq: e, exists }) =>

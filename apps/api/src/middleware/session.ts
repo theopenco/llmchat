@@ -17,19 +17,21 @@ export const requireSession = createMiddleware<AppContext>(async (c, next) => {
 	return next();
 });
 
-export const requireWorkspace = createMiddleware<AppContext>(async (c, next) => {
-	const userId = c.get("userId");
-	const workspaceId = c.req.header("x-workspace-id");
-	if (!workspaceId) {
-		return c.json({ error: "workspace required" }, 400);
-	}
-	const m = await db(c.env).query.member.findFirst({
-		where: (mt, { and, eq: e }) =>
-			and(e(mt.userId, userId), e(mt.workspaceId, workspaceId)),
-	});
-	if (!m) {
-		return c.json({ error: "forbidden" }, 403);
-	}
-	c.set("workspaceId", workspaceId);
-	return next();
-});
+export const requireWorkspace = createMiddleware<AppContext>(
+	async (c, next) => {
+		const userId = c.get("userId");
+		const workspaceId = c.req.header("x-workspace-id");
+		if (!workspaceId) {
+			return c.json({ error: "workspace required" }, 400);
+		}
+		const m = await db(c.env).query.member.findFirst({
+			where: (mt, { and, eq: e }) =>
+				and(e(mt.userId, userId), e(mt.workspaceId, workspaceId)),
+		});
+		if (!m) {
+			return c.json({ error: "forbidden" }, 403);
+		}
+		c.set("workspaceId", workspaceId);
+		return next();
+	},
+);

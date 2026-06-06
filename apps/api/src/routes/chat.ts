@@ -11,7 +11,6 @@ import {
 	conversation,
 	eq,
 	message as messageTable,
-	project,
 	usageEvent,
 } from "@llmchat/db";
 
@@ -22,7 +21,10 @@ const chatBody = z.object({
 	projectKey: z.string(),
 	clientId: z.string(),
 	name: z.string().optional(),
-	email: z.union([z.email(), z.literal("")]).optional().transform((v) => v || undefined),
+	email: z
+		.union([z.email(), z.literal("")])
+		.optional()
+		.transform((v) => v || undefined),
 	messages: z.array(z.any()),
 });
 
@@ -30,10 +32,11 @@ const escalateBody = z.object({
 	projectKey: z.string(),
 	clientId: z.string(),
 	name: z.string().optional(),
-	email: z.union([z.email(), z.literal("")]).optional().transform((v) => v || undefined),
-	messages: z.array(
-		z.object({ role: z.string(), content: z.string() }),
-	),
+	email: z
+		.union([z.email(), z.literal("")])
+		.optional()
+		.transform((v) => v || undefined),
+	messages: z.array(z.object({ role: z.string(), content: z.string() })),
 });
 
 const RATE_LIMIT_MAX = 20;
@@ -84,8 +87,7 @@ async function findOrCreateConversation(
 
 export const chat = new Hono<AppContext>()
 	.post("/chat", zValidator("json", chatBody), async (c) => {
-		const { projectKey, clientId, name, email, messages } =
-			c.req.valid("json");
+		const { projectKey, clientId, name, email, messages } = c.req.valid("json");
 		const project = await loadProject(c.env, projectKey);
 		if (!project) {
 			return c.json({ error: "invalid project key" }, 404);
@@ -111,9 +113,7 @@ export const chat = new Hono<AppContext>()
 
 		const lastUser = messages[messages.length - 1] as UIMessage;
 		const userText = lastUser?.parts
-			?.filter(
-				(p): p is { type: "text"; text: string } => p.type === "text",
-			)
+			?.filter((p): p is { type: "text"; text: string } => p.type === "text")
 			.map((p) => p.text)
 			.join("");
 		const nextSeq = conv.messageCount + 1;
@@ -126,10 +126,30 @@ export const chat = new Hono<AppContext>()
 				sequence: nextSeq,
 			});
 
+		let activePromptContent = project.systemPrompt;
+		const activePromptId = project.activeSystemPromptId;
+		if (activePromptId) {
+			const active = await db(c.env).query.systemPrompt.findFirst({
+				where: (sp, { and: a, eq: e }) =>
+					a(e(sp.id, activePromptId), e(sp.projectId, project.id)),
+			});
+			if (active) activePromptContent = active.content;
+		}
+
+		const activeSources = await db(c.env).query.source.findMany({
+			where: (s, { and: a, eq: e }) =>
+				a(e(s.projectId, project.id), e(s.active, true)),
+		});
+
 		const result = await streamChat(c.env, {
 			model: project.model,
-			systemPrompt: project.systemPrompt,
+			systemPrompt: activePromptContent,
 			knowledgeText: project.knowledgeText,
+			sources: activeSources.map((s) => ({
+				title: s.title || s.url,
+				url: s.url,
+				content: s.content,
+			})),
 			messages: messages as UIMessage[],
 		});
 
@@ -137,34 +157,37 @@ export const chat = new Hono<AppContext>()
 			(async () => {
 				const text = await result.text;
 				const usage = await result.usage;
-				await db(c.env).insert(messageTable).values({
-					conversationId: conv.id,
-					role: "assistant",
-					content: text,
-					sequence: nextSeq + 1,
-				});
+				await db(c.env)
+					.insert(messageTable)
+					.values({
+						conversationId: conv.id,
+						role: "assistant",
+						content: text,
+						sequence: nextSeq + 1,
+					});
 				await db(c.env)
 					.update(conversation)
 					.set({ messageCount: nextSeq + 1, updatedAt: new Date() })
 					.where(eq(conversation.id, conv.id));
-				await db(c.env).insert(usageEvent).values({
-					workspaceId: project.workspaceId,
-					projectId: project.id,
-					conversationId: conv.id,
-					messageId: "",
-					model: project.model,
-					promptTokens: usage?.inputTokens ?? 0,
-					completionTokens: usage?.outputTokens ?? 0,
-					costUsd: 0,
-				});
+				await db(c.env)
+					.insert(usageEvent)
+					.values({
+						workspaceId: project.workspaceId,
+						projectId: project.id,
+						conversationId: conv.id,
+						messageId: "",
+						model: project.model,
+						promptTokens: usage?.inputTokens ?? 0,
+						completionTokens: usage?.outputTokens ?? 0,
+						costUsd: 0,
+					});
 			})(),
 		);
 
 		return result.toUIMessageStreamResponse();
 	})
 	.post("/escalate", zValidator("json", escalateBody), async (c) => {
-		const { projectKey, clientId, name, email, messages } =
-			c.req.valid("json");
+		const { projectKey, clientId, name, email, messages } = c.req.valid("json");
 		const project = await loadProject(c.env, projectKey);
 		if (!project) {
 			return c.json({ error: "invalid project key" }, 404);
