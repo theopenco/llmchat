@@ -1,0 +1,161 @@
+{
+	"rank": 4,
+	"id": "chatwoot",
+	"name": "Chatwoot",
+	"url": "https://chatwoot.com",
+	"tagline": "Open-source customer support platform",
+	"description": "Open-source, self-hostable support platform with an AI assistant, omnichannel inbox, and knowledge base. Y Combinator-backed with 25,000+ GitHub stars.",
+	"bestFor": "Teams wanting open-source ownership and multi-channel support who are comfortable running infrastructure.",
+	"notFor": "Teams wanting a minimal drop-in widget — Chatwoot is a full platform.",
+	"pricing": "Free self-hosted (community) & a free cloud 'Hacker' plan (live chat only, no AI); paid cloud from $19/agent/mo",
+	"heroSubtext": "Both self-hostable — but different stacks. Chatwoot runs on Ruby on Rails with PostgreSQL and Redis. llmchat runs serverless on Cloudflare's edge: no database to provision, no app server to maintain.",
+	"heroBadges": [
+		"Serverless self-hosting",
+		"Model-agnostic",
+		"Managed free cloud",
+		"Shadow DOM widget"
+	],
+	"tableSummary": {
+		"llmchat": "Serverless edge — from $0 managed cloud",
+		"competitor": "Rails + PostgreSQL — $0 self-hosted / ~$19/mo cloud"
+	},
+	"vsCategories": [
+		{
+			"heading": "Self-hosting",
+			"rows": [
+				{
+					"label": "Self-hosting stack",
+					"llmchat": "Cloudflare serverless (D1, KV, workerd)",
+					"competitor": "Ruby on Rails + PostgreSQL + Redis"
+				},
+				{
+					"label": "Infrastructure to manage",
+					"llmchat": "None — fully serverless",
+					"competitor": "Database + cache + app servers"
+				},
+				{
+					"label": "Open source license",
+					"llmchat": "Open architecture",
+					"competitor": "MIT licensed — fork and contribute"
+				}
+			]
+		},
+		{
+			"heading": "AI & widget",
+			"rows": [
+				{
+					"label": "AI model flexibility",
+					"llmchat": "Any LLM via LLM Gateway",
+					"competitor": "Captain AI on OpenAI GPT — fixed model"
+				},
+				{
+					"label": "Shadow DOM widget",
+					"llmchat": "Yes — no style bleed",
+					"competitor": "No"
+				},
+				{
+					"label": "Embed method",
+					"llmchat": "One <script> tag",
+					"competitor": "Platform setup"
+				}
+			]
+		},
+		{
+			"heading": "Channels",
+			"rows": [
+				{
+					"label": "Web chat widget",
+					"llmchat": "Yes",
+					"competitor": "Yes"
+				},
+				{
+					"label": "WhatsApp / Telegram / Instagram",
+					"llmchat": "Not yet",
+					"competitor": "All included"
+				},
+				{
+					"label": "Email as standalone channel",
+					"llmchat": "Not yet",
+					"competitor": "Yes"
+				}
+			]
+		},
+		{
+			"heading": "Pricing",
+			"rows": [
+				{
+					"label": "Managed cloud free tier",
+					"llmchat": "Yes",
+					"competitor": "Free 'Hacker' cloud plan (live chat only, no AI) + free self-hosted"
+				},
+				{
+					"label": "Cloud starting price",
+					"llmchat": "Free",
+					"competitor": "~$19/month"
+				},
+				{
+					"label": "Pricing model",
+					"llmchat": "LLM usage-based",
+					"competitor": "Per seat / agent"
+				}
+			]
+		}
+	],
+	"tldr": "Both llmchat and Chatwoot are self-hostable. The difference is scope and stack: Chatwoot is a full multi-channel platform running on Rails + PostgreSQL; llmchat is a focused widget running serverless on Cloudflare's edge. Choose Chatwoot for open-source, multi-channel coverage. Choose llmchat for a lighter setup and model-agnostic AI.",
+	"llmchatWins": [
+		"Lighter self-hosting — serverless on Cloudflare, no database to manage",
+		"Model-agnostic AI — swap LLMs per project without code changes",
+		"One script tag setup vs. full platform deployment",
+		"Shadow DOM widget with no style bleed",
+		"Free managed cloud tier with usage-based pricing"
+	],
+	"competitorWins": [
+		"Fully open-source (MIT license) — read, fork, and contribute",
+		"Multi-channel: WhatsApp, Instagram, email, Telegram, and more",
+		"25,000+ GitHub stars and active community",
+		"Full agent management: roles, canned responses, labels, reports",
+		"Knowledge base with AI-powered search",
+		"Y Combinator-backed with longer track record"
+	],
+	"llmchatBestFor": [
+		"Teams who want a drop-in AI support widget without deploying a platform",
+		"Teams who want managed cloud without maintaining infrastructure",
+		"Teams who need model flexibility across different projects",
+		"Developers who want edge-native, serverless architecture",
+		"Products where a focused widget is enough"
+	],
+	"competitorBestFor": [
+		"Teams who specifically need open-source licensing (MIT)",
+		"Teams requiring multi-channel support: WhatsApp, Instagram, Telegram",
+		"Organizations that want full agent management and reporting",
+		"Teams comfortable running and maintaining a Rails/PostgreSQL stack",
+		"Companies who want to contribute to a large OSS codebase"
+	],
+	"keyDifferences": [
+		{
+			"heading": "Self-hosting: same goal, different stacks",
+			"llmchat": "Self-hosted on Cloudflare infrastructure — D1 for the database, KV for cache and rate limiting, workerd for compute. Serverless and edge-native. No database server to provision or maintain.",
+			"competitor": "Self-hosted on a Ruby on Rails application with PostgreSQL and Redis. A production-grade traditional web application stack. More operational surface to manage, but also more mature and battle-tested.",
+			"bottomLine": "Choose llmchat if you want self-hosting without managing a database server. Choose Chatwoot if you're comfortable with Rails/PostgreSQL and want the full platform that stack enables."
+		},
+		{
+			"heading": "Scope: widget vs. full platform",
+			"llmchat": "A focused support widget with an inbox, AI, escalation, and email threading. Fast to set up, easy to reason about. No multi-channel inbox, no agent reporting, no knowledge base UI.",
+			"competitor": "A full customer support platform: multi-channel inbox, knowledge base with AI search, agent management with roles and teams, canned responses, reports, and conversation labels.",
+			"bottomLine": "Choose Chatwoot if you need WhatsApp, Instagram, or email as channels and want full agent management. Choose llmchat if a web widget with an inbox is all you need."
+		},
+		{
+			"heading": "Open source licensing",
+			"llmchat": "Open architecture — the code is readable and the stack is transparent — but not MIT-licensed open source in the contribution sense. You can audit and fork the concepts, but it's not a community-governed project.",
+			"competitor": "Fully open-source under the MIT License. 25,000+ GitHub stars, active contributors, and a long history of community-driven development. If OSS community and contribution rights matter, Chatwoot is the clear choice.",
+			"bottomLine": "Choose Chatwoot if open-source licensing, community contributions, or forking rights are important. Choose llmchat if open architecture (readable, auditable) is sufficient."
+		},
+		{
+			"heading": "AI model flexibility",
+			"llmchat": "Built on LLM Gateway — you pick the AI model per project and change it with a configuration update. Run a cost-efficient model for routine questions and a more capable one for complex queries.",
+			"competitor": "The Captain AI assistant runs on a fixed stack. You configure it with your knowledge base and FAQs, but you don't choose the underlying model.",
+			"bottomLine": "Choose llmchat if model choice or the ability to optimize cost vs. capability per project matters. Choose Chatwoot if you don't need that flexibility and want a larger-scope platform."
+		}
+	],
+	"migrationNote": "Migrating from Chatwoot to llmchat is primarily a widget swap and knowledge base re-import. Replace the Chatwoot widget script with the llmchat script tag, copy your knowledge base content into llmchat's project settings, and update your escalation email address. Conversation history from Chatwoot can be exported but won't migrate automatically. Note that llmchat doesn't currently replace Chatwoot's multi-channel inbox — if you're using WhatsApp or Instagram, you'll need to handle those separately."
+}

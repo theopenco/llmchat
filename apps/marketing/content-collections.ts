@@ -1,0 +1,142 @@
+import { defineCollection, defineConfig, defineSingleton } from "@content-collections/core";
+import { compileMarkdown } from "@content-collections/markdown";
+import { z } from "zod";
+
+// ── Blog ──────────────────────────────────────────────────────────────────────
+const posts = defineCollection({
+	name: "posts",
+	directory: "content/blog",
+	include: "*.md",
+	schema: z.object({
+		title: z.string(),
+		description: z.string(),
+		date: z.string(),
+		category: z.enum(["Announcements", "Guides", "Engineering", "Changelog"]),
+		featured: z.boolean().default(false),
+	}),
+	transform: async (doc, ctx) => {
+		const html = await compileMarkdown(ctx, doc);
+		const words = doc.content.trim().split(/\s+/).length;
+		return {
+			...doc,
+			slug: doc._meta.path,
+			html,
+			readingTime: Math.max(1, Math.round(words / 200)),
+		};
+	},
+});
+
+// ── Comparison: per-competitor profiles ───────────────────────────────────────
+const vsRow = z.object({
+	label: z.string(),
+	llmchat: z.string(),
+	competitor: z.string(),
+});
+
+const competitors = defineCollection({
+	name: "competitors",
+	directory: "content/competitors",
+	include: "*.json",
+	parser: "json",
+	schema: z.object({
+		rank: z.number(),
+		id: z.string(),
+		name: z.string(),
+		url: z.string(),
+		tagline: z.string(),
+		description: z.string(),
+		bestFor: z.string(),
+		notFor: z.string(),
+		pricing: z.string(),
+		heroSubtext: z.string(),
+		heroBadges: z.array(z.string()),
+		tableSummary: z.object({ llmchat: z.string(), competitor: z.string() }),
+		vsCategories: z.array(
+			z.object({ heading: z.string(), rows: z.array(vsRow) }),
+		),
+		tldr: z.string(),
+		llmchatWins: z.array(z.string()),
+		competitorWins: z.array(z.string()),
+		llmchatBestFor: z.array(z.string()),
+		competitorBestFor: z.array(z.string()),
+		keyDifferences: z.array(
+			z.object({
+				heading: z.string(),
+				llmchat: z.string(),
+				competitor: z.string(),
+				bottomLine: z.string(),
+			}),
+		),
+		migrationNote: z.string(),
+	}),
+});
+
+// ── Comparison: migration guides ──────────────────────────────────────────────
+const migrations = defineCollection({
+	name: "migrations",
+	directory: "content/migrations",
+	include: "*.json",
+	parser: "json",
+	schema: z.object({
+		rank: z.number(),
+		slug: z.string(),
+		name: z.string(),
+		tagline: z.string(),
+		estimatedTime: z.string(),
+		intro: z.string(),
+		quickSummary: z.string(),
+		oldEmbed: z.string(),
+		oldEmbedLabel: z.string(),
+		steps: z.array(
+			z.object({
+				title: z.string(),
+				body: z.string(),
+				code: z.string().optional(),
+				codeLabel: z.string().optional(),
+			}),
+		),
+		mapping: z.array(
+			z.object({
+				from: z.string(),
+				to: z.string(),
+				note: z.string().optional(),
+			}),
+		),
+		transfers: z.array(z.string()),
+		doesntTransfer: z.array(z.string()),
+	}),
+});
+
+// ── Comparison: the shared feature matrix (single document) ───────────────────
+const rating = z.string();
+const matrix = defineSingleton({
+	name: "matrix",
+	filePath: "content/comparison/matrix.json",
+	parser: "json",
+	schema: z.object({
+		colOrder: z.array(z.string()),
+		colLabels: z.record(z.string(), z.string()),
+		llmchatEmbed: z.string(),
+		featureGroups: z.array(
+			z.object({
+				heading: z.string(),
+				rows: z.array(
+					z.object({
+						label: z.string(),
+						note: z.string().optional(),
+						llmchat: rating,
+						chatbase: rating,
+						fin: rating,
+						intercom: rating,
+						chatwoot: rating,
+						crisp: rating,
+					}),
+				),
+			}),
+		),
+	}),
+});
+
+export default defineConfig({
+	content: [posts, competitors, migrations, matrix],
+});

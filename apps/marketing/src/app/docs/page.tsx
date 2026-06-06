@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { allMigrations, matrix } from "content-collections";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { CodeBlock } from "@/components/CodeBlock";
-import { llmchatEmbed, migrations } from "@/lib/migrations";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -15,18 +16,18 @@ export const metadata = {
 const startCards = [
 	{
 		title: "Quickstart",
-		body: "Drop one script tag on your site and go live in under five minutes.",
+		body: "Drop one script tag and go live in under five minutes.",
 		href: "#quickstart",
 		tag: "5 min",
 	},
 	{
 		title: "Train your bot",
-		body: "Paste your knowledge base and system prompt so answers stay on-topic.",
+		body: "Paste your knowledge base and system prompt to keep answers on-topic.",
 		href: "#knowledge-base",
 		tag: "Config",
 	},
 	{
-		title: "Escalation & inbox",
+		title: "Escalation",
 		body: "Hand off to your team with full context when the bot can't help.",
 		href: "#escalation",
 		tag: "Config",
@@ -60,172 +61,176 @@ const sections = [
 ];
 
 export default function DocsPage() {
+	const migrations = [...allMigrations].sort((a, b) => a.rank - b.rank);
+
 	return (
-		<main className="mx-auto max-w-5xl px-6 py-16">
+		<>
 			<SiteHeader active="resources" />
 
-			{/* Hero */}
-			<section className="mt-16 max-w-3xl">
-				<p className="text-sm font-medium uppercase tracking-wide text-gray-500">
-					Documentation
-				</p>
-				<h1 className="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">
-					Build with llmchat
-				</h1>
-				<p className="mt-4 text-lg text-gray-600">
-					Everything you need to drop in the widget, train it on your content,
-					route escalations to your team, and migrate cleanly from your current
-					support tool.
-				</p>
-			</section>
+			<main className="mx-auto max-w-5xl px-6">
+				{/* Hero */}
+				<section className="animate-rise-in pt-16 sm:pt-20">
+					<p className="kicker">Documentation</p>
+					<h1 className="font-display mt-4 max-w-3xl text-5xl font-semibold leading-[0.98] tracking-tight-display text-ink sm:text-6xl">
+						Build with{" "}
+						<em className="font-normal italic text-accent">llmchat</em>
+					</h1>
+					<p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
+						Everything you need to drop in the widget, train it on your content,
+						route escalations to your team, and migrate cleanly from your
+						current support tool.
+					</p>
+				</section>
 
-			{/* Get started cards */}
-			<section className="mt-12">
-				<h2 className="font-semibold">Get started</h2>
-				<div className="mt-4 grid gap-4 sm:grid-cols-3">
+				{/* Get started cards */}
+				<section className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-rule bg-rule sm:grid-cols-3">
 					{startCards.map((card) => (
 						<a
 							key={card.title}
 							href={card.href}
-							className="rounded-xl border border-gray-200 p-5 transition hover:border-gray-400"
+							className="group bg-paper-card p-6 transition-colors hover:bg-paper-deep"
 						>
 							<div className="flex items-center justify-between">
-								<h3 className="font-semibold">{card.title}</h3>
-								<span className="rounded-full border border-gray-200 px-2 py-0.5 text-xs text-gray-500">
+								<h2 className="font-display text-xl font-semibold text-ink">
+									{card.title}
+								</h2>
+								<span className="font-mono text-[0.62rem] uppercase tracking-wider text-faint">
 									{card.tag}
 								</span>
 							</div>
-							<p className="mt-2 text-sm text-gray-600">{card.body}</p>
+							<p className="mt-2 text-sm leading-relaxed text-muted">
+								{card.body}
+							</p>
+							<span className="mt-4 inline-block font-mono text-[0.68rem] uppercase tracking-[0.12em] text-accent opacity-0 transition-opacity group-hover:opacity-100">
+								Jump ↓
+							</span>
 						</a>
 					))}
-				</div>
-			</section>
+				</section>
 
-			{/* Quickstart */}
-			<section id="quickstart" className="mt-16 scroll-mt-8">
-				<h2 className="text-xl font-semibold">Quickstart</h2>
-				<p className="mt-2 text-sm leading-relaxed text-gray-600">
-					Create a project in the dashboard to get your public key, then add a
-					single script tag to your site — anywhere before the closing{" "}
-					<code className="rounded bg-gray-100 px-1 py-0.5 text-xs">
-						&lt;/body&gt;
-					</code>{" "}
-					tag. That&apos;s the whole integration.
-				</p>
-				<div className="mt-4">
-					<CodeBlock code={llmchatEmbed} label="index.html" />
-				</div>
-				<ul className="mt-4 space-y-2 text-sm text-gray-600">
-					<li className="flex gap-2">
-						<span className="mt-0.5 shrink-0 text-gray-400">•</span>
-						<span>
-							<code className="rounded bg-gray-100 px-1 py-0.5 text-xs">
-								data-project
-							</code>{" "}
-							— your project&apos;s public key (starts with{" "}
-							<code className="rounded bg-gray-100 px-1 py-0.5 text-xs">
-								pk_live_
-							</code>
-							).
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="mt-0.5 shrink-0 text-gray-400">•</span>
-						<span>
-							<code className="rounded bg-gray-100 px-1 py-0.5 text-xs">
-								data-brand
-							</code>{" "}
-							— a hex color the widget uses for its header and primary button.
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="mt-0.5 shrink-0 text-gray-400">•</span>
-						<span>
-							The widget mounts inside a shadow DOM, so your page styles and the
-							widget never interfere with each other.
-						</span>
-					</li>
-				</ul>
-			</section>
+				{/* Quickstart */}
+				<section id="quickstart" className="mt-20 scroll-mt-24">
+					<h2 className="font-display border-b-2 border-ink pb-3 text-3xl font-semibold tracking-tight-display text-ink">
+						Quickstart
+					</h2>
+					<p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-soft">
+						Create a project in the dashboard to get your public key, then add a
+						single script tag to your site — anywhere before the closing{" "}
+						<code className="rounded bg-paper-deep px-1.5 py-0.5 font-mono text-[0.8em]">
+							&lt;/body&gt;
+						</code>{" "}
+						tag. That&apos;s the whole integration.
+					</p>
+					<div className="mt-6">
+						<CodeBlock code={matrix.llmchatEmbed} label="index.html" />
+					</div>
+					<ul className="mt-6 space-y-3 text-sm text-muted">
+						{[
+							[
+								"data-project",
+								"your project's public key (starts with pk_live_).",
+							],
+							["data-brand", "a hex color for the widget header and primary button."],
+							[
+								"shadow DOM",
+								"the widget mounts in isolation, so styles never bleed either way.",
+							],
+						].map(([k, v]) => (
+							<li key={k} className="flex gap-3">
+								<span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+								<span>
+									<code className="rounded bg-paper-deep px-1.5 py-0.5 font-mono text-[0.8em] text-ink">
+										{k}
+									</code>{" "}
+									— {v}
+								</span>
+							</li>
+						))}
+					</ul>
+				</section>
 
-			{/* Concept sections */}
-			{sections.map((section) => (
-				<section key={section.id} id={section.id} className="mt-16 scroll-mt-8">
-					<h2 className="text-xl font-semibold">{section.title}</h2>
-					<div className="mt-3 space-y-3">
-						{section.paragraphs.map((p, i) => (
-							<p key={i} className="text-sm leading-relaxed text-gray-600">
-								{p}
-							</p>
+				{/* Concept sections */}
+				{sections.map((section) => (
+					<section
+						key={section.id}
+						id={section.id}
+						className="mt-16 scroll-mt-24"
+					>
+						<h2 className="font-display text-3xl font-semibold tracking-tight-display text-ink">
+							{section.title}
+						</h2>
+						<div className="mt-4 max-w-2xl space-y-4">
+							{section.paragraphs.map((p, i) => (
+								<p key={i} className="text-base leading-relaxed text-ink-soft">
+									{p}
+								</p>
+							))}
+						</div>
+					</section>
+				))}
+
+				{/* Migration guides */}
+				<section id="migrate" className="mt-20 scroll-mt-24">
+					<h2 className="font-display border-b-2 border-ink pb-3 text-3xl font-semibold tracking-tight-display text-ink">
+						Migrate to llmchat
+					</h2>
+					<p className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
+						Already running a support tool? These guides walk through the embed
+						swap, knowledge-base re-import, and what does and doesn&apos;t carry
+						over — step by step.
+					</p>
+					<div className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-rule bg-rule sm:grid-cols-2">
+						{migrations.map((m) => (
+							<Link
+								key={m.slug}
+								href={`/docs/migrate/${m.slug}`}
+								className="group bg-paper-card p-6 transition-colors hover:bg-paper-deep"
+							>
+								<div className="flex items-center justify-between">
+									<h3 className="font-display text-xl font-semibold text-ink">
+										From {m.name}
+									</h3>
+									<span className="font-mono text-[0.62rem] uppercase tracking-wider text-faint">
+										{m.estimatedTime}
+									</span>
+								</div>
+								<p className="mt-2 text-sm leading-relaxed text-muted">
+									{m.tagline}
+								</p>
+								<span className="mt-4 inline-flex items-center gap-1.5 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-ink transition-colors group-hover:text-accent">
+									Read the guide →
+								</span>
+							</Link>
 						))}
 					</div>
 				</section>
-			))}
 
-			{/* Migration guides */}
-			<section id="migrate" className="mt-16 scroll-mt-8">
-				<h2 className="text-xl font-semibold">Migrate to llmchat</h2>
-				<p className="mt-2 text-sm leading-relaxed text-gray-600">
-					Already running a support tool? These guides walk through the embed
-					swap, knowledge-base re-import, and what does and doesn&apos;t carry
-					over — step by step.
-				</p>
-				<div className="mt-6 grid gap-4 sm:grid-cols-2">
-					{migrations.map((m) => (
+				{/* CTA */}
+				<section className="mt-24 overflow-hidden rounded-3xl bg-ink px-8 py-16 text-center">
+					<p className="font-mono text-[0.72rem] uppercase tracking-[0.16em] text-accent">
+						Ready to build?
+					</p>
+					<h2 className="font-display mx-auto mt-4 max-w-2xl text-4xl font-semibold leading-tight tracking-tight-display text-paper sm:text-5xl">
+						Create a project, paste the snippet, ship.
+					</h2>
+					<div className="mt-8 flex flex-wrap justify-center gap-3">
 						<Link
-							key={m.slug}
-							href={`/docs/migrate/${m.slug}`}
-							className="rounded-xl border border-gray-200 p-5 transition hover:border-gray-400"
+							href={dashboardUrl}
+							className="rounded-full bg-paper px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-accent hover:text-paper"
 						>
-							<div className="flex items-center justify-between">
-								<h3 className="font-semibold">Migrate from {m.name}</h3>
-								<span className="text-xs text-gray-400">{m.estimatedTime}</span>
-							</div>
-							<p className="mt-2 text-sm text-gray-600">{m.tagline}</p>
-							<span className="mt-3 inline-block text-xs text-gray-500">
-								Read the guide →
-							</span>
+							Get started free
 						</Link>
-					))}
-				</div>
-			</section>
+						<Link
+							href="/compare"
+							className="rounded-full border border-paper/30 px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-paper/10"
+						>
+							Compare alternatives
+						</Link>
+					</div>
+				</section>
+			</main>
 
-			{/* CTA */}
-			<section className="mt-16 rounded-xl border border-gray-200 p-8">
-				<h2 className="text-xl font-semibold">Ready to build?</h2>
-				<p className="mt-2 text-sm text-gray-600">
-					Create a project, grab your public key, and paste the snippet. No
-					credit card required.
-				</p>
-				<div className="mt-6 flex flex-wrap gap-3">
-					<Link
-						href={dashboardUrl}
-						className="rounded-md bg-gray-900 px-5 py-2.5 text-sm text-white"
-					>
-						Get started free
-					</Link>
-					<Link
-						href="/compare"
-						className="rounded-md border border-gray-300 px-5 py-2.5 text-sm text-gray-700 hover:border-gray-400"
-					>
-						Compare alternatives
-					</Link>
-				</div>
-			</section>
-
-			{/* Footer */}
-			<footer className="mt-16 border-t border-gray-200 pt-6 text-sm text-gray-500">
-				Built on{" "}
-				<a
-					href="https://llmgateway.io"
-					className="underline"
-					target="_blank"
-					rel="noreferrer"
-				>
-					LLM Gateway
-				</a>
-				. © llmchat.io
-			</footer>
-		</main>
+			<SiteFooter />
+		</>
 	);
 }

@@ -1,0 +1,167 @@
+{
+	"rank": 2,
+	"id": "fin",
+	"name": "Fin",
+	"url": "https://fin.ai",
+	"tagline": "The #1 AI agent for customer service",
+	"description": "Intercom's standalone AI agent with outcome-based pricing, proprietary ML models, and voice support. Deep integrations with Zendesk, Salesforce, and HubSpot.",
+	"bestFor": "Enterprise teams who want outcome-based pricing and already use Zendesk or Salesforce.",
+	"notFor": "Small teams or those wanting predictable flat-rate pricing.",
+	"pricing": "$0.99 per resolved outcome (usage-based)",
+	"heroSubtext": "Fin charges $0.99 per resolved outcome and runs on its own proprietary model (Fin Apex) — you can't choose the model. llmchat uses LLM usage-based pricing with a free tier and lets you run any model you choose.",
+	"heroBadges": [
+		"No per-outcome fees",
+		"Model-agnostic",
+		"Self-hostable",
+		"Free tier"
+	],
+	"tableSummary": {
+		"llmchat": "Usage-based — from $0, no minimums",
+		"competitor": "$0.99 per resolved outcome — proprietary model"
+	},
+	"vsCategories": [
+		{
+			"heading": "Pricing",
+			"rows": [
+				{
+					"label": "Pricing model",
+					"llmchat": "LLM usage-based — pay for tokens consumed",
+					"competitor": "$0.99 per resolved outcome"
+				},
+				{
+					"label": "Monthly minimum",
+					"llmchat": "None",
+					"competitor": "Pay-as-you-go per resolution"
+				},
+				{
+					"label": "Free tier",
+					"llmchat": "Yes",
+					"competitor": "14-day trial only"
+				},
+				{
+					"label": "Where it runs",
+					"llmchat": "Standalone widget on your site",
+					"competitor": "Via Intercom platform"
+				}
+			]
+		},
+		{
+			"heading": "AI & model",
+			"rows": [
+				{
+					"label": "AI stack",
+					"llmchat": "Any LLM via LLM Gateway",
+					"competitor": "Fin Apex — proprietary in-house model"
+				},
+				{
+					"label": "Model flexibility",
+					"llmchat": "Swap per project, any provider",
+					"competitor": "Locked to Fin's engine"
+				},
+				{
+					"label": "Voice support",
+					"llmchat": "Not yet",
+					"competitor": "Yes — included"
+				}
+			]
+		},
+		{
+			"heading": "Integrations & actions",
+			"rows": [
+				{
+					"label": "Zendesk / Salesforce / HubSpot",
+					"llmchat": "Not yet",
+					"competitor": "Deep native integration"
+				},
+				{
+					"label": "Actions in external systems",
+					"llmchat": "No",
+					"competitor": "Yes — update records, look up orders"
+				},
+				{
+					"label": "Channels beyond web chat",
+					"llmchat": "Not yet",
+					"competitor": "Chat, email, voice, social"
+				}
+			]
+		},
+		{
+			"heading": "Infrastructure",
+			"rows": [
+				{
+					"label": "Self-hosting",
+					"llmchat": "Cloudflare D1, KV, workerd",
+					"competitor": "SaaS only"
+				},
+				{
+					"label": "Data ownership",
+					"llmchat": "Your infrastructure",
+					"competitor": "Intercom infrastructure"
+				},
+				{
+					"label": "Compliance",
+					"llmchat": "Open architecture — fully auditable",
+					"competitor": "ISO, GDPR/CCPA certified"
+				}
+			]
+		}
+	],
+	"tldr": "Fin charges per resolved outcome and runs on proprietary AI models with deep enterprise integrations. llmchat uses usage-based pricing, is model-agnostic, and is self-hostable. Choose Fin if you have high resolution volume and need deep helpdesk integrations. Choose llmchat if you want predictable pricing and model flexibility.",
+	"llmchatWins": [
+		"Predictable usage-based pricing — no per-outcome minimums",
+		"Model-agnostic — not tied to any single AI vendor",
+		"Self-hostable on your own infrastructure",
+		"Free tier available",
+		"Open architecture — auditable by design",
+		"Simpler setup — one script tag vs. platform onboarding"
+	],
+	"competitorWins": [
+		"Outcome-based pricing scales well for high-volume resolution teams",
+		"Proprietary AI Engine™ with specialized customer service models",
+		"Voice channel support",
+		"Deep integrations with Zendesk, Salesforce, Freshdesk, HubSpot",
+		"Can take actions in external systems (update records, look up orders)",
+		"Enterprise compliance — ISO, GDPR/CCPA certified"
+	],
+	"llmchatBestFor": [
+		"Teams wanting predictable pricing that scales with actual LLM usage",
+		"Teams who want to choose and swap AI models without vendor lock-in",
+		"Developer teams who want a lightweight, self-hostable setup",
+		"Teams without existing Zendesk/Salesforce infrastructure",
+		"Early-stage products that want support running before they scale"
+	],
+	"competitorBestFor": [
+		"Enterprise teams with high monthly resolution volume (100s–1000s of outcomes)",
+		"Teams already running Zendesk, Salesforce, or HubSpot workflows",
+		"Support operations that include voice or phone channels",
+		"Teams who want AI that can take actions in external systems",
+		"Organizations that need ISO/GDPR/CCPA compliance certifications"
+	],
+	"keyDifferences": [
+		{
+			"heading": "Pricing model and predictability",
+			"llmchat": "Usage-based pricing tied to LLM token consumption. Costs scale linearly with actual usage and there's a free tier with no minimums. You know what you're spending before the month ends.",
+			"competitor": "$0.99 per resolved outcome, billed only when Fin resolves a conversation. Powerful if your AI resolves thousands of tickets — you pay for success, not seats. The trade-off is that per-outcome costs can be harder to forecast than usage-based or flat pricing.",
+			"bottomLine": "Choose Fin if you have high, consistent resolution volume and want to pay per success. Choose llmchat if predictable flat costs or low-volume usage matters more."
+		},
+		{
+			"heading": "AI model approach",
+			"llmchat": "Model-agnostic through LLM Gateway. You pick the model per project and change it with a config update — no code change required. As the model landscape evolves, you can adopt improvements immediately.",
+			"competitor": "Runs on the Fin AI Engine™ — proprietary models built for customer service benchmarks, plus specialized retrieval and reranking layers. Produces strong accuracy scores, but you're locked into their model roadmap.",
+			"bottomLine": "Choose Fin if you want purpose-built AI optimized specifically for support resolution benchmarks. Choose llmchat if model choice and the ability to switch vendors matters to your team."
+		},
+		{
+			"heading": "Helpdesk integrations",
+			"llmchat": "No integrations with Zendesk, Salesforce, or HubSpot today. llmchat is a focused widget + inbox, not a layer on top of an existing helpdesk.",
+			"competitor": "Deep integrations with Zendesk, Salesforce, Freshdesk, and HubSpot. Fin can look up order status, update subscriptions, and take actions in those systems during a conversation.",
+			"bottomLine": "If your support workflows run through Zendesk or Salesforce, Fin's integrations are a genuine advantage that llmchat doesn't match today."
+		},
+		{
+			"heading": "Voice and channel support",
+			"llmchat": "Web chat only. The widget embeds on your site, handles text conversations, and escalates to email when needed. No voice support.",
+			"competitor": "Supports voice channels in addition to chat, email, and text. If your support team handles phone calls, Fin is the only option in this comparison with voice AI.",
+			"bottomLine": "If your operation includes voice or phone support, Fin is the clear choice. If web chat with email escalation covers your use case, llmchat works."
+		}
+	],
+	"migrationNote": "Fin runs inside Intercom or your existing helpdesk — switching to llmchat means adopting a separate widget and inbox rather than replacing just the AI layer. Your conversation history stays in your existing helpdesk. Re-configure your knowledge base in llmchat, replace the chat embed on your site, and you're live. Teams moving off outcome-based pricing typically find usage-based costs predictable by comparison once volume is consistent."
+}

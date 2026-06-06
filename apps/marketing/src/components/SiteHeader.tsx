@@ -5,82 +5,88 @@ const dashboardUrl =
 
 type NavKey = "features" | "resources" | "compare";
 
-const linkBase = "text-gray-600 hover:text-gray-900";
-const linkActive = "font-medium text-gray-900";
+const navLink =
+	"font-mono text-[0.72rem] uppercase tracking-[0.14em] text-muted transition-colors hover:text-ink";
+const navLinkActive =
+	"font-mono text-[0.72rem] uppercase tracking-[0.14em] text-ink";
 
 export function SiteHeader({ active }: { active?: NavKey }) {
 	return (
-		<header className="flex items-center justify-between">
-			<Link href="/" className="text-lg font-semibold">
-				llmchat
-			</Link>
-			<nav className="flex items-center gap-4 text-sm">
-				<a
-					href="/#features"
-					className={active === "features" ? linkActive : linkBase}
-				>
-					Features
-				</a>
+		<header className="sticky top-0 z-40 border-b border-rule bg-paper/85 backdrop-blur-md">
+			<div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+				<Link href="/" className="group flex items-baseline gap-0.5">
+					<span className="font-display text-2xl font-semibold tracking-tight-display text-ink">
+						llmchat
+					</span>
+					<span className="text-2xl leading-none text-accent transition-transform group-hover:rotate-12">
+						.
+					</span>
+				</Link>
 
-				{/* Resources dropdown (CSS hover — no JS) */}
-				<div className="group relative">
-					<button
-						type="button"
-						className={`flex items-center gap-1 ${
-							active === "resources" ? linkActive : linkBase
-						}`}
+				<nav className="flex items-center gap-7">
+					<a
+						href="/#features"
+						className={active === "features" ? navLinkActive : navLink}
 					>
-						Resources
-						<svg
-							viewBox="0 0 12 12"
-							className="h-3 w-3 text-gray-400 transition-transform group-hover:rotate-180"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="1.5"
-							aria-hidden="true"
-						>
-							<path d="M3 4.5 6 7.5 9 4.5" strokeLinecap="round" strokeLinejoin="round" />
-						</svg>
-					</button>
+						Features
+					</a>
 
-					{/* pt-2 bridges the gap so hover survives the cursor moving down */}
-					<div className="invisible absolute left-1/2 top-full z-20 w-64 -translate-x-1/2 pt-2 opacity-0 transition duration-150 group-hover:visible group-hover:opacity-100">
-						<div className="rounded-xl border border-gray-200 bg-white p-2 shadow-lg">
-							<Link
-								href="/docs"
-								className="block rounded-lg px-3 py-2 hover:bg-gray-50"
-							>
-								<span className="block font-medium text-gray-900">Docs</span>
-								<span className="mt-0.5 block text-xs text-gray-500">
-									Setup, widget config, and migration guides
-								</span>
-							</Link>
-							<Link
-								href="/blog"
-								className="block rounded-lg px-3 py-2 hover:bg-gray-50"
-							>
-								<span className="block font-medium text-gray-900">Blog</span>
-								<span className="mt-0.5 block text-xs text-gray-500">
-									Product news, guides, and engineering
-								</span>
-							</Link>
+					{/* Resources dropdown — CSS hover, no JS */}
+					<div className="group relative hidden sm:block">
+						<button
+							type="button"
+							className={`flex items-center gap-1.5 ${
+								active === "resources" ? navLinkActive : navLink
+							}`}
+						>
+							Resources
+							<span className="text-accent transition-transform group-hover:rotate-180">
+								⌄
+							</span>
+						</button>
+						<div className="invisible absolute left-1/2 top-full z-30 w-72 -translate-x-1/2 pt-3 opacity-0 transition duration-150 group-hover:visible group-hover:opacity-100">
+							<div className="overflow-hidden rounded-xl border border-rule bg-paper-card shadow-[0_18px_40px_-22px_rgba(26,25,22,0.45)]">
+								<Link
+									href="/docs"
+									className="block border-b border-rule-soft px-4 py-3.5 transition-colors hover:bg-paper-deep"
+								>
+									<span className="block font-display text-base text-ink">
+										Docs
+									</span>
+									<span className="mt-0.5 block font-mono text-[0.68rem] uppercase tracking-wider text-faint">
+										Setup · widget · migrations
+									</span>
+								</Link>
+								<Link
+									href="/blog"
+									className="block px-4 py-3.5 transition-colors hover:bg-paper-deep"
+								>
+									<span className="block font-display text-base text-ink">
+										Blog
+									</span>
+									<span className="mt-0.5 block font-mono text-[0.68rem] uppercase tracking-wider text-faint">
+										Notes · guides · changelog
+									</span>
+								</Link>
+							</div>
 						</div>
 					</div>
-				</div>
 
-				<Link
-					href="/compare"
-					className={active === "compare" ? linkActive : linkBase}
-				>
-					Compare
-				</Link>
-				<Link
-					href={dashboardUrl}
-					className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
-				>
-					Sign in
-				</Link>
-			</nav>
+					<Link
+						href="/compare"
+						className={active === "compare" ? navLinkActive : navLink}
+					>
+						Compare
+					</Link>
+
+					<Link
+						href={dashboardUrl}
+						className="rounded-full bg-ink px-4 py-2 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
+					>
+						Sign in
+					</Link>
+				</nav>
+			</div>
 		</header>
 	);
 }

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { posts, formatDate } from "../data";
+import { allPosts } from "content-collections";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+import { formatDate } from "@/lib/format";
 
 export function generateStaticParams() {
-	return posts.map((p) => ({ slug: p.slug }));
+	return allPosts.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({
@@ -13,34 +15,12 @@ export async function generateMetadata({
 	params: Promise<{ slug: string }>;
 }) {
 	const { slug } = await params;
-	const post = posts.find((p) => p.slug === slug);
+	const post = allPosts.find((p) => p.slug === slug);
 	if (!post) return {};
 	return {
-		title: `${post.title} — llmchat`,
+		title: `${post.title} — llmchat Journal`,
 		description: post.description,
 	};
-}
-
-function renderContent(content: string) {
-	return content
-		.trim()
-		.split("\n\n")
-		.map((para, i) => {
-			const parts = para.split(/(\*\*[^*]+\*\*)/);
-			return (
-				<p key={i} className="leading-relaxed text-gray-700">
-					{parts.map((part, j) =>
-						part.startsWith("**") && part.endsWith("**") ? (
-							<strong key={j} className="font-semibold text-gray-900">
-								{part.slice(2, -2)}
-							</strong>
-						) : (
-							part
-						),
-					)}
-				</p>
-			);
-		});
 }
 
 export default async function PostPage({
@@ -49,52 +29,111 @@ export default async function PostPage({
 	params: Promise<{ slug: string }>;
 }) {
 	const { slug } = await params;
-	const post = posts.find((p) => p.slug === slug);
+	const post = allPosts.find((p) => p.slug === slug);
 	if (!post) notFound();
 
+	const more = [...allPosts]
+		.filter((p) => p.slug !== post.slug)
+		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+		.slice(0, 2);
+
 	return (
-		<main className="mx-auto max-w-5xl px-6 py-16">
+		<>
 			<SiteHeader active="resources" />
 
-			<article className="mt-16 max-w-2xl">
-				<div className="flex items-center gap-3 text-xs">
-					<span className="font-medium uppercase tracking-wide text-gray-500">
-						{post.category}
-					</span>
-					<span className="text-gray-300">·</span>
-					<time className="text-gray-400">{formatDate(post.date)}</time>
+			<main className="mx-auto max-w-6xl px-6">
+				{/* Breadcrumb */}
+				<div className="pt-10">
+					<Link
+						href="/blog"
+						className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-faint transition-colors hover:text-accent"
+					>
+						← The Journal
+					</Link>
 				</div>
 
-				<h1 className="mt-4 text-3xl font-semibold leading-tight sm:text-4xl">
-					{post.title}
-				</h1>
+				{/* Article masthead */}
+				<article className="animate-rise-in">
+					<header className="mx-auto max-w-3xl pt-10 text-center">
+						<div className="flex items-center justify-center gap-3 font-mono text-[0.72rem] uppercase tracking-[0.14em]">
+							<span className="text-accent">{post.category}</span>
+							<span className="text-rule">·</span>
+							<span className="text-faint">{formatDate(post.date)}</span>
+							<span className="text-rule">·</span>
+							<span className="text-faint">{post.readingTime} min read</span>
+						</div>
+						<h1 className="font-display mt-6 text-4xl font-semibold leading-[1.04] tracking-tight-display text-ink sm:text-6xl">
+							{post.title}
+						</h1>
+						<p className="mt-6 text-xl leading-relaxed text-muted">
+							{post.description}
+						</p>
+						<div className="mt-8 flex items-center justify-center gap-2 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
+							<span className="h-px w-8 bg-rule" />
+							By the llmchat team
+							<span className="h-px w-8 bg-rule" />
+						</div>
+					</header>
 
-				<p className="mt-4 text-lg text-gray-600">{post.description}</p>
+					{/* Body */}
+					<div
+						className="prose-editorial dropcap mx-auto mt-14 max-w-prose"
+						dangerouslySetInnerHTML={{ __html: post.html }}
+					/>
+				</article>
 
-				<div className="mt-10 space-y-5">{renderContent(post.content)}</div>
-			</article>
+				{/* End mark */}
+				<div className="mx-auto mt-16 max-w-prose">
+					<div className="flex items-center gap-4">
+						<span className="h-px flex-1 bg-rule" />
+						<span className="font-display text-2xl text-accent">✳</span>
+						<span className="h-px flex-1 bg-rule" />
+					</div>
+					<div className="mt-10 rounded-2xl border border-rule bg-paper-deep p-8 text-center">
+						<p className="kicker">Try it free</p>
+						<h2 className="font-display mt-3 text-2xl font-semibold tracking-tight-display text-ink">
+							One script tag. Any model. Live in minutes.
+						</h2>
+						<Link
+							href={process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001"}
+							className="mt-6 inline-block rounded-full bg-ink px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
+						>
+							Get started free
+						</Link>
+					</div>
+				</div>
 
-			<div className="mt-16">
-				<Link
-					href="/blog"
-					className="text-sm text-gray-500 hover:text-gray-900"
-				>
-					← Back to blog
-				</Link>
-			</div>
+				{/* Keep reading */}
+				<section className="mt-24">
+					<div className="flex items-center gap-4">
+						<h2 className="kicker">Keep reading</h2>
+						<span className="h-px flex-1 bg-rule" />
+					</div>
+					<div className="mt-8 grid gap-x-10 sm:grid-cols-2">
+						{more.map((p) => (
+							<Link
+								key={p.slug}
+								href={`/blog/${p.slug}`}
+								className="group flex flex-col border-t border-rule py-8"
+							>
+								<div className="flex items-center gap-2.5 font-mono text-[0.68rem] uppercase tracking-[0.14em]">
+									<span className="text-accent">{p.category}</span>
+									<span className="text-rule">·</span>
+									<span className="text-faint">{p.readingTime} min</span>
+								</div>
+								<h3 className="font-display mt-3 text-2xl font-semibold leading-snug tracking-tight-display text-ink transition-colors group-hover:text-accent">
+									{p.title}
+								</h3>
+								<p className="mt-2 text-sm leading-relaxed text-muted">
+									{p.description}
+								</p>
+							</Link>
+						))}
+					</div>
+				</section>
+			</main>
 
-			<footer className="mt-16 border-t border-gray-200 pt-6 text-sm text-gray-500">
-				Built on{" "}
-				<a
-					href="https://llmgateway.io"
-					className="underline"
-					target="_blank"
-					rel="noreferrer"
-				>
-					LLM Gateway
-				</a>
-				. © llmchat.io
-			</footer>
-		</main>
+			<SiteFooter />
+		</>
 	);
 }

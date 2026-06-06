@@ -1,16 +1,17 @@
 import Link from "next/link";
-import {
-	posts,
-	formatDate,
-	categories,
-	type CategoryFilter,
-} from "./data";
+import { allPosts } from "content-collections";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+import {
+	categories,
+	formatDateShort,
+	type CategoryFilter,
+} from "@/lib/format";
 
 export const metadata = {
-	title: "Blog — llmchat",
+	title: "Journal — llmchat",
 	description:
-		"Guides, announcements, and engineering posts from the llmchat team.",
+		"Field notes on AI support: announcements, guides, and engineering from the llmchat team.",
 };
 
 export default async function BlogPage({
@@ -19,91 +20,141 @@ export default async function BlogPage({
 	searchParams: Promise<{ category?: string }>;
 }) {
 	const { category } = await searchParams;
+	const active: CategoryFilter = categories.includes(
+		category as CategoryFilter,
+	)
+		? (category as CategoryFilter)
+		: "All";
 
-	const activeCategory: CategoryFilter =
-		categories.includes(category as CategoryFilter)
-			? (category as CategoryFilter)
-			: "All";
-
-	const filtered =
-		activeCategory === "All"
-			? posts
-			: posts.filter((p) => p.category === activeCategory);
-
-	const sorted = [...filtered].sort(
+	const sorted = [...allPosts].sort(
 		(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
 	);
+	const filtered =
+		active === "All" ? sorted : sorted.filter((p) => p.category === active);
+
+	const featured = active === "All" ? filtered.find((p) => p.featured) : null;
+	const rest = featured ? filtered.filter((p) => p.slug !== featured.slug) : filtered;
 
 	return (
-		<main className="mx-auto max-w-5xl px-6 py-16">
+		<>
 			<SiteHeader active="resources" />
 
-			<section className="mt-16">
-				<h1 className="text-3xl font-semibold">Blog</h1>
-				<p className="mt-2 text-gray-600">
-					Guides, announcements, and engineering posts from the llmchat team.
-				</p>
-			</section>
+			<main className="mx-auto max-w-6xl px-6">
+				{/* Masthead */}
+				<section className="animate-rise-in pt-16 sm:pt-20">
+					<p className="kicker">The llmchat Journal · Est. 2026</p>
+					<h1 className="font-display mt-4 max-w-4xl text-5xl font-semibold leading-[0.98] tracking-tight-display text-ink sm:text-7xl">
+						Field notes on{" "}
+						<em className="font-normal italic text-accent">AI support</em>
+					</h1>
+					<p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
+						Announcements, practical guides, and the engineering decisions
+						behind a support widget that answers from your docs — and knows when
+						to step aside.
+					</p>
+				</section>
 
-			<div className="mt-8 flex flex-wrap gap-2">
-				{categories.map((cat) => (
-					<Link
-						key={cat}
-						href={cat === "All" ? "/blog" : `/blog?category=${cat}`}
-						className={`rounded-full px-3 py-1 text-sm ${
-							activeCategory === cat
-								? "bg-gray-900 text-white"
-								: "border border-gray-200 text-gray-600 hover:border-gray-400 hover:text-gray-900"
-						}`}
-					>
-						{cat}
-					</Link>
-				))}
-			</div>
+				{/* Double rule */}
+				<div className="mt-12 border-t-2 border-ink">
+					<div className="mt-1 border-t border-rule" />
+				</div>
 
-			<section className="mt-8 grid gap-6 sm:grid-cols-2">
-				{sorted.map((post) => (
+				{/* Category filter */}
+				<nav className="flex flex-wrap items-center gap-x-6 gap-y-2 py-5">
+					{categories.map((cat) => {
+						const isActive = active === cat;
+						return (
+							<Link
+								key={cat}
+								href={cat === "All" ? "/blog" : `/blog?category=${cat}`}
+								className={`font-mono text-[0.72rem] uppercase tracking-[0.14em] transition-colors ${
+									isActive
+										? "text-accent"
+										: "text-faint hover:text-ink"
+								}`}
+							>
+								{isActive ? `[ ${cat} ]` : cat}
+							</Link>
+						);
+					})}
+				</nav>
+
+				<div className="border-t border-rule" />
+
+				{/* Featured */}
+				{featured && (
 					<Link
-						key={post.slug}
-						href={`/blog/${post.slug}`}
-						className="group rounded-xl border border-gray-200 p-6 transition-colors hover:border-gray-300"
+						href={`/blog/${featured.slug}`}
+						className="group grid animate-rise-in gap-8 py-12 md:grid-cols-12"
 					>
-						<div className="flex items-center justify-between gap-2">
-							<span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-								{post.category}
-							</span>
-							<time className="text-xs text-gray-400">
-								{formatDate(post.date)}
-							</time>
+						<div className="md:col-span-7">
+							<div className="flex items-center gap-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-accent">
+								<span>{featured.category}</span>
+								<span className="text-rule">/</span>
+								<span className="text-faint">Featured</span>
+							</div>
+							<h2 className="font-display mt-4 text-4xl font-semibold leading-[1.02] tracking-tight-display text-ink transition-colors group-hover:text-accent sm:text-5xl">
+								{featured.title}
+							</h2>
+							<p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
+								{featured.description}
+							</p>
+							<div className="mt-6 flex items-center gap-4 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-faint">
+								<span>{formatDateShort(featured.date)}</span>
+								<span className="text-rule">·</span>
+								<span>{featured.readingTime} min read</span>
+								<span className="text-accent transition-transform group-hover:translate-x-1">
+									→
+								</span>
+							</div>
 						</div>
-						<h2 className="mt-3 font-semibold leading-snug transition-colors group-hover:text-gray-600">
-							{post.title}
-						</h2>
-						<p className="mt-2 text-sm leading-relaxed text-gray-600">
-							{post.description}
-						</p>
+						<div className="relative hidden md:col-span-5 md:block">
+							<div className="flex h-full items-center justify-center overflow-hidden rounded-2xl border border-rule bg-paper-deep">
+								<span className="font-display select-none text-[10rem] font-semibold leading-none text-accent/15">
+									01
+								</span>
+							</div>
+						</div>
 					</Link>
-				))}
-			</section>
+				)}
 
-			{sorted.length === 0 && (
-				<p className="mt-12 text-sm text-gray-500">
-					No posts in this category yet.
-				</p>
-			)}
+				{/* Grid */}
+				<section className="grid border-t border-rule sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-3">
+					{rest.map((post) => (
+						<Link
+							key={post.slug}
+							href={`/blog/${post.slug}`}
+							className="group flex flex-col border-b border-rule py-9"
+						>
+							<div className="flex items-center gap-2.5 font-mono text-[0.68rem] uppercase tracking-[0.14em]">
+								<span className="text-accent">{post.category}</span>
+								<span className="text-rule">·</span>
+								<span className="text-faint">{post.readingTime} min</span>
+							</div>
+							<h3 className="font-display mt-4 text-2xl font-semibold leading-snug tracking-tight-display text-ink transition-colors group-hover:text-accent">
+								{post.title}
+							</h3>
+							<p className="mt-3 flex-1 text-sm leading-relaxed text-muted">
+								{post.description}
+							</p>
+							<div className="mt-5 flex items-center justify-between font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
+								<span>{formatDateShort(post.date)}</span>
+								<span className="text-accent opacity-0 transition-opacity group-hover:opacity-100">
+									Read →
+								</span>
+							</div>
+						</Link>
+					))}
+				</section>
 
-			<footer className="mt-24 border-t border-gray-200 pt-6 text-sm text-gray-500">
-				Built on{" "}
-				<a
-					href="https://llmgateway.io"
-					className="underline"
-					target="_blank"
-					rel="noreferrer"
-				>
-					LLM Gateway
-				</a>
-				. © llmchat.io
-			</footer>
-		</main>
+				{filtered.length === 0 && (
+					<p className="py-20 text-center font-mono text-sm uppercase tracking-[0.14em] text-faint">
+						No dispatches in this section yet.
+					</p>
+				)}
+			</main>
+
+			<SiteFooter />
+		</>
 	);
 }

@@ -1,0 +1,214 @@
+{
+	"colOrder": [
+		"llmchat",
+		"chatbase",
+		"fin",
+		"intercom",
+		"chatwoot",
+		"crisp"
+	],
+	"colLabels": {
+		"llmchat": "llmchat",
+		"chatbase": "Chatbase",
+		"fin": "Fin",
+		"intercom": "Intercom",
+		"chatwoot": "Chatwoot",
+		"crisp": "Crisp"
+	},
+	"featureGroups": [
+		{
+			"heading": "Setup & integration",
+			"rows": [
+				{
+					"label": "Setup method",
+					"llmchat": "One script tag",
+					"chatbase": "Embed code / SDK",
+					"fin": "Via Intercom platform",
+					"intercom": "Platform setup",
+					"chatwoot": "Platform setup",
+					"crisp": "Platform setup"
+				},
+				{
+					"label": "Shadow DOM (no style bleed)",
+					"llmchat": "yes",
+					"chatbase": "no",
+					"fin": "no",
+					"intercom": "no",
+					"chatwoot": "no",
+					"crisp": "no",
+					"note": "llmchat loads in a shadow DOM so your page styles never affect the widget and vice versa."
+				},
+				{
+					"label": "Self-hostable",
+					"llmchat": "yes",
+					"chatbase": "no",
+					"fin": "no",
+					"intercom": "no",
+					"chatwoot": "yes",
+					"crisp": "no"
+				},
+				{
+					"label": "Open architecture",
+					"llmchat": "yes",
+					"chatbase": "no",
+					"fin": "no",
+					"intercom": "no",
+					"chatwoot": "yes",
+					"crisp": "no"
+				}
+			]
+		},
+		{
+			"heading": "AI capabilities",
+			"rows": [
+				{
+					"label": "Train on your docs / knowledge base",
+					"llmchat": "yes",
+					"chatbase": "yes",
+					"fin": "yes",
+					"intercom": "yes",
+					"chatwoot": "yes",
+					"crisp": "yes"
+				},
+				{
+					"label": "Model-agnostic (swap LLMs)",
+					"llmchat": "yes",
+					"chatbase": "partial",
+					"fin": "no",
+					"intercom": "no",
+					"chatwoot": "no",
+					"crisp": "no",
+					"note": "llmchat runs any model or provider — including custom and self-hosted endpoints — via LLM Gateway. Chatbase lets you pick from its supported models (premium ones gated to higher plans); Fin, Intercom, Chatwoot, and Crisp are fixed to their own AI stack."
+				},
+				{
+					"label": "Custom system prompt",
+					"llmchat": "yes",
+					"chatbase": "yes",
+					"fin": "yes",
+					"intercom": "yes",
+					"chatwoot": "yes",
+					"crisp": "yes"
+				}
+			]
+		},
+		{
+			"heading": "Escalation & inbox",
+			"rows": [
+				{
+					"label": "Smart escalation to humans",
+					"llmchat": "yes",
+					"chatbase": "yes",
+					"fin": "yes",
+					"intercom": "yes",
+					"chatwoot": "yes",
+					"crisp": "yes"
+				},
+				{
+					"label": "Unified team inbox",
+					"llmchat": "yes",
+					"chatbase": "yes",
+					"fin": "yes",
+					"intercom": "yes",
+					"chatwoot": "yes",
+					"crisp": "yes"
+				},
+				{
+					"label": "Email replies thread back into widget",
+					"llmchat": "yes",
+					"chatbase": "no",
+					"fin": "partial",
+					"intercom": "partial",
+					"chatwoot": "partial",
+					"crisp": "partial",
+					"note": "llmchat threads inbound email replies directly back into the widget conversation."
+				},
+				{
+					"label": "Configurable escalation threshold",
+					"llmchat": "yes",
+					"chatbase": "yes",
+					"fin": "yes",
+					"intercom": "yes",
+					"chatwoot": "partial",
+					"crisp": "partial"
+				}
+			]
+		},
+		{
+			"heading": "Channels",
+			"rows": [
+				{
+					"label": "Web chat widget",
+					"llmchat": "yes",
+					"chatbase": "yes",
+					"fin": "yes",
+					"intercom": "yes",
+					"chatwoot": "yes",
+					"crisp": "yes"
+				},
+				{
+					"label": "Email channel",
+					"llmchat": "partial",
+					"chatbase": "yes",
+					"fin": "yes",
+					"intercom": "yes",
+					"chatwoot": "yes",
+					"crisp": "yes",
+					"note": "llmchat handles email for escalation threading, not yet as a standalone inbox channel."
+				},
+				{
+					"label": "WhatsApp / social media",
+					"llmchat": "no",
+					"chatbase": "yes",
+					"fin": "yes",
+					"intercom": "yes",
+					"chatwoot": "yes",
+					"crisp": "yes"
+				},
+				{
+					"label": "Voice",
+					"llmchat": "no",
+					"chatbase": "no",
+					"fin": "yes",
+					"intercom": "yes",
+					"chatwoot": "no",
+					"crisp": "no",
+					"note": "Intercom offers a pay-as-you-go Phone channel and Fin voice; Fin (standalone) also supports voice."
+				}
+			]
+		},
+		{
+			"heading": "Pricing & transparency",
+			"rows": [
+				{
+					"label": "Free tier",
+					"llmchat": "yes",
+					"chatbase": "partial",
+					"fin": "no",
+					"intercom": "no",
+					"chatwoot": "yes",
+					"crisp": "partial",
+					"note": "Chatwoot is free self-hosted (community) plus a limited free cloud 'Hacker' plan (live chat only, no AI). Crisp has a permanent free plan (2 seats) but no AI. Chatbase's free plan is 1 agent on basic models. llmchat's free tier includes AI."
+				},
+				{
+					"label": "Pricing model",
+					"llmchat": "Usage-based",
+					"chatbase": "Sub + credits",
+					"fin": "$0.99/outcome",
+					"intercom": "Per seat",
+					"chatwoot": "Per seat",
+					"crisp": "Flat rate"
+				},
+				{
+					"label": "Publicly listed pricing",
+					"llmchat": "yes",
+					"chatbase": "yes",
+					"fin": "yes",
+					"intercom": "yes",
+					"chatwoot": "yes",
+					"crisp": "yes"
+				}
+			]
+		}
+	],
+	"llmchatEmbed": "<script\n  src=\"https://api.llmchat.io/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>"
+}
