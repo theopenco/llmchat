@@ -1,0 +1,71 @@
+{
+	"rank": 2,
+	"slug": "fin",
+	"name": "Fin",
+	"tagline": "From Fin (inside Intercom) to a standalone llmchat widget",
+	"estimatedTime": "~30 minutes",
+	"intro": "Fin runs inside Intercom or your existing helpdesk, so moving to llmchat means adopting a standalone widget and inbox rather than swapping just the AI layer. The upside: predictable usage-based pricing with no per-outcome minimums, and a model you control.",
+	"quickSummary": "Stand up an llmchat project, recreate your answer content, and replace the Intercom/Fin messenger embed with the llmchat script tag. Your existing helpdesk data stays where it is.",
+	"oldEmbedLabel": "Remove the Intercom / Fin messenger",
+	"oldEmbed": "<script>\n  window.intercomSettings = {\n    api_base: \"https://api-iam.intercom.io\",\n    app_id: \"XXXXXXXX\",\n  };\n</script>\n<script>\n  // Intercom messenger loader (Fin runs inside this)\n  (function(){ /* … intercom snippet … */ })();\n</script>",
+	"steps": [
+		{
+			"title": "Create your llmchat project",
+			"body": "Sign up and create a project. You'll get a public key for the widget. Because llmchat is a standalone widget + inbox, you don't need to keep paying for the surrounding Intercom platform unless you use it for other things."
+		},
+		{
+			"title": "Recreate your answer content",
+			"body": "Fin draws on your help center and configured content. Copy your core help-center articles and FAQs into your llmchat knowledge base. You don't need to migrate everything — start with the topics that drive the most conversations."
+		},
+		{
+			"title": "Replace the messenger embed",
+			"body": "Remove the Intercom messenger loader (Fin lives inside it) and add the llmchat script tag. If you're keeping Intercom for other workflows, you can run them side by side during a transition and remove the messenger once you're confident.",
+			"code": "<script\n  src=\"https://api.llmchat.io/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
+			"codeLabel": "Add the llmchat widget"
+		},
+		{
+			"title": "Configure escalation and your notify email",
+			"body": "In project settings, set the escalation threshold (how many exchanges before the bot hands off) and the notify email where escalations should land. This is your team inbox or a shared support address. When the bot can't help, the full conversation arrives there with context intact."
+		},
+		{
+			"title": "Set up email threading (optional)",
+			"body": "If you want customer email replies to thread back into the widget conversation, point an inbound domain at llmchat and set your inbound email local in project settings. Replies then flow both ways — your team answers from the inbox, the customer sees it in the widget. No separate helpdesk required."
+		},
+		{
+			"title": "Test, then go live",
+			"body": "Open your site, start a test conversation, and trigger an escalation to confirm it reaches your inbox. Once it looks right, you're done — the widget is already live for every visitor."
+		}
+	],
+	"mapping": [
+		{
+			"from": "Fin AI Engine (proprietary)",
+			"to": "Any model via LLM Gateway",
+			"note": "You pick the provider."
+		},
+		{
+			"from": "Help center content",
+			"to": "Knowledge base / system prompt"
+		},
+		{
+			"from": "Per-outcome billing ($0.99 + minimum)",
+			"to": "Usage-based — pay for tokens, no minimum"
+		},
+		{
+			"from": "Intercom Inbox",
+			"to": "llmchat inbox"
+		},
+		{
+			"from": "Resolution workflows",
+			"to": "Smart escalation + email threading"
+		}
+	],
+	"transfers": [
+		"Help-center answer content (paste it in)",
+		"Bot tone and instructions via the system prompt"
+	],
+	"doesntTransfer": [
+		"Voice channel — llmchat is web chat + email today",
+		"Zendesk / Salesforce / HubSpot actions and lookups",
+		"Intercom CRM, campaigns, and conversation history"
+	]
+}

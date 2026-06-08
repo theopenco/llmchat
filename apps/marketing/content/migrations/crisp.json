@@ -1,0 +1,71 @@
+{
+	"rank": 5,
+	"slug": "crisp",
+	"name": "Crisp",
+	"tagline": "From the all-in-one Crisp platform to a focused llmchat widget",
+	"estimatedTime": "~20 minutes",
+	"intro": "Crisp bundles chat, email, CRM, and a knowledge base. llmchat replaces the AI chat widget specifically. If you use Crisp's CRM or email marketing, keep those or find replacements — llmchat focuses on AI support with a model you control and optional self-hosting.",
+	"quickSummary": "Swap the Crisp loader for the llmchat script tag and re-enter your knowledge base. Route escalations to your team inbox and you're live.",
+	"oldEmbedLabel": "Remove the Crisp loader",
+	"oldEmbed": "<script type=\"text/javascript\">\n  window.$crisp = [];\n  window.CRISP_WEBSITE_ID = \"XXXXXXXX-xxxx-xxxx-xxxx-xxxxxxxxxxxx\";\n  (function() {\n    var d = document;\n    var s = d.createElement(\"script\");\n    s.src = \"https://client.crisp.chat/l.js\";\n    s.async = 1;\n    d.getElementsByTagName(\"head\")[0].appendChild(s);\n  })();\n</script>",
+	"steps": [
+		{
+			"title": "Create your llmchat project",
+			"body": "Sign up, create a project, and grab your public key. Set your brand color so the widget matches your site out of the box."
+		},
+		{
+			"title": "Re-enter your knowledge base",
+			"body": "Copy your Crisp Helpdesk articles and any Hugo AI instructions into your llmchat knowledge base / system prompt. Start with the topics customers ask about most."
+		},
+		{
+			"title": "Swap the loader script",
+			"body": "Remove the Crisp l.js loader and CRISP_WEBSITE_ID, then add the llmchat script tag. The widget loads in a shadow DOM so it won't pick up or leak page styles.",
+			"code": "<script\n  src=\"https://api.llmchat.io/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
+			"codeLabel": "Add the llmchat widget"
+		},
+		{
+			"title": "Configure escalation and your notify email",
+			"body": "In project settings, set the escalation threshold (how many exchanges before the bot hands off) and the notify email where escalations should land. This is your team inbox or a shared support address. When the bot can't help, the full conversation arrives there with context intact."
+		},
+		{
+			"title": "Set up email threading (optional)",
+			"body": "If you want customer email replies to thread back into the widget conversation, point an inbound domain at llmchat and set your inbound email local in project settings. Replies then flow both ways — your team answers from the inbox, the customer sees it in the widget. No separate helpdesk required."
+		},
+		{
+			"title": "Test, then go live",
+			"body": "Open your site, start a test conversation, and trigger an escalation to confirm it reaches your inbox. Once it looks right, you're done — the widget is already live for every visitor."
+		}
+	],
+	"mapping": [
+		{
+			"from": "CRISP_WEBSITE_ID",
+			"to": "data-project (publicKey)"
+		},
+		{
+			"from": "client.crisp.chat/l.js loader",
+			"to": "Single widget.js script tag"
+		},
+		{
+			"from": "Hugo AI (fixed stack)",
+			"to": "Any model via LLM Gateway"
+		},
+		{
+			"from": "Helpdesk articles",
+			"to": "Knowledge base / system prompt"
+		},
+		{
+			"from": "Flat-rate plan",
+			"to": "Usage-based — from $0"
+		}
+	],
+	"transfers": [
+		"Helpdesk / knowledge content (paste it in)",
+		"Brand color and basic widget styling",
+		"Web chat support workflow"
+	],
+	"doesntTransfer": [
+		"CRM, contacts, and customer profiles",
+		"Email marketing, campaigns, and push notifications",
+		"WhatsApp / Messenger / Instagram channels"
+	]
+}

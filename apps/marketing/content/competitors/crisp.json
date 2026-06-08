@@ -1,0 +1,162 @@
+{
+	"rank": 5,
+	"id": "crisp",
+	"name": "Crisp",
+	"url": "https://crisp.chat",
+	"tagline": "AI customer support for every business",
+	"description": "All-in-one platform with AI agents (Hugo), omnichannel inbox, knowledge base, and CRM. Made in Europe with flat pricing and 10,000+ customers.",
+	"bestFor": "Small to mid-sized teams wanting an all-in-one support + CRM platform with European data hosting.",
+	"notFor": "Teams wanting model flexibility or a lightweight website integration.",
+	"pricing": "Free plan (2 seats, no AI); AI from ~€45/mo (Mini); Essentials €95, Plus €295",
+	"heroSubtext": "Crisp is all-in-one: chat, email, CRM, knowledge base, and push notifications. llmchat is focused: support widget with model-agnostic AI. If you need CRM, use Crisp. If you want a drop-in widget with full model flexibility and self-hosting, use llmchat.",
+	"heroBadges": [
+		"Model-agnostic",
+		"Self-hostable",
+		"Open architecture",
+		"AI on the free tier"
+	],
+	"tableSummary": {
+		"llmchat": "Focused widget — from $0, any AI model",
+		"competitor": "All-in-one — free plan (no AI); AI from ~€45/mo"
+	},
+	"vsCategories": [
+		{
+			"heading": "Product scope",
+			"rows": [
+				{
+					"label": "What it is",
+					"llmchat": "Support widget + inbox",
+					"competitor": "Chat + Email + CRM + Knowledge base"
+				},
+				{
+					"label": "CRM",
+					"llmchat": "Not included",
+					"competitor": "Built-in"
+				},
+				{
+					"label": "Email marketing",
+					"llmchat": "Not included",
+					"competitor": "Yes"
+				},
+				{
+					"label": "No-code AI builder",
+					"llmchat": "No",
+					"competitor": "Yes — Hugo AI workflows"
+				}
+			]
+		},
+		{
+			"heading": "AI & model",
+			"rows": [
+				{
+					"label": "AI model",
+					"llmchat": "Any LLM via LLM Gateway",
+					"competitor": "Hugo AI (Crisp's engine)"
+				},
+				{
+					"label": "Model flexibility",
+					"llmchat": "Per-project, any provider",
+					"competitor": "Fixed to Crisp's AI stack"
+				}
+			]
+		},
+		{
+			"heading": "Hosting & compliance",
+			"rows": [
+				{
+					"label": "Self-hosting",
+					"llmchat": "Cloudflare D1, KV, workerd",
+					"competitor": "SaaS only"
+				},
+				{
+					"label": "Data region",
+					"llmchat": "Your choice (self-hosted)",
+					"competitor": "European hosting"
+				},
+				{
+					"label": "Open architecture",
+					"llmchat": "Yes — fully auditable",
+					"competitor": "No"
+				}
+			]
+		},
+		{
+			"heading": "Pricing",
+			"rows": [
+				{
+					"label": "Free tier",
+					"llmchat": "Yes",
+					"competitor": "Free plan (2 seats) — but no AI features"
+				},
+				{
+					"label": "Pricing model",
+					"llmchat": "LLM usage-based",
+					"competitor": "Flat rate monthly"
+				},
+				{
+					"label": "Starting price",
+					"llmchat": "Free",
+					"competitor": "Free; AI from ~€45/mo (Mini)"
+				}
+			]
+		}
+	],
+	"tldr": "Crisp is an all-in-one support + CRM platform with flat pricing and European hosting. llmchat is a focused drop-in widget with model-agnostic AI and self-hosting. Choose Crisp if you need CRM features, omnichannel, or EU data residency. Choose llmchat if you want the simplest possible setup and model flexibility.",
+	"llmchatWins": [
+		"One script tag setup — no platform to configure",
+		"Model-agnostic — swap AI models per project without code changes",
+		"Self-hostable on your own Cloudflare infrastructure",
+		"Shadow DOM widget with zero style interference",
+		"Open architecture — fully auditable stack",
+		"Free tier with usage-based pricing"
+	],
+	"competitorWins": [
+		"All-in-one: chat, email, CRM, knowledge base, and push notifications",
+		"Omnichannel inbox: WhatsApp, Messenger, Instagram, email",
+		"European hosting and infrastructure — strong GDPR posture",
+		"Flat-rate pricing — easy to budget at high volume",
+		"10,000+ customers including enterprise brands",
+		"Hugo AI agent with no-code workflow builder"
+	],
+	"llmchatBestFor": [
+		"Teams who want a drop-in widget with AI, not a full platform",
+		"Teams with model flexibility requirements — different LLMs per project",
+		"Teams with self-hosting or data residency needs beyond EU",
+		"Developer teams who want minimal setup and open architecture",
+		"Products where support is the only use case and CRM isn't needed"
+	],
+	"competitorBestFor": [
+		"Small to mid-sized teams wanting support, CRM, and email in one place",
+		"European businesses with strict GDPR or EU data residency requirements",
+		"Teams who prefer flat-rate pricing for predictable budgeting",
+		"Teams needing WhatsApp, Messenger, or Instagram support channels",
+		"Non-technical teams who want a no-code AI workflow builder"
+	],
+	"keyDifferences": [
+		{
+			"heading": "All-in-one vs. focused widget",
+			"llmchat": "A focused support widget with inbox, AI, escalation, and email threading. The entire product is one use case: handle support conversations on your site, hand off to your team when needed.",
+			"competitor": "A complete customer platform: live chat, email inbox, CRM, knowledge base, product tours, push notifications, and omnichannel messaging. Genuinely all-in-one for customer communication.",
+			"bottomLine": "Choose Crisp if you're replacing multiple tools (support + CRM + email marketing) with one. Choose llmchat if support is the only use case and you want something to set up in minutes."
+		},
+		{
+			"heading": "Pricing model",
+			"llmchat": "Usage-based — you pay for actual LLM token consumption. Costs scale down when things are quiet. Free tier available. Better for low-to-medium volume teams or those with variable traffic.",
+			"competitor": "Flat-rate monthly pricing with a permanent free plan, though AI features start on the Mini plan (~€45/mo). Predictable and easy to budget. Better for high-volume teams where a fixed cost is lower than per-usage costs.",
+			"bottomLine": "Choose Crisp for flat-rate predictability at consistent volume. Choose llmchat for usage-based costs that scale down when things are quiet."
+		},
+		{
+			"heading": "AI model flexibility",
+			"llmchat": "Built on LLM Gateway — model-agnostic by design. Choose GPT-4o, Claude, or a custom endpoint per project. Change the model with a config update, not a code change.",
+			"competitor": "Runs Hugo, their own AI agent product, on a fixed model stack. The AI is configured with your knowledge base, but the underlying model choice is theirs.",
+			"bottomLine": "Choose llmchat if picking the model provider or optimizing model cost per project matters. Choose Crisp if you'd rather not think about the model layer and want a no-code AI setup."
+		},
+		{
+			"heading": "European hosting and compliance",
+			"llmchat": "Self-hosted deployment gives you full control over where data lives — any region you choose. The managed cloud version doesn't specifically guarantee European hosting today.",
+			"competitor": "Built and hosted in Europe. Strong default GDPR posture without extra configuration. If EU data residency is a requirement and you're on managed cloud, Crisp handles it natively.",
+			"bottomLine": "Choose Crisp if EU data residency is a requirement and you want it handled for you. Choose llmchat's self-hosted deployment if you need full control over data location."
+		}
+	],
+	"migrationNote": "Switching from Crisp to llmchat means replacing the Crisp widget script tag with llmchat's, re-entering your knowledge base content in project settings, and routing your escalation notifications to your team. Crisp's CRM data (contacts, conversation history) can be exported but won't transfer to llmchat — llmchat doesn't have a CRM component. If you're using Crisp for email campaigns or product tours, those use cases aren't covered by llmchat."
+}

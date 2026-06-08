@@ -1,0 +1,109 @@
+import Link from "next/link";
+import { allCompetitors } from "content-collections";
+
+const dashboardUrl =
+	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
+
+const colHead =
+	"font-mono text-[0.68rem] uppercase tracking-[0.16em] text-faint";
+const colLink = "text-sm text-muted transition-colors hover:text-ink";
+
+export function SiteFooter() {
+	const competitors = [...allCompetitors].sort((a, b) => a.rank - b.rank);
+
+	return (
+		<footer className="mt-32 border-t border-rule bg-paper-deep">
+			<div className="mx-auto max-w-6xl px-6 py-16">
+				<div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+					<div>
+						<div className="flex items-baseline gap-0.5">
+							<span className="font-display text-3xl font-semibold tracking-tight-display text-ink">
+								llmchat
+							</span>
+							<span className="text-3xl leading-none text-accent">.</span>
+						</div>
+						<p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
+							AI support that answers from your docs and escalates to humans —
+							one script tag, any model.
+						</p>
+						<Link
+							href={dashboardUrl}
+							className="mt-6 inline-block rounded-full bg-ink px-5 py-2.5 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
+						>
+							Get started free
+						</Link>
+					</div>
+
+					<div>
+						<h3 className={colHead}>Product</h3>
+						<ul className="mt-4 space-y-2.5">
+							<li>
+								<a href="/#features" className={colLink}>
+									Features
+								</a>
+							</li>
+							<li>
+								<Link href="/docs" className={colLink}>
+									Docs
+								</Link>
+							</li>
+							<li>
+								<Link href="/compare" className={colLink}>
+									Compare
+								</Link>
+							</li>
+							<li>
+								<Link href="/blog" className={colLink}>
+									Blog
+								</Link>
+							</li>
+						</ul>
+					</div>
+
+					<div>
+						<h3 className={colHead}>Compare</h3>
+						<ul className="mt-4 space-y-2.5">
+							{competitors.map((c) => (
+								<li key={c.id}>
+									<Link href={`/vs/${c.id}`} className={colLink}>
+										vs. {c.name}
+									</Link>
+								</li>
+							))}
+						</ul>
+					</div>
+
+					<div>
+						<h3 className={colHead}>Migrate</h3>
+						<ul className="mt-4 space-y-2.5">
+							{competitors.map((c) => (
+								<li key={c.id}>
+									<Link href={`/docs/migrate/${c.id}`} className={colLink}>
+										From {c.name}
+									</Link>
+								</li>
+							))}
+						</ul>
+					</div>
+				</div>
+
+				<div className="mt-16 flex flex-col items-start justify-between gap-3 border-t border-rule pt-6 sm:flex-row sm:items-center">
+					<p className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
+						© {new Date().getFullYear()} llmchat.io
+					</p>
+					<p className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
+						Built on{" "}
+						<a
+							href="https://llmgateway.io"
+							target="_blank"
+							rel="noreferrer"
+							className="text-muted underline-offset-2 hover:text-accent hover:underline"
+						>
+							LLM Gateway
+						</a>
+					</p>
+				</div>
+			</div>
+		</footer>
+	);
+}

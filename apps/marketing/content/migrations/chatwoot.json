@@ -1,0 +1,72 @@
+{
+	"rank": 4,
+	"slug": "chatwoot",
+	"name": "Chatwoot",
+	"tagline": "From a self-hosted Rails stack to serverless llmchat",
+	"estimatedTime": "~25 minutes",
+	"intro": "Both Chatwoot and llmchat can be self-hosted, but the stacks differ: Chatwoot is Ruby on Rails + PostgreSQL + Redis, while llmchat runs serverless on Cloudflare (D1, KV, workerd). Migrating means a widget swap plus a knowledge-base re-import — and, if you self-host, far less infrastructure to maintain afterward.",
+	"quickSummary": "Replace the Chatwoot SDK loader with the llmchat script tag and re-import your knowledge base. If you self-host, you can decommission the Rails/PostgreSQL stack once you're live on llmchat.",
+	"oldEmbedLabel": "Remove the Chatwoot SDK",
+	"oldEmbed": "<script>\n  (function(d,t) {\n    var BASE_URL = \"https://app.chatwoot.com\";\n    var g = d.createElement(t),\n        s = d.getElementsByTagName(t)[0];\n    g.src = BASE_URL + \"/packs/js/sdk.js\";\n    g.defer = true; g.async = true;\n    s.parentNode.insertBefore(g, s);\n    g.onload = function() {\n      window.chatwootSDK.run({\n        websiteToken: \"XXXXXXXX\",\n        baseUrl: BASE_URL,\n      });\n    };\n  })(document, \"script\");\n</script>",
+	"steps": [
+		{
+			"title": "Create your llmchat project",
+			"body": "Sign up for managed llmchat (or set up the self-hosted deployment on your Cloudflare account). Create a project and grab your public key."
+		},
+		{
+			"title": "Re-import your knowledge base",
+			"body": "Copy your Chatwoot help-center / Captain AI content into your llmchat knowledge base. Chatwoot's articles export cleanly as text — paste the relevant parts into your system prompt."
+		},
+		{
+			"title": "Swap the SDK loader",
+			"body": "Remove the Chatwoot websiteToken SDK loader and drop in the llmchat script tag. One line replaces the loader function. The widget loads in a shadow DOM, which Chatwoot's widget doesn't do.",
+			"code": "<script\n  src=\"https://api.llmchat.io/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
+			"codeLabel": "Add the llmchat widget"
+		},
+		{
+			"title": "Configure escalation and your notify email",
+			"body": "In project settings, set the escalation threshold (how many exchanges before the bot hands off) and the notify email where escalations should land. This is your team inbox or a shared support address. When the bot can't help, the full conversation arrives there with context intact."
+		},
+		{
+			"title": "Set up email threading (optional)",
+			"body": "If you want customer email replies to thread back into the widget conversation, point an inbound domain at llmchat and set your inbound email local in project settings. Replies then flow both ways — your team answers from the inbox, the customer sees it in the widget. No separate helpdesk required."
+		},
+		{
+			"title": "Test, then go live",
+			"body": "Open your site, start a test conversation, and trigger an escalation to confirm it reaches your inbox. Once it looks right, you're done — the widget is already live for every visitor."
+		}
+	],
+	"mapping": [
+		{
+			"from": "websiteToken",
+			"to": "data-project (publicKey)"
+		},
+		{
+			"from": "sdk.js loader function",
+			"to": "Single widget.js script tag"
+		},
+		{
+			"from": "Captain AI (fixed stack)",
+			"to": "Any model via LLM Gateway"
+		},
+		{
+			"from": "Rails + PostgreSQL + Redis",
+			"to": "Cloudflare D1 + KV + workerd",
+			"note": "No DB server to run."
+		},
+		{
+			"from": "Chatwoot inbox",
+			"to": "llmchat inbox"
+		}
+	],
+	"transfers": [
+		"Knowledge base / help-center content (paste it in)",
+		"Self-hosting posture (now serverless, much lighter)",
+		"Web chat support workflow"
+	],
+	"doesntTransfer": [
+		"WhatsApp, Instagram, Telegram, and email channels",
+		"Full agent management: roles, teams, canned responses, labels, reports",
+		"Conversation history (export from Chatwoot for your records)"
+	]
+}
