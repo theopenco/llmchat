@@ -14,10 +14,13 @@ import {
 	CommandList,
 } from "@/components/ui/command";
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -157,8 +160,8 @@ export function ModelPicker({
 	}
 
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
+		<Dialog open={open} onOpenChange={setOpen}>
+			<DialogTrigger asChild>
 				{trigger ?? (
 					<Button
 						type="button"
@@ -188,12 +191,15 @@ export function ModelPicker({
 						<ChevronsUpDown className="opacity-50" />
 					</Button>
 				)}
-			</PopoverTrigger>
-			<PopoverContent
-				align="end"
-				className="w-[min(42rem,var(--radix-popover-trigger-width))] min-w-80 p-0"
-			>
-				<Command shouldFilter={false}>
+			</DialogTrigger>
+			<DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
+				<DialogHeader className="border-b px-4 py-3 text-left">
+					<DialogTitle>Choose a model</DialogTitle>
+					<DialogDescription>
+						All models available on LLM Gateway.
+					</DialogDescription>
+				</DialogHeader>
+				<Command shouldFilter={false} className="rounded-none">
 					<CommandInput
 						value={query}
 						onValueChange={setQuery}
@@ -244,7 +250,7 @@ export function ModelPicker({
 							))}
 						</div>
 					</div>
-					<CommandList className="max-h-80">
+					<CommandList className="max-h-[55vh]">
 						{filteredFamilies.length === 0 && (
 							<CommandEmpty>No models found.</CommandEmpty>
 						)}
@@ -299,7 +305,7 @@ export function ModelPicker({
 						))}
 					</CommandList>
 				</Command>
-			</PopoverContent>
-		</Popover>
+			</DialogContent>
+		</Dialog>
 	);
 }
