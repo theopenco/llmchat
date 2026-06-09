@@ -52,10 +52,10 @@ export function ModelCard({
 									{webSearch && (
 										<Badge
 											variant="secondary"
-											className="gap-1 border-indigo-200 bg-indigo-50 text-indigo-700"
+											className="gap-1 border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
 										>
 											<Globe className="size-3" />
-											Web search enabled
+											Web search
 										</Badge>
 									)}
 								</div>
@@ -78,7 +78,6 @@ export function ModelCard({
 						<ModelPicker
 							value={value}
 							onChange={onChange}
-							webSearchOnly
 							trigger={
 								<Button type="button" variant="outline" className="shrink-0">
 									Change model
@@ -92,7 +91,7 @@ export function ModelCard({
 
 			<p className="flex items-center gap-1.5 text-xs text-muted-foreground">
 				<Info className="size-3.5" />
-				Only models with web search support are shown.
+				All models available on LLM Gateway are listed.
 			</p>
 		</SectionCard>
 	);
