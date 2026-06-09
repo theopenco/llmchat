@@ -1,9 +1,9 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Check, ChevronsUpDown, Globe, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -20,68 +20,23 @@ import {
 } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import {
+	DEFAULT_MODEL,
+	type GatewayModel,
+	hasWebSearch,
+	modelColor,
+	providerIds,
+	providerLabel,
+	titleCase,
+	useGatewayModels,
+} from "./model-data";
 
-interface GatewayProvider {
-	providerId: string;
-}
+export { DEFAULT_MODEL };
 
-interface GatewayModel {
-	id: string;
-	name: string;
-	description?: string;
-	family?: string;
-	providers?: GatewayProvider[];
-	supported_parameters?: string[];
-}
-
-interface GatewayResponse {
-	data: GatewayModel[];
-}
-
-const GATEWAY_URL = "https://api.llmgateway.io/v1/models";
-
-export const DEFAULT_MODEL = "gpt-4o-mini";
 const ALL_FILTER = "all";
-
-function hashString(value: string) {
-	let hash = 0;
-	for (let i = 0; i < value.length; i += 1) {
-		hash = (hash << 5) - hash + value.charCodeAt(i);
-		hash |= 0;
-	}
-	return Math.abs(hash);
-}
-
-function modelColor(value: string) {
-	const hash = hashString(value);
-	const hue = hash % 360;
-	const saturation = 62 + (hash % 22);
-	const lightness = 42 + ((hash >> 4) % 14);
-
-	return `hsl(${hue} ${saturation}% ${lightness}%)`;
-}
-
-function titleCase(value: string) {
-	return value
-		.split(/[\s_-]+/)
-		.filter(Boolean)
-		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-		.join(" ");
-}
 
 function familyLabel(family?: string) {
 	return family ? titleCase(family) : "Other";
-}
-
-function providerIds(providers?: GatewayProvider[]) {
-	return [...new Set(providers?.map((provider) => provider.providerId) ?? [])];
-}
-
-function providerLabel(providers?: GatewayProvider[]) {
-	const ids = providerIds(providers);
-	if (!ids.length) return "No provider";
-	if (ids.length <= 2) return ids.map(titleCase).join(", ");
-	return `${ids.slice(0, 2).map(titleCase).join(", ")} +${ids.length - 2}`;
 }
 
 function modelSearchText(model: GatewayModel) {
@@ -109,37 +64,42 @@ function filterButtonClassName(active: boolean) {
 export function ModelPicker({
 	value,
 	onChange,
+	webSearchOnly = false,
+	trigger,
 }: {
 	value: string;
 	onChange: (id: string) => void;
+	/** Restrict the list to models that support web search (falls back to all if none match). */
+	webSearchOnly?: boolean;
+	/** Custom trigger element; defaults to a full-width combobox button. */
+	trigger?: React.ReactNode;
 }) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [providerFilter, setProviderFilter] = useState(ALL_FILTER);
-	const modelsQ = useQuery({
-		queryKey: ["gateway-models"],
-		staleTime: 1000 * 60 * 30,
-		queryFn: async (): Promise<GatewayModel[]> => {
-			const res = await fetch(GATEWAY_URL);
-			if (!res.ok) throw new Error(`Gateway ${res.status}`);
-			const json = (await res.json()) as GatewayResponse;
-			return json.data ?? [];
-		},
-	});
+	const modelsQ = useGatewayModels();
+
+	// Apply the web-search constraint up front, but never strand the user with
+	// an empty list if the heuristic matches nothing.
+	const pool = useMemo(() => {
+		const all = modelsQ.data ?? [];
+		if (!webSearchOnly) return all;
+		const ws = all.filter(hasWebSearch);
+		return ws.length ? ws : all;
+	}, [modelsQ.data, webSearchOnly]);
 
 	const selectedModel = useMemo(() => {
 		const selectedId = value || DEFAULT_MODEL;
-		return modelsQ.data?.find((model) => model.id === selectedId);
+		return (modelsQ.data ?? []).find((model) => model.id === selectedId);
 	}, [modelsQ.data, value]);
 
 	const providerOptions = useMemo(() => {
 		const counts = new Map<string, number>();
-		for (const model of modelsQ.data ?? []) {
+		for (const model of pool) {
 			for (const provider of providerIds(model.providers)) {
 				counts.set(provider, (counts.get(provider) ?? 0) + 1);
 			}
 		}
-
 		return Array.from(counts.entries())
 			.map(([provider, count]) => ({
 				value: provider,
@@ -147,13 +107,12 @@ export function ModelPicker({
 				count,
 			}))
 			.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-	}, [modelsQ.data]);
+	}, [pool]);
 
 	const filteredFamilies = useMemo(() => {
 		const needle = query.trim().toLowerCase();
 		const map = new Map<string, GatewayModel[]>();
-
-		for (const model of modelsQ.data ?? []) {
+		for (const model of pool) {
 			const providers = providerIds(model.providers);
 			if (
 				providerFilter !== ALL_FILTER &&
@@ -164,13 +123,11 @@ export function ModelPicker({
 			if (needle && !modelSearchText(model).includes(needle)) {
 				continue;
 			}
-
 			const family = model.family ?? "other";
 			const items = map.get(family) ?? [];
 			items.push(model);
 			map.set(family, items);
 		}
-
 		return Array.from(map.entries())
 			.map(([family, items]) => ({
 				family,
@@ -178,7 +135,7 @@ export function ModelPicker({
 				items: [...items].sort((a, b) => a.name.localeCompare(b.name)),
 			}))
 			.sort((a, b) => a.label.localeCompare(b.label));
-	}, [modelsQ.data, providerFilter, query]);
+	}, [pool, providerFilter, query]);
 
 	const hasFilters = query.trim().length > 0 || providerFilter !== ALL_FILTER;
 
@@ -202,37 +159,39 @@ export function ModelPicker({
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
-				<Button
-					type="button"
-					variant="outline"
-					role="combobox"
-					aria-expanded={open}
-					className="h-auto min-h-10 w-full justify-between px-3 py-2"
-				>
-					<span className="flex min-w-0 items-center gap-2">
-						<span
-							className="size-2.5 shrink-0 rounded-full"
-							style={{
-								backgroundColor: modelColor(selectedModel?.id ?? value),
-							}}
-						/>
-						<span className="min-w-0 text-left">
-							<span className="block truncate">
-								{(selectedModel?.name ?? value) || "Select a model"}
-							</span>
-							{selectedModel && (
-								<span className="block truncate font-mono text-xs font-normal text-muted-foreground">
-									{selectedModel.id}
+				{trigger ?? (
+					<Button
+						type="button"
+						variant="outline"
+						role="combobox"
+						aria-expanded={open}
+						className="h-auto min-h-10 w-full justify-between px-3 py-2"
+					>
+						<span className="flex min-w-0 items-center gap-2">
+							<span
+								className="size-2.5 shrink-0 rounded-full"
+								style={{
+									backgroundColor: modelColor(selectedModel?.id ?? value),
+								}}
+							/>
+							<span className="min-w-0 text-left">
+								<span className="block truncate">
+									{(selectedModel?.name ?? value) || "Select a model"}
 								</span>
-							)}
+								{selectedModel && (
+									<span className="block truncate font-mono text-xs font-normal text-muted-foreground">
+										{selectedModel.id}
+									</span>
+								)}
+							</span>
 						</span>
-					</span>
-					<ChevronsUpDown className="opacity-50" />
-				</Button>
+						<ChevronsUpDown className="opacity-50" />
+					</Button>
+				)}
 			</PopoverTrigger>
 			<PopoverContent
-				align="start"
-				className="w-[min(42rem,var(--radix-popover-trigger-width))] p-0"
+				align="end"
+				className="w-[min(42rem,var(--radix-popover-trigger-width))] min-w-80 p-0"
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
@@ -307,7 +266,20 @@ export function ModelPicker({
 											style={{ backgroundColor: modelColor(model.id) }}
 										/>
 										<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-											<span className="truncate font-medium">{model.name}</span>
+											<span className="flex items-center gap-2">
+												<span className="truncate font-medium">
+													{model.name}
+												</span>
+												{hasWebSearch(model) && (
+													<Badge
+														variant="secondary"
+														className="gap-1 border-indigo-200 bg-indigo-50 text-indigo-700"
+													>
+														<Globe className="size-3" />
+														Web search
+													</Badge>
+												)}
+											</span>
 											<span className="truncate font-mono text-xs text-muted-foreground">
 												{model.id}
 											</span>
