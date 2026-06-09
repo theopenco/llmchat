@@ -27,7 +27,7 @@ export function SectionCard({
 			)}
 		>
 			<div className="flex items-start gap-4">
-				<span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-600">
+				<span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
 					{step}
 				</span>
 				<div className="flex flex-1 flex-col gap-4">

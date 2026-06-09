@@ -273,7 +273,7 @@ export function ModelPicker({
 												{hasWebSearch(model) && (
 													<Badge
 														variant="secondary"
-														className="gap-1 border-indigo-200 bg-indigo-50 text-indigo-700"
+														className="gap-1 border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
 													>
 														<Globe className="size-3" />
 														Web search

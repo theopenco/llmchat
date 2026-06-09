@@ -30,7 +30,7 @@ export function ChatPreviewCard({
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<div className="relative rounded-2xl border border-border bg-slate-50 p-3">
+				<div className="relative rounded-2xl border border-border bg-muted p-3">
 					{/* Widget window */}
 					<div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
 						{/* Header */}
@@ -53,9 +53,9 @@ export function ChatPreviewCard({
 						</div>
 						{/* Body */}
 						<div className="flex flex-col gap-2 px-3 py-4">
-							<div className="max-w-[80%] self-start rounded-2xl rounded-bl-sm bg-slate-100 px-3 py-2 text-sm text-slate-700">
+							<div className="max-w-[80%] self-start rounded-2xl rounded-bl-sm bg-accent px-3 py-2 text-sm text-accent-foreground">
 								{welcomeMessage || "Hi! How can I help you today?"}
-								<span className="mt-1 block text-[10px] text-slate-400">
+								<span className="mt-1 block text-[10px] text-muted-foreground">
 									9:41 AM
 								</span>
 							</div>

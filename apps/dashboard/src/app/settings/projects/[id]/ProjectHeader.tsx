@@ -43,7 +43,7 @@ export function ProjectHeader({
 					<div className="flex flex-wrap items-center gap-2 pt-1">
 						<Badge
 							variant="outline"
-							className="border-amber-200 bg-amber-50 text-amber-700"
+							className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
 						>
 							Draft
 						</Badge>

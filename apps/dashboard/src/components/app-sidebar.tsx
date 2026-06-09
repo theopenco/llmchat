@@ -232,7 +232,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 													isActive={active}
 													className={cn(
 														active &&
-															"bg-indigo-50 font-medium text-indigo-700 hover:bg-indigo-50 hover:text-indigo-700",
+															"bg-indigo-500/10 font-medium text-indigo-600 hover:bg-indigo-500/10 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-400",
 													)}
 												>
 													<span

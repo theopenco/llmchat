@@ -46,7 +46,7 @@ export function SetupProgressCard({
 							{item.done ? (
 								<CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
 							) : (
-								<Circle className="size-5 shrink-0 text-slate-300" />
+								<Circle className="size-5 shrink-0 text-muted-foreground/30" />
 							)}
 							<span
 								className={cn(
