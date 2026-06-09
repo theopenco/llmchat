@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace";
 import { SourcesPanel } from "./SourcesPanel";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
@@ -21,7 +22,18 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ModelPicker } from "./ModelPicker";
-import { Book, Check, ChevronLeft, Copy, Trash2 } from "lucide-react";
+import {
+	Bell,
+	Book,
+	Check,
+	ChevronLeft,
+	Code2,
+	Copy,
+	Globe,
+	MessageSquareText,
+	Settings2,
+	Trash2,
+} from "lucide-react";
 import {
 	Card,
 	CardContent,
@@ -51,6 +63,30 @@ interface Project {
 	slackWebhookUrl: string | null;
 }
 
+type SectionId =
+	| "general"
+	| "prompt"
+	| "sources"
+	| "knowledge"
+	| "notifications"
+	| "install";
+
+const SECTIONS: { id: SectionId; label: string; icon: typeof Settings2 }[] = [
+	{ id: "general", label: "General", icon: Settings2 },
+	{ id: "prompt", label: "System Prompt", icon: MessageSquareText },
+	{ id: "sources", label: "Sources", icon: Globe },
+	{ id: "knowledge", label: "Knowledge", icon: Book },
+	{ id: "notifications", label: "Notifications", icon: Bell },
+	{ id: "install", label: "Install", icon: Code2 },
+];
+
+// Sections backed by the draft form + shared save button.
+const DRAFT_SECTIONS = new Set<SectionId>([
+	"general",
+	"knowledge",
+	"notifications",
+]);
+
 export default function ProjectSettingsPage() {
 	const { id } = useParams<{ id: string }>();
 	const { workspaceId } = useWorkspace();
@@ -59,6 +95,7 @@ export default function ProjectSettingsPage() {
 	const [draft, setDraft] = useState<Partial<Project>>({});
 	const [showDelete, setShowDelete] = useState(false);
 	const [copied, setCopied] = useState(false);
+	const [section, setSection] = useState<SectionId>("general");
 
 	const project = useQuery({
 		queryKey: ["projects", workspaceId],
@@ -112,10 +149,13 @@ export default function ProjectSettingsPage() {
 
 	if (!project.data) {
 		return (
-			<div className="mx-auto max-w-4xl px-6 py-10">
+			<div className="mx-auto max-w-5xl px-6 py-10">
 				<div className="space-y-6">
 					<Skeleton className="h-8 w-48" />
-					<Skeleton className="h-64 w-full rounded-2xl" />
+					<div className="grid gap-8 md:grid-cols-[12rem_1fr]">
+						<Skeleton className="h-48 w-full rounded-2xl" />
+						<Skeleton className="h-64 w-full rounded-2xl" />
+					</div>
 				</div>
 			</div>
 		);
@@ -131,8 +171,10 @@ export default function ProjectSettingsPage() {
 		toast.success("Embed snippet copied");
 	}
 
+	const showSaveBar = DRAFT_SECTIONS.has(section);
+
 	return (
-		<div className="mx-auto max-w-4xl px-6 py-10">
+		<div className="mx-auto max-w-5xl px-6 py-10">
 			<div className="mb-8">
 				<Link
 					href="/settings/projects"
@@ -190,204 +232,254 @@ export default function ProjectSettingsPage() {
 				</AlertDialogContent>
 			</AlertDialog>
 
-			<Card className="mb-8">
-				<CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
-					<CardTitle>Embed Snippet</CardTitle>
-					<Button
-						type="button"
-						variant="secondary"
-						size="sm"
-						onClick={copyEmbed}
-					>
-						{copied ? <Check /> : <Copy />}
-						{copied ? "Copied!" : "Copy"}
-					</Button>
-				</CardHeader>
-				<CardContent>
-					<pre className="overflow-x-auto rounded-lg bg-primary p-4 text-xs leading-relaxed text-primary-foreground/80">
-						{embed}
-					</pre>
-				</CardContent>
-			</Card>
+			<div className="grid gap-8 md:grid-cols-[12rem_1fr]">
+				<nav className="flex gap-1 overflow-x-auto md:sticky md:top-20 md:h-fit md:flex-col md:overflow-visible">
+					{SECTIONS.map((s) => (
+						<button
+							key={s.id}
+							type="button"
+							onClick={() => setSection(s.id)}
+							className={cn(
+								"inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors md:w-full",
+								section === s.id
+									? "bg-accent text-accent-foreground"
+									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+							)}
+						>
+							<s.icon className="size-4" />
+							{s.label}
+						</button>
+					))}
+				</nav>
 
-			<form
-				onSubmit={(e) => {
-					e.preventDefault();
-					save.mutate(draft);
-				}}
-				className="flex flex-col gap-8"
-			>
-				<Card>
-					<CardHeader>
-						<CardTitle>General</CardTitle>
-						<CardDescription>Basic project configuration</CardDescription>
-					</CardHeader>
-					<Separator />
-					<CardContent className="flex flex-col gap-5 pt-5">
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="name">Project name</Label>
-							<Input
-								id="name"
-								value={draft.name ?? ""}
-								onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-							/>
-						</div>
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="model">Model</Label>
-							<ModelPicker
-								value={draft.model ?? ""}
-								onChange={(modelId) => setDraft({ ...draft, model: modelId })}
-							/>
-						</div>
-						<div className="grid grid-cols-2 gap-5">
-							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="brandColor">Brand color</Label>
-								<div className="flex items-center gap-3">
-									<Input
-										id="brandColor"
-										type="color"
-										value={draft.brandColor ?? "#000000"}
-										onChange={(e) =>
-											setDraft({ ...draft, brandColor: e.target.value })
-										}
-										className="size-10 cursor-pointer p-1"
-									/>
-									<span className="font-mono text-sm text-muted-foreground">
-										{draft.brandColor ?? "#000000"}
-									</span>
+				<div className="min-w-0">
+					{section === "prompt" && (
+						<SystemPromptsPanel projectId={id} workspaceId={workspaceId!} />
+					)}
+
+					{section === "sources" && (
+						<SourcesPanel projectId={id} workspaceId={workspaceId!} />
+					)}
+
+					{section === "install" && (
+						<Card>
+							<CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+								<div>
+									<CardTitle>Embed Snippet</CardTitle>
+									<CardDescription>
+										Paste this before &lt;/body&gt; on your site
+									</CardDescription>
 								</div>
+								<Button
+									type="button"
+									variant="secondary"
+									size="sm"
+									onClick={copyEmbed}
+								>
+									{copied ? <Check /> : <Copy />}
+									{copied ? "Copied!" : "Copy"}
+								</Button>
+							</CardHeader>
+							<CardContent>
+								<pre className="overflow-x-auto rounded-lg bg-primary p-4 text-xs leading-relaxed text-primary-foreground/80">
+									{embed}
+								</pre>
+							</CardContent>
+						</Card>
+					)}
+
+					{showSaveBar && (
+						<form
+							onSubmit={(e) => {
+								e.preventDefault();
+								save.mutate(draft);
+							}}
+							className="flex flex-col gap-8"
+						>
+							{section === "general" && (
+								<Card>
+									<CardHeader>
+										<CardTitle>General</CardTitle>
+										<CardDescription>
+											Basic project configuration
+										</CardDescription>
+									</CardHeader>
+									<Separator />
+									<CardContent className="flex flex-col gap-5 pt-5">
+										<div className="flex flex-col gap-1.5">
+											<Label htmlFor="name">Project name</Label>
+											<Input
+												id="name"
+												value={draft.name ?? ""}
+												onChange={(e) =>
+													setDraft({ ...draft, name: e.target.value })
+												}
+											/>
+										</div>
+										<div className="flex flex-col gap-1.5">
+											<Label htmlFor="model">Model</Label>
+											<ModelPicker
+												value={draft.model ?? ""}
+												onChange={(modelId) =>
+													setDraft({ ...draft, model: modelId })
+												}
+											/>
+										</div>
+										<div className="grid grid-cols-2 gap-5">
+											<div className="flex flex-col gap-1.5">
+												<Label htmlFor="brandColor">Brand color</Label>
+												<div className="flex items-center gap-3">
+													<Input
+														id="brandColor"
+														type="color"
+														value={draft.brandColor ?? "#000000"}
+														onChange={(e) =>
+															setDraft({ ...draft, brandColor: e.target.value })
+														}
+														className="size-10 cursor-pointer p-1"
+													/>
+													<span className="font-mono text-sm text-muted-foreground">
+														{draft.brandColor ?? "#000000"}
+													</span>
+												</div>
+											</div>
+											<div className="flex flex-col gap-1.5">
+												<Label htmlFor="threshold">Escalation threshold</Label>
+												<p className="text-xs text-muted-foreground">
+													Messages before escalation
+												</p>
+												<Input
+													id="threshold"
+													type="number"
+													min={1}
+													value={draft.escalationThreshold ?? 3}
+													onChange={(e) =>
+														setDraft({
+															...draft,
+															escalationThreshold: parseInt(e.target.value, 10),
+														})
+													}
+												/>
+											</div>
+										</div>
+										<div className="flex flex-col gap-1.5">
+											<Label htmlFor="welcome">Welcome message</Label>
+											<Input
+												id="welcome"
+												value={draft.welcomeMessage ?? ""}
+												onChange={(e) =>
+													setDraft({ ...draft, welcomeMessage: e.target.value })
+												}
+												placeholder="Hi! How can I help you today?"
+											/>
+										</div>
+									</CardContent>
+								</Card>
+							)}
+
+							{section === "knowledge" && (
+								<Card>
+									<CardHeader>
+										<div className="flex items-center gap-2">
+											<div className="flex size-7 items-center justify-center rounded-lg bg-warning text-warning-foreground">
+												<Book className="size-3.5" />
+											</div>
+											<div>
+												<CardTitle>Knowledge Base</CardTitle>
+												<CardDescription>
+													Reference content the AI uses to answer questions
+												</CardDescription>
+											</div>
+										</div>
+									</CardHeader>
+									<Separator />
+									<CardContent className="pt-5">
+										<div className="mb-2 flex items-center justify-between">
+											<span className="text-xs font-medium text-muted-foreground">
+												Markdown content
+											</span>
+											<Badge variant="secondary">
+												{(draft.knowledgeText ?? "").length} chars
+											</Badge>
+										</div>
+										<Textarea
+											id="knowledge"
+											rows={12}
+											value={draft.knowledgeText ?? ""}
+											onChange={(e) =>
+												setDraft({ ...draft, knowledgeText: e.target.value })
+											}
+											placeholder={
+												"# Frequently Asked Questions\n\n## How do I reset my password?\nGo to Settings → Account → Reset Password.\n\n## What are your business hours?\nMonday–Friday, 9am–5pm EST."
+											}
+											className="font-mono"
+										/>
+									</CardContent>
+								</Card>
+							)}
+
+							{section === "notifications" && (
+								<Card>
+									<CardHeader>
+										<CardTitle>Notifications</CardTitle>
+										<CardDescription>
+											Where to send escalation alerts
+										</CardDescription>
+									</CardHeader>
+									<Separator />
+									<CardContent className="flex flex-col gap-5 pt-5">
+										<div className="flex flex-col gap-1.5">
+											<Label htmlFor="notifyEmail">Notify email</Label>
+											<p className="text-xs text-muted-foreground">
+												Receives escalation notifications
+											</p>
+											<Input
+												id="notifyEmail"
+												type="email"
+												value={draft.notifyEmail ?? ""}
+												onChange={(e) =>
+													setDraft({
+														...draft,
+														notifyEmail: e.target.value || null,
+													})
+												}
+												placeholder="team@company.com"
+											/>
+										</div>
+										<div className="flex flex-col gap-1.5">
+											<Label htmlFor="slack">Slack webhook URL</Label>
+											<p className="text-xs text-muted-foreground">
+												Optional Slack integration
+											</p>
+											<Input
+												id="slack"
+												type="url"
+												value={draft.slackWebhookUrl ?? ""}
+												onChange={(e) =>
+													setDraft({
+														...draft,
+														slackWebhookUrl: e.target.value || null,
+													})
+												}
+												placeholder="https://hooks.slack.com/services/..."
+											/>
+										</div>
+									</CardContent>
+								</Card>
+							)}
+
+							<div className="sticky bottom-6 flex items-center justify-end gap-3 rounded-2xl border bg-background/80 px-6 py-4 shadow-lg backdrop-blur-md">
+								<Button type="button" variant="ghost" asChild>
+									<Link href="/settings/projects">Cancel</Link>
+								</Button>
+								<Button type="submit" disabled={save.isPending}>
+									{save.isPending ? "Saving…" : "Save Changes"}
+								</Button>
 							</div>
-							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="threshold">Escalation threshold</Label>
-								<p className="text-xs text-muted-foreground">
-									Messages before escalation
-								</p>
-								<Input
-									id="threshold"
-									type="number"
-									min={1}
-									value={draft.escalationThreshold ?? 3}
-									onChange={(e) =>
-										setDraft({
-											...draft,
-											escalationThreshold: parseInt(e.target.value, 10),
-										})
-									}
-								/>
-							</div>
-						</div>
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="welcome">Welcome message</Label>
-							<Input
-								id="welcome"
-								value={draft.welcomeMessage ?? ""}
-								onChange={(e) =>
-									setDraft({ ...draft, welcomeMessage: e.target.value })
-								}
-								placeholder="Hi! How can I help you today?"
-							/>
-						</div>
-					</CardContent>
-				</Card>
-
-				<SystemPromptsPanel projectId={id} workspaceId={workspaceId!} />
-
-				<SourcesPanel projectId={id} workspaceId={workspaceId!} />
-
-				<Card>
-					<CardHeader>
-						<div className="flex items-center gap-2">
-							<div className="flex size-7 items-center justify-center rounded-lg bg-warning text-warning-foreground">
-								<Book className="size-3.5" />
-							</div>
-							<div>
-								<CardTitle>Knowledge Base</CardTitle>
-								<CardDescription>
-									Reference content the AI uses to answer questions
-								</CardDescription>
-							</div>
-						</div>
-					</CardHeader>
-					<Separator />
-					<CardContent className="pt-5">
-						<div className="mb-2 flex items-center justify-between">
-							<span className="text-xs font-medium text-muted-foreground">
-								Markdown content
-							</span>
-							<Badge variant="secondary">
-								{(draft.knowledgeText ?? "").length} chars
-							</Badge>
-						</div>
-						<Textarea
-							id="knowledge"
-							rows={12}
-							value={draft.knowledgeText ?? ""}
-							onChange={(e) =>
-								setDraft({ ...draft, knowledgeText: e.target.value })
-							}
-							placeholder={
-								"# Frequently Asked Questions\n\n## How do I reset my password?\nGo to Settings → Account → Reset Password.\n\n## What are your business hours?\nMonday–Friday, 9am–5pm EST."
-							}
-							className="font-mono"
-						/>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<CardTitle>Notifications</CardTitle>
-						<CardDescription>Where to send escalation alerts</CardDescription>
-					</CardHeader>
-					<Separator />
-					<CardContent className="flex flex-col gap-5 pt-5">
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="notifyEmail">Notify email</Label>
-							<p className="text-xs text-muted-foreground">
-								Receives escalation notifications
-							</p>
-							<Input
-								id="notifyEmail"
-								type="email"
-								value={draft.notifyEmail ?? ""}
-								onChange={(e) =>
-									setDraft({
-										...draft,
-										notifyEmail: e.target.value || null,
-									})
-								}
-								placeholder="team@company.com"
-							/>
-						</div>
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="slack">Slack webhook URL</Label>
-							<p className="text-xs text-muted-foreground">
-								Optional Slack integration
-							</p>
-							<Input
-								id="slack"
-								type="url"
-								value={draft.slackWebhookUrl ?? ""}
-								onChange={(e) =>
-									setDraft({
-										...draft,
-										slackWebhookUrl: e.target.value || null,
-									})
-								}
-								placeholder="https://hooks.slack.com/services/..."
-							/>
-						</div>
-					</CardContent>
-				</Card>
-
-				<div className="sticky bottom-6 flex items-center justify-end gap-3 rounded-2xl border bg-background/80 px-6 py-4 shadow-lg backdrop-blur-md">
-					<Button type="button" variant="ghost" asChild>
-						<Link href="/settings/projects">Cancel</Link>
-					</Button>
-					<Button type="submit" disabled={save.isPending}>
-						{save.isPending ? "Saving…" : "Save Changes"}
-					</Button>
+						</form>
+					)}
 				</div>
-			</form>
+			</div>
 		</div>
 	);
 }
