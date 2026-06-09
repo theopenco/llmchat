@@ -1,16 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
-import { useWorkspace } from "@/lib/workspace";
-import { SourcesPanel } from "./SourcesPanel";
-import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { toast } from "sonner";
+
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -21,83 +15,50 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ModelPicker } from "./ModelPicker";
-import {
-	Bell,
-	Book,
-	Check,
-	ChevronLeft,
-	Code2,
-	Copy,
-	Globe,
-	MessageSquareText,
-	Settings2,
-	Trash2,
-} from "lucide-react";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { api } from "@/lib/api";
+import { useWorkspace } from "@/lib/workspace";
 
-interface Project {
-	id: string;
-	name: string;
-	publicKey: string;
-	systemPrompt: string;
-	knowledgeText: string;
-	model: string;
-	brandColor: string;
-	welcomeMessage: string;
-	escalationThreshold: number;
-	notifyEmail: string | null;
-	slackWebhookUrl: string | null;
-}
+import { BotBasicsCard } from "./BotBasicsCard";
+import { ChatPreviewCard } from "./ChatPreviewCard";
+import { ConfigurationSummaryCard } from "./ConfigurationSummaryCard";
+import { DangerZoneCard } from "./DangerZoneCard";
+import { InstructionsCard } from "./InstructionsCard";
+import { DEFAULT_MODEL, useGatewayModels } from "./model-data";
+import { ModelCard } from "./ModelCard";
+import { ProjectHeader } from "./ProjectHeader";
+import { SetupProgressCard } from "./SetupProgressCard";
+import { SourcesCard } from "./SourcesCard";
+import type { Project, ProjectDraft, Source } from "./types";
 
-type SectionId =
-	| "general"
-	| "prompt"
-	| "sources"
-	| "knowledge"
-	| "notifications"
-	| "install";
-
-const SECTIONS: { id: SectionId; label: string; icon: typeof Settings2 }[] = [
-	{ id: "general", label: "General", icon: Settings2 },
-	{ id: "prompt", label: "System Prompt", icon: MessageSquareText },
-	{ id: "sources", label: "Sources", icon: Globe },
-	{ id: "knowledge", label: "Knowledge", icon: Book },
-	{ id: "notifications", label: "Notifications", icon: Bell },
-	{ id: "install", label: "Install", icon: Code2 },
+const EDITABLE_KEYS: (keyof ProjectDraft)[] = [
+	"name",
+	"welcomeMessage",
+	"brandColor",
+	"model",
+	"systemPrompt",
 ];
 
-// Sections backed by the draft form + shared save button.
-const DRAFT_SECTIONS = new Set<SectionId>([
-	"general",
-	"knowledge",
-	"notifications",
-]);
+function toDraft(p: Project): ProjectDraft {
+	return {
+		name: p.name,
+		welcomeMessage: p.welcomeMessage,
+		brandColor: p.brandColor,
+		model: p.model,
+		systemPrompt: p.systemPrompt,
+	};
+}
 
 export default function ProjectSettingsPage() {
 	const { id } = useParams<{ id: string }>();
 	const { workspaceId } = useWorkspace();
 	const router = useRouter();
 	const qc = useQueryClient();
-	const [draft, setDraft] = useState<Partial<Project>>({});
-	const [showDelete, setShowDelete] = useState(false);
-	const [copied, setCopied] = useState(false);
-	const [section, setSection] = useState<SectionId>("general");
 
-	const project = useQuery({
+	const [draft, setDraft] = useState<ProjectDraft | null>(null);
+	const [showDelete, setShowDelete] = useState(false);
+
+	const projectQ = useQuery({
 		queryKey: ["projects", workspaceId],
 		enabled: !!workspaceId,
 		queryFn: () =>
@@ -106,12 +67,25 @@ export default function ProjectSettingsPage() {
 			}),
 		select: (d) => d.projects.find((p) => p.id === id),
 	});
+	const project = projectQ.data;
 
+	const sourcesQ = useQuery({
+		queryKey: ["sources", id],
+		enabled: !!workspaceId,
+		queryFn: () =>
+			api<{ sources: Source[] }>(`/api/projects/${id}/sources`, {
+				workspaceId: workspaceId!,
+			}),
+	});
+	const sources = sourcesQ.data?.sources ?? [];
+
+	const modelsQ = useGatewayModels();
+
+	// Seed the draft once per project id; preserves edits across background refetches.
 	useEffect(() => {
-		if (project.data) {
-			setDraft(project.data);
-		}
-	}, [project.data]);
+		if (project) setDraft(toDraft(project));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [project?.id]);
 
 	const save = useMutation({
 		mutationFn: (input: Partial<Project>) =>
@@ -122,12 +96,9 @@ export default function ProjectSettingsPage() {
 			}),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["projects"] });
-			toast.success("Project saved");
+			toast.success("Project updated successfully");
 		},
-		onError: (e) =>
-			toast.error("Save failed", {
-				description: e instanceof Error ? e.message : undefined,
-			}),
+		onError: () => toast.error("Could not save project"),
 	});
 
 	const remove = useMutation({
@@ -141,67 +112,153 @@ export default function ProjectSettingsPage() {
 			toast.success("Project deleted");
 			router.push("/settings/projects");
 		},
-		onError: (e) =>
-			toast.error("Delete failed", {
-				description: e instanceof Error ? e.message : undefined,
-			}),
+		onError: () => toast.error("Could not delete project"),
 	});
 
-	if (!project.data) {
+	const addSource = useMutation({
+		mutationFn: (url: string) =>
+			api<{ source: Source }>(`/api/projects/${id}/sources`, {
+				method: "POST",
+				body: { url },
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["sources", id] });
+			toast.success("Source added successfully");
+		},
+		onError: () => toast.error("Could not add source"),
+	});
+
+	const refreshSource = useMutation({
+		mutationFn: (sourceId: string) =>
+			api(`/api/projects/${id}/sources/${sourceId}/refresh`, {
+				method: "POST",
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["sources", id] });
+			toast.success("Source refreshed");
+		},
+		onError: () => toast.error("Could not refresh source"),
+	});
+
+	const deleteSource = useMutation({
+		mutationFn: (sourceId: string) =>
+			api(`/api/projects/${id}/sources/${sourceId}`, {
+				method: "DELETE",
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["sources", id] });
+			toast.success("Source removed");
+		},
+		onError: () => toast.error("Could not remove source"),
+	});
+
+	if (!project || !draft) {
 		return (
-			<div className="mx-auto max-w-5xl px-6 py-10">
-				<div className="space-y-6">
-					<Skeleton className="h-8 w-48" />
-					<div className="grid gap-8 md:grid-cols-[12rem_1fr]">
+			<div className="min-h-svh bg-muted">
+				<div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-8 lg:flex-row">
+					<div className="flex flex-1 flex-col gap-6">
+						<Skeleton className="h-20 w-80" />
 						<Skeleton className="h-48 w-full rounded-2xl" />
-						<Skeleton className="h-64 w-full rounded-2xl" />
+						<Skeleton className="h-40 w-full rounded-2xl" />
 					</div>
+					<Skeleton className="h-96 w-full rounded-2xl lg:w-[360px]" />
 				</div>
 			</div>
 		);
 	}
 
-	const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
-	const embed = `<script src="${apiUrl}/widget.js" data-project="${project.data.publicKey}" data-api="${apiUrl}" data-brand="${draft.brandColor ?? project.data.brandColor}"></script>`;
-
-	function copyEmbed() {
-		navigator.clipboard.writeText(embed);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
-		toast.success("Embed snippet copied");
+	function set<K extends keyof ProjectDraft>(key: K, value: ProjectDraft[K]) {
+		setDraft((d) => (d ? { ...d, [key]: value } : d));
 	}
 
-	const showSaveBar = DRAFT_SECTIONS.has(section);
+	const dirtyKeys = EDITABLE_KEYS.filter((k) => draft[k] !== project[k]);
+	const dirty = dirtyKeys.length > 0;
+
+	function handleSave() {
+		if (!dirty || !draft) return;
+		const payload: Partial<Project> = {};
+		for (const k of dirtyKeys) {
+			(payload as Record<string, unknown>)[k] = draft[k];
+		}
+		// Editing the single Instructions field makes the project's systemPrompt
+		// authoritative, so clear any active library prompt that would override it.
+		if (dirtyKeys.includes("systemPrompt")) {
+			payload.activeSystemPromptId = null;
+		}
+		save.mutate(payload);
+	}
+
+	function handlePreview() {
+		document
+			.getElementById("chat-preview")
+			?.scrollIntoView({ behavior: "smooth", block: "center" });
+	}
+
+	const selectedId = draft.model || DEFAULT_MODEL;
+	const modelName =
+		modelsQ.data?.find((m) => m.id === selectedId)?.name ?? selectedId;
 
 	return (
-		<div className="mx-auto max-w-5xl px-6 py-10">
-			<div className="mb-8">
-				<Link
-					href="/settings/projects"
-					className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-				>
-					<ChevronLeft className="size-4" />
-					Back to Projects
-				</Link>
-				<div className="flex items-center justify-between">
-					<div className="flex items-center gap-3">
-						<div
-							className="size-4 rounded-full"
-							style={{ backgroundColor: draft.brandColor || "#000" }}
+		<div className="min-h-svh bg-muted">
+			<div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-8">
+				<ProjectHeader
+					name={draft.name}
+					modelName={modelName}
+					sourceCount={sources.length}
+					dirty={dirty}
+					saving={save.isPending}
+					onSave={handleSave}
+					onPreview={handlePreview}
+				/>
+
+				<div className="flex flex-col gap-6 lg:flex-row">
+					<main className="flex min-w-0 flex-1 flex-col gap-6">
+						<BotBasicsCard draft={draft} set={set} />
+						<ModelCard value={draft.model} onChange={(m) => set("model", m)} />
+						<InstructionsCard
+							value={draft.systemPrompt}
+							onChange={(v) => set("systemPrompt", v)}
 						/>
-						<h1 className="text-2xl font-bold tracking-tight">
-							{project.data.name}
-						</h1>
-					</div>
-					<Button
-						type="button"
-						variant="outline"
-						className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-						onClick={() => setShowDelete(true)}
-					>
-						<Trash2 />
-						Delete Project
-					</Button>
+						<SourcesCard
+							sources={sources}
+							isLoading={sourcesQ.isLoading}
+							onAdd={(url) => addSource.mutate(url)}
+							onRefresh={(sid) => refreshSource.mutate(sid)}
+							onDelete={(sid) => deleteSource.mutate(sid)}
+							addPending={addSource.isPending}
+							refreshingId={
+								refreshSource.isPending
+									? (refreshSource.variables as string)
+									: null
+							}
+						/>
+					</main>
+
+					<aside className="shrink-0 lg:w-[360px]">
+						<div className="flex flex-col gap-6 lg:sticky lg:top-6">
+							<SetupProgressCard
+								hasProject
+								hasModel={!!draft.model}
+								hasInstructions={draft.systemPrompt.trim().length > 0}
+								hasSources={sources.length > 0}
+							/>
+							<ChatPreviewCard
+								name={draft.name}
+								welcomeMessage={draft.welcomeMessage}
+								brandColor={draft.brandColor}
+							/>
+							<ConfigurationSummaryCard
+								modelName={modelName}
+								brandColor={draft.brandColor}
+								welcomeMessage={draft.welcomeMessage}
+								sourceCount={sources.length}
+							/>
+							<DangerZoneCard onDelete={() => setShowDelete(true)} />
+						</div>
+					</aside>
 				</div>
 			</div>
 
@@ -209,7 +266,7 @@ export default function ProjectSettingsPage() {
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							Delete &ldquo;{project.data.name}&rdquo;?
+							Delete &ldquo;{project.name}&rdquo;?
 						</AlertDialogTitle>
 						<AlertDialogDescription>
 							This will permanently remove the project and all its
@@ -231,255 +288,6 @@ export default function ProjectSettingsPage() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-
-			<div className="grid gap-8 md:grid-cols-[12rem_1fr]">
-				<nav className="flex gap-1 overflow-x-auto md:sticky md:top-20 md:h-fit md:flex-col md:overflow-visible">
-					{SECTIONS.map((s) => (
-						<button
-							key={s.id}
-							type="button"
-							onClick={() => setSection(s.id)}
-							className={cn(
-								"inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors md:w-full",
-								section === s.id
-									? "bg-accent text-accent-foreground"
-									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-							)}
-						>
-							<s.icon className="size-4" />
-							{s.label}
-						</button>
-					))}
-				</nav>
-
-				<div className="min-w-0">
-					{section === "prompt" && (
-						<SystemPromptsPanel projectId={id} workspaceId={workspaceId!} />
-					)}
-
-					{section === "sources" && (
-						<SourcesPanel projectId={id} workspaceId={workspaceId!} />
-					)}
-
-					{section === "install" && (
-						<Card>
-							<CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
-								<div>
-									<CardTitle>Embed Snippet</CardTitle>
-									<CardDescription>
-										Paste this before &lt;/body&gt; on your site
-									</CardDescription>
-								</div>
-								<Button
-									type="button"
-									variant="secondary"
-									size="sm"
-									onClick={copyEmbed}
-								>
-									{copied ? <Check /> : <Copy />}
-									{copied ? "Copied!" : "Copy"}
-								</Button>
-							</CardHeader>
-							<CardContent>
-								<pre className="overflow-x-auto rounded-lg bg-primary p-4 text-xs leading-relaxed text-primary-foreground/80">
-									{embed}
-								</pre>
-							</CardContent>
-						</Card>
-					)}
-
-					{showSaveBar && (
-						<form
-							onSubmit={(e) => {
-								e.preventDefault();
-								save.mutate(draft);
-							}}
-							className="flex flex-col gap-8"
-						>
-							{section === "general" && (
-								<Card>
-									<CardHeader>
-										<CardTitle>General</CardTitle>
-										<CardDescription>
-											Basic project configuration
-										</CardDescription>
-									</CardHeader>
-									<Separator />
-									<CardContent className="flex flex-col gap-5 pt-5">
-										<div className="flex flex-col gap-1.5">
-											<Label htmlFor="name">Project name</Label>
-											<Input
-												id="name"
-												value={draft.name ?? ""}
-												onChange={(e) =>
-													setDraft({ ...draft, name: e.target.value })
-												}
-											/>
-										</div>
-										<div className="flex flex-col gap-1.5">
-											<Label htmlFor="model">Model</Label>
-											<ModelPicker
-												value={draft.model ?? ""}
-												onChange={(modelId) =>
-													setDraft({ ...draft, model: modelId })
-												}
-											/>
-										</div>
-										<div className="grid grid-cols-2 gap-5">
-											<div className="flex flex-col gap-1.5">
-												<Label htmlFor="brandColor">Brand color</Label>
-												<div className="flex items-center gap-3">
-													<Input
-														id="brandColor"
-														type="color"
-														value={draft.brandColor ?? "#000000"}
-														onChange={(e) =>
-															setDraft({ ...draft, brandColor: e.target.value })
-														}
-														className="size-10 cursor-pointer p-1"
-													/>
-													<span className="font-mono text-sm text-muted-foreground">
-														{draft.brandColor ?? "#000000"}
-													</span>
-												</div>
-											</div>
-											<div className="flex flex-col gap-1.5">
-												<Label htmlFor="threshold">Escalation threshold</Label>
-												<p className="text-xs text-muted-foreground">
-													Messages before escalation
-												</p>
-												<Input
-													id="threshold"
-													type="number"
-													min={1}
-													value={draft.escalationThreshold ?? 3}
-													onChange={(e) =>
-														setDraft({
-															...draft,
-															escalationThreshold: parseInt(e.target.value, 10),
-														})
-													}
-												/>
-											</div>
-										</div>
-										<div className="flex flex-col gap-1.5">
-											<Label htmlFor="welcome">Welcome message</Label>
-											<Input
-												id="welcome"
-												value={draft.welcomeMessage ?? ""}
-												onChange={(e) =>
-													setDraft({ ...draft, welcomeMessage: e.target.value })
-												}
-												placeholder="Hi! How can I help you today?"
-											/>
-										</div>
-									</CardContent>
-								</Card>
-							)}
-
-							{section === "knowledge" && (
-								<Card>
-									<CardHeader>
-										<div className="flex items-center gap-2">
-											<div className="flex size-7 items-center justify-center rounded-lg bg-warning text-warning-foreground">
-												<Book className="size-3.5" />
-											</div>
-											<div>
-												<CardTitle>Knowledge Base</CardTitle>
-												<CardDescription>
-													Reference content the AI uses to answer questions
-												</CardDescription>
-											</div>
-										</div>
-									</CardHeader>
-									<Separator />
-									<CardContent className="pt-5">
-										<div className="mb-2 flex items-center justify-between">
-											<span className="text-xs font-medium text-muted-foreground">
-												Markdown content
-											</span>
-											<Badge variant="secondary">
-												{(draft.knowledgeText ?? "").length} chars
-											</Badge>
-										</div>
-										<Textarea
-											id="knowledge"
-											rows={12}
-											value={draft.knowledgeText ?? ""}
-											onChange={(e) =>
-												setDraft({ ...draft, knowledgeText: e.target.value })
-											}
-											placeholder={
-												"# Frequently Asked Questions\n\n## How do I reset my password?\nGo to Settings → Account → Reset Password.\n\n## What are your business hours?\nMonday–Friday, 9am–5pm EST."
-											}
-											className="font-mono"
-										/>
-									</CardContent>
-								</Card>
-							)}
-
-							{section === "notifications" && (
-								<Card>
-									<CardHeader>
-										<CardTitle>Notifications</CardTitle>
-										<CardDescription>
-											Where to send escalation alerts
-										</CardDescription>
-									</CardHeader>
-									<Separator />
-									<CardContent className="flex flex-col gap-5 pt-5">
-										<div className="flex flex-col gap-1.5">
-											<Label htmlFor="notifyEmail">Notify email</Label>
-											<p className="text-xs text-muted-foreground">
-												Receives escalation notifications
-											</p>
-											<Input
-												id="notifyEmail"
-												type="email"
-												value={draft.notifyEmail ?? ""}
-												onChange={(e) =>
-													setDraft({
-														...draft,
-														notifyEmail: e.target.value || null,
-													})
-												}
-												placeholder="team@company.com"
-											/>
-										</div>
-										<div className="flex flex-col gap-1.5">
-											<Label htmlFor="slack">Slack webhook URL</Label>
-											<p className="text-xs text-muted-foreground">
-												Optional Slack integration
-											</p>
-											<Input
-												id="slack"
-												type="url"
-												value={draft.slackWebhookUrl ?? ""}
-												onChange={(e) =>
-													setDraft({
-														...draft,
-														slackWebhookUrl: e.target.value || null,
-													})
-												}
-												placeholder="https://hooks.slack.com/services/..."
-											/>
-										</div>
-									</CardContent>
-								</Card>
-							)}
-
-							<div className="sticky bottom-6 flex items-center justify-end gap-3 rounded-2xl border bg-background/80 px-6 py-4 shadow-lg backdrop-blur-md">
-								<Button type="button" variant="ghost" asChild>
-									<Link href="/settings/projects">Cancel</Link>
-								</Button>
-								<Button type="submit" disabled={save.isPending}>
-									{save.isPending ? "Saving…" : "Save Changes"}
-								</Button>
-							</div>
-						</form>
-					)}
-				</div>
-			</div>
 		</div>
 	);
 }
