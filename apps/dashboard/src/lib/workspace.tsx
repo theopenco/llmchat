@@ -1,7 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 
 import { api } from "./api";
 
@@ -36,10 +43,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 		retry: false,
 	});
 
-	const workspaces = query.data?.workspaces.map((w) => w.workspace) ?? [];
+	// Stable reference: keep the effect and every consumer from re-running on
+	// each render just because `.map()` produced a fresh array.
+	const { data, isLoading } = query;
+	const workspaces = useMemo(
+		() => data?.workspaces.map((w) => w.workspace) ?? [],
+		[data],
+	);
 
 	useEffect(() => {
-		if (query.isLoading || !query.data) {
+		if (isLoading || !data) {
 			return;
 		}
 		if (workspaces.length === 0) {
@@ -61,25 +74,19 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 			localStorage.setItem(KEY, next);
 			set(next);
 		}
-	}, [query.isLoading, query.data, workspaces, workspaceId]);
+	}, [isLoading, data, workspaces, workspaceId]);
 
-	function setWorkspaceId(id: string) {
+	const setWorkspaceId = useCallback((id: string) => {
 		localStorage.setItem(KEY, id);
 		set(id);
-	}
+	}, []);
 
-	return (
-		<Ctx.Provider
-			value={{
-				workspaces,
-				workspaceId,
-				setWorkspaceId,
-				isLoading: query.isLoading,
-			}}
-		>
-			{children}
-		</Ctx.Provider>
+	const value = useMemo<WorkspaceCtx>(
+		() => ({ workspaces, workspaceId, setWorkspaceId, isLoading }),
+		[workspaces, workspaceId, setWorkspaceId, isLoading],
 	);
+
+	return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export function useWorkspace() {
