@@ -67,13 +67,10 @@ function filterButtonClassName(active: boolean) {
 export function ModelPicker({
 	value,
 	onChange,
-	webSearchOnly = false,
 	trigger,
 }: {
 	value: string;
 	onChange: (id: string) => void;
-	/** Restrict the list to models that support web search (falls back to all if none match). */
-	webSearchOnly?: boolean;
 	/** Custom trigger element; defaults to a full-width combobox button. */
 	trigger?: React.ReactNode;
 }) {
@@ -82,14 +79,7 @@ export function ModelPicker({
 	const [providerFilter, setProviderFilter] = useState(ALL_FILTER);
 	const modelsQ = useGatewayModels();
 
-	// Apply the web-search constraint up front, but never strand the user with
-	// an empty list if the heuristic matches nothing.
-	const pool = useMemo(() => {
-		const all = modelsQ.data ?? [];
-		if (!webSearchOnly) return all;
-		const ws = all.filter(hasWebSearch);
-		return ws.length ? ws : all;
-	}, [modelsQ.data, webSearchOnly]);
+	const pool = modelsQ.data ?? [];
 
 	const selectedModel = useMemo(() => {
 		const selectedId = value || DEFAULT_MODEL;

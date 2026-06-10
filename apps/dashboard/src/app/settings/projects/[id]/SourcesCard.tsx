@@ -84,10 +84,15 @@ export function SourcesCard({
 	function submit() {
 		const value = url.trim();
 		if (!value) return;
+		let parsed: URL;
 		try {
-			new URL(value);
+			parsed = new URL(value);
 		} catch {
 			toast.error("Enter a valid URL (include https://)");
+			return;
+		}
+		if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+			toast.error("Only http(s) URLs are supported");
 			return;
 		}
 		onAdd(value);
