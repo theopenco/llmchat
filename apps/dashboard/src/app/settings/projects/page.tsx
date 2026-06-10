@@ -1,6 +1,5 @@
 "use client";
 
-import {} from "@shimmer-from-structure/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState } from "react";
