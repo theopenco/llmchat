@@ -6,6 +6,7 @@ import { useEffect } from "react";
 
 import { useSession } from "@/lib/auth-client";
 import { useWorkspace } from "@/lib/workspace";
+import { useOnboardingRedirect } from "@/lib/use-onboarding-redirect";
 import { Badge } from "@/components/ui/badge";
 
 export default function InboxLayout({
@@ -22,6 +23,8 @@ export default function InboxLayout({
 			router.replace("/sign-in");
 		}
 	}, [data, isPending, router]);
+
+	useOnboardingRedirect(!isPending && !!data?.user);
 
 	if (isPending || !data?.user) {
 		return null;

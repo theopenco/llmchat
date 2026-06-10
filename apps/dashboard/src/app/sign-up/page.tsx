@@ -37,7 +37,7 @@ export default function SignUpPage() {
 			return;
 		}
 		track(ANALYTICS_EVENTS.signupCompleted, { method: "email" });
-		router.replace("/inbox");
+		router.replace("/onboarding");
 	}
 
 	return (

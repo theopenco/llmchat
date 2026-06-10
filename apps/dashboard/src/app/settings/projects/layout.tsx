@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useSession } from "@/lib/auth-client";
+import { useOnboardingRedirect } from "@/lib/use-onboarding-redirect";
 
 export default function ProjectsLayout({
 	children,
@@ -18,6 +19,8 @@ export default function ProjectsLayout({
 			router.replace("/sign-in");
 		}
 	}, [data, isPending, router]);
+
+	useOnboardingRedirect(!isPending && !!data?.user);
 	if (isPending || !data?.user) {
 		return null;
 	}
