@@ -1,23 +1,27 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
 
-export interface GatewayProvider {
-	providerId: string;
-}
+// The gateway is a third-party API, so its payload is untrusted: validate the
+// envelope and drop any individual model that doesn't carry the fields we render.
+const gatewayProviderSchema = z.object({ providerId: z.string() });
 
-export interface GatewayModel {
-	id: string;
-	name: string;
-	description?: string;
-	family?: string;
-	providers?: GatewayProvider[];
-	supported_parameters?: string[];
-}
+const gatewayModelSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	description: z.string().optional(),
+	family: z.string().optional(),
+	providers: z.array(gatewayProviderSchema).optional(),
+	supported_parameters: z.array(z.string()).optional(),
+});
 
-interface GatewayResponse {
-	data: GatewayModel[];
-}
+const gatewayResponseSchema = z.object({
+	data: z.array(z.unknown()).default([]),
+});
+
+export type GatewayProvider = z.infer<typeof gatewayProviderSchema>;
+export type GatewayModel = z.infer<typeof gatewayModelSchema>;
 
 const GATEWAY_URL = "https://api.llmgateway.io/v1/models";
 
@@ -31,8 +35,12 @@ export function useGatewayModels() {
 		queryFn: async (): Promise<GatewayModel[]> => {
 			const res = await fetch(GATEWAY_URL);
 			if (!res.ok) throw new Error(`Gateway ${res.status}`);
-			const json = (await res.json()) as GatewayResponse;
-			return json.data ?? [];
+			const parsed = gatewayResponseSchema.safeParse(await res.json());
+			if (!parsed.success) throw new Error("Unexpected gateway response");
+			return parsed.data.data
+				.map((model) => gatewayModelSchema.safeParse(model))
+				.filter((result) => result.success)
+				.map((result) => result.data);
 		},
 	});
 }

@@ -39,7 +39,8 @@
 		"react-dom": "^19.0.0",
 		"sonner": "^2.0.7",
 		"tailwind-merge": "^3.6.0",
-		"tailwindcss-animate": "^1.0.7"
+		"tailwindcss-animate": "^1.0.7",
+		"zod": "^4.0.0"
 	},
 	"devDependencies": {
 		"@types/node": "^22.10.0",
