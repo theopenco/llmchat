@@ -1,9 +1,9 @@
-import { DashboardShell } from "@/components/dashboard-shell";
+import { DashboardGate } from "@/components/dashboard-gate";
 
 export default function ProjectsLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
-	return <DashboardShell>{children}</DashboardShell>;
+	return <DashboardGate>{children}</DashboardGate>;
 }
