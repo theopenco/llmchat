@@ -9,7 +9,8 @@
 		"format": "turbo run format",
 		"lint": "turbo run lint",
 		"migrate": "pnpm --filter @llmchat/db migrate",
-		"migrations": "pnpm --filter @llmchat/db migrations"
+		"migrations": "pnpm --filter @llmchat/db migrations",
+		"test": "turbo run test"
 	},
 	"devDependencies": {
 		"@meetploy/cli": "^1.35.1",

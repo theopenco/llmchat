@@ -1,14 +1,22 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 
 import { api } from "./api";
-
-interface WorkspaceSummary {
-	id: string;
-	name: string;
-}
+import {
+	resolveWorkspaceId,
+	type WorkspaceSummary,
+	type WorkspacesResponse,
+	WORKSPACES_KEY,
+} from "./workspace-utils";
 
 interface WorkspaceCtx {
 	workspaces: WorkspaceSummary[];
@@ -30,56 +38,44 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 	const [workspaceId, set] = useState<string | null>(null);
 
 	const query = useQuery({
-		queryKey: ["workspaces"],
-		queryFn: () =>
-			api<{ workspaces: { workspace: WorkspaceSummary }[] }>("/api/workspaces"),
+		queryKey: WORKSPACES_KEY,
+		queryFn: () => api<WorkspacesResponse>("/api/workspaces"),
 		retry: false,
 	});
 
-	const workspaces = query.data?.workspaces.map((w) => w.workspace) ?? [];
+	// Stable reference: keep the effect and every consumer from re-running on
+	// each render just because `.map()` produced a fresh array.
+	const { data, isLoading } = query;
+	const workspaces = useMemo(
+		() => data?.workspaces.map((w) => w.workspace) ?? [],
+		[data],
+	);
 
 	useEffect(() => {
-		if (query.isLoading || !query.data) {
-			return;
-		}
-		if (workspaces.length === 0) {
-			if (workspaceId) {
-				localStorage.removeItem(KEY);
-				set(null);
-			}
-			return;
-		}
-		// Honor a stored selection only if it's still one of the user's workspaces;
-		// otherwise fall back to the first one so a stale localStorage value can't
-		// pin the UI to a workspace that no longer exists.
-		const stored = localStorage.getItem(KEY);
-		const next =
-			stored && workspaces.some((w) => w.id === stored)
-				? stored
-				: workspaces[0]!.id;
-		if (next !== workspaceId) {
+		if (isLoading || !data) return;
+		// Reconcile the persisted choice against the workspaces the user can
+		// actually see; see resolveWorkspaceId for the stale-selection rules.
+		const next = resolveWorkspaceId(localStorage.getItem(KEY), workspaces);
+		if (next === workspaceId) return;
+		if (next === null) {
+			localStorage.removeItem(KEY);
+		} else {
 			localStorage.setItem(KEY, next);
-			set(next);
 		}
-	}, [query.isLoading, query.data, workspaces, workspaceId]);
+		set(next);
+	}, [isLoading, data, workspaces, workspaceId]);
 
-	function setWorkspaceId(id: string) {
+	const setWorkspaceId = useCallback((id: string) => {
 		localStorage.setItem(KEY, id);
 		set(id);
-	}
+	}, []);
 
-	return (
-		<Ctx.Provider
-			value={{
-				workspaces,
-				workspaceId,
-				setWorkspaceId,
-				isLoading: query.isLoading,
-			}}
-		>
-			{children}
-		</Ctx.Provider>
+	const value = useMemo<WorkspaceCtx>(
+		() => ({ workspaces, workspaceId, setWorkspaceId, isLoading }),
+		[workspaces, workspaceId, setWorkspaceId, isLoading],
 	);
+
+	return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export function useWorkspace() {
