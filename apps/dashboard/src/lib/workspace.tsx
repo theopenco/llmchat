@@ -11,11 +11,12 @@ import {
 } from "react";
 
 import { api } from "./api";
-
-interface WorkspaceSummary {
-	id: string;
-	name: string;
-}
+import {
+	resolveWorkspaceId,
+	type WorkspaceSummary,
+	type WorkspacesResponse,
+	WORKSPACES_KEY,
+} from "./workspace-utils";
 
 interface WorkspaceCtx {
 	workspaces: WorkspaceSummary[];
@@ -37,9 +38,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 	const [workspaceId, set] = useState<string | null>(null);
 
 	const query = useQuery({
-		queryKey: ["workspaces"],
-		queryFn: () =>
-			api<{ workspaces: { workspace: WorkspaceSummary }[] }>("/api/workspaces"),
+		queryKey: WORKSPACES_KEY,
+		queryFn: () => api<WorkspacesResponse>("/api/workspaces"),
 		retry: false,
 	});
 
@@ -52,28 +52,17 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 	);
 
 	useEffect(() => {
-		if (isLoading || !data) {
-			return;
-		}
-		if (workspaces.length === 0) {
-			if (workspaceId) {
-				localStorage.removeItem(KEY);
-				set(null);
-			}
-			return;
-		}
-		// Honor a stored selection only if it's still one of the user's workspaces;
-		// otherwise fall back to the first one so a stale localStorage value can't
-		// pin the UI to a workspace that no longer exists.
-		const stored = localStorage.getItem(KEY);
-		const next =
-			stored && workspaces.some((w) => w.id === stored)
-				? stored
-				: workspaces[0]!.id;
-		if (next !== workspaceId) {
+		if (isLoading || !data) return;
+		// Reconcile the persisted choice against the workspaces the user can
+		// actually see; see resolveWorkspaceId for the stale-selection rules.
+		const next = resolveWorkspaceId(localStorage.getItem(KEY), workspaces);
+		if (next === workspaceId) return;
+		if (next === null) {
+			localStorage.removeItem(KEY);
+		} else {
 			localStorage.setItem(KEY, next);
-			set(next);
 		}
+		set(next);
 	}, [isLoading, data, workspaces, workspaceId]);
 
 	const setWorkspaceId = useCallback((id: string) => {

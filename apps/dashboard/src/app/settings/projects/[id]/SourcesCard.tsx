@@ -16,18 +16,14 @@ import {
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+	formatRelativeTime,
+	SOURCE_URL_ERRORS,
+	validateSourceUrl,
+} from "@/lib/source-url";
 import { cn } from "@/lib/utils";
 import { SectionCard } from "./SectionCard";
 import type { Source } from "./types";
-
-function formatRelative(iso: string | null): string {
-	if (!iso) return "never";
-	const diff = Date.now() - new Date(iso).getTime();
-	if (diff < 60_000) return "just now";
-	if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} min ago`;
-	if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-	return `${Math.floor(diff / 86_400_000)}d ago`;
-}
 
 function sourceStatus(s: Source): {
 	label: string;
@@ -58,7 +54,7 @@ function sourceStatus(s: Source): {
 		label: "Ready",
 		className:
 			"border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-		indexed: `Indexed ${formatRelative(s.lastFetchedAt)}`,
+		indexed: `Indexed ${formatRelativeTime(s.lastFetchedAt)}`,
 	};
 }
 
@@ -83,16 +79,10 @@ export function SourcesCard({
 
 	function submit() {
 		const value = url.trim();
-		if (!value) return;
-		let parsed: URL;
-		try {
-			parsed = new URL(value);
-		} catch {
-			toast.error("Enter a valid URL (include https://)");
-			return;
-		}
-		if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-			toast.error("Only http(s) URLs are supported");
+		const error = validateSourceUrl(value);
+		if (error === "empty") return;
+		if (error) {
+			toast.error(SOURCE_URL_ERRORS[error]);
 			return;
 		}
 		onAdd(value);

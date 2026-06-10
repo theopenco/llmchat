@@ -8,7 +8,9 @@
 		"dev": "next dev -p 3001",
 		"format": "prettier --write .",
 		"lint": "prettier --check .",
-		"start": "next start -p 3001"
+		"start": "next start -p 3001",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"dependencies": {
 		"@llmchat/shared": "workspace:*",
@@ -43,12 +45,18 @@
 		"zod": "^4.0.0"
 	},
 	"devDependencies": {
+		"@testing-library/jest-dom": "^6.6.3",
+		"@testing-library/react": "^16.1.0",
+		"@testing-library/user-event": "^14.5.2",
 		"@types/node": "^22.10.0",
 		"@types/react": "^19.0.0",
 		"@types/react-dom": "^19.0.0",
+		"@vitejs/plugin-react": "^4.3.4",
 		"autoprefixer": "^10.4.20",
+		"jsdom": "^25.0.1",
 		"postcss": "^8.5.0",
 		"tailwindcss": "^3.4.17",
-		"typescript": "5.9.2"
+		"typescript": "5.9.2",
+		"vitest": "^3.0.0"
 	}
 }

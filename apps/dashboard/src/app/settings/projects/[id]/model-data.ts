@@ -16,8 +16,10 @@ const gatewayModelSchema = z.object({
 	supported_parameters: z.array(z.string()).optional(),
 });
 
+// `data` is required: a response without it is broken, not empty, and should
+// surface the error state rather than silently render an empty model list.
 const gatewayResponseSchema = z.object({
-	data: z.array(z.unknown()).default([]),
+	data: z.array(z.unknown()),
 });
 
 export type GatewayProvider = z.infer<typeof gatewayProviderSchema>;
@@ -27,6 +29,20 @@ const GATEWAY_URL = "https://api.llmgateway.io/v1/models";
 
 export const DEFAULT_MODEL = "gpt-4o-mini";
 
+/**
+ * Validate an untrusted gateway payload into a clean model list. Throws when the
+ * envelope is unrecognizable; silently drops individual models that are missing
+ * the fields we render, so one bad row can't blank the whole picker.
+ */
+export function parseGatewayModels(raw: unknown): GatewayModel[] {
+	const parsed = gatewayResponseSchema.safeParse(raw);
+	if (!parsed.success) throw new Error("Unexpected gateway response");
+	return parsed.data.data
+		.map((model) => gatewayModelSchema.safeParse(model))
+		.filter((result) => result.success)
+		.map((result) => result.data);
+}
+
 /** Shared react-query hook so the picker and the model card don't double-fetch. */
 export function useGatewayModels() {
 	return useQuery({
@@ -35,12 +51,7 @@ export function useGatewayModels() {
 		queryFn: async (): Promise<GatewayModel[]> => {
 			const res = await fetch(GATEWAY_URL);
 			if (!res.ok) throw new Error(`Gateway ${res.status}`);
-			const parsed = gatewayResponseSchema.safeParse(await res.json());
-			if (!parsed.success) throw new Error("Unexpected gateway response");
-			return parsed.data.data
-				.map((model) => gatewayModelSchema.safeParse(model))
-				.filter((result) => result.success)
-				.map((result) => result.data);
+			return parseGatewayModels(await res.json());
 		},
 	});
 }
