@@ -6,6 +6,7 @@ import { useEffect } from "react";
 
 import { useSession } from "@/lib/auth-client";
 import { useOnboardingRedirect } from "@/lib/use-onboarding-redirect";
+import { UserMenu } from "@/components/UserMenu";
 
 export default function ProjectsLayout({
 	children,
@@ -40,7 +41,7 @@ export default function ProjectsLayout({
 						</Link>
 					</nav>
 				</div>
-				<div className="text-sm text-muted-foreground">{data.user.email}</div>
+				<UserMenu email={data.user.email} />
 			</header>
 			<main className="flex-1">{children}</main>
 		</div>

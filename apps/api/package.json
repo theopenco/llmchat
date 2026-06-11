@@ -12,6 +12,7 @@
 		"@hono/zod-validator": "^0.7.2",
 		"@llmchat/db": "workspace:*",
 		"@llmchat/shared": "workspace:*",
+		"@llmchat/widget": "workspace:*",
 		"@llmgateway/ai-sdk-provider": "3.7.0",
 		"ai": "6.0.27",
 		"better-auth": "1.6.9",

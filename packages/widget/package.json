@@ -5,10 +5,11 @@
 	"type": "module",
 	"exports": {
 		".": "./src/widget.tsx",
-		"./styles": "./src/styles.ts"
+		"./styles": "./src/styles.ts",
+		"./bundle": "./dist/widget-string.ts"
 	},
 	"scripts": {
-		"build": "vite build",
+		"build": "vite build && node scripts/generate-bundle-module.mjs",
 		"dev": "vite",
 		"format": "prettier --write .",
 		"lint": "prettier --check ."

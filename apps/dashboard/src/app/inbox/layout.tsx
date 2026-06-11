@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useWorkspace } from "@/lib/workspace";
 import { useOnboardingRedirect } from "@/lib/use-onboarding-redirect";
+import { UserMenu } from "@/components/UserMenu";
 import { Badge } from "@/components/ui/badge";
 
 export default function InboxLayout({
@@ -51,7 +52,7 @@ export default function InboxLayout({
 						</Link>
 					</nav>
 				</div>
-				<div className="text-sm text-muted-foreground">{data.user.email}</div>
+				<UserMenu email={data.user.email} />
 			</header>
 			<main className="flex-1">{children}</main>
 		</div>

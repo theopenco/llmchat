@@ -27,19 +27,13 @@ app.use(
 	}),
 );
 
+// Public widget endpoints embed on arbitrary customer sites — allow any origin.
+// Safe because these routes are unauthenticated (no cookies) and gated by the
+// per-project public key + rate limiting.
 app.use(
 	"/v1/*",
 	cors({
-		origin: (origin, c) => {
-			const list = (c.env.vars.WIDGET_ALLOWED_ORIGINS ?? "")
-				.split(",")
-				.map((s: string) => s.trim())
-				.filter(Boolean);
-			if (list.length === 0 || list.includes("*")) {
-				return origin ?? "*";
-			}
-			return list.includes(origin ?? "") ? origin! : null;
-		},
+		origin: "*",
 		credentials: false,
 	}),
 );

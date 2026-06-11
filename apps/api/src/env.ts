@@ -13,8 +13,6 @@ export interface EnvVars {
 	BETTER_AUTH_URL: string;
 	DASHBOARD_URL: string;
 
-	WIDGET_ALLOWED_ORIGINS: string;
-
 	// Optional — analytics is a no-op when unset.
 	POSTHOG_API_KEY?: string;
 	POSTHOG_HOST?: string;

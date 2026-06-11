@@ -11,3 +11,9 @@ export function track(event: string, props?: AnalyticsProps) {
 	if (typeof window === "undefined" || !posthog.__loaded) return;
 	posthog.capture(event, props);
 }
+
+/** Clear the identified person on sign-out so the next user starts fresh. */
+export function resetAnalytics() {
+	if (typeof window === "undefined" || !posthog.__loaded) return;
+	posthog.reset();
+}

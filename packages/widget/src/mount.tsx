@@ -10,11 +10,14 @@ interface BootConfig {
 	brandColor: string;
 }
 
+// Captured at module scope during IIFE execution — document.currentScript is
+// null inside event handlers (e.g. DOMContentLoaded), so grab it now.
+const _scriptEl = document.currentScript as HTMLScriptElement | null;
+
 function getConfig(): BootConfig {
-	const script = document.currentScript as HTMLScriptElement | null;
-	const projectKey = script?.dataset.project ?? "";
-	const apiUrl = script?.dataset.api ?? "https://api.llmchat.io";
-	const brandColor = script?.dataset.brand ?? "#111827";
+	const projectKey = _scriptEl?.dataset.project ?? "";
+	const apiUrl = _scriptEl?.dataset.api ?? "https://api.llmchat.io";
+	const brandColor = _scriptEl?.dataset.brand ?? "#111827";
 	if (!projectKey) {
 		throw new Error("[llmchat] missing data-project on widget script tag");
 	}
