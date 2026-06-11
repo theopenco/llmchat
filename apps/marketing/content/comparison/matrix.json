@@ -210,5 +210,5 @@
 			]
 		}
 	],
-	"llmchatEmbed": "<script\n  src=\"https://api.llmchat.io/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>"
+	"llmchatEmbed": "<script\n  src=\"https://llmchat-api.meetploy.app/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>"
 }

@@ -13,7 +13,7 @@ interface BootConfig {
 function getConfig(): BootConfig {
 	const script = document.currentScript as HTMLScriptElement | null;
 	const projectKey = script?.dataset.project ?? "";
-	const apiUrl = script?.dataset.api ?? "https://api.llmchat.io";
+	const apiUrl = script?.dataset.api ?? "https://llmchat-api.meetploy.app";
 	const brandColor = script?.dataset.brand ?? "#111827";
 	if (!projectKey) {
 		throw new Error("[llmchat] missing data-project on widget script tag");
