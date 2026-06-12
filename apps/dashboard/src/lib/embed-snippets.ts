@@ -32,7 +32,7 @@ export function widgetScriptSnippet({
 	brandColor,
 }: EmbedConfig): string {
 	const base = normalizeApiUrl(apiUrl);
-	return `<script src="${base}/widget.js" data-project="${attr(publicKey)}" data-brand="${attr(brandColor)}" async></script>`;
+	return `<script src="${base}/widget.js" data-project="${attr(publicKey)}" data-api="${base}" data-brand="${attr(brandColor)}" async></script>`;
 }
 
 /** Inline embed: the API's /embed page rendered inside an iframe. */

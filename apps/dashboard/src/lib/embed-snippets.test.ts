@@ -33,7 +33,13 @@ describe("embedUrl", () => {
 describe("widgetScriptSnippet", () => {
 	it("produces the documented script tag", () => {
 		expect(widgetScriptSnippet(base)).toBe(
-			'<script src="https://api.example.com/widget.js" data-project="pk_123" data-brand="#4f46e5" async></script>',
+			'<script src="https://api.example.com/widget.js" data-project="pk_123" data-api="https://api.example.com" data-brand="#4f46e5" async></script>',
+		);
+	});
+
+	it("pins data-api so the widget never falls back to another host", () => {
+		expect(widgetScriptSnippet(base)).toContain(
+			'data-api="https://api.example.com"',
 		);
 	});
 
