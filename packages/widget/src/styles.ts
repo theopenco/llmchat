@@ -136,6 +136,12 @@ export const widgetStyles = `
 	font-size: 0.9rem;
 	padding-left: 0.5rem;
 }
+.llmchat-error {
+	color: #b91c1c;
+	font-size: 0.85rem;
+	margin: 0;
+	padding: 0.25rem 0.5rem 0;
+}
 
 .llmchat-escalate,
 .llmchat-escalated {

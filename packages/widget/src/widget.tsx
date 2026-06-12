@@ -52,6 +52,7 @@ export function Widget({
 	const [identified, setIdentified] = useState(false);
 	const [escalated, setEscalated] = useState(false);
 	const [escalating, setEscalating] = useState(false);
+	const [escalateFailed, setEscalateFailed] = useState(false);
 	const [clientId, setClientId] = useState("");
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -69,8 +70,9 @@ export function Widget({
 			}),
 		[apiUrl, projectKey, clientId, name, email],
 	);
-	const { messages, sendMessage, status } = useChat({ chat });
+	const { messages, sendMessage, status, error } = useChat({ chat });
 	const loading = status === "streaming" || status === "submitted";
+	const sendFailed = status === "error" && error != null;
 
 	useEffect(() => {
 		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -98,9 +100,13 @@ export function Widget({
 	}
 
 	async function handleEscalate() {
+		if (escalating) {
+			return;
+		}
 		setEscalating(true);
+		setEscalateFailed(false);
 		try {
-			await fetch(`${apiUrl}/v1/escalate`, {
+			const res = await fetch(`${apiUrl}/v1/escalate`, {
 				method: "POST",
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify({
@@ -114,7 +120,12 @@ export function Widget({
 					})),
 				}),
 			});
+			if (!res.ok) {
+				throw new Error(`escalate failed: ${res.status}`);
+			}
 			setEscalated(true);
+		} catch {
+			setEscalateFailed(true);
 		} finally {
 			setEscalating(false);
 		}
@@ -191,6 +202,11 @@ export function Widget({
 									);
 								})}
 								{loading && <div className="llmchat-typing">…</div>}
+								{sendFailed && (
+									<div className="llmchat-error" role="alert">
+										Something went wrong sending your message. Please try again.
+									</div>
+								)}
 								<div ref={messagesEndRef} />
 							</div>
 							{showEscalation && (
@@ -202,11 +218,16 @@ export function Widget({
 									>
 										{escalating ? "Sending…" : "Talk to a human"}
 									</button>
+									{escalateFailed && (
+										<p className="llmchat-error" role="alert">
+											We couldn&apos;t reach the team. Please try again.
+										</p>
+									)}
 								</div>
 							)}
 							{escalated && (
 								<div className="llmchat-escalated">
-									We&apos;ve notified our team. Reply will come via email.
+									We&apos;ve notified the team. A human will reply soon.
 								</div>
 							)}
 							<form onSubmit={handleSubmit} className="llmchat-input">
