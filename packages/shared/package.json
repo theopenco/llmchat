@@ -8,12 +8,14 @@
 	},
 	"scripts": {
 		"format": "prettier --write .",
-		"lint": "prettier --check ."
+		"lint": "prettier --check .",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"zod": "^4.0.0"
 	},
 	"devDependencies": {
-		"typescript": "5.9.2"
+		"typescript": "5.9.2",
+		"vitest": "^3.0.0"
 	}
 }
