@@ -5,6 +5,7 @@ import { createAuth } from "@/auth";
 import { billing } from "@/routes/billing";
 import { chat } from "@/routes/chat";
 import { conversations } from "@/routes/conversations";
+import { embed } from "@/routes/embed";
 import { inboundEmail } from "@/routes/inbound-email";
 import { projects } from "@/routes/projects";
 import { sources } from "@/routes/sources";
@@ -58,6 +59,7 @@ app.route("/api", conversations);
 app.route("/", inboundEmail);
 app.route("/api", billing);
 app.route("/", widgetAsset);
+app.route("/", embed);
 
 app.get("/", (c) => c.json({ name: "llmchat-api", ok: true }));
 
