@@ -7,6 +7,13 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
 	Empty,
@@ -50,11 +57,21 @@ export default function InboxPage() {
 			}),
 	});
 
+	// Pick the first project of the current workspace, and re-pick whenever the
+	// selected project no longer belongs to it (e.g. after a workspace switch).
 	useEffect(() => {
-		if (!projectId && projects.data?.projects[0]) {
-			setProjectId(projects.data.projects[0].id);
+		const list = projects.data?.projects;
+		if (!list?.length) return;
+		if (!projectId || !list.some((p) => p.id === projectId)) {
+			setProjectId(list[0]!.id);
+			setSelectedId(null);
 		}
 	}, [projects.data, projectId]);
+
+	function handleProjectChange(id: string) {
+		setProjectId(id);
+		setSelectedId(null);
+	}
 
 	const conversations = useQuery({
 		queryKey: ["conversations", projectId],
@@ -165,11 +182,30 @@ export default function InboxPage() {
 
 	return (
 		<div className="grid h-[calc(100vh-3.5rem)] grid-cols-[20rem_1fr]">
-			<ConversationList
-				conversations={conversations.data?.conversations ?? []}
-				selectedId={selectedId}
-				onSelect={setSelectedId}
-			/>
+			<div className="flex min-h-0 flex-col border-r">
+				<div className="border-b p-3">
+					<Select
+						value={projectId ?? undefined}
+						onValueChange={handleProjectChange}
+					>
+						<SelectTrigger className="w-full" aria-label="Project">
+							<SelectValue placeholder="Select a project" />
+						</SelectTrigger>
+						<SelectContent>
+							{projects.data.projects.map((p) => (
+								<SelectItem key={p.id} value={p.id}>
+									{p.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+				<ConversationList
+					conversations={conversations.data?.conversations ?? []}
+					selectedId={selectedId}
+					onSelect={setSelectedId}
+				/>
+			</div>
 			<section className="flex flex-col">
 				{selectedId && thread.data ? (
 					<>
