@@ -56,6 +56,27 @@ export default function Page() {
 				</div>
 			</section>
 
+			<section id="iframe-embed" className="hero">
+				<h2>Or embed it inline</h2>
+				<p className="lede">
+					The same project rendered through the API&apos;s{" "}
+					<code>/embed/&lt;publicKey&gt;</code> page inside a plain iframe — no
+					script tag on the host site.
+				</p>
+				<iframe
+					src="http://localhost:8787/embed/local-dev-key"
+					title="Support chat"
+					style={{
+						width: 400,
+						height: 600,
+						border: 0,
+						borderRadius: 12,
+						boxShadow: "0 12px 40px rgba(0, 0, 0, 0.15)",
+					}}
+					loading="lazy"
+				/>
+			</section>
+
 			<footer className="footer">
 				Showcase only. Edit{" "}
 				<code>apps/showcase/src/components/WidgetMount.tsx</code> to change
