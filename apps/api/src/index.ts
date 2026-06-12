@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 
 import { createAuth } from "@/auth";
+import { isAllowedDashboardOrigin } from "@/lib/origins";
 import { billing } from "@/routes/billing";
 import { chat } from "@/routes/chat";
 import { conversations } from "@/routes/conversations";
@@ -21,10 +22,10 @@ const app = new Hono<AppContext>();
 app.use(
 	"/api/*",
 	cors({
-		origin: (origin, c) => {
-			const allowed = c.env.vars.DASHBOARD_URL;
-			return origin === allowed ? origin : null;
-		},
+		origin: (origin, c) =>
+			isAllowedDashboardOrigin(origin, c.env.vars.DASHBOARD_URL)
+				? origin
+				: null,
 		credentials: true,
 	}),
 );
