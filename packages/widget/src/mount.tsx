@@ -16,7 +16,7 @@ const _scriptEl = document.currentScript as HTMLScriptElement | null;
 
 function getConfig(): BootConfig {
 	const projectKey = _scriptEl?.dataset.project ?? "";
-	const apiUrl = _scriptEl?.dataset.api ?? "https://api.llmchat.io";
+	const apiUrl = _scriptEl?.dataset.api ?? "https://llmchat-api.meetploy.app";
 	const brandColor = _scriptEl?.dataset.brand ?? "#111827";
 	if (!projectKey) {
 		throw new Error("[llmchat] missing data-project on widget script tag");

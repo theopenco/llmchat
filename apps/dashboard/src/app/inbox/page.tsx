@@ -1,17 +1,12 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-
-import { api } from "@/lib/api";
-import { useWorkspace } from "@/lib/workspace";
-import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
+import { FolderOpen } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { FolderOpen, Send } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
 	Empty,
@@ -21,25 +16,15 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@/components/ui/empty";
-import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { useWorkspace } from "@/lib/workspace";
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 
-interface Conversation {
-	id: string;
-	name: string | null;
-	email: string | null;
-	messageCount: number;
-	escalatedAt: number | null;
-	archivedAt: number | null;
-	updatedAt: number;
-}
-
-interface Message {
-	id: string;
-	role: "user" | "assistant" | "admin";
-	content: string;
-	sequence: number;
-	createdAt: number;
-}
+import { ConversationList } from "./_components/ConversationList";
+import { InboxSkeleton } from "./_components/InboxSkeleton";
+import { MessageThread } from "./_components/MessageThread";
+import { ReplyComposer } from "./_components/ReplyComposer";
+import type { Conversation, Message } from "./_components/types";
 
 interface Project {
 	id: string;
@@ -94,6 +79,15 @@ export default function InboxPage() {
 			),
 	});
 
+	function handleSelect(id: string) {
+		setSelectedId(id);
+		const c = conversations.data?.conversations.find((x) => x.id === id);
+		track(ANALYTICS_EVENTS.conversationOpened, {
+			conversation_id: id,
+			escalated: !!c?.escalatedAt,
+		});
+	}
+
 	async function handleReply() {
 		if (!reply.trim() || !projectId || !selectedId || !workspaceId) {
 			return;
@@ -119,7 +113,7 @@ export default function InboxPage() {
 	}
 
 	if (workspacesLoading) {
-		return null;
+		return <InboxSkeleton />;
 	}
 
 	if (workspaces.length === 0) {
@@ -181,91 +175,26 @@ export default function InboxPage() {
 
 	return (
 		<div className="grid h-[calc(100vh-3.5rem)] grid-cols-[20rem_1fr]">
-			<aside className="overflow-y-auto border-r bg-background">
-				<ul className="flex flex-col">
-					{conversations.data?.conversations.map((c) => (
-						<li key={c.id}>
-							<button
-								type="button"
-								onClick={() => {
-									setSelectedId(c.id);
-									track(ANALYTICS_EVENTS.conversationOpened, {
-										conversation_id: c.id,
-										escalated: !!c.escalatedAt,
-									});
-								}}
-								className={cn(
-									"w-full border-b p-3 text-left transition-colors hover:bg-muted",
-									selectedId === c.id && "bg-muted",
-								)}
-							>
-								<div className="flex items-center justify-between gap-2">
-									<span className="text-sm font-medium">
-										{c.name ?? "Anonymous"}
-									</span>
-									{c.escalatedAt && <Badge variant="warning">escalated</Badge>}
-								</div>
-								<div className="text-xs text-muted-foreground">
-									{c.email ?? "—"}
-								</div>
-								<div className="text-xs text-muted-foreground/70">
-									{c.messageCount} messages
-								</div>
-							</button>
-						</li>
-					))}
-					{conversations.data?.conversations.length === 0 && (
-						<li className="p-4 text-sm text-muted-foreground">
-							No conversations yet.
-						</li>
-					)}
-				</ul>
-			</aside>
+			<ConversationList
+				conversations={conversations.data?.conversations ?? []}
+				selectedId={selectedId}
+				onSelect={handleSelect}
+			/>
 			<section className="flex flex-col">
 				{selectedId && thread.data ? (
 					<>
-						<div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
-							{thread.data.messages.map((m) => (
-								<div
-									key={m.id}
-									className={cn(
-										"max-w-[70%] rounded-2xl px-3 py-2 text-sm",
-										m.role === "user" &&
-											"ml-auto bg-primary text-primary-foreground",
-										m.role === "admin" &&
-											"ml-auto bg-success/15 text-foreground",
-										m.role === "assistant" && "bg-muted text-foreground",
-									)}
-								>
-									<div className="mb-0.5 text-xs opacity-70">{m.role}</div>
-									<div className="whitespace-pre-wrap">{m.content}</div>
-								</div>
-							))}
-						</div>
+						<MessageThread messages={thread.data.messages} />
 						<Separator />
-						<div className="flex flex-col gap-2 p-3">
-							<Textarea
-								rows={2}
-								value={reply}
-								onChange={(e) => setReply(e.target.value)}
-								placeholder={
-									thread.data.conversation.email
-										? "Reply (sent via email)"
-										: "Reply (visitor has no email — will show in widget on next visit)"
-								}
-							/>
-							<div className="flex justify-end">
-								<Button
-									type="button"
-									size="sm"
-									onClick={handleReply}
-									disabled={!reply.trim()}
-								>
-									<Send />
-									Send
-								</Button>
-							</div>
-						</div>
+						<ReplyComposer
+							value={reply}
+							onChange={setReply}
+							onSend={handleReply}
+							placeholder={
+								thread.data.conversation.email
+									? "Reply (sent via email)"
+									: "Reply (visitor has no email — will show in widget on next visit)"
+							}
+						/>
 					</>
 				) : (
 					<div className="flex flex-1 items-center justify-center text-muted-foreground">

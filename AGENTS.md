@@ -109,3 +109,11 @@ Event names live in `@llmchat/shared` (`ANALYTICS_EVENTS`, object-action / lower
 - Routes return `c.json({ error: "..." }, status)` on errors; each route file exports a `Hono` instance mounted in `apps/api/src/index.ts`.
 - The Ploy `db:` binding is the only database; the `state:` binding is for ephemeral data (rate limits, caches), not source-of-truth.
 - Resource names (right-hand side of binding maps) must be lowercase + underscores (e.g. `llmchat_db`, not `llmchat-db`). Ploy validation rejects hyphens.
+
+## Commit workflow
+
+- Use **Conventional Commits** (`feat:`, `fix:`, `refactor:`, `chore:`, etc.).
+- Commit body uses **short, concise bullet points**.
+- Before every commit, run **tests, lint, and formatter** (`pnpm lint`, `pnpm format`, plus the test runner once one is configured).
+- Scan for **security leaks** (secrets, keys, tokens, credentials) before committing.
+- Commit features/fixes **atomically** — one logical change per commit, even when multiple features are in progress.

@@ -20,7 +20,7 @@
 		{
 			"title": "Swap the embed snippet",
 			"body": "Delete the Chatbase embed from your site and drop in the llmchat script tag. Replace the public key with your project's. The widget loads in a shadow DOM, so your page styles and the widget never interfere.",
-			"code": "<script\n  src=\"https://api.llmchat.io/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
+			"code": "<script\n  src=\"https://llmchat-api.meetploy.app/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
 			"codeLabel": "Add the llmchat widget"
 		},
 		{
