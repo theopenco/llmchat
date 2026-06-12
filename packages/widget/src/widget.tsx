@@ -1,6 +1,6 @@
 import { Chat, useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Composer } from "./components/Composer";
 import { EscalationSection } from "./components/EscalationSection";
@@ -8,6 +8,8 @@ import { IdentifyForm } from "./components/IdentifyForm";
 import { MessageList } from "./components/MessageList";
 import { requestEscalation } from "./escalation";
 import { getOrCreateClientId, getText } from "./lib";
+import { mergeMessages } from "./messages-sync";
+import { useServerMessages } from "./useServerMessages";
 
 type WidgetMode = "bubble" | "inline";
 
@@ -62,10 +64,32 @@ export function Widget({
 	const loading = status === "streaming" || status === "submitted";
 	const sendFailed = status === "error" && error != null;
 
+	// Poll the persisted feed while chatting so admin replies from the
+	// dashboard appear without a refresh.
+	const { serverMessages, refresh } = useServerMessages(
+		apiUrl,
+		projectKey,
+		clientId,
+		open && identified,
+	);
+
+	// Refetch as soon as a send settles (stream finished or failed) so the
+	// just-persisted exchange replaces the local copy immediately.
+	const wasLoading = useRef(false);
+	useEffect(() => {
+		if (wasLoading.current && !loading) {
+			refresh();
+		}
+		wasLoading.current = loading;
+	}, [loading, refresh]);
+
 	const displayMessages = useMemo(
 		() =>
-			messages.map((m) => ({ id: m.id, role: m.role, content: getText(m) })),
-		[messages],
+			mergeMessages(
+				serverMessages,
+				messages.map((m) => ({ id: m.id, role: m.role, content: getText(m) })),
+			),
+		[serverMessages, messages],
 	);
 	const userMessageCount = displayMessages.filter(
 		(m) => m.role === "user",
