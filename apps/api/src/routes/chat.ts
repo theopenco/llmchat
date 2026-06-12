@@ -17,30 +17,35 @@ import {
 import type { AppContext } from "@/env";
 import type { UIMessage } from "ai";
 
+const optionalEmail = z
+	.union([z.email(), z.literal("")])
+	.optional()
+	.transform((v) => v || undefined);
+
 const chatBody = z.object({
-	projectKey: z.string(),
-	clientId: z.string(),
-	name: z.string().optional(),
-	email: z
-		.union([z.email(), z.literal("")])
-		.optional()
-		.transform((v) => v || undefined),
-	messages: z.array(z.any()),
+	projectKey: z.string().max(128),
+	clientId: z.string().max(128),
+	name: z.string().max(200).optional(),
+	email: optionalEmail,
+	messages: z.array(z.any()).max(200),
 });
 
 const escalateBody = z.object({
-	projectKey: z.string(),
-	clientId: z.string(),
-	name: z.string().optional(),
-	email: z
-		.union([z.email(), z.literal("")])
-		.optional()
-		.transform((v) => v || undefined),
-	messages: z.array(z.object({ role: z.string(), content: z.string() })),
+	projectKey: z.string().max(128),
+	clientId: z.string().max(128),
+	name: z.string().max(200).optional(),
+	email: optionalEmail,
+	messages: z
+		.array(
+			z.object({ role: z.string().max(32), content: z.string().max(8_000) }),
+		)
+		.max(200),
 });
 
 const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_WINDOW = 60 * 60;
+// Escalations trigger notification emails — keep the budget much tighter.
+const ESCALATE_RATE_LIMIT_MAX = 5;
 
 function clientIp(c: { req: { header(name: string): string | undefined } }) {
 	return (
@@ -203,6 +208,15 @@ export const chat = new Hono<AppContext>()
 		const project = await loadProject(c.env, projectKey);
 		if (!project) {
 			return c.json({ error: "invalid project key" }, 404);
+		}
+		const rl = await rateLimit(
+			c.env,
+			`escalate:${project.id}:${clientIp(c)}`,
+			ESCALATE_RATE_LIMIT_MAX,
+			RATE_LIMIT_WINDOW,
+		);
+		if (!rl.ok) {
+			return c.json({ error: "rate limit exceeded" }, 429);
 		}
 		const conv = await db(c.env).query.conversation.findFirst({
 			where: (ct, { and, eq: e }) =>
