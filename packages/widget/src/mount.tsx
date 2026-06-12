@@ -14,7 +14,11 @@ interface BootConfig {
 function getConfig(): BootConfig {
 	const script = document.currentScript as HTMLScriptElement | null;
 	const projectKey = script?.dataset.project ?? "";
-	const apiUrl = script?.dataset.api ?? "https://llmchat-api.meetploy.app";
+	// Without an explicit data-api, talk to the API that served widget.js —
+	// never a hardcoded host, which would silently point local embeds at prod.
+	const apiUrl =
+		script?.dataset.api ??
+		(script?.src ? new URL(script.src).origin : window.location.origin);
 	const brandColor = script?.dataset.brand ?? "#111827";
 	const mode = script?.dataset.mode === "inline" ? "inline" : "bubble";
 	if (!projectKey) {
