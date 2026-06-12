@@ -11,6 +11,7 @@
 		"start": "next start -p 3003"
 	},
 	"dependencies": {
+		"@llmchat/shared": "workspace:*",
 		"@llmchat/widget": "workspace:*",
 		"next": "15.1.0",
 		"react": "^19.0.0",

@@ -1,3 +1,5 @@
+import { DashboardLink } from "@/components/DashboardLink";
+import { EmbedFrame } from "@/components/EmbedFrame";
 import { WidgetMount } from "@/components/WidgetMount";
 
 export default function Page() {
@@ -48,8 +50,7 @@ export default function Page() {
 				<div className="card">
 					<h2>Check the inbox</h2>
 					<p>
-						Sign in to the dashboard at{" "}
-						<a href="http://localhost:3001">localhost:3001</a> with{" "}
+						Sign in to the dashboard at <DashboardLink /> with{" "}
 						<code>admin@example.com</code> / <code>admin@example.com</code> to
 						see the conversation land.
 					</p>
@@ -63,18 +64,7 @@ export default function Page() {
 					<code>/embed/&lt;publicKey&gt;</code> page inside a plain iframe — no
 					script tag on the host site.
 				</p>
-				<iframe
-					src="http://localhost:8787/embed/local-dev-key"
-					title="Support chat"
-					style={{
-						width: 400,
-						height: 600,
-						border: 0,
-						borderRadius: 12,
-						boxShadow: "0 12px 40px rgba(0, 0, 0, 0.15)",
-					}}
-					loading="lazy"
-				/>
+				<EmbedFrame projectKey="local-dev-key" />
 			</section>
 
 			<footer className="footer">

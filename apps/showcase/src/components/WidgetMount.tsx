@@ -6,8 +6,9 @@ import { createRoot, type Root } from "react-dom/client";
 import { Widget } from "@llmchat/widget";
 import { widgetStyles } from "@llmchat/widget/styles";
 
+import { apiBaseUrl } from "@/lib/api-url";
+
 const PROJECT_KEY = "local-dev-key";
-const API_URL = "http://localhost:8787";
 const BRAND_COLOR = "#4f46e5";
 
 export function WidgetMount() {
@@ -28,7 +29,7 @@ export function WidgetMount() {
 		root.render(
 			<Widget
 				projectKey={PROJECT_KEY}
-				apiUrl={API_URL}
+				apiUrl={apiBaseUrl()}
 				brandColor={BRAND_COLOR}
 			/>,
 		);
