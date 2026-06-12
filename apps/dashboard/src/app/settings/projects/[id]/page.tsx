@@ -1,9 +1,8 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 import {
 	AlertDialog,
@@ -30,6 +29,7 @@ import { ModelCard } from "./ModelCard";
 import { ProjectHeader } from "./ProjectHeader";
 import { SetupProgressCard } from "./SetupProgressCard";
 import { SourcesCard } from "./SourcesCard";
+import { useProjectMutations } from "./useProjectMutations";
 import type { Project, ProjectDraft, Source } from "./types";
 
 const EDITABLE_KEYS: (keyof ProjectDraft)[] = [
@@ -39,6 +39,12 @@ const EDITABLE_KEYS: (keyof ProjectDraft)[] = [
 	"model",
 	"systemPrompt",
 ];
+
+function handlePreview() {
+	document
+		.getElementById("chat-preview")
+		?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
 
 function toDraft(p: Project): ProjectDraft {
 	return {
@@ -53,8 +59,6 @@ function toDraft(p: Project): ProjectDraft {
 export default function ProjectSettingsPage() {
 	const { id } = useParams<{ id: string }>();
 	const { workspaceId } = useWorkspace();
-	const router = useRouter();
-	const qc = useQueryClient();
 
 	const [draft, setDraft] = useState<ProjectDraft | null>(null);
 	const [showDelete, setShowDelete] = useState(false);
@@ -88,73 +92,8 @@ export default function ProjectSettingsPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [project?.id]);
 
-	const save = useMutation({
-		mutationFn: (input: Partial<Project>) =>
-			api(`/api/projects/${id}`, {
-				method: "PATCH",
-				body: input,
-				workspaceId: workspaceId!,
-			}),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["projects"] });
-			toast.success("Project updated successfully");
-		},
-		onError: () => toast.error("Could not save project"),
-	});
-
-	const remove = useMutation({
-		mutationFn: () =>
-			api(`/api/projects/${id}`, {
-				method: "DELETE",
-				workspaceId: workspaceId!,
-			}),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["projects"] });
-			toast.success("Project deleted");
-			router.push("/settings/projects");
-		},
-		onError: () => toast.error("Could not delete project"),
-	});
-
-	const addSource = useMutation({
-		mutationFn: (url: string) =>
-			api<{ source: Source }>(`/api/projects/${id}/sources`, {
-				method: "POST",
-				body: { url },
-				workspaceId: workspaceId!,
-			}),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["sources", id] });
-			toast.success("Source added successfully");
-		},
-		onError: () => toast.error("Could not add source"),
-	});
-
-	const refreshSource = useMutation({
-		mutationFn: (sourceId: string) =>
-			api(`/api/projects/${id}/sources/${sourceId}/refresh`, {
-				method: "POST",
-				workspaceId: workspaceId!,
-			}),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["sources", id] });
-			toast.success("Source refreshed");
-		},
-		onError: () => toast.error("Could not refresh source"),
-	});
-
-	const deleteSource = useMutation({
-		mutationFn: (sourceId: string) =>
-			api(`/api/projects/${id}/sources/${sourceId}`, {
-				method: "DELETE",
-				workspaceId: workspaceId!,
-			}),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["sources", id] });
-			toast.success("Source removed");
-		},
-		onError: () => toast.error("Could not remove source"),
-	});
+	const { save, remove, addSource, refreshSource, deleteSource } =
+		useProjectMutations(id, workspaceId);
 
 	if (!project || !draft) {
 		return (
@@ -190,12 +129,6 @@ export default function ProjectSettingsPage() {
 			payload.activeSystemPromptId = null;
 		}
 		save.mutate(payload);
-	}
-
-	function handlePreview() {
-		document
-			.getElementById("chat-preview")
-			?.scrollIntoView({ behavior: "smooth", block: "center" });
 	}
 
 	const selectedId = draft.model || DEFAULT_MODEL;
