@@ -37,7 +37,7 @@ export default async function VsPage({
 
 	const others = allCompetitors
 		.filter((c) => c.id !== competitor.id)
-		.sort((a, b) => a.rank - b.rank);
+		.toSorted((a, b) => a.rank - b.rank);
 
 	return (
 		<>

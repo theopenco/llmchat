@@ -61,7 +61,7 @@ const sections = [
 ];
 
 export default function DocsPage() {
-	const migrations = [...allMigrations].sort((a, b) => a.rank - b.rank);
+	const migrations = allMigrations.toSorted((a, b) => a.rank - b.rank);
 
 	return (
 		<>

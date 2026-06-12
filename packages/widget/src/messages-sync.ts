@@ -37,14 +37,15 @@ export function mergeMessages(
 	server: ServerMessage[],
 	local: DisplayMessage[],
 ): DisplayMessage[] {
-	const consumed = new Array<boolean>(server.length).fill(false);
+	const consumed = new Set<number>();
 	const tail: DisplayMessage[] = [];
 	for (const l of local) {
 		const idx = server.findIndex(
-			(s, i) => !consumed[i] && s.role === l.role && s.content === l.content,
+			(s, i) =>
+				!consumed.has(i) && s.role === l.role && s.content === l.content,
 		);
 		if (idx >= 0) {
-			consumed[idx] = true;
+			consumed.add(idx);
 		} else {
 			tail.push(l);
 		}

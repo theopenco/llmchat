@@ -25,6 +25,10 @@ import { ProjectFilters } from "./_components/ProjectFilters";
 import { ProjectsGridSkeleton } from "./_components/ProjectsGridSkeleton";
 import type { ProjectListItem, ProjectSortMode } from "./_components/types";
 
+// Hoisted fallback so the filter memo isn't invalidated on every render while
+// the query has no data yet.
+const NO_PROJECTS: ProjectListItem[] = [];
+
 export default function ProjectsPage() {
 	const { workspaceId } = useWorkspace();
 	const qc = useQueryClient();
@@ -115,7 +119,7 @@ export default function ProjectsPage() {
 		},
 	});
 
-	const list = projects.data?.projects ?? [];
+	const list = projects.data?.projects ?? NO_PROJECTS;
 	const filtered = useMemo(
 		() => filterAndSortProjects(list, { search, favOnly, sort }),
 		[list, search, favOnly, sort],
@@ -220,7 +224,9 @@ export default function ProjectsPage() {
 								onToggleFavorite={(id, favorite) =>
 									toggle.mutate({ id, favorite })
 								}
-								onTogglePin={(id, pinned) => toggle.mutate({ id, pinned })}
+								onTogglePin={(id, nextPinned) =>
+									toggle.mutate({ id, pinned: nextPinned })
+								}
 								onDelete={setDeleteId}
 							/>
 						</section>
@@ -237,7 +243,9 @@ export default function ProjectsPage() {
 								onToggleFavorite={(id, favorite) =>
 									toggle.mutate({ id, favorite })
 								}
-								onTogglePin={(id, pinned) => toggle.mutate({ id, pinned })}
+								onTogglePin={(id, nextPinned) =>
+									toggle.mutate({ id, pinned: nextPinned })
+								}
 								onDelete={setDeleteId}
 							/>
 						</section>

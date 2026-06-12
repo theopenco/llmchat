@@ -13,7 +13,6 @@ import {
 	eq,
 	like,
 	message as messageTable,
-	project,
 	readStatus,
 } from "@llmchat/db";
 

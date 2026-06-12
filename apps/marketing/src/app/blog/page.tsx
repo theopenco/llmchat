@@ -20,7 +20,7 @@ export default async function BlogPage({
 		? (category as CategoryFilter)
 		: "All";
 
-	const sorted = [...allPosts].sort(
+	const sorted = allPosts.toSorted(
 		(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
 	);
 	const filtered =

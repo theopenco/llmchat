@@ -34,7 +34,7 @@ export default async function PostPage({
 
 	const more = [...allPosts]
 		.filter((p) => p.slug !== post.slug)
-		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+		.toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 		.slice(0, 2);
 
 	return (

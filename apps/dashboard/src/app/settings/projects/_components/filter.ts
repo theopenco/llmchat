@@ -22,7 +22,7 @@ export function filterAndSortProjects(
 			p.publicKey.toLowerCase().includes(q)
 		);
 	});
-	return rows.sort((a, b) => {
+	return rows.toSorted((a, b) => {
 		if (sort === "name") return a.name.localeCompare(b.name);
 		return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 	});

@@ -17,7 +17,7 @@ export const metadata = {
 const { colOrder, colLabels, featureGroups } = matrix;
 
 export default function ComparePage() {
-	const competitors = [...allCompetitors].sort((a, b) => a.rank - b.rank);
+	const competitors = allCompetitors.toSorted((a, b) => a.rank - b.rank);
 
 	return (
 		<>

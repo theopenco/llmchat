@@ -37,6 +37,9 @@ import {
 export { DEFAULT_MODEL };
 
 const ALL_FILTER = "all";
+// Hoisted fallback so `pool` is referentially stable when the query is empty
+// (an inline `?? []` would invalidate the useMemos below on every render).
+const NO_MODELS: GatewayModel[] = [];
 
 function familyLabel(family?: string) {
 	return family ? titleCase(family) : "Other";
@@ -79,7 +82,7 @@ export function ModelPicker({
 	const [providerFilter, setProviderFilter] = useState(ALL_FILTER);
 	const modelsQ = useGatewayModels();
 
-	const pool = modelsQ.data ?? [];
+	const pool = modelsQ.data ?? NO_MODELS;
 
 	const selectedModel = useMemo(() => {
 		const selectedId = value || DEFAULT_MODEL;
@@ -99,7 +102,7 @@ export function ModelPicker({
 				label: titleCase(provider),
 				count,
 			}))
-			.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+			.toSorted((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 	}, [pool]);
 
 	const filteredFamilies = useMemo(() => {
@@ -125,9 +128,9 @@ export function ModelPicker({
 			.map(([family, items]) => ({
 				family,
 				label: familyLabel(family),
-				items: [...items].sort((a, b) => a.name.localeCompare(b.name)),
+				items: items.toSorted((a, b) => a.name.localeCompare(b.name)),
 			}))
-			.sort((a, b) => a.label.localeCompare(b.label));
+			.toSorted((a, b) => a.label.localeCompare(b.label));
 	}, [pool, providerFilter, query]);
 
 	const hasFilters = query.trim().length > 0 || providerFilter !== ALL_FILTER;
