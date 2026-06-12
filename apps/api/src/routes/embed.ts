@@ -23,7 +23,6 @@ export const embed = new Hono<AppContext>().get("/embed/:key", async (c) => {
 		projectName: project.name,
 		publicKey: project.publicKey,
 		brandColor: project.brandColor,
-		origin: new URL(c.req.url).origin,
 	});
 
 	// Framing by any site is the point of this page; everything else is locked

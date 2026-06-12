@@ -6,7 +6,6 @@ const base = {
 	projectName: "Acme",
 	publicKey: "pk_123",
 	brandColor: "#4f46e5",
-	origin: "https://api.example.com",
 };
 
 describe("safeBrandColor", () => {
@@ -49,10 +48,12 @@ describe("renderEmbedPage", () => {
 		expect(html.match(/<script /g)).toHaveLength(1);
 	});
 
-	it("pins data-api to the serving origin and mounts inline", () => {
+	it("loads widget.js relative to its own origin and mounts inline", () => {
 		const html = renderEmbedPage(base);
-		expect(html).toContain('src="https://api.example.com/widget.js"');
-		expect(html).toContain('data-api="https://api.example.com"');
+		// Relative on purpose: an absolute url built from the request would
+		// carry http:// behind the TLS-terminating proxy and get CSP-blocked.
+		expect(html).toContain('src="/widget.js"');
+		expect(html).not.toContain("data-api");
 		expect(html).toContain('data-mode="inline"');
 	});
 
