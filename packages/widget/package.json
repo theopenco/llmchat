@@ -8,7 +8,7 @@
 		"./styles": "./src/styles.ts"
 	},
 	"scripts": {
-		"build": "vite build",
+		"build": "vite build && node scripts/emit-api-asset.mjs",
 		"dev": "vite",
 		"format": "prettier --write .",
 		"lint": "prettier --check ."

@@ -1,5 +1,6 @@
 kind: dynamic
-build: pnpm --filter @llmchat/api build
+# Widget build first: it emits src/generated/widget-bundle.ts (served at /widget.js).
+build: pnpm --filter @llmchat/widget build && pnpm --filter @llmchat/api build
 out: dist
 main: src/index.ts
 
