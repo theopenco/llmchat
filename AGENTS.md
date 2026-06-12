@@ -28,17 +28,18 @@ The Ploy yaml schema only accepts the fields documented in `packages/tools/src/p
 pnpm install
 pnpm dev                                  # = ploy dev — boots api :8787, dashboard :3001, marketing :3002, showcase :3003
 pnpm build                                # turbo run build across all workspaces
-pnpm lint                                 # turbo run lint (prettier --check)
+pnpm lint                                 # turbo run lint (prettier --check) + oxlint (.oxlintrc.json at repo root)
 pnpm format                               # turbo run format (prettier --write)
 pnpm migrations                           # drizzle-kit generate → apps/api/migrations/
 pnpm clean                                # remove dist/.turbo/.next/.ploy
 ```
 
 Per-package:
-- `pnpm --filter @llmchat/api build` — `tsc --noEmit`. The actual worker bundle is built by `ploy build` (esbuild under the hood) at deploy time; entry is auto-detected as `src/index.ts`.
-- `pnpm --filter @llmchat/widget build` — Vite IIFE lib → `packages/widget/dist/widget.js`. The api serves this at `/widget.js` (currently a placeholder in `apps/api/src/routes/widget-asset.ts`).
 
-There is no test runner configured (turbo `test` task exists but no package implements it).
+- `pnpm --filter @llmchat/api build` — `tsc --noEmit`. The actual worker bundle is built by `ploy build` (esbuild under the hood) at deploy time; entry is auto-detected as `src/index.ts`.
+- `pnpm --filter @llmchat/widget build` — Vite IIFE lib → `packages/widget/dist/widget.js`, then `scripts/emit-api-asset.mjs` embeds it into `apps/api/src/generated/widget-bundle.ts` (gitignored) so the api can serve it at `/widget.js` from workerd (no filesystem).
+
+Tests: `pnpm test` runs vitest in **api**, **dashboard**, and **widget** (other packages have no tests yet).
 
 Local env: `cp apps/api/.env.example apps/api/.env` and fill in keys. `ploy dev` interpolates `.env` values into the `env:` block of `apps/api/ploy.yaml` (each value uses `$VAR_NAME`).
 
@@ -62,9 +63,11 @@ The seed hash is computed for scrypt `{ N: 16384, r: 16, p: 1, dkLen: 64 }` — 
 ## Architecture
 
 ### Workerd-compat constraint
+
 The api ships to workerd. Avoid Node-only deps — they fail to bundle. Already removed for this reason: `resend` SDK (replaced with direct `fetch` in `lib/email.ts` because the SDK pulled in `svix`), `@better-auth/passkey` (pulled in `@simplewebauthn/server` → `@peculiar/x509` + `asn1js`). Email+password auth only, for now. Same risk applies to `@llmgateway/ai-sdk-provider` — if a future version pulls Node deps, swap to a direct `fetch` against `${LLMGATEWAY_BASE_URL}/v1/chat/completions`.
 
 ### Request paths (`apps/api/src/index.ts`)
+
 - **Public widget** (`/v1/*`, CORS via `WIDGET_ALLOWED_ORIGINS`): `POST /v1/chat` streams a UI message stream to the embedded widget; `POST /v1/escalate` flips the conversation to escalated and emails `project.notifyEmail` with a `Reply-To` of `reply+<inboundEmailLocal>@<INBOUND_EMAIL_DOMAIN>`.
 - **Dashboard API** (`/api/*`, CORS pinned to `DASHBOARD_URL`, credentials): `workspaces`, `projects`, `conversations`, `billing`. Sits behind `requireSession` + `requireWorkspace` (`apps/api/src/middleware/session.ts`); workspace membership is asserted via the `member` table using the `x-workspace-id` header.
 - **Auth** (`/api/auth/*`): Better Auth with the Drizzle adapter, email+password. `createAuth(env)` is called per-request because env is a Ploy binding, not a module-scope value.
@@ -72,6 +75,7 @@ The api ships to workerd. Avoid Node-only deps — they fail to bundle. Already 
 - **Inbound email** (`routes/inbound-email.ts`): Resend webhook for replies; `email Message-ID` is stored on `message.emailMessageId` so reply matching can find the conversation.
 
 ### Data model (`packages/db/src/schema.ts`)
+
 - Better Auth tables (`user`, `session`, `account`, `verification`, `passkey` — kept in schema for future use even though the runtime plugin is removed).
 - `workspace` (billing entity) → `member` (RBAC: owner/admin/agent) → `project` (the embed unit; `publicKey` for widget bootstrap, `inboundEmailLocal` for reply email).
 - `conversation` keyed by `(projectId, clientId)`; messages are append-only with a per-conversation `sequence`. `message.role` is one of `user | assistant | admin`.
@@ -79,17 +83,21 @@ The api ships to workerd. Avoid Node-only deps — they fail to bundle. Already 
 - IDs default via `crypto.randomUUID()` (`$defaultFn`). Timestamps stored as unix seconds.
 
 ### Streaming chat write pattern (`apps/api/src/routes/chat.ts`)
-The handler returns `result.toUIMessageStreamResponse()` immediately and uses `c.executionCtx.waitUntil(...)` to persist the assistant message + bump `conversation.messageCount` + insert the `usageEvent` *after* the stream finishes. When changing chat persistence, keep DB writes inside `waitUntil` so they don't block the response. Increment `sequence` from the pre-fetched `messageCount` (user = N+1, assistant = N+2).
+
+The handler returns `result.toUIMessageStreamResponse()` immediately and uses `c.executionCtx.waitUntil(...)` to persist the assistant message + bump `conversation.messageCount` + insert the `usageEvent` _after_ the stream finishes. When changing chat persistence, keep DB writes inside `waitUntil` so they don't block the response. Increment `sequence` from the pre-fetched `messageCount` (user = N+1, assistant = N+2).
 
 ### Path aliases & imports
+
 - `apps/api` uses `@/*` → `src/*` (see `apps/api/tsconfig.json`).
 - `@llmchat/db` re-exports tables and `eq`/query operators from drizzle-orm so route files can `import { eq, conversation } from "@llmchat/db"`.
 - `@llmchat/shared` is Zod-only (Zod v4: `z.email()`, `z.url()`, `z.iso.datetime()`).
 
 ### Widget
+
 `packages/widget` is a Vite IIFE lib (`vite.config.ts`: `formats: ["iife"]`, `inlineDynamicImports: true`, `cssCodeSplit: false`) — a single self-contained `widget.js` mounted into a shadow DOM. Currently pulls in `@ai-sdk/react` + `ai` (~227KB gzip), too heavy for a public embed; planned: replace with a hand-rolled SSE client.
 
 Two entry points exposed via package `exports`:
+
 - `@llmchat/widget` → `src/widget.tsx` (the `Widget` React component, for in-tree consumers like `apps/showcase`).
 - `@llmchat/widget/styles` → `src/styles.ts` (a `widgetStyles` string for injecting into a shadow root `<style>` element).
 
@@ -107,6 +115,6 @@ The CSS lives as a TS template literal rather than a `.css` file because Next.js
 
 - Use **Conventional Commits** (`feat:`, `fix:`, `refactor:`, `chore:`, etc.).
 - Commit body uses **short, concise bullet points**.
-- Before every commit, run **tests, lint, and formatter** (`pnpm lint`, `pnpm format`, plus the test runner once one is configured).
+- Before every commit, run **tests, lint, and formatter** (`pnpm test`, `pnpm lint`, `pnpm format`).
 - Scan for **security leaks** (secrets, keys, tokens, credentials) before committing.
 - Commit features/fixes **atomically** — one logical change per commit, even when multiple features are in progress.
