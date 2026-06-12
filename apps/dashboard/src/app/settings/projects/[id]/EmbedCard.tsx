@@ -5,6 +5,7 @@ import { ExternalLink, Lightbulb } from "lucide-react";
 import { CopyButton } from "@/components/copy-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiBaseUrl } from "@/lib/api-base";
 import {
 	embedUrl,
 	widgetIframeSnippet,
@@ -12,8 +13,6 @@ import {
 } from "@/lib/embed-snippets";
 
 import { SectionCard } from "./SectionCard";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
 
 function CodeBlock({ code }: { code: string }) {
 	return (
@@ -30,7 +29,7 @@ export function EmbedCard({
 	publicKey: string;
 	brandColor: string;
 }) {
-	const config = { apiUrl: API_URL, publicKey, brandColor };
+	const config = { apiUrl: apiBaseUrl(), publicKey, brandColor };
 	const url = embedUrl(config);
 	const iframeCode = widgetIframeSnippet(config);
 	const scriptCode = widgetScriptSnippet(config);
