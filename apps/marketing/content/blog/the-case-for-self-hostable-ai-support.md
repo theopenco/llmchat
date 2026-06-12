@@ -5,6 +5,7 @@ date: "2026-04-28"
 category: "Engineering"
 featured: false
 ---
+
 Support tooling sits at a sensitive intersection: it handles customer PII, it's in the critical path of your customer relationships, and it's the first thing customers blame when something goes wrong. Locking that into a SaaS black box is a meaningful risk.
 
 We built llmchat to be self-hostable from day one. Here's what that means in practice.

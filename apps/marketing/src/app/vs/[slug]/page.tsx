@@ -128,7 +128,9 @@ export default async function VsPage({
 										Feature
 									</th>
 									<th className="px-4 py-4 font-mono text-[0.72rem] uppercase tracking-[0.12em] text-accent">
-										<span className="border-b-2 border-accent pb-1">llmchat</span>
+										<span className="border-b-2 border-accent pb-1">
+											llmchat
+										</span>
 									</th>
 									<th className="px-4 py-4 font-mono text-[0.72rem] uppercase tracking-[0.12em] text-muted">
 										{competitor.name}

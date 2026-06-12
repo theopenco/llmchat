@@ -5,6 +5,7 @@ date: "2026-05-10"
 category: "Engineering"
 featured: false
 ---
+
 When we started llmchat, the obvious path was to call OpenAI's API directly. Every tutorial does it, the SDK is excellent, and it's what you know. We chose not to, and it's already paid off twice.
 
 The first time: GPT-4o pricing changed. We were able to re-evaluate and switch models for lower-cost use cases without touching our integration code. One config change.

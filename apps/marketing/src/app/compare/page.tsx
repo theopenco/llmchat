@@ -42,16 +42,15 @@ export default function ComparePage() {
 					<p className="kicker">The short version</p>
 					<p className="mt-3 max-w-3xl text-lg leading-relaxed text-ink-soft">
 						llmchat is the pick if you want{" "}
-						<strong className="font-semibold text-ink">a single script tag</strong>{" "}
+						<strong className="font-semibold text-ink">
+							a single script tag
+						</strong>{" "}
 						for AI support, smart escalation, and email threading — with the
 						freedom to{" "}
-						<strong className="font-semibold text-ink">
-							run any model
-						</strong>{" "}
-						and{" "}
-						<strong className="font-semibold text-ink">self-host</strong>. Need
-						WhatsApp, voice, or a full platform today? Intercom, Chatwoot, or
-						Chatbase reach further.
+						<strong className="font-semibold text-ink">run any model</strong>{" "}
+						and <strong className="font-semibold text-ink">self-host</strong>.
+						Need WhatsApp, voice, or a full platform today? Intercom, Chatwoot,
+						or Chatbase reach further.
 					</p>
 				</section>
 

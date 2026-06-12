@@ -5,6 +5,7 @@ date: "2026-05-01"
 category: "Changelog"
 featured: false
 ---
+
 Here's what shipped in May.
 
 **Longer knowledge base support.** We've increased the knowledge base character limit from 8k to 32k characters. Customers running large doc sets can now paste in significantly more content without hitting the cap.
