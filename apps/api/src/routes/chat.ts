@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/kv";
 import { streamChat } from "@/lib/llm";
+import { clientIp } from "@/lib/request";
 
 import {
 	conversation,
@@ -46,14 +47,6 @@ const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_WINDOW = 60 * 60;
 // Escalations trigger notification emails — keep the budget much tighter.
 const ESCALATE_RATE_LIMIT_MAX = 5;
-
-function clientIp(c: { req: { header(name: string): string | undefined } }) {
-	return (
-		c.req.header("cf-connecting-ip") ??
-		c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
-		"unknown"
-	);
-}
 
 async function loadProject(env: AppContext["Bindings"], publicKey: string) {
 	const p = await db(env).query.project.findFirst({
