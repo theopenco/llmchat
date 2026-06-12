@@ -11,17 +11,21 @@ export function SetupProgressCard({
 	hasModel,
 	hasInstructions,
 	hasSources,
+	hasEmbedCode,
 }: {
 	hasProject: boolean;
 	hasModel: boolean;
 	hasInstructions: boolean;
 	hasSources: boolean;
+	/** The embed URL exists — we can't detect a real installation yet. */
+	hasEmbedCode: boolean;
 }) {
 	const items = [
 		{ label: "Project created", done: hasProject },
 		{ label: "Model selected", done: hasModel },
 		{ label: "Instructions configured", done: hasInstructions },
 		{ label: "Sources added", done: hasSources },
+		{ label: "Widget code ready", done: hasEmbedCode },
 	];
 	const completed = items.filter((i) => i.done).length;
 

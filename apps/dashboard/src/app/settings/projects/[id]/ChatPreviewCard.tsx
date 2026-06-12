@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare, Send } from "lucide-react";
+import { Bot, MessageCircle, SendHorizontal } from "lucide-react";
 
 import {
 	Card,
@@ -30,55 +30,50 @@ export function ChatPreviewCard({
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<div className="relative rounded-2xl border border-border bg-muted p-3">
+				<div className="relative pb-10">
 					{/* Widget window */}
-					<div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-						{/* Header */}
-						<div className="flex items-center gap-2.5 border-b border-border px-3 py-2.5">
-							<span
-								className="flex size-8 items-center justify-center rounded-full text-xs font-semibold text-white"
-								style={{ backgroundColor: color }}
-							>
-								{(name || "B").slice(0, 1).toUpperCase()}
+					<div className="overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
+						{/* Header — brand colored like the real widget */}
+						<div
+							className="flex items-center gap-3 px-4 py-3.5"
+							style={{ backgroundColor: color }}
+						>
+							<span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-black/25 text-white">
+								<Bot className="size-5" />
 							</span>
 							<div className="min-w-0">
-								<p className="truncate text-sm font-semibold text-foreground">
+								<p className="truncate text-sm font-semibold text-white">
 									{name || "Chatbot"}
 								</p>
-								<p className="flex items-center gap-1 text-xs text-emerald-600">
-									<span className="size-1.5 rounded-full bg-emerald-500" />
+								<p className="flex items-center gap-1.5 text-xs text-white/85">
+									<span className="size-1.5 rounded-full bg-emerald-400" />
 									Online
 								</p>
 							</div>
 						</div>
 						{/* Body */}
-						<div className="flex flex-col gap-2 px-3 py-4">
-							<div className="max-w-[80%] self-start rounded-2xl rounded-bl-sm bg-accent px-3 py-2 text-sm text-accent-foreground">
+						<div className="flex min-h-28 flex-col gap-2 bg-card px-4 py-5">
+							<div className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-muted px-3.5 py-2.5 text-sm text-foreground">
 								{welcomeMessage || "Hi! How can I help you today?"}
-								<span className="mt-1 block text-[10px] text-muted-foreground">
+								<span className="mt-1 block text-right text-[10px] text-muted-foreground">
 									9:41 AM
 								</span>
 							</div>
 						</div>
 						{/* Input */}
-						<div className="flex items-center gap-2 border-t border-border px-3 py-2.5">
+						<div className="flex items-center gap-2 border-t border-border px-4 py-3">
 							<span className="flex-1 truncate text-sm text-muted-foreground">
 								Type your message...
 							</span>
-							<span
-								className="flex size-7 items-center justify-center rounded-full text-white"
-								style={{ backgroundColor: color }}
-							>
-								<Send className="size-3.5" />
-							</span>
+							<SendHorizontal className="size-4 shrink-0 text-muted-foreground" />
 						</div>
 					</div>
 					{/* Floating launcher */}
 					<span
-						className="absolute -bottom-2 right-3 flex size-10 items-center justify-center rounded-full text-white shadow-lg"
+						className="absolute -bottom-0.5 right-0 flex size-12 items-center justify-center rounded-full text-white shadow-xl"
 						style={{ backgroundColor: color }}
 					>
-						<MessageSquare className="size-5" />
+						<MessageCircle className="size-6" />
 					</span>
 				</div>
 			</CardContent>

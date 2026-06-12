@@ -249,6 +249,7 @@ export default function ProjectSettingsPage() {
 								hasModel={!!draft.model}
 								hasInstructions={draft.systemPrompt.trim().length > 0}
 								hasSources={sources.length > 0}
+								hasEmbedCode={!!project.publicKey}
 							/>
 							<ChatPreviewCard
 								name={draft.name}
@@ -260,6 +261,7 @@ export default function ProjectSettingsPage() {
 								brandColor={draft.brandColor}
 								welcomeMessage={draft.welcomeMessage}
 								sourceCount={sources.length}
+								embedPath={`/embed/${project.publicKey}`}
 							/>
 							<DangerZoneCard onDelete={() => setShowDelete(true)} />
 						</div>

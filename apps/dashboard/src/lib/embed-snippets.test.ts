@@ -1,12 +1,34 @@
 import { describe, expect, it } from "vitest";
 
-import { widgetIframeSnippet, widgetScriptSnippet } from "./embed-snippets";
+import {
+	embedUrl,
+	widgetIframeSnippet,
+	widgetScriptSnippet,
+} from "./embed-snippets";
 
 const base = {
 	apiUrl: "https://api.example.com",
 	publicKey: "pk_123",
 	brandColor: "#4f46e5",
 };
+
+describe("embedUrl", () => {
+	it("builds the /embed page url for the project key", () => {
+		expect(embedUrl(base)).toBe("https://api.example.com/embed/pk_123");
+	});
+
+	it("strips trailing slashes from the api url", () => {
+		expect(embedUrl({ ...base, apiUrl: "https://api.example.com//" })).toBe(
+			"https://api.example.com/embed/pk_123",
+		);
+	});
+
+	it("url-encodes keys so they cannot break out of the path", () => {
+		expect(embedUrl({ ...base, publicKey: 'a/b?c="x"' })).toBe(
+			"https://api.example.com/embed/a%2Fb%3Fc%3D%22x%22",
+		);
+	});
+});
 
 describe("widgetScriptSnippet", () => {
 	it("produces the documented script tag", () => {
@@ -51,17 +73,13 @@ describe("widgetIframeSnippet", () => {
 		expect(snippet).not.toContain('=""x""');
 	});
 
-	it("strips trailing slashes from the api url", () => {
-		expect(
-			widgetIframeSnippet({ ...base, apiUrl: "https://api.example.com/" }),
-		).toContain('src="https://api.example.com/embed/pk_123"');
-	});
-
-	it("is a self-contained iframe with sizing the user can edit", () => {
+	it("is a formatted multi-line tag with editable sizing attributes", () => {
 		const snippet = widgetIframeSnippet(base);
-		expect(snippet).toMatch(/^<iframe /);
-		expect(snippet).toMatch(/<\/iframe>$/);
-		expect(snippet).toContain("width: 400px");
-		expect(snippet).toContain("height: 600px");
+		const lines = snippet.split("\n");
+		expect(lines[0]).toBe("<iframe");
+		expect(lines.at(-1)).toBe("></iframe>");
+		expect(snippet).toContain('width="400"');
+		expect(snippet).toContain('height="600"');
+		expect(snippet).toContain('loading="lazy"');
 	});
 });

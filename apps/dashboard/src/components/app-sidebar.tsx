@@ -53,6 +53,7 @@ const SETUP_STEPS = [
 	{ id: "model", label: "Model" },
 	{ id: "instructions", label: "Instructions" },
 	{ id: "sources", label: "Sources" },
+	{ id: "install", label: "Install" },
 ];
 const STEP_IDS = SETUP_STEPS.map((s) => s.id);
 
