@@ -1,12 +1,9 @@
 import { Hono } from "hono";
 
 import { db } from "@/lib/db";
-import { escapeHtml } from "@/lib/email";
+import { renderEmbedPage } from "@/lib/embed-page";
 
 import type { AppContext } from "@/env";
-
-const HEX_COLOR = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
-const FALLBACK_BRAND = "#111827";
 
 /**
  * Full-page chat for `<iframe src=".../embed/<publicKey>">` embeds. Serves an
@@ -22,30 +19,22 @@ export const embed = new Hono<AppContext>().get("/embed/:key", async (c) => {
 		return c.text("Unknown project key", 404);
 	}
 
-	const origin = new URL(c.req.url).origin;
-	const brand = HEX_COLOR.test(project.brandColor)
-		? project.brandColor
-		: FALLBACK_BRAND;
-
-	const html = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="robots" content="noindex" />
-<title>${escapeHtml(project.name)} — Chat</title>
-<style>html,body{margin:0;height:100%;background:#fff}</style>
-</head>
-<body>
-<script src="${origin}/widget.js" data-project="${escapeHtml(project.publicKey)}" data-api="${origin}" data-brand="${brand}" data-mode="inline" defer></script>
-</body>
-</html>`;
+	const html = renderEmbedPage({
+		projectName: project.name,
+		publicKey: project.publicKey,
+		brandColor: project.brandColor,
+		origin: new URL(c.req.url).origin,
+	});
 
 	// Framing by any site is the point of this page; everything else is locked
 	// down. style-src 'unsafe-inline' covers the widget's shadow-DOM <style>.
 	c.header(
 		"content-security-policy",
 		"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors *",
+	);
+	c.header(
+		"permissions-policy",
+		"camera=(), microphone=(), geolocation=(), payment=()",
 	);
 	c.header("x-content-type-options", "nosniff");
 	c.header("referrer-policy", "no-referrer");
