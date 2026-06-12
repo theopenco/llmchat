@@ -125,6 +125,12 @@ export const chat = new Hono<AppContext>()
 				content: userText ?? "",
 				sequence: nextSeq,
 			});
+		// Bump the count with the user message now — if the model call below
+		// fails, the next message must not reuse this sequence.
+		await db(c.env)
+			.update(conversation)
+			.set({ messageCount: nextSeq, updatedAt: new Date() })
+			.where(eq(conversation.id, conv.id));
 
 		let activePromptContent = project.systemPrompt;
 		const activePromptId = project.activeSystemPromptId;
@@ -155,32 +161,38 @@ export const chat = new Hono<AppContext>()
 
 		c.executionCtx.waitUntil(
 			(async () => {
-				const text = await result.text;
-				const usage = await result.usage;
-				await db(c.env)
-					.insert(messageTable)
-					.values({
-						conversationId: conv.id,
-						role: "assistant",
-						content: text,
-						sequence: nextSeq + 1,
-					});
-				await db(c.env)
-					.update(conversation)
-					.set({ messageCount: nextSeq + 1, updatedAt: new Date() })
-					.where(eq(conversation.id, conv.id));
-				await db(c.env)
-					.insert(usageEvent)
-					.values({
-						workspaceId: project.workspaceId,
-						projectId: project.id,
-						conversationId: conv.id,
-						messageId: "",
-						model: project.model,
-						promptTokens: usage?.inputTokens ?? 0,
-						completionTokens: usage?.outputTokens ?? 0,
-						costUsd: 0,
-					});
+				try {
+					const text = await result.text;
+					const usage = await result.usage;
+					await db(c.env)
+						.insert(messageTable)
+						.values({
+							conversationId: conv.id,
+							role: "assistant",
+							content: text,
+							sequence: nextSeq + 1,
+						});
+					await db(c.env)
+						.update(conversation)
+						.set({ messageCount: nextSeq + 1, updatedAt: new Date() })
+						.where(eq(conversation.id, conv.id));
+					await db(c.env)
+						.insert(usageEvent)
+						.values({
+							workspaceId: project.workspaceId,
+							projectId: project.id,
+							conversationId: conv.id,
+							messageId: "",
+							model: project.model,
+							promptTokens: usage?.inputTokens ?? 0,
+							completionTokens: usage?.outputTokens ?? 0,
+							costUsd: 0,
+						});
+				} catch (err) {
+					// Stream failed — the user message and count are already
+					// persisted; there is just no assistant reply to store.
+					console.error("chat: failed to persist assistant message", err);
+				}
 			})(),
 		);
 
@@ -216,12 +228,18 @@ export const chat = new Hono<AppContext>()
 						`<p><b>${escapeHtml(m.role)}:</b> ${escapeHtml(m.content)}</p>`,
 				)
 				.join("");
-			await sendEmail(c.env, {
-				to: project.notifyEmail,
-				subject: `New escalation from ${name ?? "anonymous"}`,
-				html: `<p>Conversation escalated.</p>${transcriptHtml}`,
-				replyTo: buildReplyToAddress(c.env, project.inboundEmailLocal),
-			});
+			try {
+				await sendEmail(c.env, {
+					to: project.notifyEmail,
+					subject: `New escalation from ${name ?? "anonymous"}`,
+					html: `<p>Conversation escalated.</p>${transcriptHtml}`,
+					replyTo: buildReplyToAddress(c.env, project.inboundEmailLocal),
+				});
+			} catch (err) {
+				// The escalation is already recorded and visible in the inbox; a
+				// failed notification email must not fail the visitor's request.
+				console.error("escalate: notification email failed", err);
+			}
 		}
 
 		return c.json({ ok: true });
