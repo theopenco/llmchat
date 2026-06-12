@@ -7,7 +7,7 @@
 		"clean": "find . -path \"./node_modules\" -prune -o \\( -type d -name \"dist\" -o -name \".turbo\" -o -name \".next\" -o -name \".ploy\" \\) -exec rm -rf {} +",
 		"dev": "pnpm --filter @llmchat/widget build && ploy dev",
 		"format": "turbo run format",
-		"lint": "turbo run lint",
+		"lint": "turbo run lint && oxlint .",
 		"migrate": "pnpm --filter @llmchat/db migrate",
 		"migrations": "pnpm --filter @llmchat/db migrations",
 		"test": "turbo run test"
@@ -15,6 +15,7 @@
 	"devDependencies": {
 		"@meetploy/cli": "^1.35.1",
 		"@types/node": "^22.10.0",
+		"oxlint": "^1.69.0",
 		"prettier": "^3.6.2",
 		"turbo": "^2.7.2",
 		"typescript": "5.9.2"
