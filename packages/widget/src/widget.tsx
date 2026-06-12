@@ -4,10 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { UIMessage } from "ai";
 
+type WidgetMode = "bubble" | "inline";
+
 interface WidgetProps {
 	projectKey: string;
 	apiUrl: string;
 	brandColor: string;
+	/**
+	 * "bubble" (default) renders the floating launcher; "inline" renders the
+	 * panel permanently open filling the viewport — used by the /embed iframe
+	 * page.
+	 */
+	mode?: WidgetMode;
 }
 
 const CLIENT_ID_KEY = "llmchat_client_id";
@@ -30,8 +38,14 @@ function getText(m: UIMessage): string {
 		.join("");
 }
 
-export function Widget({ projectKey, apiUrl, brandColor }: WidgetProps) {
-	const [open, setOpen] = useState(false);
+export function Widget({
+	projectKey,
+	apiUrl,
+	brandColor,
+	mode = "bubble",
+}: WidgetProps) {
+	const inline = mode === "inline";
+	const [open, setOpen] = useState(inline);
 	const [text, setText] = useState("");
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
@@ -108,25 +122,34 @@ export function Widget({ projectKey, apiUrl, brandColor }: WidgetProps) {
 
 	return (
 		<div className="llmchat" style={{ ["--brand" as string]: brandColor }}>
-			<button
-				type="button"
-				className="llmchat-bubble"
-				onClick={() => setOpen((v) => !v)}
-				aria-label={open ? "Close chat" : "Open chat"}
-			>
-				{open ? "×" : "💬"}
-			</button>
+			{!inline && (
+				<button
+					type="button"
+					className="llmchat-bubble"
+					onClick={() => setOpen((v) => !v)}
+					aria-label={open ? "Close chat" : "Open chat"}
+				>
+					{open ? "×" : "💬"}
+				</button>
+			)}
 			{open && (
-				<div className="llmchat-panel" role="dialog">
+				<div
+					className={
+						inline ? "llmchat-panel llmchat-panel-inline" : "llmchat-panel"
+					}
+					role={inline ? undefined : "dialog"}
+				>
 					<header className="llmchat-header">
 						<span>Support</span>
-						<button
-							type="button"
-							onClick={() => setOpen(false)}
-							aria-label="Close"
-						>
-							×
-						</button>
+						{!inline && (
+							<button
+								type="button"
+								onClick={() => setOpen(false)}
+								aria-label="Close"
+							>
+								×
+							</button>
+						)}
 					</header>
 					{!identified ? (
 						<form onSubmit={handleIdentify} className="llmchat-identify">

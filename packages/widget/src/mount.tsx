@@ -8,6 +8,7 @@ interface BootConfig {
 	projectKey: string;
 	apiUrl: string;
 	brandColor: string;
+	mode: "bubble" | "inline";
 }
 
 function getConfig(): BootConfig {
@@ -15,14 +16,18 @@ function getConfig(): BootConfig {
 	const projectKey = script?.dataset.project ?? "";
 	const apiUrl = script?.dataset.api ?? "https://llmchat-api.meetploy.app";
 	const brandColor = script?.dataset.brand ?? "#111827";
+	const mode = script?.dataset.mode === "inline" ? "inline" : "bubble";
 	if (!projectKey) {
 		throw new Error("[llmchat] missing data-project on widget script tag");
 	}
-	return { projectKey, apiUrl, brandColor };
+	return { projectKey, apiUrl, brandColor, mode };
 }
 
+// document.currentScript is only set during synchronous script evaluation —
+// it is null inside the DOMContentLoaded callback — so capture config now.
+const config = getConfig();
+
 function mount() {
-	const config = getConfig();
 	const host = document.createElement("div");
 	host.id = "llmchat-widget-root";
 	document.body.appendChild(host);

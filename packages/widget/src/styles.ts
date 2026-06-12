@@ -43,6 +43,16 @@ export const widgetStyles = `
 	z-index: 2147483647;
 }
 
+/* Inline mode (the /embed iframe page): the panel IS the page. */
+.llmchat-panel-inline {
+	position: fixed;
+	inset: 0;
+	width: auto;
+	height: auto;
+	border-radius: 0;
+	box-shadow: none;
+}
+
 .llmchat-header {
 	background: var(--brand);
 	color: #fff;
