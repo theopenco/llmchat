@@ -80,6 +80,7 @@ describe("widgetIframeSnippet", () => {
 		expect(lines.at(-1)).toBe("></iframe>");
 		expect(snippet).toContain('width="400"');
 		expect(snippet).toContain('height="600"');
+		expect(snippet).toContain('allow="clipboard-write"');
 		expect(snippet).toContain('loading="lazy"');
 	});
 });

@@ -46,6 +46,7 @@ export function widgetIframeSnippet(
 		'  height="600"',
 		'  title="Support chat"',
 		'  style="border: 0; border-radius: 12px;"',
+		'  allow="clipboard-write"',
 		'  loading="lazy"',
 		"></iframe>",
 	].join("\n");
