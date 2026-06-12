@@ -57,6 +57,8 @@ export const widgetMessages = new Hono<AppContext>().get(
 			where: (mt, { eq: e }) => e(mt.conversationId, conv.id),
 			orderBy: (mt, { asc }) => asc(mt.sequence),
 		});
+		// Conversation content: never cacheable by intermediaries.
+		c.header("cache-control", "no-store");
 		// Only the fields the widget needs — no email ids, author ids, etc.
 		return c.json({
 			messages: rows.map((m) => ({
