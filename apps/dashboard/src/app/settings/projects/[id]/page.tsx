@@ -23,6 +23,7 @@ import { BotBasicsCard } from "./BotBasicsCard";
 import { ChatPreviewCard } from "./ChatPreviewCard";
 import { ConfigurationSummaryCard } from "./ConfigurationSummaryCard";
 import { DangerZoneCard } from "./DangerZoneCard";
+import { EmbedCard } from "./EmbedCard";
 import { InstructionsCard } from "./InstructionsCard";
 import { DEFAULT_MODEL, useGatewayModels } from "./model-data";
 import { ModelCard } from "./ModelCard";
@@ -234,6 +235,10 @@ export default function ProjectSettingsPage() {
 									? (refreshSource.variables as string)
 									: null
 							}
+						/>
+						<EmbedCard
+							publicKey={project.publicKey}
+							brandColor={draft.brandColor}
 						/>
 					</main>
 
