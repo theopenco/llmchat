@@ -231,7 +231,7 @@ export const message = sqliteTable(
 		conversationId: text()
 			.notNull()
 			.references(() => conversation.id, { onDelete: "cascade" }),
-		role: text({ enum: ["user", "assistant", "admin"] }).notNull(),
+		role: text({ enum: ["user", "assistant", "admin", "system"] }).notNull(),
 		content: text().notNull(),
 		sequence: integer().notNull(),
 		// Author for admin messages; null for user/assistant.

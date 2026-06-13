@@ -145,17 +145,26 @@ export const chat = new Hono<AppContext>()
 				a(e(s.projectId, project.id), e(s.active, true)),
 		});
 
-		const result = await streamChat(c.env, {
-			model: project.model,
-			systemPrompt: activePromptContent,
-			knowledgeText: project.knowledgeText,
-			sources: activeSources.map((s) => ({
-				title: s.title || s.url,
-				url: s.url,
-				content: s.content,
-			})),
-			messages: messages as UIMessage[],
-		});
+		let result: Awaited<ReturnType<typeof streamChat>>;
+		try {
+			result = await streamChat(c.env, {
+				model: project.model,
+				systemPrompt: activePromptContent,
+				knowledgeText: project.knowledgeText,
+				sources: activeSources.map((s) => ({
+					title: s.title || s.url,
+					url: s.url,
+					content: s.content,
+				})),
+				messages: messages as UIMessage[],
+			});
+		} catch (err) {
+			// The visitor message is already persisted (the conversation shows up
+			// in the inbox either way) — a model/gateway failure should surface as
+			// a friendly retry in the widget, not an unhandled 500.
+			console.error("chat: model call failed", err);
+			return c.json({ error: "assistant unavailable" }, 502);
+		}
 
 		c.executionCtx.waitUntil(
 			(async () => {
@@ -218,12 +227,22 @@ export const chat = new Hono<AppContext>()
 		if (!conv) {
 			return c.json({ error: "no conversation" }, 404);
 		}
+		// DB first: the escalation must be recorded and visible in the inbox
+		// regardless of whether any notification below succeeds.
+		const systemSeq = conv.messageCount + 1;
+		await db(c.env).insert(messageTable).values({
+			conversationId: conv.id,
+			role: "system",
+			content: "Visitor requested a human operator",
+			sequence: systemSeq,
+		});
 		await db(c.env)
 			.update(conversation)
 			.set({
 				escalatedAt: new Date(),
 				name: name ?? conv.name,
 				email: email ?? conv.email,
+				messageCount: systemSeq,
 				updatedAt: new Date(),
 			})
 			.where(eq(conversation.id, conv.id));

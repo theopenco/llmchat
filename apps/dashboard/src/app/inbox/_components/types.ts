@@ -10,7 +10,7 @@ export interface Conversation {
 
 export interface Message {
 	id: string;
-	role: "user" | "assistant" | "admin";
+	role: "user" | "assistant" | "admin" | "system";
 	content: string;
 	sequence: number;
 	createdAt: number;
