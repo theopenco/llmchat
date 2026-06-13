@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 
 import { createAuth } from "@/auth";
-import { isAllowedDashboardOrigin } from "@/lib/origins";
+import { allowWidgetOrigin, isAllowedOrigin } from "@/lib/origins";
 import { billing } from "@/routes/billing";
 import { chat } from "@/routes/chat";
 import { conversations } from "@/routes/conversations";
@@ -23,9 +23,7 @@ app.use(
 	"/api/*",
 	cors({
 		origin: (origin, c) =>
-			isAllowedDashboardOrigin(origin, c.env.vars.DASHBOARD_URL)
-				? origin
-				: null,
+			isAllowedOrigin(origin, c.env.vars.DASHBOARD_URL) ? origin : null,
 		credentials: true,
 	}),
 );
@@ -33,16 +31,8 @@ app.use(
 app.use(
 	"/v1/*",
 	cors({
-		origin: (origin, c) => {
-			const list = (c.env.vars.WIDGET_ALLOWED_ORIGINS ?? "")
-				.split(",")
-				.map((s: string) => s.trim())
-				.filter(Boolean);
-			if (list.length === 0 || list.includes("*")) {
-				return origin ?? "*";
-			}
-			return list.includes(origin ?? "") ? origin! : null;
-		},
+		origin: (origin, c) =>
+			allowWidgetOrigin(origin, c.env.vars.WIDGET_ALLOWED_ORIGINS),
 		credentials: false,
 	}),
 );

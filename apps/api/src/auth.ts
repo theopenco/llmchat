@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
 import { db } from "@/lib/db";
-import { isAllowedDashboardOrigin } from "@/lib/origins";
+import { isAllowedOrigin } from "@/lib/origins";
 
 import { account, session, user, verification } from "@llmchat/db";
 
@@ -23,7 +23,7 @@ export function createAuth(env: Env) {
 		// sign-in works from PR preview links.
 		trustedOrigins: (request) => {
 			const origin = request?.headers.get("origin");
-			return origin && isAllowedDashboardOrigin(origin, env.vars.DASHBOARD_URL)
+			return origin && isAllowedOrigin(origin, env.vars.DASHBOARD_URL)
 				? [origin]
 				: [env.vars.DASHBOARD_URL];
 		},
