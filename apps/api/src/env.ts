@@ -18,7 +18,7 @@ export interface EnvVars {
 
 export interface Env {
 	DB: D1Database;
-	CACHE: KVNamespace;
+	STATE: KVNamespace;
 	vars: EnvVars;
 }
 
