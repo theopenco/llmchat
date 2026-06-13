@@ -45,22 +45,41 @@ export function isAllowedOrigin(
 	);
 }
 
+function isUsableOriginEntry(entry: string): boolean {
+	try {
+		const url = new URL(entry);
+		return url.protocol === "http:" || url.protocol === "https:";
+	} catch {
+		return false;
+	}
+}
+
 /**
  * The /v1 widget CORS policy. `allowedCsv` is the WIDGET_ALLOWED_ORIGINS env
  * value: empty or "*" means any origin (the widget is a public embed); a
  * comma-separated list restricts to those origins and their Ploy previews.
  * Returns the origin value to echo in access-control-allow-origin, or null
  * to reject.
+ *
+ * Entries that aren't parseable http(s) urls are ignored — e.g. an
+ * unsubstituted `$WIDGET_ALLOWED_ORIGINS` reference when the deployment
+ * secret was never created. A list with no usable entries behaves like an
+ * unset one (open): this endpoint is credential-less and public by design,
+ * so a broken allowlist must not silently brick every embed.
  */
 export function allowWidgetOrigin(
 	origin: string | undefined,
 	allowedCsv: string | undefined,
 ): string | null {
-	const list = (allowedCsv ?? "")
+	const entries = (allowedCsv ?? "")
 		.split(",")
 		.map((s) => s.trim())
 		.filter(Boolean);
-	if (list.length === 0 || list.includes("*")) {
+	if (entries.includes("*")) {
+		return origin ?? "*";
+	}
+	const list = entries.filter(isUsableOriginEntry);
+	if (list.length === 0) {
 		return origin ?? "*";
 	}
 	return list.some((entry) => isAllowedOrigin(origin, entry))

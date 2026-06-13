@@ -129,3 +129,28 @@ describe("configured value normalization", () => {
 		).toBe("https://llmchat-showcase---iframe.meetploy.app");
 	});
 });
+
+describe("allowWidgetOrigin with unusable config", () => {
+	it("ignores unsubstituted env references and falls back to open", () => {
+		expect(
+			allowWidgetOrigin("https://customer.com", "$WIDGET_ALLOWED_ORIGINS"),
+		).toBe("https://customer.com");
+	});
+
+	it("ignores junk entries but keeps valid ones restrictive", () => {
+		const csv = "$WIDGET_ALLOWED_ORIGINS, https://customer.com";
+		expect(allowWidgetOrigin("https://customer.com", csv)).toBe(
+			"https://customer.com",
+		);
+		expect(allowWidgetOrigin("https://evil.com", csv)).toBe(null);
+	});
+
+	it("rejects non-http(s) schemes as entries", () => {
+		expect(allowWidgetOrigin("https://x.com", "javascript:alert(1)")).toBe(
+			"https://x.com",
+		);
+		expect(allowWidgetOrigin("file:///etc/passwd", "file://")).toBe(
+			"file:///etc/passwd",
+		);
+	});
+});
