@@ -30,6 +30,11 @@ export function isAllowedOrigin(
 	) {
 		return false;
 	}
+	// Tolerate trailing slashes / path noise in configured values: an Origin
+	// header is always a bare origin, so compare parsed origins.
+	if (candidate.origin === allowed.origin) {
+		return true;
+	}
 	const [name, ...domainParts] = allowed.hostname.split(".");
 	const [candidateName, ...candidateDomainParts] =
 		candidate.hostname.split(".");

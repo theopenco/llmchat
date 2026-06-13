@@ -116,3 +116,16 @@ describe("allowWidgetOrigin", () => {
 		expect(allowWidgetOrigin(undefined, csv)).toBe(null);
 	});
 });
+
+describe("configured value normalization", () => {
+	it("tolerates trailing slashes in configured origins", () => {
+		expect(isAllowedOrigin(DASH, `${DASH}/`)).toBe(true);
+		expect(allowWidgetOrigin(SHOWCASE, `${SHOWCASE}/`)).toBe(SHOWCASE);
+		expect(
+			allowWidgetOrigin(
+				"https://llmchat-showcase---iframe.meetploy.app",
+				`${SHOWCASE}/`,
+			),
+		).toBe("https://llmchat-showcase---iframe.meetploy.app");
+	});
+});
