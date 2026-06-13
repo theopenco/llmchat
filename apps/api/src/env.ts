@@ -1,26 +1,7 @@
-export interface EnvVars {
-	LLMGATEWAY_API_KEY: string;
-	LLMGATEWAY_BASE_URL: string;
-
-	RESEND_API_KEY: string;
-	RESEND_FROM_EMAIL: string;
-	INBOUND_EMAIL_DOMAIN: string;
-
-	STRIPE_SECRET_KEY: string;
-	STRIPE_WEBHOOK_SECRET: string;
-
-	BETTER_AUTH_SECRET: string;
-	BETTER_AUTH_URL: string;
-	DASHBOARD_URL: string;
-
-	WIDGET_ALLOWED_ORIGINS: string;
-}
-
-export interface Env {
-	DB: Database;
-	STATE: StateBinding;
-	vars: EnvVars;
-}
+// Worker bindings + env vars come from the Ploy-generated global `PloyEnv`
+// (see env.d.ts, produced by `ploy types`). Only the Hono request-scoped
+// variables live here, since they're app state rather than Ploy bindings.
+export type Env = PloyEnv;
 
 export interface Variables {
 	userId: string;
@@ -28,6 +9,6 @@ export interface Variables {
 }
 
 export type AppContext = {
-	Bindings: Env;
+	Bindings: PloyEnv;
 	Variables: Variables;
 };
