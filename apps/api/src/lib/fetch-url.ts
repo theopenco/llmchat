@@ -40,7 +40,9 @@ export async function fetchUrlContent(url: string): Promise<FetchedSource> {
 			throw new Error(`content too large: ${clen} bytes`);
 		}
 
-		const reader = res.body?.getReader();
+		// workerd streams the body as Uint8Array chunks; the platform types
+		// only promise ReadableStream<unknown>, so narrow it here.
+		const reader = (res.body as ReadableStream<Uint8Array> | null)?.getReader();
 		if (!reader) {
 			return { title: url, content: "" };
 		}
