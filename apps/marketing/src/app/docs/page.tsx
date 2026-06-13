@@ -61,7 +61,7 @@ const sections = [
 ];
 
 export default function DocsPage() {
-	const migrations = [...allMigrations].sort((a, b) => a.rank - b.rank);
+	const migrations = allMigrations.toSorted((a, b) => a.rank - b.rank);
 
 	return (
 		<>
@@ -130,7 +130,10 @@ export default function DocsPage() {
 								"data-project",
 								"your project's public key (starts with pk_live_).",
 							],
-							["data-brand", "a hex color for the widget header and primary button."],
+							[
+								"data-brand",
+								"a hex color for the widget header and primary button.",
+							],
 							[
 								"shadow DOM",
 								"the widget mounts in isolation, so styles never bleed either way.",

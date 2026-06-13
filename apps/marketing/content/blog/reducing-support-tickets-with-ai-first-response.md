@@ -5,6 +5,7 @@ date: "2026-05-15"
 category: "Guides"
 featured: false
 ---
+
 Most support tickets fall into a small set of categories: password resets, pricing questions, integration how-tos, and status page checks. These are table-stakes questions your docs already answer — they just require someone to read them on behalf of the customer.
 
 An AI first-response layer handles these instantly, 24/7, without burnout. The key is scoping it correctly.

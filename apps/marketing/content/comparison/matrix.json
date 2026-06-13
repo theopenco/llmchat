@@ -1,12 +1,5 @@
 {
-	"colOrder": [
-		"llmchat",
-		"chatbase",
-		"fin",
-		"intercom",
-		"chatwoot",
-		"crisp"
-	],
+	"colOrder": ["llmchat", "chatbase", "fin", "intercom", "chatwoot", "crisp"],
 	"colLabels": {
 		"llmchat": "llmchat",
 		"chatbase": "Chatbase",

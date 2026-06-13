@@ -53,6 +53,7 @@ const SETUP_STEPS = [
 	{ id: "model", label: "Model" },
 	{ id: "instructions", label: "Instructions" },
 	{ id: "sources", label: "Sources" },
+	{ id: "install", label: "Install" },
 ];
 const STEP_IDS = SETUP_STEPS.map((s) => s.id);
 
@@ -75,7 +76,9 @@ function useScrollSpy(ids: string[], enabled: boolean) {
 			(entries) => {
 				const visible = entries
 					.filter((e) => e.isIntersecting)
-					.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+					.toSorted(
+						(a, b) => a.boundingClientRect.top - b.boundingClientRect.top,
+					);
 				if (visible[0]) setActive(visible[0].target.id);
 			},
 			{ rootMargin: "-20% 0px -65% 0px", threshold: 0 },
@@ -84,6 +87,12 @@ function useScrollSpy(ids: string[], enabled: boolean) {
 		return () => observer.disconnect();
 	}, [ids, enabled]);
 	return active;
+}
+
+function scrollToStep(stepId: string) {
+	document
+		.getElementById(stepId)
+		?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 export function AppSidebar({ userEmail }: { userEmail: string }) {
@@ -108,12 +117,6 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 	const currentProject = projects.find((p) => p.id === currentProjectId);
 
 	const activeStep = useScrollSpy(STEP_IDS, inProject);
-
-	function scrollToStep(stepId: string) {
-		document
-			.getElementById(stepId)
-			?.scrollIntoView({ behavior: "smooth", block: "start" });
-	}
 
 	return (
 		<Sidebar collapsible="icon">

@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ConfigurationSummaryCard({
@@ -7,11 +8,14 @@ export function ConfigurationSummaryCard({
 	brandColor,
 	welcomeMessage,
 	sourceCount,
+	embedPath,
 }: {
 	modelName: string;
 	brandColor: string;
 	welcomeMessage: string;
 	sourceCount: number;
+	/** Path part of the embed URL, e.g. `/embed/pk_…` — kept short for layout. */
+	embedPath: string;
 }) {
 	return (
 		<Card className="rounded-2xl shadow-sm">
@@ -47,6 +51,26 @@ export function ConfigurationSummaryCard({
 					<div className="flex items-center justify-between gap-4">
 						<dt className="text-muted-foreground">Sources</dt>
 						<dd className="font-medium text-foreground">{sourceCount}</dd>
+					</div>
+					<div className="flex items-center justify-between gap-4">
+						<dt className="shrink-0 text-muted-foreground">Embed URL</dt>
+						<dd
+							className="min-w-0 truncate text-right font-mono text-xs font-medium text-foreground"
+							title={embedPath}
+						>
+							{embedPath}
+						</dd>
+					</div>
+					<div className="flex items-center justify-between gap-4">
+						<dt className="text-muted-foreground">Status</dt>
+						<dd>
+							<Badge
+								variant="outline"
+								className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+							>
+								Draft
+							</Badge>
+						</dd>
 					</div>
 				</dl>
 			</CardContent>

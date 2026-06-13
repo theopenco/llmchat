@@ -1,4 +1,8 @@
-import { defineCollection, defineConfig, defineSingleton } from "@content-collections/core";
+import {
+	defineCollection,
+	defineConfig,
+	defineSingleton,
+} from "@content-collections/core";
 import { compileMarkdown } from "@content-collections/markdown";
 import { z } from "zod";
 

@@ -37,7 +37,7 @@ export default async function MigratePage({
 
 	const others = allMigrations
 		.filter((m) => m.slug !== guide.slug)
-		.sort((a, b) => a.rank - b.rank);
+		.toSorted((a, b) => a.rank - b.rank);
 
 	return (
 		<>
@@ -79,7 +79,10 @@ export default async function MigratePage({
 						<div className="flex justify-center font-mono text-xs text-accent">
 							↓ replace with ↓
 						</div>
-						<CodeBlock code={matrix.llmchatEmbed} label="Add the llmchat widget" />
+						<CodeBlock
+							code={matrix.llmchatEmbed}
+							label="Add the llmchat widget"
+						/>
 					</div>
 				</section>
 

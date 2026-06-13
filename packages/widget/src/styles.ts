@@ -43,6 +43,16 @@ export const widgetStyles = `
 	z-index: 2147483647;
 }
 
+/* Inline mode (the /embed iframe page): the panel IS the page. */
+.llmchat-panel-inline {
+	position: fixed;
+	inset: 0;
+	width: auto;
+	height: auto;
+	border-radius: 0;
+	box-shadow: none;
+}
+
 .llmchat-header {
 	background: var(--brand);
 	color: #fff;
@@ -125,6 +135,12 @@ export const widgetStyles = `
 	color: #9ca3af;
 	font-size: 0.9rem;
 	padding-left: 0.5rem;
+}
+.llmchat-error {
+	color: #b91c1c;
+	font-size: 0.85rem;
+	margin: 0;
+	padding: 0.25rem 0.5rem 0;
 }
 
 .llmchat-escalate,

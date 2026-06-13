@@ -5,6 +5,7 @@ date: "2026-05-05"
 category: "Guides"
 featured: false
 ---
+
 When a conversation escalates in llmchat, we send an email to your configured notify address. What makes it useful rather than just a notification is what happens next: the customer can reply to that email, and their reply threads back into the conversation in your inbox.
 
 **Step 1: Configure your notify email.** In your project settings, set the "Notify email" field to wherever you want escalation alerts to land. This is your team inbox or a shared support address.

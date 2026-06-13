@@ -126,13 +126,13 @@ export function SourcesCard({
 					<Skeleton className="h-14 w-full" />
 				</div>
 			) : sources.length === 0 ? (
-				<Empty className="rounded-xl border border-dashed border-border py-10">
-					<EmptyHeader>
-						<EmptyMedia variant="icon">
-							<Globe />
+				<Empty className="gap-3 rounded-xl border border-dashed border-border p-5 py-5">
+					<EmptyHeader className="gap-1">
+						<EmptyMedia variant="icon" className="mb-1 size-9">
+							<Globe className="size-4" />
 						</EmptyMedia>
-						<EmptyTitle>No sources yet</EmptyTitle>
-						<EmptyDescription>
+						<EmptyTitle className="text-sm">No sources yet</EmptyTitle>
+						<EmptyDescription className="text-xs">
 							Add your website URL so your chatbot can answer based on your
 							content.
 						</EmptyDescription>
@@ -141,6 +141,7 @@ export function SourcesCard({
 						<Button
 							type="button"
 							variant="outline"
+							size="sm"
 							onClick={() =>
 								document
 									.querySelector<HTMLInputElement>('[aria-label="Source URL"]')

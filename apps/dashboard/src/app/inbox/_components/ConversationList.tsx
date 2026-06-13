@@ -16,7 +16,7 @@ export function ConversationList({
 	onSelect,
 }: ConversationListProps) {
 	return (
-		<aside className="overflow-y-auto border-r bg-background">
+		<aside className="min-h-0 flex-1 overflow-y-auto bg-background">
 			<ul className="flex flex-col">
 				{conversations.map((c) => (
 					<li key={c.id}>

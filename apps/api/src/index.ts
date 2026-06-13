@@ -2,14 +2,17 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 
 import { createAuth } from "@/auth";
+import { isAllowedDashboardOrigin } from "@/lib/origins";
 import { billing } from "@/routes/billing";
 import { chat } from "@/routes/chat";
 import { conversations } from "@/routes/conversations";
+import { embed } from "@/routes/embed";
 import { inboundEmail } from "@/routes/inbound-email";
 import { projects } from "@/routes/projects";
 import { sources } from "@/routes/sources";
 import { systemPrompts } from "@/routes/system-prompts";
 import { widgetAsset } from "@/routes/widget-asset";
+import { widgetMessages } from "@/routes/widget-messages";
 import { workspaces } from "@/routes/workspaces";
 
 import type { AppContext } from "@/env";
@@ -19,10 +22,10 @@ const app = new Hono<AppContext>();
 app.use(
 	"/api/*",
 	cors({
-		origin: (origin, c) => {
-			const allowed = c.env.vars.DASHBOARD_URL;
-			return origin === allowed ? origin : null;
-		},
+		origin: (origin, c) =>
+			isAllowedDashboardOrigin(origin, c.env.vars.DASHBOARD_URL)
+				? origin
+				: null,
 		credentials: true,
 	}),
 );
@@ -50,6 +53,7 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => {
 });
 
 app.route("/v1", chat);
+app.route("/v1", widgetMessages);
 app.route("/api", workspaces);
 app.route("/api", projects);
 app.route("/api", systemPrompts);
@@ -58,6 +62,7 @@ app.route("/api", conversations);
 app.route("/", inboundEmail);
 app.route("/api", billing);
 app.route("/", widgetAsset);
+app.route("/", embed);
 
 app.get("/", (c) => c.json({ name: "llmchat-api", ok: true }));
 

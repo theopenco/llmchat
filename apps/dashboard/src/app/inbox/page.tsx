@@ -1,34 +1,26 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderOpen } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-	Empty,
-	EmptyContent,
-	EmptyDescription,
-	EmptyHeader,
-	EmptyMedia,
-	EmptyTitle,
-} from "@/components/ui/empty";
 import { api } from "@/lib/api";
+import { resolveSelectedId } from "@/lib/selection";
 import { useWorkspace } from "@/lib/workspace";
 
 import { ConversationList } from "./_components/ConversationList";
+import {
+	ConversationListSkeleton,
+	ThreadSkeleton,
+} from "./_components/ConversationListSkeleton";
+import { NoProjectsEmpty, NoWorkspaceEmpty } from "./_components/empty-states";
 import { InboxSkeleton } from "./_components/InboxSkeleton";
 import { MessageThread } from "./_components/MessageThread";
+import { ProjectSwitcher } from "./_components/ProjectSwitcher";
 import { ReplyComposer } from "./_components/ReplyComposer";
 import type { Conversation, Message } from "./_components/types";
-
-interface Project {
-	id: string;
-	name: string;
-}
+import type { ProjectOption } from "./_components/ProjectSwitcher";
 
 export default function InboxPage() {
 	const {
@@ -45,16 +37,25 @@ export default function InboxPage() {
 		queryKey: ["projects", workspaceId],
 		enabled: !!workspaceId,
 		queryFn: () =>
-			api<{ projects: Project[] }>("/api/projects", {
+			api<{ projects: ProjectOption[] }>("/api/projects", {
 				workspaceId: workspaceId!,
 			}),
 	});
 
+	// Keep the selected project valid for the current workspace; a stale id
+	// (e.g. after a workspace switch) falls back to the first project.
 	useEffect(() => {
-		if (!projectId && projects.data?.projects[0]) {
-			setProjectId(projects.data.projects[0].id);
+		const next = resolveSelectedId(projectId, projects.data?.projects ?? []);
+		if (next !== projectId) {
+			setProjectId(next);
+			setSelectedId(null);
 		}
 	}, [projects.data, projectId]);
+
+	function handleProjectChange(id: string) {
+		setProjectId(id);
+		setSelectedId(null);
+	}
 
 	const conversations = useQuery({
 		queryKey: ["conversations", projectId],
@@ -77,6 +78,21 @@ export default function InboxPage() {
 				{ workspaceId: workspaceId! },
 			),
 	});
+
+	async function handleCreateWorkspace() {
+		try {
+			await api("/api/workspaces", {
+				method: "POST",
+				body: { name: "My workspace" },
+			});
+			await qc.invalidateQueries({ queryKey: ["workspaces"] });
+			toast.success("Workspace created");
+		} catch (e) {
+			toast.error("Failed to create workspace", {
+				description: e instanceof Error ? e.message : undefined,
+			});
+		}
+	}
 
 	async function handleReply() {
 		if (!reply.trim() || !projectId || !selectedId || !workspaceId) {
@@ -102,90 +118,56 @@ export default function InboxPage() {
 		}
 	}
 
-	if (workspacesLoading) {
+	if (workspacesLoading || (!!workspaceId && projects.isLoading)) {
 		return <InboxSkeleton />;
 	}
 
 	if (workspaces.length === 0) {
-		return (
-			<Empty className="m-8">
-				<EmptyHeader>
-					<EmptyMedia variant="icon">
-						<FolderOpen />
-					</EmptyMedia>
-					<EmptyTitle>No workspace yet</EmptyTitle>
-					<EmptyDescription>
-						Create a workspace to start receiving conversations.
-					</EmptyDescription>
-				</EmptyHeader>
-				<EmptyContent>
-					<Button
-						onClick={async () => {
-							try {
-								await api("/api/workspaces", {
-									method: "POST",
-									body: { name: "My workspace" },
-								});
-								await qc.invalidateQueries({ queryKey: ["workspaces"] });
-								toast.success("Workspace created");
-							} catch (e) {
-								toast.error("Failed to create workspace", {
-									description: e instanceof Error ? e.message : undefined,
-								});
-							}
-						}}
-					>
-						Create workspace
-					</Button>
-				</EmptyContent>
-			</Empty>
-		);
+		return <NoWorkspaceEmpty onCreate={handleCreateWorkspace} />;
 	}
 
 	if (!projects.data?.projects.length) {
-		return (
-			<Empty className="m-8">
-				<EmptyHeader>
-					<EmptyMedia variant="icon">
-						<FolderOpen />
-					</EmptyMedia>
-					<EmptyTitle>No projects yet</EmptyTitle>
-					<EmptyDescription>
-						Create your first project to get started.
-					</EmptyDescription>
-				</EmptyHeader>
-				<EmptyContent>
-					<Button asChild>
-						<Link href="/settings/projects">Go to Projects</Link>
-					</Button>
-				</EmptyContent>
-			</Empty>
-		);
+		return <NoProjectsEmpty />;
 	}
 
 	return (
 		<div className="grid h-[calc(100vh-3.5rem)] grid-cols-[20rem_1fr]">
-			<ConversationList
-				conversations={conversations.data?.conversations ?? []}
-				selectedId={selectedId}
-				onSelect={setSelectedId}
-			/>
+			<div className="flex min-h-0 flex-col border-r">
+				<ProjectSwitcher
+					projects={projects.data.projects}
+					value={projectId}
+					onChange={handleProjectChange}
+				/>
+				{conversations.isLoading ? (
+					<ConversationListSkeleton />
+				) : (
+					<ConversationList
+						conversations={conversations.data?.conversations ?? []}
+						selectedId={selectedId}
+						onSelect={setSelectedId}
+					/>
+				)}
+			</div>
 			<section className="flex flex-col">
-				{selectedId && thread.data ? (
-					<>
-						<MessageThread messages={thread.data.messages} />
-						<Separator />
-						<ReplyComposer
-							value={reply}
-							onChange={setReply}
-							onSend={handleReply}
-							placeholder={
-								thread.data.conversation.email
-									? "Reply (sent via email)"
-									: "Reply (visitor has no email — will show in widget on next visit)"
-							}
-						/>
-					</>
+				{selectedId ? (
+					thread.data ? (
+						<>
+							<MessageThread messages={thread.data.messages} />
+							<Separator />
+							<ReplyComposer
+								value={reply}
+								onChange={setReply}
+								onSend={handleReply}
+								placeholder={
+									thread.data.conversation.email
+										? "Reply (sent via email)"
+										: "Reply (visitor has no email — will show in widget on next visit)"
+								}
+							/>
+						</>
+					) : (
+						<ThreadSkeleton />
+					)
 				) : (
 					<div className="flex flex-1 items-center justify-center text-muted-foreground">
 						Select a conversation

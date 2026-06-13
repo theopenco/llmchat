@@ -18,6 +18,7 @@ dist/
 *.db-journal
 out/
 coverage/
+apps/api/src/generated/
 .claude/
 .playwright-mcp/
 next-env.d.ts

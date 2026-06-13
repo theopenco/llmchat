@@ -2,11 +2,7 @@ import Link from "next/link";
 import { allPosts } from "content-collections";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import {
-	categories,
-	formatDateShort,
-	type CategoryFilter,
-} from "@/lib/format";
+import { categories, formatDateShort, type CategoryFilter } from "@/lib/format";
 
 export const metadata = {
 	title: "Journal — llmchat",
@@ -20,20 +16,20 @@ export default async function BlogPage({
 	searchParams: Promise<{ category?: string }>;
 }) {
 	const { category } = await searchParams;
-	const active: CategoryFilter = categories.includes(
-		category as CategoryFilter,
-	)
+	const active: CategoryFilter = categories.includes(category as CategoryFilter)
 		? (category as CategoryFilter)
 		: "All";
 
-	const sorted = [...allPosts].sort(
+	const sorted = allPosts.toSorted(
 		(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
 	);
 	const filtered =
 		active === "All" ? sorted : sorted.filter((p) => p.category === active);
 
 	const featured = active === "All" ? filtered.find((p) => p.featured) : null;
-	const rest = featured ? filtered.filter((p) => p.slug !== featured.slug) : filtered;
+	const rest = featured
+		? filtered.filter((p) => p.slug !== featured.slug)
+		: filtered;
 
 	return (
 		<>
@@ -68,9 +64,7 @@ export default async function BlogPage({
 								key={cat}
 								href={cat === "All" ? "/blog" : `/blog?category=${cat}`}
 								className={`font-mono text-[0.72rem] uppercase tracking-[0.14em] transition-colors ${
-									isActive
-										? "text-accent"
-										: "text-faint hover:text-ink"
+									isActive ? "text-accent" : "text-faint hover:text-ink"
 								}`}
 							>
 								{isActive ? `[ ${cat} ]` : cat}
