@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	formatContextLength,
+	formatPricing,
 	hasWebSearch,
+	isDeactivated,
+	isDeprecated,
+	modelCapabilities,
 	modelColor,
 	parseGatewayModels,
 	providerLabel,
@@ -70,6 +75,107 @@ describe("hasWebSearch", () => {
 		expect(hasWebSearch({ id: "gpt-4o-mini", name: "GPT-4o mini" })).toBe(
 			false,
 		);
+	});
+});
+
+describe("modelCapabilities", () => {
+	it("reports a capability when any provider advertises it", () => {
+		const caps = modelCapabilities({
+			id: "x",
+			name: "X",
+			providers: [
+				{ providerId: "a", tools: false },
+				{ providerId: "b", tools: true, vision: true },
+			],
+		});
+		expect(caps).toEqual({ tools: true, vision: true, reasoning: false });
+	});
+
+	it("never infers a capability that no provider declares", () => {
+		expect(
+			modelCapabilities({
+				id: "x",
+				name: "X",
+				providers: [{ providerId: "a" }],
+			}),
+		).toEqual({ tools: false, vision: false, reasoning: false });
+		expect(modelCapabilities({ id: "x", name: "X" })).toEqual({
+			tools: false,
+			vision: false,
+			reasoning: false,
+		});
+	});
+});
+
+describe("deprecation flags", () => {
+	it("reads deprecated_at / deactivated_at straight from metadata", () => {
+		expect(
+			isDeprecated({ id: "x", name: "X", deprecated_at: "2026-01-09" }),
+		).toBe(true);
+		expect(isDeprecated({ id: "x", name: "X" })).toBe(false);
+		expect(
+			isDeactivated({ id: "x", name: "X", deactivated_at: "2026-03-31" }),
+		).toBe(true);
+		expect(isDeactivated({ id: "x", name: "X" })).toBe(false);
+	});
+});
+
+describe("formatContextLength", () => {
+	it("formats K and M windows and hides unknown/zero", () => {
+		expect(
+			formatContextLength({ id: "x", name: "X", context_length: 128000 }),
+		).toBe("128K");
+		expect(
+			formatContextLength({ id: "x", name: "X", context_length: 1048576 }),
+		).toBe("1M");
+		expect(formatContextLength({ id: "x", name: "X", context_length: 0 })).toBe(
+			null,
+		);
+		expect(formatContextLength({ id: "x", name: "X" })).toBe(null);
+	});
+});
+
+describe("formatPricing", () => {
+	it("converts per-token strings to a per-1M label", () => {
+		expect(
+			formatPricing({
+				id: "x",
+				name: "X",
+				pricing: { prompt: "0.0000004", completion: "0.0000016" },
+			}),
+		).toBe("$0.40 / $1.60 per 1M");
+	});
+
+	it("returns null when pricing is absent or all zero (never fabricates)", () => {
+		expect(formatPricing({ id: "x", name: "X" })).toBe(null);
+		expect(
+			formatPricing({
+				id: "x",
+				name: "X",
+				pricing: { prompt: "0", completion: "0" },
+			}),
+		).toBe(null);
+	});
+});
+
+describe("parseGatewayModels with capability metadata", () => {
+	it("keeps capability flags, pricing, context, and deprecation fields", () => {
+		const [m] = parseGatewayModels({
+			data: [
+				{
+					id: "gpt-4.1-mini",
+					name: "GPT-4.1 mini",
+					context_length: 1000000,
+					providers: [{ providerId: "openai", tools: true, vision: true }],
+					pricing: { prompt: "0.0000004", completion: "0.0000016" },
+					deprecated_at: "2026-01-09",
+				},
+			],
+		});
+		expect(m.context_length).toBe(1000000);
+		expect(modelCapabilities(m)).toMatchObject({ tools: true, vision: true });
+		expect(formatPricing(m)).toBe("$0.40 / $1.60 per 1M");
+		expect(isDeprecated(m)).toBe(true);
 	});
 });
 

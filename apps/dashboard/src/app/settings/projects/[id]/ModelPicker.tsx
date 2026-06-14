@@ -3,7 +3,8 @@
 import { Check, ChevronsUpDown, Globe, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
+import { ModelBadges } from "./ModelBadges";
+
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -25,6 +26,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
 	DEFAULT_MODEL,
+	formatContextLength,
+	formatPricing,
 	type GatewayModel,
 	hasWebSearch,
 	modelColor,
@@ -80,6 +83,7 @@ export function ModelPicker({
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [providerFilter, setProviderFilter] = useState(ALL_FILTER);
+	const [webSearchOnly, setWebSearchOnly] = useState(false);
 	const modelsQ = useGatewayModels();
 
 	const pool = modelsQ.data ?? NO_MODELS;
@@ -116,6 +120,9 @@ export function ModelPicker({
 			) {
 				continue;
 			}
+			if (webSearchOnly && !hasWebSearch(model)) {
+				continue;
+			}
 			if (needle && !modelSearchText(model).includes(needle)) {
 				continue;
 			}
@@ -131,13 +138,15 @@ export function ModelPicker({
 				items: items.toSorted((a, b) => a.name.localeCompare(b.name)),
 			}))
 			.toSorted((a, b) => a.label.localeCompare(b.label));
-	}, [pool, providerFilter, query]);
+	}, [pool, providerFilter, query, webSearchOnly]);
 
-	const hasFilters = query.trim().length > 0 || providerFilter !== ALL_FILTER;
+	const hasFilters =
+		query.trim().length > 0 || providerFilter !== ALL_FILTER || webSearchOnly;
 
 	function clearFilters() {
 		setQuery("");
 		setProviderFilter(ALL_FILTER);
+		setWebSearchOnly(false);
 	}
 
 	if (modelsQ.isLoading) {
@@ -201,7 +210,7 @@ export function ModelPicker({
 					<div className="flex flex-col gap-2 border-b p-3">
 						<div className="flex items-center justify-between gap-3">
 							<span className="text-xs font-medium text-muted-foreground">
-								Providers
+								Filter
 							</span>
 							{hasFilters && (
 								<Button
@@ -221,10 +230,25 @@ export function ModelPicker({
 								type="button"
 								variant="outline"
 								size="sm"
-								className={filterButtonClassName(providerFilter === ALL_FILTER)}
-								onClick={() => setProviderFilter(ALL_FILTER)}
+								className={filterButtonClassName(
+									providerFilter === ALL_FILTER && !webSearchOnly,
+								)}
+								onClick={() => {
+									setProviderFilter(ALL_FILTER);
+									setWebSearchOnly(false);
+								}}
 							>
 								All
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								className={filterButtonClassName(webSearchOnly)}
+								onClick={() => setWebSearchOnly((v) => !v)}
+							>
+								<Globe className="size-3" />
+								Web search
 							</Button>
 							{providerOptions.map((provider) => (
 								<Button
@@ -264,27 +288,22 @@ export function ModelPicker({
 											className="mt-1 size-2.5 shrink-0 rounded-full"
 											style={{ backgroundColor: modelColor(model.id) }}
 										/>
-										<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-											<span className="flex items-center gap-2">
-												<span className="truncate font-medium">
-													{model.name}
-												</span>
-												{hasWebSearch(model) && (
-													<Badge
-														variant="secondary"
-														className="gap-1 border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
-													>
-														<Globe className="size-3" />
-														Web search
-													</Badge>
-												)}
-											</span>
+										<span className="flex min-w-0 flex-1 flex-col gap-1">
+											<span className="truncate font-medium">{model.name}</span>
 											<span className="truncate font-mono text-xs text-muted-foreground">
 												{model.id}
 											</span>
 											<span className="truncate text-xs text-muted-foreground">
-												{providerLabel(model.providers)}
+												{[
+													providerLabel(model.providers),
+													formatContextLength(model) &&
+														`${formatContextLength(model)} ctx`,
+													formatPricing(model),
+												]
+													.filter(Boolean)
+													.join(" · ")}
 											</span>
+											<ModelBadges model={model} className="mt-0.5" />
 										</span>
 										<Check
 											className={cn(

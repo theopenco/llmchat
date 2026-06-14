@@ -1,14 +1,15 @@
 "use client";
 
-import { ChevronDown, Globe, Info } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ModelBadges } from "./ModelBadges";
 import { ModelPicker } from "./ModelPicker";
 import {
 	DEFAULT_MODEL,
-	hasWebSearch,
+	formatContextLength,
+	formatPricing,
 	modelColor,
 	providerLabel,
 	useGatewayModels,
@@ -25,7 +26,6 @@ export function ModelCard({
 	const modelsQ = useGatewayModels();
 	const selectedId = value || DEFAULT_MODEL;
 	const model = modelsQ.data?.find((m) => m.id === selectedId);
-	const webSearch = model ? hasWebSearch(model) : false;
 
 	return (
 		<SectionCard
@@ -45,20 +45,9 @@ export function ModelCard({
 								style={{ backgroundColor: modelColor(selectedId) }}
 							/>
 							<div className="min-w-0">
-								<div className="flex flex-wrap items-center gap-2">
-									<span className="truncate font-semibold text-foreground">
-										{model?.name ?? selectedId}
-									</span>
-									{webSearch && (
-										<Badge
-											variant="secondary"
-											className="gap-1 border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
-										>
-											<Globe className="size-3" />
-											Web search
-										</Badge>
-									)}
-								</div>
+								<span className="truncate font-semibold text-foreground">
+									{model?.name ?? selectedId}
+								</span>
 								<p className="truncate font-mono text-xs text-muted-foreground">
 									{model?.id ?? selectedId}
 								</p>
@@ -66,12 +55,15 @@ export function ModelCard({
 									{model
 										? [
 												providerLabel(model.providers),
-												webSearch && "Web search",
+												formatContextLength(model) &&
+													`${formatContextLength(model)} ctx`,
+												formatPricing(model),
 											]
 												.filter(Boolean)
 												.join(" · ")
 										: "Selected model"}
 								</p>
+								{model && <ModelBadges model={model} className="mt-1.5" />}
 							</div>
 						</div>
 
