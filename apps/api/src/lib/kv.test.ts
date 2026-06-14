@@ -6,9 +6,9 @@ import type { Env } from "@/env";
 
 function envWithStore(store: Map<string, string>): Env {
 	return {
-		CACHE: {
+		STATE: {
 			get: vi.fn(async (key: string) => store.get(key) ?? null),
-			put: vi.fn(async (key: string, value: string) => {
+			set: vi.fn(async (key: string, value: string) => {
 				store.set(key, value);
 			}),
 		},
@@ -17,11 +17,11 @@ function envWithStore(store: Map<string, string>): Env {
 
 function envWithBrokenStore(): Env {
 	return {
-		CACHE: {
+		STATE: {
 			get: vi.fn(async () => {
 				throw new Error("state binding unavailable");
 			}),
-			put: vi.fn(async () => {
+			set: vi.fn(async () => {
 				throw new Error("state binding unavailable");
 			}),
 		},

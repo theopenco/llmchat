@@ -60,12 +60,12 @@ importers:
         specifier: ^4.0.0
         version: 4.4.3
     devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20241127.0
-        version: 4.20260504.1
       '@llmchat/widget':
         specifier: workspace:*
         version: link:../../packages/widget
+      '@meetploy/types':
+        specifier: ^1.15.1
+        version: 1.15.1
       typescript:
         specifier: 5.9.2
         version: 5.9.2
@@ -292,9 +292,9 @@ importers:
         specifier: ^0.45.2
         version: 0.45.2(@cloudflare/workers-types@4.20260504.1)(@opentelemetry/api@1.9.0)(better-sqlite3@12.9.0)(kysely@0.28.17)
     devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20241127.0
-        version: 4.20260504.1
+      '@meetploy/types':
+        specifier: ^1.15.1
+        version: 1.15.1
       better-sqlite3:
         specifier: ^12.0.0
         version: 12.9.0
@@ -1774,6 +1774,9 @@ packages:
   '@meetploy/cli@1.35.1':
     resolution: {integrity: sha512-owzZI0G9sHChxTIh59+bv829NfQtcjv5Q1LhBLAbrdd01gHuZMWBLLIx4bMTC36IwAgCfl5maNWGC0JHaTz2+w==}
     hasBin: true
+
+  '@meetploy/types@1.15.1':
+    resolution: {integrity: sha512-Wq5j4qwp54mCqgdU8xsrFm3xKDNkpQfLHIVoBB0SJ/dnG/zO1RMwM/d68mIgGsIqNj7nCACDv42AG5ktPfa2lQ==}
 
   '@next/env@15.1.0':
     resolution: {integrity: sha512-UcCO481cROsqJuszPPXJnb7GGuLq617ve4xuAyyNG4VSSocJNtMU5Fsx+Lp6mlN8c7W58aZLc5y6D/2xNmaK+w==}
@@ -5086,7 +5089,8 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20260317.1':
     optional: true
 
-  '@cloudflare/workers-types@4.20260504.1': {}
+  '@cloudflare/workers-types@4.20260504.1':
+    optional: true
 
   '@content-collections/cli@0.1.9(@content-collections/core@0.15.1(typescript@5.9.2))':
     dependencies:
@@ -5792,6 +5796,8 @@ snapshots:
       - '@cloudflare/workers-types'
       - bufferutil
       - utf-8-validate
+
+  '@meetploy/types@1.15.1': {}
 
   '@next/env@15.1.0': {}
 

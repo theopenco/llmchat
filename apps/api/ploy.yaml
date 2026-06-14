@@ -8,7 +8,7 @@ db:
   DB: llmchat_db
 
 state:
-  CACHE: llmchat_cache
+  STATE: llmchat_state
 
 env:
   LLMGATEWAY_BASE_URL: $LLMGATEWAY_BASE_URL
