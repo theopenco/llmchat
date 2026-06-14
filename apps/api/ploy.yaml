@@ -17,7 +17,11 @@ env:
   BETTER_AUTH_URL: $BETTER_AUTH_URL
   BETTER_AUTH_SECRET: $BETTER_AUTH_SECRET
   DASHBOARD_URL: $DASHBOARD_URL
-  WIDGET_ALLOWED_ORIGINS: $WIDGET_ALLOWED_ORIGINS
+  # Public CORS policy for the embeddable widget (not a secret): the widget
+  # must load on arbitrary customer sites. Security rests on the public
+  # project key + rate limits, not origin restriction. Per-project allowed
+  # domains can tighten this later.
+  WIDGET_ALLOWED_ORIGINS: "*"
   LLMGATEWAY_API_KEY: $LLMGATEWAY_API_KEY
   STRIPE_SECRET_KEY: $STRIPE_SECRET_KEY
   STRIPE_WEBHOOK_SECRET: $STRIPE_WEBHOOK_SECRET
