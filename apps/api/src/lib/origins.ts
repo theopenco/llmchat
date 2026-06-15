@@ -45,47 +45,7 @@ export function isAllowedOrigin(
 	);
 }
 
-function isUsableOriginEntry(entry: string): boolean {
-	try {
-		const url = new URL(entry);
-		return url.protocol === "http:" || url.protocol === "https:";
-	} catch {
-		return false;
-	}
-}
-
-/**
- * The /v1 widget CORS policy. `allowedCsv` is the WIDGET_ALLOWED_ORIGINS env
- * value. An explicit "*" allows ALL sites and returns a literal `*` (a single
- * cacheable `Access-Control-Allow-Origin: *`, valid because /v1/* is
- * non-credentialed). A comma-separated list restricts to those origins and
- * their Ploy previews, reflecting the matched origin. Returns the value to
- * echo in access-control-allow-origin, or null to reject.
- *
- * Entries that aren't parseable http(s) urls are ignored — e.g. an
- * unsubstituted `$WIDGET_ALLOWED_ORIGINS` reference when the deployment
- * secret was never created. A list with no usable entries falls open
- * (reflects the origin): this endpoint is credential-less and public by
- * design, so a broken allowlist must not silently brick every embed.
- */
-export function allowWidgetOrigin(
-	origin: string | undefined,
-	allowedCsv: string | undefined,
-): string | null {
-	const entries = (allowedCsv ?? "")
-		.split(",")
-		.map((s) => s.trim())
-		.filter(Boolean);
-	// Explicit allow-all: one cacheable `ACAO: *` for every site rather than
-	// reflecting each origin.
-	if (entries.includes("*")) {
-		return "*";
-	}
-	const list = entries.filter(isUsableOriginEntry);
-	if (list.length === 0) {
-		return origin ?? "*";
-	}
-	return list.some((entry) => isAllowedOrigin(origin, entry))
-		? (origin ?? null)
-		: null;
-}
+// NOTE: the public /v1/* widget endpoints intentionally have NO origin
+// allowlist — they allow all origins unconditionally (see the CORS wiring in
+// src/index.ts). `isAllowedOrigin` above is only for the credentialed /api/*
+// dashboard routes and Better Auth CSRF trust.
