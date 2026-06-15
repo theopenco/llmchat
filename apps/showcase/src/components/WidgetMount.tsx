@@ -2,10 +2,9 @@
 
 import { useEffect } from "react";
 
-import { apiBaseUrl } from "@/lib/api-url";
+import { apiBaseUrl, WIDGET_PROJECT_KEY } from "@/lib/api-url";
 import { mountWidgetInShadow } from "@/lib/shadow-mount";
 
-const PROJECT_KEY = "local-dev-key";
 const BRAND_COLOR = "#4f46e5";
 
 /**
@@ -20,7 +19,7 @@ export function WidgetMount() {
 		document.body.appendChild(host);
 		const unmount = mountWidgetInShadow(host, {
 			widgetMode: "live",
-			projectKey: PROJECT_KEY,
+			projectKey: WIDGET_PROJECT_KEY,
 			apiUrl: apiBaseUrl(),
 			brandColor: BRAND_COLOR,
 		});
