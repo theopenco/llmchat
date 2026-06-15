@@ -10,6 +10,20 @@ export const widgetStyles = `
 		Segoe UI,
 		sans-serif;
 	color: #111827;
+	/* Pin inherited properties so the host page's typography can't leak across
+	   the shadow boundary and distort the widget. */
+	line-height: 1.5;
+	font-size: 16px;
+	letter-spacing: normal;
+	text-align: left;
+}
+
+/* Reset box model for every widget element so the host page's global styles
+   (e.g. a content-box universal selector) can't change our layout. */
+.llmchat *,
+.llmchat *::before,
+.llmchat *::after {
+	box-sizing: border-box;
 }
 
 .llmchat-bubble {
