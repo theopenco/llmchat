@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 
 import { createAuth } from "@/auth";
-import { allowWidgetOrigin, isAllowedOrigin } from "@/lib/origins";
+import { isAllowedOrigin } from "@/lib/origins";
 import { billing } from "@/routes/billing";
 import { chat } from "@/routes/chat";
 import { conversations } from "@/routes/conversations";
@@ -28,11 +28,16 @@ app.use(
 	}),
 );
 
+// Public widget endpoints: allow ALL origins, unconditionally. The widget is a
+// public embed that must load on any customer site, and these routes are
+// non-credentialed, so `Access-Control-Allow-Origin: *` is valid. This does NOT
+// read WIDGET_ALLOWED_ORIGINS — the env-based gate is gone for /v1/*.
+// Per-PROJECT domain restriction (future) is enforced separately server-side
+// (against the request's project), not via this global CORS gate.
 app.use(
 	"/v1/*",
 	cors({
-		origin: (origin, c) =>
-			allowWidgetOrigin(origin, c.env.vars.WIDGET_ALLOWED_ORIGINS),
+		origin: "*",
 		credentials: false,
 	}),
 );
