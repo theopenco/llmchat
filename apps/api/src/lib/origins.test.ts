@@ -82,14 +82,19 @@ describe("isAllowedOrigin", () => {
 });
 
 describe("allowWidgetOrigin", () => {
-	it("allows any origin when the list is empty or wildcard", () => {
+	it('treats "*" as allow-all, returning a literal * for any origin', () => {
+		expect(allowWidgetOrigin("https://customer.com", "*")).toBe("*");
+		expect(allowWidgetOrigin("https://anything.example", "*")).toBe("*");
+		expect(allowWidgetOrigin(undefined, "*")).toBe("*");
+		// "*" anywhere in the list still allows all
+		expect(allowWidgetOrigin("https://x.com", "https://a.com, *")).toBe("*");
+	});
+
+	it("falls open (reflects the origin) when the list is empty or unset", () => {
 		expect(allowWidgetOrigin("https://customer.com", "")).toBe(
 			"https://customer.com",
 		);
 		expect(allowWidgetOrigin("https://customer.com", undefined)).toBe(
-			"https://customer.com",
-		);
-		expect(allowWidgetOrigin("https://customer.com", "*")).toBe(
 			"https://customer.com",
 		);
 		expect(allowWidgetOrigin(undefined, "")).toBe("*");

@@ -56,16 +56,17 @@ function isUsableOriginEntry(entry: string): boolean {
 
 /**
  * The /v1 widget CORS policy. `allowedCsv` is the WIDGET_ALLOWED_ORIGINS env
- * value: empty or "*" means any origin (the widget is a public embed); a
- * comma-separated list restricts to those origins and their Ploy previews.
- * Returns the origin value to echo in access-control-allow-origin, or null
- * to reject.
+ * value. An explicit "*" allows ALL sites and returns a literal `*` (a single
+ * cacheable `Access-Control-Allow-Origin: *`, valid because /v1/* is
+ * non-credentialed). A comma-separated list restricts to those origins and
+ * their Ploy previews, reflecting the matched origin. Returns the value to
+ * echo in access-control-allow-origin, or null to reject.
  *
  * Entries that aren't parseable http(s) urls are ignored — e.g. an
  * unsubstituted `$WIDGET_ALLOWED_ORIGINS` reference when the deployment
- * secret was never created. A list with no usable entries behaves like an
- * unset one (open): this endpoint is credential-less and public by design,
- * so a broken allowlist must not silently brick every embed.
+ * secret was never created. A list with no usable entries falls open
+ * (reflects the origin): this endpoint is credential-less and public by
+ * design, so a broken allowlist must not silently brick every embed.
  */
 export function allowWidgetOrigin(
 	origin: string | undefined,
@@ -75,8 +76,10 @@ export function allowWidgetOrigin(
 		.split(",")
 		.map((s) => s.trim())
 		.filter(Boolean);
+	// Explicit allow-all: one cacheable `ACAO: *` for every site rather than
+	// reflecting each origin.
 	if (entries.includes("*")) {
-		return origin ?? "*";
+		return "*";
 	}
 	const list = entries.filter(isUsableOriginEntry);
 	if (list.length === 0) {
