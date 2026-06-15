@@ -36,6 +36,8 @@ interface LiveWidgetProps extends BaseWidgetProps {
 	widgetMode?: "live";
 	projectKey: string;
 	apiUrl: string;
+	/** Messages before "Talk to a human" appears; falls back to 3. */
+	escalationThreshold?: number;
 }
 
 interface ShowcaseWidgetProps extends BaseWidgetProps {
@@ -69,17 +71,28 @@ function ShowcaseWidget({ brandColor, mode = "bubble" }: BaseWidgetProps) {
 	);
 }
 
-const ESCALATION_THRESHOLD = 3;
+const DEFAULT_ESCALATION_THRESHOLD = 3;
 const SEND_ERROR =
 	"Something went wrong sending your message. Please try again.";
 const ESCALATED_NOTICE =
 	"A human operator has been notified. We’ll get back to you soon.";
+
+/**
+ * The configured human-handoff threshold, or the default when it's missing or
+ * below 1 (a project must allow at least one message before escalation).
+ */
+export function resolveEscalationThreshold(value?: number): number {
+	return typeof value === "number" && Number.isFinite(value) && value >= 1
+		? Math.floor(value)
+		: DEFAULT_ESCALATION_THRESHOLD;
+}
 
 function LiveWidget({
 	projectKey,
 	apiUrl,
 	brandColor,
 	mode = "bubble",
+	escalationThreshold,
 }: LiveWidgetProps) {
 	const inline = mode === "inline";
 	const [open, setOpen] = useState(inline);
@@ -140,7 +153,8 @@ function LiveWidget({
 	const userMessageCount = displayMessages.filter(
 		(m) => m.role === "user",
 	).length;
-	const showEscalation = !escalated && userMessageCount >= ESCALATION_THRESHOLD;
+	const threshold = resolveEscalationThreshold(escalationThreshold);
+	const showEscalation = !escalated && userMessageCount >= threshold;
 
 	function handleSend() {
 		void sendMessage({ text: text.trim() });

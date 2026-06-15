@@ -7,11 +7,17 @@ export interface EmbedPageInput {
 	projectName: string;
 	publicKey: string;
 	brandColor: string;
+	escalationThreshold: number;
 }
 
 /** Brand color for inline interpolation — anything but a hex literal falls back. */
 export function safeBrandColor(value: string): string {
 	return HEX_COLOR.test(value) ? value : FALLBACK_BRAND;
+}
+
+/** Positive-integer threshold for the data attribute; anything else → 3. */
+export function safeEscalationThreshold(value: number): number {
+	return Number.isInteger(value) && value >= 1 ? value : 3;
 }
 
 /**
@@ -27,6 +33,7 @@ export function renderEmbedPage({
 	projectName,
 	publicKey,
 	brandColor,
+	escalationThreshold,
 }: EmbedPageInput): string {
 	return `<!doctype html>
 <html lang="en">
@@ -38,7 +45,7 @@ export function renderEmbedPage({
 <style>html,body{margin:0;height:100%;background:#fff}</style>
 </head>
 <body>
-<script src="/widget.js" data-project="${escapeHtml(publicKey)}" data-brand="${safeBrandColor(brandColor)}" data-mode="inline" defer></script>
+<script src="/widget.js" data-project="${escapeHtml(publicKey)}" data-brand="${safeBrandColor(brandColor)}" data-escalation-threshold="${safeEscalationThreshold(escalationThreshold)}" data-mode="inline" defer></script>
 </body>
 </html>`;
 }

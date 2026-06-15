@@ -59,4 +59,22 @@ describe("resolveConfig", () => {
 			"#111827",
 		);
 	});
+
+	it("parses data-escalation-threshold as a number", () => {
+		const config = resolveConfig(
+			scriptTag({ "data-project": "pk", "data-escalation-threshold": "5" }),
+		);
+		expect(config.escalationThreshold).toBe(5);
+	});
+
+	it("leaves the threshold undefined when absent or unparseable", () => {
+		expect(
+			resolveConfig(scriptTag({ "data-project": "pk" })).escalationThreshold,
+		).toBeUndefined();
+		expect(
+			resolveConfig(
+				scriptTag({ "data-project": "pk", "data-escalation-threshold": "abc" }),
+			).escalationThreshold,
+		).toBeUndefined();
+	});
 });
