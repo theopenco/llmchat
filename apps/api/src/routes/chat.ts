@@ -7,6 +7,7 @@ import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/kv";
 import { streamChat } from "@/lib/llm";
 import { clientIp } from "@/lib/request";
+import { sendEscalationSlack } from "@/lib/slack";
 
 import {
 	conversation,
@@ -267,6 +268,10 @@ export const chat = new Hono<AppContext>()
 				console.error("escalate: notification email failed", err);
 			}
 		}
+
+		// Slack notification runs post-response and is failure-tolerant, so it
+		// never blocks or breaks the escalation (no-op when no webhook is set).
+		c.executionCtx.waitUntil(sendEscalationSlack(c.env, project, conv.id));
 
 		return c.json({ ok: true });
 	});
