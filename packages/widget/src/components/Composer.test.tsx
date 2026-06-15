@@ -22,7 +22,7 @@ describe("Composer", () => {
 	it("does not submit whitespace-only input", async () => {
 		const { onSubmit } = setup({ value: "   " });
 		await userEvent.keyboard("{Enter}");
-		expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
 		expect(onSubmit).not.toHaveBeenCalled();
 	});
 
@@ -31,7 +31,7 @@ describe("Composer", () => {
 		const textarea = screen.getByPlaceholderText(/type a message/i);
 		await userEvent.type(textarea, "{Enter}");
 		expect(onSubmit).not.toHaveBeenCalled();
-		expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
 	});
 
 	it("submits on Enter but not Shift+Enter", async () => {

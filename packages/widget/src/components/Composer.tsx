@@ -1,3 +1,5 @@
+import { SendIcon } from "./icons";
+
 export function Composer({
 	value,
 	disabled,
@@ -28,6 +30,7 @@ export function Composer({
 			<textarea
 				rows={1}
 				value={value}
+				aria-label="Message"
 				onChange={(e) => onChange(e.target.value)}
 				onKeyDown={(e) => {
 					if (e.key === "Enter" && !e.shiftKey) {
@@ -37,8 +40,13 @@ export function Composer({
 				}}
 				placeholder="Type a message…"
 			/>
-			<button type="submit" disabled={!value.trim() || disabled}>
-				Send
+			<button
+				type="submit"
+				className="llmchat-send"
+				disabled={!value.trim() || disabled}
+				aria-label="Send message"
+			>
+				<SendIcon />
 			</button>
 		</form>
 	);

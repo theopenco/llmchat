@@ -1,3 +1,5 @@
+import { AgentIcon } from "./icons";
+
 export function EscalationSection({
 	pending,
 	failed,
@@ -10,6 +12,7 @@ export function EscalationSection({
 	return (
 		<div className="llmchat-escalate">
 			<button type="button" onClick={onEscalate} disabled={pending}>
+				<AgentIcon />
 				{pending ? "Sending…" : "Talk to a human"}
 			</button>
 			{failed && (

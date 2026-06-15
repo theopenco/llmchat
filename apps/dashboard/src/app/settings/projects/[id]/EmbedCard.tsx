@@ -42,18 +42,19 @@ export function EmbedCard({
 			description="Copy this code and paste it into your website to add the chatbot."
 		>
 			<div className="grid min-w-0 gap-6 lg:grid-cols-2">
-				{/* Embed code */}
+				{/* Embed code — floating bubble is the recommended default */}
 				<div className="flex min-w-0 flex-col gap-3">
 					<div className="space-y-0.5">
 						<h3 className="text-sm font-medium text-foreground">Embed code</h3>
 						<p className="text-sm text-muted-foreground">
-							Paste this iframe into your website HTML where you want the
-							chatbot to appear.
+							Paste this before{" "}
+							<code className="font-mono text-xs">&lt;/body&gt;</code> — a
+							floating chat button appears in the bottom-right of every page.
 						</p>
 					</div>
-					<CodeBlock code={iframeCode} />
+					<CodeBlock code={scriptCode} />
 					<div className="flex flex-wrap items-center gap-2">
-						<CopyButton value={iframeCode}>Copy iframe code</CopyButton>
+						<CopyButton value={scriptCode}>Copy embed code</CopyButton>
 						<Button type="button" variant="outline" size="sm" asChild>
 							<a href={url} target="_blank" rel="noreferrer">
 								Open preview
@@ -63,16 +64,16 @@ export function EmbedCard({
 					</div>
 					<details className="group">
 						<summary className="cursor-pointer text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-							Alternative script tag
+							Alternative: inline iframe
 						</summary>
 						<div className="mt-3 flex min-w-0 flex-col gap-3">
 							<p className="text-sm text-muted-foreground">
-								Floating chat bubble on every page — paste before{" "}
-								<code className="font-mono text-xs">&lt;/body&gt;</code>.
+								Renders the chat as a fixed-size panel in the page flow where
+								you place it, instead of a floating button.
 							</p>
-							<CodeBlock code={scriptCode} />
-							<CopyButton value={scriptCode} className="self-start">
-								Copy script tag
+							<CodeBlock code={iframeCode} />
+							<CopyButton value={iframeCode} className="self-start">
+								Copy iframe code
 							</CopyButton>
 						</div>
 					</details>
@@ -104,9 +105,9 @@ export function EmbedCard({
 							<Lightbulb className="size-4" />
 						</span>
 						<p className="text-sm text-indigo-950/80 dark:text-indigo-200/90">
-							<span className="font-semibold">Tip:</span> For most websites,
-							paste this iframe where you want the chatbot to appear. Later, you
-							can replace it with a floating widget script.
+							<span className="font-semibold">Tip:</span> For most websites, use
+							the floating embed code — it adds the chat button site-wide. Use
+							the inline iframe only when you want the chat fixed in one spot.
 						</p>
 					</div>
 				</div>

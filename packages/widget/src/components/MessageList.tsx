@@ -36,7 +36,16 @@ export function MessageList({
 					</div>
 				) : null,
 			)}
-			{typing && <div className="llmchat-typing">…</div>}
+			{typing && (
+				<div
+					className="llmchat-msg llmchat-msg-assistant llmchat-typing"
+					aria-label="Assistant is typing"
+				>
+					<span className="llmchat-dot" />
+					<span className="llmchat-dot" />
+					<span className="llmchat-dot" />
+				</div>
+			)}
 			{error !== null && (
 				<div className="llmchat-error" role="alert">
 					{error}

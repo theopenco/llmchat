@@ -22,7 +22,7 @@ afterEach(() => {
 async function sendMessage(text: string) {
 	const textarea = screen.getByPlaceholderText(/type a message/i);
 	await userEvent.type(textarea, text);
-	await userEvent.click(screen.getByRole("button", { name: "Send" }));
+	await userEvent.click(screen.getByRole("button", { name: "Send message" }));
 }
 
 describe("ShowcaseChat", () => {
