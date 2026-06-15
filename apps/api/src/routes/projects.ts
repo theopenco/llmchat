@@ -14,7 +14,7 @@ const projectInput = z.object({
 	systemPrompt: z.string().default(""),
 	activeSystemPromptId: z.string().nullable().optional(),
 	knowledgeText: z.string().default(""),
-	model: z.string().default("gpt-4o-mini"),
+	model: z.string().default("gpt-4.1-mini"),
 	brandColor: z.string().default("#000000"),
 	welcomeMessage: z.string().default("Hi! How can I help you today?"),
 	escalationThreshold: z.number().int().min(1).default(3),

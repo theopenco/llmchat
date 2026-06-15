@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { renderEmbedPage, safeBrandColor } from "./embed-page";
+import {
+	renderEmbedPage,
+	safeBrandColor,
+	safeEscalationThreshold,
+} from "./embed-page";
 
 const base = {
 	projectName: "Acme",
 	publicKey: "pk_123",
 	brandColor: "#4f46e5",
+	escalationThreshold: 3,
 };
 
 describe("safeBrandColor", () => {
@@ -64,5 +69,27 @@ describe("renderEmbedPage", () => {
 		});
 		expect(html).toContain('data-brand="#111827"');
 		expect(html).not.toContain('onload="x');
+	});
+
+	it("emits the escalation threshold as a data attribute", () => {
+		expect(renderEmbedPage({ ...base, escalationThreshold: 5 })).toContain(
+			'data-escalation-threshold="5"',
+		);
+	});
+
+	it("clamps an invalid threshold to the default", () => {
+		expect(renderEmbedPage({ ...base, escalationThreshold: 0 })).toContain(
+			'data-escalation-threshold="3"',
+		);
+	});
+});
+
+describe("safeEscalationThreshold", () => {
+	it("keeps positive integers and falls back otherwise", () => {
+		expect(safeEscalationThreshold(5)).toBe(5);
+		expect(safeEscalationThreshold(1)).toBe(1);
+		expect(safeEscalationThreshold(0)).toBe(3);
+		expect(safeEscalationThreshold(-2)).toBe(3);
+		expect(safeEscalationThreshold(2.5)).toBe(3);
 	});
 });

@@ -1,5 +1,5 @@
 import { DashboardLink } from "@/components/DashboardLink";
-import { EmbedFrame } from "@/components/EmbedFrame";
+import { InlineShowcaseChat } from "@/components/InlineShowcaseChat";
 import { WidgetMount } from "@/components/WidgetMount";
 
 export default function Page() {
@@ -60,11 +60,11 @@ export default function Page() {
 			<section id="iframe-embed" className="hero">
 				<h2>Or embed it inline</h2>
 				<p className="lede">
-					The same project rendered through the API&apos;s{" "}
-					<code>/embed/&lt;publicKey&gt;</code> page inside a plain iframe — no
-					script tag on the host site.
+					This is a showcase preview of how an inline chatbot can look. Messages
+					in this demo are not sent to real support — use the floating bubble
+					for the live chatbot.
 				</p>
-				<EmbedFrame projectKey="local-dev-key" />
+				<InlineShowcaseChat />
 			</section>
 
 			<footer className="footer">

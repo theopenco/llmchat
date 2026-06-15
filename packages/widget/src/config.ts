@@ -3,6 +3,8 @@ export interface BootConfig {
 	apiUrl: string;
 	brandColor: string;
 	mode: "bubble" | "inline";
+	/** Messages before the human-handoff prompt appears; undefined → widget default. */
+	escalationThreshold?: number;
 }
 
 /**
@@ -21,5 +23,14 @@ export function resolveConfig(script: HTMLScriptElement | null): BootConfig {
 	if (!projectKey) {
 		throw new Error("[llmchat] missing data-project on widget script tag");
 	}
-	return { projectKey, apiUrl, brandColor, mode };
+	// data-escalation-threshold → number; left undefined when absent or
+	// unparseable, so the widget applies its own default.
+	const parsedThreshold = Number.parseInt(
+		script?.dataset.escalationThreshold ?? "",
+		10,
+	);
+	const escalationThreshold = Number.isFinite(parsedThreshold)
+		? parsedThreshold
+		: undefined;
+	return { projectKey, apiUrl, brandColor, mode, escalationThreshold };
 }

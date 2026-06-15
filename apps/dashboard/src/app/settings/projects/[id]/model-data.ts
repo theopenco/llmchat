@@ -5,7 +5,22 @@ import { z } from "zod";
 
 // The gateway is a third-party API, so its payload is untrusted: validate the
 // envelope and drop any individual model that doesn't carry the fields we render.
-const gatewayProviderSchema = z.object({ providerId: z.string() });
+// Every capability flag is optional — a missing flag means "unknown", never a
+// fabricated capability.
+const gatewayProviderSchema = z.object({
+	providerId: z.string(),
+	tools: z.boolean().optional(),
+	vision: z.boolean().optional(),
+	reasoning: z.boolean().optional(),
+});
+
+// Pricing values are per-token USD strings; only the two we display are read.
+const gatewayPricingSchema = z
+	.object({
+		prompt: z.string().optional(),
+		completion: z.string().optional(),
+	})
+	.optional();
 
 const gatewayModelSchema = z.object({
 	id: z.string(),
@@ -14,6 +29,10 @@ const gatewayModelSchema = z.object({
 	family: z.string().optional(),
 	providers: z.array(gatewayProviderSchema).optional(),
 	supported_parameters: z.array(z.string()).optional(),
+	context_length: z.number().optional(),
+	pricing: gatewayPricingSchema,
+	deprecated_at: z.string().optional(),
+	deactivated_at: z.string().optional(),
 });
 
 // `data` is required: a response without it is broken, not empty, and should
@@ -27,7 +46,7 @@ export type GatewayModel = z.infer<typeof gatewayModelSchema>;
 
 const GATEWAY_URL = "https://api.llmgateway.io/v1/models";
 
-export const DEFAULT_MODEL = "gpt-4o-mini";
+export const DEFAULT_MODEL = "gpt-4.1-mini";
 
 /**
  * Validate an untrusted gateway payload into a clean model list. Throws when the
@@ -105,4 +124,56 @@ export function providerLabel(providers?: GatewayProvider[]) {
 	if (!ids.length) return "No provider";
 	if (ids.length <= 2) return ids.map(titleCase).join(", ");
 	return `${ids.slice(0, 2).map(titleCase).join(", ")} +${ids.length - 2}`;
+}
+
+export interface ModelCapabilities {
+	tools: boolean;
+	vision: boolean;
+	reasoning: boolean;
+}
+
+/**
+ * Capabilities a model supports through ANY of its providers — read straight
+ * from the gateway's per-provider flags, never inferred. A flag absent on
+ * every provider means "not advertised", so we report false.
+ */
+export function modelCapabilities(model: GatewayModel): ModelCapabilities {
+	const providers = model.providers ?? [];
+	return {
+		tools: providers.some((p) => p.tools === true),
+		vision: providers.some((p) => p.vision === true),
+		reasoning: providers.some((p) => p.reasoning === true),
+	};
+}
+
+/** A model the gateway has scheduled for retirement (still listed). */
+export function isDeprecated(model: GatewayModel): boolean {
+	return Boolean(model.deprecated_at);
+}
+
+/** A model the gateway has already turned off — selecting it will fail. */
+export function isDeactivated(model: GatewayModel): boolean {
+	return Boolean(model.deactivated_at);
+}
+
+/** Compact context window, e.g. "128K" or "1M"; null when unknown/zero. */
+export function formatContextLength(model: GatewayModel): string | null {
+	const n = model.context_length;
+	if (!n || n <= 0) return null;
+	if (n >= 1_000_000) return `${Math.round(n / 1_000_000)}M`;
+	return `${Math.round(n / 1000)}K`;
+}
+
+/**
+ * Per-1M-token price as "$IN / $OUT", derived from the gateway's per-token
+ * USD strings. Returns null when pricing is absent or all-zero (free/unknown),
+ * so we never display fabricated numbers.
+ */
+export function formatPricing(model: GatewayModel): string | null {
+	const prompt = Number.parseFloat(model.pricing?.prompt ?? "");
+	const completion = Number.parseFloat(model.pricing?.completion ?? "");
+	const inPm = Number.isFinite(prompt) ? prompt * 1_000_000 : 0;
+	const outPm = Number.isFinite(completion) ? completion * 1_000_000 : 0;
+	if (inPm <= 0 && outPm <= 0) return null;
+	return `$${inPm.toFixed(2)} / $${outPm.toFixed(2)} per 1M`;
 }

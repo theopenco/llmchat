@@ -18,25 +18,32 @@ export async function rateLimit(
 	const cacheKey = `ratelimit:${key}`;
 	const now = Math.floor(Date.now() / 1000);
 
-	let bucket: RateBucket = { count: 0, resetAt: now + windowSeconds };
-	const raw = await env.STATE.get(cacheKey);
-	if (raw) {
-		try {
-			const parsed = JSON.parse(raw) as RateBucket;
-			// Only carry over a window that hasn't elapsed yet.
-			if (parsed.resetAt > now) {
-				bucket = parsed;
+	try {
+		let bucket: RateBucket = { count: 0, resetAt: now + windowSeconds };
+		const raw = await env.STATE.get(cacheKey);
+		if (raw) {
+			try {
+				const parsed = JSON.parse(raw) as RateBucket;
+				// Only carry over a window that hasn't elapsed yet.
+				if (parsed.resetAt > now) {
+					bucket = parsed;
+				}
+			} catch {
+				// Malformed entry — treat as a fresh window.
 			}
-		} catch {
-			// Malformed entry — treat as a fresh window.
 		}
-	}
 
-	if (bucket.count >= max) {
-		return { ok: false, remaining: 0 };
-	}
+		if (bucket.count >= max) {
+			return { ok: false, remaining: 0 };
+		}
 
-	bucket.count += 1;
-	await env.STATE.set(cacheKey, JSON.stringify(bucket));
-	return { ok: true, remaining: max - bucket.count };
+		bucket.count += 1;
+		await env.STATE.set(cacheKey, JSON.stringify(bucket));
+		return { ok: true, remaining: max - bucket.count };
+	} catch (err) {
+		// Fail open: rate limiting is defense-in-depth — an unavailable state
+		// store must not take the public endpoints down with it.
+		console.error("rateLimit: state store unavailable, allowing request", err);
+		return { ok: true, remaining: max };
+	}
 }

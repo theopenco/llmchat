@@ -6,35 +6,94 @@ import { Composer } from "./components/Composer";
 import { EscalationSection } from "./components/EscalationSection";
 import { IdentifyForm } from "./components/IdentifyForm";
 import { MessageList } from "./components/MessageList";
+import { WidgetFrame } from "./components/WidgetFrame";
 import { requestEscalation } from "./escalation";
 import { getOrCreateClientId, getText } from "./lib";
 import { mergeMessages } from "./messages-sync";
+import { ShowcaseChat } from "./ShowcaseChat";
 import { useServerMessages } from "./useServerMessages";
 
-type WidgetMode = "bubble" | "inline";
+/**
+ * "live" (default) talks to the real API: conversations are created and
+ * persisted, escalation notifies the team. "showcase" is a self-contained
+ * demo: local state only, canned replies, no network calls ever.
+ */
+export type WidgetMode = "showcase" | "live";
 
-interface WidgetProps {
-	projectKey: string;
-	apiUrl: string;
+/**
+ * "bubble" (default) renders the floating launcher; "inline" renders the
+ * panel permanently open filling its container — the /embed iframe page or
+ * any position:relative wrapper.
+ */
+export type WidgetLayout = "bubble" | "inline";
+
+interface BaseWidgetProps {
 	brandColor: string;
-	/**
-	 * "bubble" (default) renders the floating launcher; "inline" renders the
-	 * panel permanently open filling the viewport — used by the /embed iframe
-	 * page.
-	 */
-	mode?: WidgetMode;
+	mode?: WidgetLayout;
 }
 
-const ESCALATION_THRESHOLD = 3;
+interface LiveWidgetProps extends BaseWidgetProps {
+	widgetMode?: "live";
+	projectKey: string;
+	apiUrl: string;
+	/** Messages before "Talk to a human" appears; falls back to 3. */
+	escalationThreshold?: number;
+}
+
+interface ShowcaseWidgetProps extends BaseWidgetProps {
+	widgetMode: "showcase";
+	projectKey?: string;
+	apiUrl?: string;
+}
+
+export type WidgetProps = LiveWidgetProps | ShowcaseWidgetProps;
+
+export function Widget(props: WidgetProps) {
+	if (props.widgetMode === "showcase") {
+		return <ShowcaseWidget brandColor={props.brandColor} mode={props.mode} />;
+	}
+	return <LiveWidget {...props} />;
+}
+
+function ShowcaseWidget({ brandColor, mode = "bubble" }: BaseWidgetProps) {
+	const inline = mode === "inline";
+	const [open, setOpen] = useState(inline);
+	return (
+		<WidgetFrame
+			inline={inline}
+			brandColor={brandColor}
+			open={open}
+			onOpenChange={setOpen}
+			badge={<span className="llmchat-demo-badge">Demo mode</span>}
+		>
+			<ShowcaseChat />
+		</WidgetFrame>
+	);
+}
+
+const DEFAULT_ESCALATION_THRESHOLD = 3;
 const SEND_ERROR =
 	"Something went wrong sending your message. Please try again.";
+const ESCALATED_NOTICE =
+	"A human operator has been notified. We’ll get back to you soon.";
 
-export function Widget({
+/**
+ * The configured human-handoff threshold, or the default when it's missing or
+ * below 1 (a project must allow at least one message before escalation).
+ */
+export function resolveEscalationThreshold(value?: number): number {
+	return typeof value === "number" && Number.isFinite(value) && value >= 1
+		? Math.floor(value)
+		: DEFAULT_ESCALATION_THRESHOLD;
+}
+
+function LiveWidget({
 	projectKey,
 	apiUrl,
 	brandColor,
 	mode = "bubble",
-}: WidgetProps) {
+	escalationThreshold,
+}: LiveWidgetProps) {
 	const inline = mode === "inline";
 	const [open, setOpen] = useState(inline);
 	const [text, setText] = useState("");
@@ -94,7 +153,8 @@ export function Widget({
 	const userMessageCount = displayMessages.filter(
 		(m) => m.role === "user",
 	).length;
-	const showEscalation = !escalated && userMessageCount >= ESCALATION_THRESHOLD;
+	const threshold = resolveEscalationThreshold(escalationThreshold);
+	const showEscalation = !escalated && userMessageCount >= threshold;
 
 	function handleSend() {
 		void sendMessage({ text: text.trim() });
@@ -119,6 +179,7 @@ export function Widget({
 				})),
 			});
 			setEscalated(true);
+			refresh();
 		} catch {
 			setEscalateFailed(true);
 		} finally {
@@ -127,74 +188,46 @@ export function Widget({
 	}
 
 	return (
-		<div className="llmchat" style={{ ["--brand" as string]: brandColor }}>
-			{!inline && (
-				<button
-					type="button"
-					className="llmchat-bubble"
-					onClick={() => setOpen((v) => !v)}
-					aria-label={open ? "Close chat" : "Open chat"}
-				>
-					{open ? "×" : "💬"}
-				</button>
-			)}
-			{open && (
-				<div
-					className={
-						inline ? "llmchat-panel llmchat-panel-inline" : "llmchat-panel"
-					}
-					role={inline ? undefined : "dialog"}
-				>
-					<header className="llmchat-header">
-						<span>Support</span>
-						{!inline && (
-							<button
-								type="button"
-								onClick={() => setOpen(false)}
-								aria-label="Close"
-							>
-								×
-							</button>
-						)}
-					</header>
-					{!identified ? (
-						<IdentifyForm
-							name={name}
-							email={email}
-							onNameChange={setName}
-							onEmailChange={setEmail}
-							onSubmit={() => setIdentified(true)}
+		<WidgetFrame
+			inline={inline}
+			brandColor={brandColor}
+			open={open}
+			onOpenChange={setOpen}
+		>
+			{!identified ? (
+				<IdentifyForm
+					name={name}
+					email={email}
+					onNameChange={setName}
+					onEmailChange={setEmail}
+					onSubmit={() => setIdentified(true)}
+				/>
+			) : (
+				<>
+					<MessageList
+						greeting={`Hi ${name}! How can I help?`}
+						messages={displayMessages}
+						typing={loading}
+						error={sendFailed ? SEND_ERROR : null}
+					/>
+					{showEscalation && (
+						<EscalationSection
+							pending={escalating}
+							failed={escalateFailed}
+							onEscalate={handleEscalate}
 						/>
-					) : (
-						<>
-							<MessageList
-								greeting={`Hi ${name}! How can I help?`}
-								messages={displayMessages}
-								typing={loading}
-								error={sendFailed ? SEND_ERROR : null}
-							/>
-							{showEscalation && (
-								<EscalationSection
-									pending={escalating}
-									failed={escalateFailed}
-									onEscalate={handleEscalate}
-								/>
-							)}
-							{escalated && (
-								<div className="llmchat-escalated">
-									We&apos;ve notified the team. A human will reply soon.
-								</div>
-							)}
-							<Composer
-								value={text}
-								disabled={loading}
-								onChange={setText}
-								onSubmit={handleSend}
-							/>
-						</>
 					)}
-				</div>
+					{escalated && (
+						<div className="llmchat-escalated">{ESCALATED_NOTICE}</div>
+					)}
+					<Composer
+						value={text}
+						disabled={loading}
+						onChange={setText}
+						onSubmit={handleSend}
+					/>
+				</>
 			)}
-		</div>
+		</WidgetFrame>
 	);
 }

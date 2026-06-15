@@ -43,9 +43,11 @@ export const widgetStyles = `
 	z-index: 2147483647;
 }
 
-/* Inline mode (the /embed iframe page): the panel IS the page. */
+/* Inline mode: the panel fills its container — the whole viewport on the
+   /embed iframe page (no positioned ancestor), or a position:relative
+   wrapper when mounted in-page (e.g. the showcase demo). */
 .llmchat-panel-inline {
-	position: fixed;
+	position: absolute;
 	inset: 0;
 	width: auto;
 	height: auto;
@@ -130,6 +132,33 @@ export const widgetStyles = `
 	background: #ecfdf5;
 	align-self: flex-start;
 	border: 1px solid #a7f3d0;
+}
+.llmchat-msg-system {
+	align-self: center;
+	background: #f3f4f6;
+	color: #6b7280;
+	font-size: 0.78rem;
+	border-radius: 9999px;
+	padding: 0.25rem 0.75rem;
+}
+.llmchat-demo-badge {
+	margin-left: auto;
+	margin-right: 0.5rem;
+	background: rgba(255, 255, 255, 0.25);
+	color: #fff;
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	border-radius: 9999px;
+	padding: 0.15rem 0.5rem;
+}
+.llmchat-demo-note {
+	background: #eef2ff;
+	color: #4338ca;
+	font-size: 0.78rem;
+	padding: 0.5rem 0.75rem;
+	border-bottom: 1px solid #e0e7ff;
 }
 .llmchat-typing {
 	color: #9ca3af;
