@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { allowWidgetOrigin, isAllowedOrigin } from "./origins";
+import { isAllowedOrigin } from "./origins";
 
 const DASH = "https://llmchat-dashboard.meetploy.app";
-const SHOWCASE = "https://llmchat-showcase.meetploy.app";
 
 describe("isAllowedOrigin", () => {
 	it("allows the canonical dashboard origin", () => {
@@ -81,81 +80,8 @@ describe("isAllowedOrigin", () => {
 	});
 });
 
-describe("allowWidgetOrigin", () => {
-	it('treats "*" as allow-all, returning a literal * for any origin', () => {
-		expect(allowWidgetOrigin("https://customer.com", "*")).toBe("*");
-		expect(allowWidgetOrigin("https://anything.example", "*")).toBe("*");
-		expect(allowWidgetOrigin(undefined, "*")).toBe("*");
-		// "*" anywhere in the list still allows all
-		expect(allowWidgetOrigin("https://x.com", "https://a.com, *")).toBe("*");
-	});
-
-	it("falls open (reflects the origin) when the list is empty or unset", () => {
-		expect(allowWidgetOrigin("https://customer.com", "")).toBe(
-			"https://customer.com",
-		);
-		expect(allowWidgetOrigin("https://customer.com", undefined)).toBe(
-			"https://customer.com",
-		);
-		expect(allowWidgetOrigin(undefined, "")).toBe("*");
-	});
-
-	it("allows listed origins and their Ploy previews", () => {
-		const csv = `${SHOWCASE}, https://customer.com`;
-		expect(allowWidgetOrigin(SHOWCASE, csv)).toBe(SHOWCASE);
-		expect(allowWidgetOrigin("https://customer.com", csv)).toBe(
-			"https://customer.com",
-		);
-		expect(
-			allowWidgetOrigin("https://llmchat-showcase---iframe.meetploy.app", csv),
-		).toBe("https://llmchat-showcase---iframe.meetploy.app");
-		expect(
-			allowWidgetOrigin("https://llmchat-showcase--b9a8691.meetploy.app", csv),
-		).toBe("https://llmchat-showcase--b9a8691.meetploy.app");
-	});
-
-	it("rejects origins not in the list", () => {
-		const csv = `${SHOWCASE}, https://customer.com`;
-		expect(allowWidgetOrigin("https://evil.com", csv)).toBe(null);
-		expect(allowWidgetOrigin("https://other.meetploy.app", csv)).toBe(null);
-		expect(allowWidgetOrigin(undefined, csv)).toBe(null);
-	});
-});
-
 describe("configured value normalization", () => {
 	it("tolerates trailing slashes in configured origins", () => {
 		expect(isAllowedOrigin(DASH, `${DASH}/`)).toBe(true);
-		expect(allowWidgetOrigin(SHOWCASE, `${SHOWCASE}/`)).toBe(SHOWCASE);
-		expect(
-			allowWidgetOrigin(
-				"https://llmchat-showcase---iframe.meetploy.app",
-				`${SHOWCASE}/`,
-			),
-		).toBe("https://llmchat-showcase---iframe.meetploy.app");
-	});
-});
-
-describe("allowWidgetOrigin with unusable config", () => {
-	it("ignores unsubstituted env references and falls back to open", () => {
-		expect(
-			allowWidgetOrigin("https://customer.com", "$WIDGET_ALLOWED_ORIGINS"),
-		).toBe("https://customer.com");
-	});
-
-	it("ignores junk entries but keeps valid ones restrictive", () => {
-		const csv = "$WIDGET_ALLOWED_ORIGINS, https://customer.com";
-		expect(allowWidgetOrigin("https://customer.com", csv)).toBe(
-			"https://customer.com",
-		);
-		expect(allowWidgetOrigin("https://evil.com", csv)).toBe(null);
-	});
-
-	it("rejects non-http(s) schemes as entries", () => {
-		expect(allowWidgetOrigin("https://x.com", "javascript:alert(1)")).toBe(
-			"https://x.com",
-		);
-		expect(allowWidgetOrigin("file:///etc/passwd", "file://")).toBe(
-			"file:///etc/passwd",
-		);
 	});
 });
