@@ -7,6 +7,8 @@ import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/kv";
 import { streamChat } from "@/lib/llm";
 import { captureEvent } from "@/lib/posthog";
+import { clientIp } from "@/lib/request";
+import { sendEscalationSlack } from "@/lib/slack";
 
 import {
 	conversation,
@@ -14,43 +16,40 @@ import {
 	message as messageTable,
 	usageEvent,
 } from "@llmchat/db";
-import { ANALYTICS_EVENTS } from "@llmchat/shared";
+import { ANALYTICS_EVENTS, effectiveModel } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 import type { UIMessage } from "ai";
 
+const optionalEmail = z
+	.union([z.email(), z.literal("")])
+	.optional()
+	.transform((v) => v || undefined);
+
 const chatBody = z.object({
-	projectKey: z.string(),
-	clientId: z.string(),
-	name: z.string().optional(),
-	email: z
-		.union([z.email(), z.literal("")])
-		.optional()
-		.transform((v) => v || undefined),
-	messages: z.array(z.any()),
+	projectKey: z.string().max(128),
+	clientId: z.string().max(128),
+	name: z.string().max(200).optional(),
+	email: optionalEmail,
+	messages: z.array(z.any()).max(200),
 });
 
 const escalateBody = z.object({
-	projectKey: z.string(),
-	clientId: z.string(),
-	name: z.string().optional(),
-	email: z
-		.union([z.email(), z.literal("")])
-		.optional()
-		.transform((v) => v || undefined),
-	messages: z.array(z.object({ role: z.string(), content: z.string() })),
+	projectKey: z.string().max(128),
+	clientId: z.string().max(128),
+	name: z.string().max(200).optional(),
+	email: optionalEmail,
+	messages: z
+		.array(
+			z.object({ role: z.string().max(32), content: z.string().max(8_000) }),
+		)
+		.max(200),
 });
 
 const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_WINDOW = 60 * 60;
-
-function clientIp(c: { req: { header(name: string): string | undefined } }) {
-	return (
-		c.req.header("cf-connecting-ip") ??
-		c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
-		"unknown"
-	);
-}
+// Escalations trigger notification emails — keep the budget much tighter.
+const ESCALATE_RATE_LIMIT_MAX = 5;
 
 async function loadProject(env: AppContext["Bindings"], publicKey: string) {
 	const p = await db(env).query.project.findFirst({
@@ -148,6 +147,12 @@ export const chat = new Hono<AppContext>()
 				content: userText ?? "",
 				sequence: nextSeq,
 			});
+		// Bump the count with the user message now — if the model call below
+		// fails, the next message must not reuse this sequence.
+		await db(c.env)
+			.update(conversation)
+			.set({ messageCount: nextSeq, updatedAt: new Date() })
+			.where(eq(conversation.id, conv.id));
 
 		let activePromptContent = project.systemPrompt;
 		const activePromptId = project.activeSystemPromptId;
@@ -164,46 +169,71 @@ export const chat = new Hono<AppContext>()
 				a(e(s.projectId, project.id), e(s.active, true)),
 		});
 
-		const result = await streamChat(c.env, {
-			model: project.model,
-			systemPrompt: activePromptContent,
-			knowledgeText: project.knowledgeText,
-			sources: activeSources.map((s) => ({
-				title: s.title || s.url,
-				url: s.url,
-				content: s.content,
-			})),
-			messages: messages as UIMessage[],
-		});
+		// Guard the live bot against a project stuck on a model that's no longer
+		// a valid web-search model (e.g. a pre-web-search saved value): run the
+		// default for this request instead of letting the gateway call fail.
+		const model = effectiveModel(project.model);
+		if (model !== project.model) {
+			console.warn(
+				`chat: project ${project.id} model "${project.model}" is not a web-search model; using "${model}"`,
+			);
+		}
+
+		let result: Awaited<ReturnType<typeof streamChat>>;
+		try {
+			result = await streamChat(c.env, {
+				model,
+				systemPrompt: activePromptContent,
+				knowledgeText: project.knowledgeText,
+				sources: activeSources.map((s) => ({
+					title: s.title || s.url,
+					url: s.url,
+					content: s.content,
+				})),
+				messages: messages as UIMessage[],
+			});
+		} catch (err) {
+			// The visitor message is already persisted (the conversation shows up
+			// in the inbox either way) — a model/gateway failure should surface as
+			// a friendly retry in the widget, not an unhandled 500.
+			console.error("chat: model call failed", err);
+			return c.json({ error: "assistant unavailable" }, 502);
+		}
 
 		c.executionCtx.waitUntil(
 			(async () => {
-				const text = await result.text;
-				const usage = await result.usage;
-				await db(c.env)
-					.insert(messageTable)
-					.values({
-						conversationId: conv.id,
-						role: "assistant",
-						content: text,
-						sequence: nextSeq + 1,
-					});
-				await db(c.env)
-					.update(conversation)
-					.set({ messageCount: nextSeq + 1, updatedAt: new Date() })
-					.where(eq(conversation.id, conv.id));
-				await db(c.env)
-					.insert(usageEvent)
-					.values({
-						workspaceId: project.workspaceId,
-						projectId: project.id,
-						conversationId: conv.id,
-						messageId: "",
-						model: project.model,
-						promptTokens: usage?.inputTokens ?? 0,
-						completionTokens: usage?.outputTokens ?? 0,
-						costUsd: 0,
-					});
+				try {
+					const text = await result.text;
+					const usage = await result.usage;
+					await db(c.env)
+						.insert(messageTable)
+						.values({
+							conversationId: conv.id,
+							role: "assistant",
+							content: text,
+							sequence: nextSeq + 1,
+						});
+					await db(c.env)
+						.update(conversation)
+						.set({ messageCount: nextSeq + 1, updatedAt: new Date() })
+						.where(eq(conversation.id, conv.id));
+					await db(c.env)
+						.insert(usageEvent)
+						.values({
+							workspaceId: project.workspaceId,
+							projectId: project.id,
+							conversationId: conv.id,
+							messageId: "",
+							model,
+							promptTokens: usage?.inputTokens ?? 0,
+							completionTokens: usage?.outputTokens ?? 0,
+							costUsd: 0,
+						});
+				} catch (err) {
+					// Stream failed — the user message and count are already
+					// persisted; there is just no assistant reply to store.
+					console.error("chat: failed to persist assistant message", err);
+				}
 			})(),
 		);
 
@@ -215,6 +245,15 @@ export const chat = new Hono<AppContext>()
 		if (!project) {
 			return c.json({ error: "invalid project key" }, 404);
 		}
+		const rl = await rateLimit(
+			c.env,
+			`escalate:${project.id}:${clientIp(c)}`,
+			ESCALATE_RATE_LIMIT_MAX,
+			RATE_LIMIT_WINDOW,
+		);
+		if (!rl.ok) {
+			return c.json({ error: "rate limit exceeded" }, 429);
+		}
 		const conv = await db(c.env).query.conversation.findFirst({
 			where: (ct, { and, eq: e }) =>
 				and(e(ct.projectId, project.id), e(ct.clientId, clientId)),
@@ -222,12 +261,22 @@ export const chat = new Hono<AppContext>()
 		if (!conv) {
 			return c.json({ error: "no conversation" }, 404);
 		}
+		// DB first: the escalation must be recorded and visible in the inbox
+		// regardless of whether any notification below succeeds.
+		const systemSeq = conv.messageCount + 1;
+		await db(c.env).insert(messageTable).values({
+			conversationId: conv.id,
+			role: "system",
+			content: "Visitor requested a human operator",
+			sequence: systemSeq,
+		});
 		await db(c.env)
 			.update(conversation)
 			.set({
 				escalatedAt: new Date(),
 				name: name ?? conv.name,
 				email: email ?? conv.email,
+				messageCount: systemSeq,
 				updatedAt: new Date(),
 			})
 			.where(eq(conversation.id, conv.id));
@@ -239,12 +288,18 @@ export const chat = new Hono<AppContext>()
 						`<p><b>${escapeHtml(m.role)}:</b> ${escapeHtml(m.content)}</p>`,
 				)
 				.join("");
-			await sendEmail(c.env, {
-				to: project.notifyEmail,
-				subject: `New escalation from ${name ?? "anonymous"}`,
-				html: `<p>Conversation escalated.</p>${transcriptHtml}`,
-				replyTo: buildReplyToAddress(c.env, project.inboundEmailLocal),
-			});
+			try {
+				await sendEmail(c.env, {
+					to: project.notifyEmail,
+					subject: `New escalation from ${name ?? "anonymous"}`,
+					html: `<p>Conversation escalated.</p>${transcriptHtml}`,
+					replyTo: buildReplyToAddress(c.env, project.inboundEmailLocal),
+				});
+			} catch (err) {
+				// The escalation is already recorded and visible in the inbox; a
+				// failed notification email must not fail the visitor's request.
+				console.error("escalate: notification email failed", err);
+			}
 		}
 
 		c.executionCtx.waitUntil(
@@ -259,6 +314,9 @@ export const chat = new Hono<AppContext>()
 				},
 			}),
 		);
+		// Slack notification runs post-response and is failure-tolerant, so it
+		// never blocks or breaks the escalation (no-op when no webhook is set).
+		c.executionCtx.waitUntil(sendEscalationSlack(c.env, project, conv.id));
 
 		return c.json({ ok: true });
 	});

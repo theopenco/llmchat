@@ -1,14 +1,17 @@
 "use client";
 
-import { ChevronDown, Globe, Info } from "lucide-react";
+import { ChevronDown, Info, TriangleAlert } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { ModelBadges } from "./ModelBadges";
 import { ModelPicker } from "./ModelPicker";
 import {
 	DEFAULT_MODEL,
-	hasWebSearch,
+	formatContextLength,
+	formatPricing,
+	isWebSearchModel,
 	modelColor,
 	providerLabel,
 	useGatewayModels,
@@ -25,7 +28,9 @@ export function ModelCard({
 	const modelsQ = useGatewayModels();
 	const selectedId = value || DEFAULT_MODEL;
 	const model = modelsQ.data?.find((m) => m.id === selectedId);
-	const webSearch = model ? hasWebSearch(model) : false;
+	// A saved model that's no longer a web-search model: the live bot already
+	// falls back to the default, but the owner must pick a current one.
+	const unavailable = Boolean(value) && !isWebSearchModel(value);
 
 	return (
 		<SectionCard
@@ -34,53 +39,74 @@ export function ModelCard({
 			title="AI model"
 			description="Choose the AI model that will answer your visitors."
 		>
-			<div className="rounded-xl border border-border p-4">
+			<div
+				className={cn(
+					"rounded-xl border p-4",
+					unavailable ? "border-amber-500/40 bg-amber-500/5" : "border-border",
+				)}
+			>
 				{modelsQ.isLoading ? (
 					<Skeleton className="h-12 w-full" />
 				) : (
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-						<div className="flex min-w-0 items-start gap-3">
-							<span
-								className="mt-1.5 size-2.5 shrink-0 rounded-full"
-								style={{ backgroundColor: modelColor(selectedId) }}
-							/>
-							<div className="min-w-0">
-								<div className="flex flex-wrap items-center gap-2">
+						{unavailable ? (
+							<div className="flex min-w-0 items-start gap-3">
+								<span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+									<TriangleAlert className="size-3.5" />
+								</span>
+								<div className="min-w-0">
+									<span className="font-semibold text-foreground">
+										This model is no longer available
+									</span>
+									<p className="truncate font-mono text-xs text-muted-foreground">
+										{value}
+									</p>
+									<p className="mt-1 text-xs text-amber-700 dark:text-amber-500">
+										Pick a new model — visitors are currently answered by the
+										default.
+									</p>
+								</div>
+							</div>
+						) : (
+							<div className="flex min-w-0 items-start gap-3">
+								<span
+									className="mt-1.5 size-2.5 shrink-0 rounded-full"
+									style={{ backgroundColor: modelColor(selectedId) }}
+								/>
+								<div className="min-w-0">
 									<span className="truncate font-semibold text-foreground">
 										{model?.name ?? selectedId}
 									</span>
-									{webSearch && (
-										<Badge
-											variant="secondary"
-											className="gap-1 border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
-										>
-											<Globe className="size-3" />
-											Web search
-										</Badge>
-									)}
+									<p className="truncate font-mono text-xs text-muted-foreground">
+										{model?.id ?? selectedId}
+									</p>
+									<p className="mt-1 truncate text-xs text-muted-foreground">
+										{model
+											? [
+													providerLabel(model.providers),
+													formatContextLength(model) &&
+														`${formatContextLength(model)} ctx`,
+													formatPricing(model),
+												]
+													.filter(Boolean)
+													.join(" · ")
+											: "Selected model"}
+									</p>
+									{model && <ModelBadges model={model} className="mt-1.5" />}
 								</div>
-								<p className="truncate font-mono text-xs text-muted-foreground">
-									{model?.id ?? selectedId}
-								</p>
-								<p className="mt-1 truncate text-xs text-muted-foreground">
-									{model
-										? [
-												providerLabel(model.providers),
-												webSearch && "Web search",
-											]
-												.filter(Boolean)
-												.join(" · ")
-										: "Selected model"}
-								</p>
 							</div>
-						</div>
+						)}
 
 						<ModelPicker
 							value={value}
 							onChange={onChange}
 							trigger={
-								<Button type="button" variant="outline" className="shrink-0">
-									Change model
+								<Button
+									type="button"
+									variant={unavailable ? "default" : "outline"}
+									className="shrink-0"
+								>
+									{unavailable ? "Pick a model" : "Change model"}
 									<ChevronDown />
 								</Button>
 							}
@@ -91,7 +117,7 @@ export function ModelCard({
 
 			<p className="flex items-center gap-1.5 text-xs text-muted-foreground">
 				<Info className="size-3.5" />
-				All models available on LLM Gateway are listed.
+				Only models with web search are listed.
 			</p>
 		</SectionCard>
 	);

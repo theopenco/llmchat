@@ -1,0 +1,115 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { fetchMessages, mergeMessages } from "./messages-sync";
+
+import type { ServerMessage } from "./messages-sync";
+
+function srv(seq: number, role: string, content: string): ServerMessage {
+	return { id: `s${seq}`, role, content, sequence: seq, createdAt: seq };
+}
+
+describe("mergeMessages", () => {
+	it("shows persisted messages including admin replies, in feed order", () => {
+		const merged = mergeMessages(
+			[
+				srv(1, "user", "help"),
+				srv(2, "assistant", "Sure!"),
+				srv(3, "admin", "A human here — hi!"),
+			],
+			[],
+		);
+		expect(merged.map((m) => `${m.role}:${m.content}`)).toEqual([
+			"user:help",
+			"assistant:Sure!",
+			"admin:A human here — hi!",
+		]);
+	});
+
+	it("does not duplicate a local message that is already persisted", () => {
+		const merged = mergeMessages(
+			[srv(1, "user", "hello")],
+			[{ id: "l1", role: "user", content: "hello" }],
+		);
+		expect(merged).toHaveLength(1);
+		expect(merged[0]!.id).toBe("s1");
+	});
+
+	it("keeps an in-flight local message the server has not stored yet", () => {
+		const merged = mergeMessages(
+			[srv(1, "user", "hello")],
+			[
+				{ id: "l1", role: "user", content: "hello" },
+				{ id: "l2", role: "assistant", content: "typing par" }, // streaming
+			],
+		);
+		expect(merged.map((m) => m.id)).toEqual(["s1", "l2"]);
+	});
+
+	it("keeps repeated identical texts distinct (no over-deduplication)", () => {
+		// Visitor legitimately sends "hi" twice; the server has both.
+		const merged = mergeMessages(
+			[srv(1, "user", "hi"), srv(2, "user", "hi")],
+			[
+				{ id: "l1", role: "user", content: "hi" },
+				{ id: "l2", role: "user", content: "hi" },
+			],
+		);
+		expect(merged).toHaveLength(2);
+	});
+
+	it("appends a second identical local send the server only stored once", () => {
+		const merged = mergeMessages(
+			[srv(1, "user", "hi")],
+			[
+				{ id: "l1", role: "user", content: "hi" },
+				{ id: "l2", role: "user", content: "hi" }, // still in flight
+			],
+		);
+		expect(merged.map((m) => m.id)).toEqual(["s1", "l2"]);
+	});
+
+	it("does not match a local user message against an admin message with the same text", () => {
+		const merged = mergeMessages(
+			[srv(1, "admin", "ok")],
+			[{ id: "l1", role: "user", content: "ok" }],
+		);
+		expect(merged).toHaveLength(2);
+	});
+
+	it("orders admin replies before the visitor's newer unsent message", () => {
+		const merged = mergeMessages(
+			[srv(1, "user", "help"), srv(2, "admin", "On it!")],
+			[
+				{ id: "l1", role: "user", content: "help" },
+				{ id: "l2", role: "user", content: "thanks" }, // not yet persisted
+			],
+		);
+		expect(merged.map((m) => m.content)).toEqual(["help", "On it!", "thanks"]);
+	});
+});
+
+describe("fetchMessages", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("encodes query params so a hostile clientId cannot smuggle params", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify({ messages: [] })));
+		vi.stubGlobal("fetch", fetchMock);
+
+		await fetchMessages("http://x", "pk", "a&projectKey=evil");
+
+		const url = fetchMock.mock.calls[0]![0] as string;
+		expect(url).toContain("clientId=a%26projectKey%3Devil");
+	});
+
+	it("throws on a non-2xx response instead of treating it as an empty feed", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(new Response("nope", { status: 429 })),
+		);
+		await expect(fetchMessages("http://x", "pk", "c1")).rejects.toThrow(/429/);
+	});
+});

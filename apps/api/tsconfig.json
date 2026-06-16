@@ -1,7 +1,6 @@
 {
 	"extends": "../../tsconfig.base.json",
 	"compilerOptions": {
-		"types": ["@cloudflare/workers-types"],
 		"jsx": "react-jsx",
 		"noEmit": true,
 		"declaration": false,
@@ -9,5 +8,5 @@
 			"@/*": ["./src/*"]
 		}
 	},
-	"include": ["src"]
+	"include": ["src", "env.d.ts"]
 }

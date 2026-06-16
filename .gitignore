@@ -7,9 +7,12 @@ dist/
 .vercel/
 *.tsbuildinfo
 *.log
+# Env files: ignore real secrets, but keep the committed templates tracked.
 .env
-.env.example
 .env.local
+.env.*
+!.env.example
+!**/.env.example
 .dev.vars
 .DS_Store
 .idea/
@@ -18,6 +21,7 @@ dist/
 *.db-journal
 out/
 coverage/
+apps/api/src/generated/
 .claude/
 .playwright-mcp/
 next-env.d.ts

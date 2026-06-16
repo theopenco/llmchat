@@ -1,0 +1,25 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["react", "typescript", "oxc", "unicorn"],
+	"categories": {
+		"correctness": "error",
+		"suspicious": "warn"
+	},
+	"rules": {
+		"react/rules-of-hooks": "error",
+		"react/exhaustive-deps": "warn",
+		"react/react-in-jsx-scope": "off",
+		"no-underscore-dangle": ["warn", { "allow": ["_meta"] }],
+		"react/iframe-missing-sandbox": "off"
+	},
+	"ignorePatterns": [
+		"**/dist/**",
+		"**/.next/**",
+		"**/.turbo/**",
+		"**/node_modules/**",
+		"apps/api/src/generated/**",
+		"**/components/ui/**",
+		".agents/**",
+		".claude/**"
+	]
+}

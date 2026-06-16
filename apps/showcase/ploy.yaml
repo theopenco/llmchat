@@ -2,5 +2,9 @@ kind: nextjs
 build: pnpm --filter @llmchat/showcase build
 out: .next
 
+env:
+  NEXT_PUBLIC_API_URL: https://llmchat-api.meetploy.app
+  NEXT_PUBLIC_DASHBOARD_URL: https://llmchat-dashboard.meetploy.app
+
 dev:
   port: 3003

@@ -36,7 +36,7 @@ export default async function PostPage({
 
 	const more = [...allPosts]
 		.filter((p) => p.slug !== post.slug)
-		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+		.toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 		.slice(0, 2);
 
 	return (
@@ -101,7 +101,9 @@ export default async function PostPage({
 							One script tag. Any model. Live in minutes.
 						</h2>
 						<Link
-							href={process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001"}
+							href={
+								process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001"
+							}
 							className="mt-6 inline-block rounded-full bg-ink px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 						>
 							Get started free

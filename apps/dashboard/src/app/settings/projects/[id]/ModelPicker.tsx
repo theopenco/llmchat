@@ -1,9 +1,10 @@
 "use client";
 
-import { Check, ChevronsUpDown, Globe, X } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
+import { ModelBadges } from "./ModelBadges";
+
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -25,18 +26,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
 	DEFAULT_MODEL,
+	formatContextLength,
+	formatPricing,
 	type GatewayModel,
-	hasWebSearch,
 	modelColor,
 	providerIds,
 	providerLabel,
 	titleCase,
 	useGatewayModels,
+	webSearchModels,
 } from "./model-data";
 
 export { DEFAULT_MODEL };
 
-const ALL_FILTER = "all";
+// Hoisted fallback so `pool` is referentially stable when the query is empty
+// (an inline `?? []` would invalidate the useMemos below on every render).
+const NO_MODELS: GatewayModel[] = [];
 
 function familyLabel(family?: string) {
 	return family ? titleCase(family) : "Other";
@@ -56,14 +61,6 @@ function modelSearchText(model: GatewayModel) {
 		.toLowerCase();
 }
 
-function filterButtonClassName(active: boolean) {
-	return cn(
-		"h-7 shrink-0 rounded-full px-2.5 text-xs",
-		active &&
-			"border-primary bg-primary text-primary-foreground hover:bg-primary/90",
-	);
-}
-
 export function ModelPicker({
 	value,
 	onChange,
@@ -76,43 +73,23 @@ export function ModelPicker({
 }) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
-	const [providerFilter, setProviderFilter] = useState(ALL_FILTER);
 	const modelsQ = useGatewayModels();
 
-	const pool = modelsQ.data ?? [];
+	// Only web-search-capable models are selectable here.
+	const pool = useMemo(
+		() => webSearchModels(modelsQ.data ?? NO_MODELS),
+		[modelsQ.data],
+	);
 
 	const selectedModel = useMemo(() => {
 		const selectedId = value || DEFAULT_MODEL;
 		return (modelsQ.data ?? []).find((model) => model.id === selectedId);
 	}, [modelsQ.data, value]);
 
-	const providerOptions = useMemo(() => {
-		const counts = new Map<string, number>();
-		for (const model of pool) {
-			for (const provider of providerIds(model.providers)) {
-				counts.set(provider, (counts.get(provider) ?? 0) + 1);
-			}
-		}
-		return Array.from(counts.entries())
-			.map(([provider, count]) => ({
-				value: provider,
-				label: titleCase(provider),
-				count,
-			}))
-			.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-	}, [pool]);
-
 	const filteredFamilies = useMemo(() => {
 		const needle = query.trim().toLowerCase();
 		const map = new Map<string, GatewayModel[]>();
 		for (const model of pool) {
-			const providers = providerIds(model.providers);
-			if (
-				providerFilter !== ALL_FILTER &&
-				!providers.includes(providerFilter)
-			) {
-				continue;
-			}
 			if (needle && !modelSearchText(model).includes(needle)) {
 				continue;
 			}
@@ -125,17 +102,10 @@ export function ModelPicker({
 			.map(([family, items]) => ({
 				family,
 				label: familyLabel(family),
-				items: [...items].sort((a, b) => a.name.localeCompare(b.name)),
+				items: items.toSorted((a, b) => a.name.localeCompare(b.name)),
 			}))
-			.sort((a, b) => a.label.localeCompare(b.label));
-	}, [pool, providerFilter, query]);
-
-	const hasFilters = query.trim().length > 0 || providerFilter !== ALL_FILTER;
-
-	function clearFilters() {
-		setQuery("");
-		setProviderFilter(ALL_FILTER);
-	}
+			.toSorted((a, b) => a.label.localeCompare(b.label));
+	}, [pool, query]);
 
 	if (modelsQ.isLoading) {
 		return <Skeleton className="h-10 w-full" />;
@@ -186,7 +156,7 @@ export function ModelPicker({
 				<DialogHeader className="border-b px-4 py-3 text-left">
 					<DialogTitle>Choose a model</DialogTitle>
 					<DialogDescription>
-						All models available on LLM Gateway.
+						Web-search models available on LLM Gateway.
 					</DialogDescription>
 				</DialogHeader>
 				<Command shouldFilter={false} className="rounded-none">
@@ -195,51 +165,6 @@ export function ModelPicker({
 						onValueChange={setQuery}
 						placeholder="Search model, provider, or family..."
 					/>
-					<div className="flex flex-col gap-2 border-b p-3">
-						<div className="flex items-center justify-between gap-3">
-							<span className="text-xs font-medium text-muted-foreground">
-								Providers
-							</span>
-							{hasFilters && (
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									className="h-7 px-2 text-xs"
-									onClick={clearFilters}
-								>
-									<X />
-									Clear
-								</Button>
-							)}
-						</div>
-						<div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto pr-1">
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								className={filterButtonClassName(providerFilter === ALL_FILTER)}
-								onClick={() => setProviderFilter(ALL_FILTER)}
-							>
-								All
-							</Button>
-							{providerOptions.map((provider) => (
-								<Button
-									key={provider.value}
-									type="button"
-									variant="outline"
-									size="sm"
-									className={filterButtonClassName(
-										providerFilter === provider.value,
-									)}
-									onClick={() => setProviderFilter(provider.value)}
-								>
-									{provider.label}
-									<span className="font-mono opacity-70">{provider.count}</span>
-								</Button>
-							))}
-						</div>
-					</div>
 					<CommandList className="max-h-[55vh]">
 						{filteredFamilies.length === 0 && (
 							<CommandEmpty>No models found.</CommandEmpty>
@@ -261,27 +186,22 @@ export function ModelPicker({
 											className="mt-1 size-2.5 shrink-0 rounded-full"
 											style={{ backgroundColor: modelColor(model.id) }}
 										/>
-										<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-											<span className="flex items-center gap-2">
-												<span className="truncate font-medium">
-													{model.name}
-												</span>
-												{hasWebSearch(model) && (
-													<Badge
-														variant="secondary"
-														className="gap-1 border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
-													>
-														<Globe className="size-3" />
-														Web search
-													</Badge>
-												)}
-											</span>
+										<span className="flex min-w-0 flex-1 flex-col gap-1">
+											<span className="truncate font-medium">{model.name}</span>
 											<span className="truncate font-mono text-xs text-muted-foreground">
 												{model.id}
 											</span>
 											<span className="truncate text-xs text-muted-foreground">
-												{providerLabel(model.providers)}
+												{[
+													providerLabel(model.providers),
+													formatContextLength(model) &&
+														`${formatContextLength(model)} ctx`,
+													formatPricing(model),
+												]
+													.filter(Boolean)
+													.join(" · ")}
 											</span>
+											<ModelBadges model={model} className="mt-0.5" />
 										</span>
 										<Check
 											className={cn(

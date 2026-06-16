@@ -5,6 +5,7 @@ date: "2026-05-20"
 category: "Announcements"
 featured: true
 ---
+
 We built llmchat because we kept running into the same problem: AI chatbots that confidently hallucinate rather than admit they don't know something. Your customers deserve better, and so does your team.
 
 llmchat is a single script tag you drop on your site. The widget loads in a shadow DOM so your styles never leak, and you paste in your knowledge base or system prompt to keep the bot on-topic.

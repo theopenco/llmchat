@@ -11,9 +11,9 @@ import {
 	conversation,
 	desc,
 	eq,
+	inArray,
 	like,
 	message as messageTable,
-	project,
 	readStatus,
 } from "@llmchat/db";
 
@@ -36,6 +36,7 @@ export const conversations = new Hono<AppContext>()
 			const { projectId } = c.req.param();
 			const { search, archived, limit, offset } = c.req.valid("query");
 			const workspaceId = c.get("workspaceId");
+			const userId = c.get("userId");
 
 			const proj = await db(c.env).query.project.findFirst({
 				where: (pt, { and: a, eq: e }) =>
@@ -74,7 +75,54 @@ export const conversations = new Hono<AppContext>()
 				filtered = rows.filter((r) => matchSet.has(r.id));
 			}
 
-			return c.json({ conversations: filtered });
+			// Attach the first visitor message (sequence 1) as a list preview —
+			// one bounded query keyed on the page of conversations we're returning.
+			const ids = filtered.map((r) => r.id);
+			const firstMessages = ids.length
+				? await db(c.env)
+						.select({
+							conversationId: messageTable.conversationId,
+							content: messageTable.content,
+						})
+						.from(messageTable)
+						.where(
+							and(
+								inArray(messageTable.conversationId, ids),
+								eq(messageTable.sequence, 1),
+							),
+						)
+				: [];
+			const firstByConv = new Map(
+				firstMessages.map((m) => [m.conversationId, m.content]),
+			);
+
+			// Per-viewer read state: a conversation is unread when this user has
+			// seen fewer messages than it currently has (or never opened it).
+			const reads = ids.length
+				? await db(c.env)
+						.select({
+							conversationId: readStatus.conversationId,
+							lastReadMessageCount: readStatus.lastReadMessageCount,
+						})
+						.from(readStatus)
+						.where(
+							and(
+								eq(readStatus.userId, userId),
+								inArray(readStatus.conversationId, ids),
+							),
+						)
+				: [];
+			const readByConv = new Map(
+				reads.map((r) => [r.conversationId, r.lastReadMessageCount]),
+			);
+
+			return c.json({
+				conversations: filtered.map((r) => ({
+					...r,
+					firstMessage: firstByConv.get(r.id) ?? null,
+					unread: (readByConv.get(r.id) ?? 0) < r.messageCount,
+				})),
+			});
 		},
 	)
 	.get("/projects/:projectId/conversations/:id", async (c) => {

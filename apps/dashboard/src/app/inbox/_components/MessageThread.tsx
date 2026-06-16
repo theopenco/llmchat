@@ -1,25 +1,81 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import { cn } from "@/lib/utils";
+
+import { formatMessageTime } from "./format";
 import type { Message } from "./types";
 
-export function MessageThread({ messages }: { messages: Message[] }) {
+const ROLE = {
+	user: { side: "left", label: "Visitor", labelClass: "text-muted-foreground" },
+	assistant: {
+		side: "right",
+		label: "Bot",
+		labelClass: "text-emerald-600 dark:text-emerald-400",
+	},
+	admin: { side: "right", label: "Admin", labelClass: "text-primary" },
+} as const;
+
+function MessageBubble({ message }: { message: Message }) {
+	const { side, label, labelClass } =
+		ROLE[message.role as keyof typeof ROLE] ?? ROLE.user;
+	const right = side === "right";
 	return (
-		<div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
-			{messages.map((m) => (
-				<div
-					key={m.id}
-					className={cn(
-						"max-w-[70%] rounded-2xl px-3 py-2 text-sm",
-						m.role === "user" && "ml-auto bg-primary text-primary-foreground",
-						m.role === "admin" && "ml-auto bg-success/15 text-foreground",
-						m.role === "assistant" && "bg-muted text-foreground",
-					)}
-				>
-					<div className="mb-0.5 text-xs opacity-70">{m.role}</div>
-					<div className="whitespace-pre-wrap">{m.content}</div>
+		<div
+			data-side={side}
+			className={cn("flex flex-col gap-1", right ? "items-end" : "items-start")}
+		>
+			<span className={cn("px-1 text-[11px] font-medium", labelClass)}>
+				{label}
+			</span>
+			<div
+				className={cn(
+					"max-w-[75%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
+					message.role === "user" && "rounded-bl-sm bg-muted text-foreground",
+					message.role === "assistant" &&
+						"rounded-br-sm bg-secondary text-secondary-foreground",
+					message.role === "admin" &&
+						"rounded-br-sm bg-primary text-primary-foreground",
+				)}
+			>
+				<p className="whitespace-pre-wrap break-words">{message.content}</p>
+			</div>
+			<span className="px-1 text-[11px] text-muted-foreground">
+				{formatMessageTime(message.createdAt)}
+			</span>
+		</div>
+	);
+}
+
+export function MessageThread({ messages }: { messages: Message[] }) {
+	const endRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		// Guarded: jsdom (tests) doesn't implement scrollIntoView.
+		endRef.current?.scrollIntoView?.({ block: "end" });
+	}, [messages.length]);
+
+	return (
+		<div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-4">
+			{messages.map((m) =>
+				m.role === "system" ? (
+					<div
+						key={m.id}
+						className="mx-auto my-1 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground"
+					>
+						{m.content}
+					</div>
+				) : (
+					<MessageBubble key={m.id} message={m} />
+				),
+			)}
+			{messages.length === 0 && (
+				<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+					No messages in this conversation
 				</div>
-			))}
+			)}
+			<div ref={endRef} />
 		</div>
 	);
 }

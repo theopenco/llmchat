@@ -6,13 +6,14 @@
 	"scripts": {
 		"build": "tsc --noEmit",
 		"format": "prettier --write .",
-		"lint": "prettier --check ."
+		"lint": "prettier --check .",
+		"test": "vitest run",
+		"types": "ploy types"
 	},
 	"dependencies": {
 		"@hono/zod-validator": "^0.7.2",
 		"@llmchat/db": "workspace:*",
 		"@llmchat/shared": "workspace:*",
-		"@llmchat/widget": "workspace:*",
 		"@llmgateway/ai-sdk-provider": "3.7.0",
 		"ai": "6.0.27",
 		"better-auth": "1.6.9",
@@ -22,7 +23,8 @@
 		"zod": "^4.0.0"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20241127.0",
-		"typescript": "5.9.2"
+		"@meetploy/types": "^1.15.1",
+		"typescript": "5.9.2",
+		"vitest": "^3.0.0"
 	}
 }

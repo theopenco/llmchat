@@ -1,40 +1,30 @@
 "use client";
 
 import { useEffect } from "react";
-import { createRoot, type Root } from "react-dom/client";
 
-import { Widget } from "@llmchat/widget";
-import { widgetStyles } from "@llmchat/widget/styles";
+import { apiBaseUrl, WIDGET_PROJECT_KEY } from "@/lib/api-url";
+import { mountWidgetInShadow } from "@/lib/shadow-mount";
 
-const PROJECT_KEY = "local-dev-key";
-const API_URL = "http://localhost:8787";
 const BRAND_COLOR = "#4f46e5";
 
+/**
+ * The real live chatbot: the floating bubble in the bottom-right. Talks to
+ * the API with the project's public key, persists conversations, and supports
+ * human escalation — unlike the inline showcase demo.
+ */
 export function WidgetMount() {
 	useEffect(() => {
 		const host = document.createElement("div");
 		host.id = "llmchat-widget-root";
 		document.body.appendChild(host);
-		const shadow = host.attachShadow({ mode: "open" });
-
-		const styleEl = document.createElement("style");
-		styleEl.textContent = widgetStyles;
-		shadow.appendChild(styleEl);
-
-		const mountNode = document.createElement("div");
-		shadow.appendChild(mountNode);
-
-		const root: Root = createRoot(mountNode);
-		root.render(
-			<Widget
-				projectKey={PROJECT_KEY}
-				apiUrl={API_URL}
-				brandColor={BRAND_COLOR}
-			/>,
-		);
-
+		const unmount = mountWidgetInShadow(host, {
+			widgetMode: "live",
+			projectKey: WIDGET_PROJECT_KEY,
+			apiUrl: apiBaseUrl(),
+			brandColor: BRAND_COLOR,
+		});
 		return () => {
-			root.unmount();
+			unmount();
 			host.remove();
 		};
 	}, []);

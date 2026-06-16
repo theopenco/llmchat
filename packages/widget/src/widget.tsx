@@ -2,44 +2,108 @@ import { Chat, useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { UIMessage } from "ai";
+import { Composer } from "./components/Composer";
+import { EscalationSection } from "./components/EscalationSection";
+import { IdentifyForm } from "./components/IdentifyForm";
+import { MessageList } from "./components/MessageList";
+import { WidgetFrame } from "./components/WidgetFrame";
+import { requestEscalation } from "./escalation";
+import { getOrCreateClientId, getText } from "./lib";
+import { mergeMessages } from "./messages-sync";
+import { ShowcaseChat } from "./ShowcaseChat";
+import { useServerMessages } from "./useServerMessages";
 
-interface WidgetProps {
+/**
+ * "live" (default) talks to the real API: conversations are created and
+ * persisted, escalation notifies the team. "showcase" is a self-contained
+ * demo: local state only, canned replies, no network calls ever.
+ */
+export type WidgetMode = "showcase" | "live";
+
+/**
+ * "bubble" (default) renders the floating launcher; "inline" renders the
+ * panel permanently open filling its container — the /embed iframe page or
+ * any position:relative wrapper.
+ */
+export type WidgetLayout = "bubble" | "inline";
+
+interface BaseWidgetProps {
+	brandColor: string;
+	mode?: WidgetLayout;
+}
+
+interface LiveWidgetProps extends BaseWidgetProps {
+	widgetMode?: "live";
 	projectKey: string;
 	apiUrl: string;
-	brandColor: string;
+	/** Messages before "Talk to a human" appears; falls back to 3. */
+	escalationThreshold?: number;
 }
 
-const CLIENT_ID_KEY = "llmchat_client_id";
-const ESCALATION_THRESHOLD = 3;
+interface ShowcaseWidgetProps extends BaseWidgetProps {
+	widgetMode: "showcase";
+	projectKey?: string;
+	apiUrl?: string;
+}
 
-function getOrCreateClientId(): string {
-	const existing = sessionStorage.getItem(CLIENT_ID_KEY);
-	if (existing) {
-		return existing;
+export type WidgetProps = LiveWidgetProps | ShowcaseWidgetProps;
+
+export function Widget(props: WidgetProps) {
+	if (props.widgetMode === "showcase") {
+		return <ShowcaseWidget brandColor={props.brandColor} mode={props.mode} />;
 	}
-	const id = crypto.randomUUID();
-	sessionStorage.setItem(CLIENT_ID_KEY, id);
-	return id;
+	return <LiveWidget {...props} />;
 }
 
-function getText(m: UIMessage): string {
-	return m.parts
-		.filter((p): p is { type: "text"; text: string } => p.type === "text")
-		.map((p) => p.text)
-		.join("");
+function ShowcaseWidget({ brandColor, mode = "bubble" }: BaseWidgetProps) {
+	const inline = mode === "inline";
+	const [open, setOpen] = useState(inline);
+	return (
+		<WidgetFrame
+			inline={inline}
+			brandColor={brandColor}
+			open={open}
+			onOpenChange={setOpen}
+			badge={<span className="llmchat-demo-badge">Demo mode</span>}
+		>
+			<ShowcaseChat />
+		</WidgetFrame>
+	);
 }
 
-export function Widget({ projectKey, apiUrl, brandColor }: WidgetProps) {
-	const [open, setOpen] = useState(false);
+const DEFAULT_ESCALATION_THRESHOLD = 3;
+const SEND_ERROR =
+	"Something went wrong sending your message. Please try again.";
+const ESCALATED_NOTICE =
+	"A human operator has been notified. We’ll get back to you soon.";
+
+/**
+ * The configured human-handoff threshold, or the default when it's missing or
+ * below 1 (a project must allow at least one message before escalation).
+ */
+export function resolveEscalationThreshold(value?: number): number {
+	return typeof value === "number" && Number.isFinite(value) && value >= 1
+		? Math.floor(value)
+		: DEFAULT_ESCALATION_THRESHOLD;
+}
+
+function LiveWidget({
+	projectKey,
+	apiUrl,
+	brandColor,
+	mode = "bubble",
+	escalationThreshold,
+}: LiveWidgetProps) {
+	const inline = mode === "inline";
+	const [open, setOpen] = useState(inline);
 	const [text, setText] = useState("");
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [identified, setIdentified] = useState(false);
 	const [escalated, setEscalated] = useState(false);
 	const [escalating, setEscalating] = useState(false);
+	const [escalateFailed, setEscalateFailed] = useState(false);
 	const [clientId, setClientId] = useState("");
-	const messagesEndRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		setClientId(getOrCreateClientId());
@@ -55,158 +119,115 @@ export function Widget({ projectKey, apiUrl, brandColor }: WidgetProps) {
 			}),
 		[apiUrl, projectKey, clientId, name, email],
 	);
-	const { messages, sendMessage, status } = useChat({ chat });
+	const { messages, sendMessage, status, error } = useChat({ chat });
 	const loading = status === "streaming" || status === "submitted";
+	const sendFailed = status === "error" && error != null;
 
+	// Poll the persisted feed while chatting so admin replies from the
+	// dashboard appear without a refresh.
+	const { serverMessages, refresh } = useServerMessages(
+		apiUrl,
+		projectKey,
+		clientId,
+		open && identified,
+	);
+
+	// Refetch as soon as a send settles (stream finished or failed) so the
+	// just-persisted exchange replaces the local copy immediately.
+	const wasLoading = useRef(false);
 	useEffect(() => {
-		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-	}, [messages]);
-
-	const userMessageCount = messages.filter((m) => m.role === "user").length;
-	const showEscalation = !escalated && userMessageCount >= ESCALATION_THRESHOLD;
-
-	function handleIdentify(e: React.FormEvent) {
-		e.preventDefault();
-		if (!name.trim()) {
-			return;
+		if (wasLoading.current && !loading) {
+			refresh();
 		}
-		setIdentified(true);
-	}
+		wasLoading.current = loading;
+	}, [loading, refresh]);
 
-	function handleSubmit(e: React.FormEvent) {
-		e.preventDefault();
-		const trimmed = text.trim();
-		if (!trimmed || loading) {
-			return;
-		}
-		void sendMessage({ text: trimmed });
+	const displayMessages = useMemo(
+		() =>
+			mergeMessages(
+				serverMessages,
+				messages.map((m) => ({ id: m.id, role: m.role, content: getText(m) })),
+			),
+		[serverMessages, messages],
+	);
+	const userMessageCount = displayMessages.filter(
+		(m) => m.role === "user",
+	).length;
+	const threshold = resolveEscalationThreshold(escalationThreshold);
+	const showEscalation = !escalated && userMessageCount >= threshold;
+
+	function handleSend() {
+		void sendMessage({ text: text.trim() });
 		setText("");
 	}
 
 	async function handleEscalate() {
+		if (escalating) {
+			return;
+		}
 		setEscalating(true);
+		setEscalateFailed(false);
 		try {
-			await fetch(`${apiUrl}/v1/escalate`, {
-				method: "POST",
-				headers: { "content-type": "application/json" },
-				body: JSON.stringify({
-					projectKey,
-					clientId,
-					name,
-					email: email || undefined,
-					messages: messages.map((m) => ({
-						role: m.role,
-						content: getText(m),
-					})),
-				}),
+			await requestEscalation(apiUrl, {
+				projectKey,
+				clientId,
+				name,
+				email: email || undefined,
+				messages: displayMessages.map(({ role, content }) => ({
+					role,
+					content,
+				})),
 			});
 			setEscalated(true);
+			refresh();
+		} catch {
+			setEscalateFailed(true);
 		} finally {
 			setEscalating(false);
 		}
 	}
 
 	return (
-		<div className="llmchat" style={{ ["--brand" as string]: brandColor }}>
-			<button
-				type="button"
-				className="llmchat-bubble"
-				onClick={() => setOpen((v) => !v)}
-				aria-label={open ? "Close chat" : "Open chat"}
-			>
-				{open ? "×" : "💬"}
-			</button>
-			{open && (
-				<div className="llmchat-panel" role="dialog">
-					<header className="llmchat-header">
-						<span>Support</span>
-						<button
-							type="button"
-							onClick={() => setOpen(false)}
-							aria-label="Close"
-						>
-							×
-						</button>
-					</header>
-					{!identified ? (
-						<form onSubmit={handleIdentify} className="llmchat-identify">
-							<p>Welcome! Tell us who you are.</p>
-							<input
-								required
-								placeholder="Your name"
-								value={name}
-								onChange={(e) => setName(e.target.value)}
-							/>
-							<input
-								type="email"
-								placeholder="Email (optional)"
-								value={email}
-								onChange={(e) => setEmail(e.target.value)}
-							/>
-							<button type="submit">Start chat</button>
-						</form>
-					) : (
-						<>
-							<div className="llmchat-messages">
-								{messages.length === 0 && (
-									<div className="llmchat-msg llmchat-msg-assistant">
-										Hi {name}! How can I help?
-									</div>
-								)}
-								{messages.map((m) => {
-									const content = getText(m);
-									if (!content) {
-										return null;
-									}
-									return (
-										<div
-											key={m.id}
-											className={`llmchat-msg llmchat-msg-${m.role}`}
-										>
-											{content}
-										</div>
-									);
-								})}
-								{loading && <div className="llmchat-typing">…</div>}
-								<div ref={messagesEndRef} />
-							</div>
-							{showEscalation && (
-								<div className="llmchat-escalate">
-									<button
-										type="button"
-										onClick={handleEscalate}
-										disabled={escalating}
-									>
-										{escalating ? "Sending…" : "Talk to a human"}
-									</button>
-								</div>
-							)}
-							{escalated && (
-								<div className="llmchat-escalated">
-									We&apos;ve notified our team. Reply will come via email.
-								</div>
-							)}
-							<form onSubmit={handleSubmit} className="llmchat-input">
-								<textarea
-									rows={1}
-									value={text}
-									onChange={(e) => setText(e.target.value)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter" && !e.shiftKey) {
-											e.preventDefault();
-											handleSubmit(e);
-										}
-									}}
-									placeholder="Type a message…"
-								/>
-								<button type="submit" disabled={!text.trim() || loading}>
-									Send
-								</button>
-							</form>
-						</>
+		<WidgetFrame
+			inline={inline}
+			brandColor={brandColor}
+			open={open}
+			onOpenChange={setOpen}
+		>
+			{!identified ? (
+				<IdentifyForm
+					name={name}
+					email={email}
+					onNameChange={setName}
+					onEmailChange={setEmail}
+					onSubmit={() => setIdentified(true)}
+				/>
+			) : (
+				<>
+					<MessageList
+						greeting={`Hi ${name}! How can I help?`}
+						messages={displayMessages}
+						typing={loading}
+						error={sendFailed ? SEND_ERROR : null}
+					/>
+					{showEscalation && (
+						<EscalationSection
+							pending={escalating}
+							failed={escalateFailed}
+							onEscalate={handleEscalate}
+						/>
 					)}
-				</div>
+					{escalated && (
+						<div className="llmchat-escalated">{ESCALATED_NOTICE}</div>
+					)}
+					<Composer
+						value={text}
+						disabled={loading}
+						onChange={setText}
+						onSubmit={handleSend}
+					/>
+				</>
 			)}
-		</div>
+		</WidgetFrame>
 	);
 }

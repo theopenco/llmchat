@@ -1,31 +1,17 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { resolveConfig } from "./config";
 import { Widget } from "./widget";
 import { widgetStyles } from "./styles";
 
-interface BootConfig {
-	projectKey: string;
-	apiUrl: string;
-	brandColor: string;
-}
-
-// Captured at module scope during IIFE execution — document.currentScript is
-// null inside event handlers (e.g. DOMContentLoaded), so grab it now.
-const _scriptEl = document.currentScript as HTMLScriptElement | null;
-
-function getConfig(): BootConfig {
-	const projectKey = _scriptEl?.dataset.project ?? "";
-	const apiUrl = _scriptEl?.dataset.api ?? "https://llmchat-api.meetploy.app";
-	const brandColor = _scriptEl?.dataset.brand ?? "#111827";
-	if (!projectKey) {
-		throw new Error("[llmchat] missing data-project on widget script tag");
-	}
-	return { projectKey, apiUrl, brandColor };
-}
+// document.currentScript is only set during synchronous script evaluation —
+// it is null inside the DOMContentLoaded callback — so capture config now.
+const config = resolveConfig(
+	document.currentScript as HTMLScriptElement | null,
+);
 
 function mount() {
-	const config = getConfig();
 	const host = document.createElement("div");
 	host.id = "llmchat-widget-root";
 	document.body.appendChild(host);

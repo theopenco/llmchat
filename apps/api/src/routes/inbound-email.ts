@@ -2,7 +2,7 @@ import { Hono } from "hono";
 
 import { db } from "@/lib/db";
 
-import { conversation, eq, message, project } from "@llmchat/db";
+import { conversation, eq, message } from "@llmchat/db";
 
 import type { AppContext } from "@/env";
 

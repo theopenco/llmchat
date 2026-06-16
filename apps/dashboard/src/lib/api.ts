@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
+import { apiBaseUrl } from "./api-base";
 
 export interface ApiOptions {
 	method?: string;
@@ -10,7 +10,7 @@ export async function api<T>(
 	path: string,
 	{ method = "GET", body, workspaceId }: ApiOptions = {},
 ): Promise<T> {
-	const res = await fetch(`${API_URL}${path}`, {
+	const res = await fetch(`${apiBaseUrl()}${path}`, {
 		method,
 		credentials: "include",
 		headers: {

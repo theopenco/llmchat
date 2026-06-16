@@ -144,7 +144,7 @@ export const project = sqliteTable(
 		pinned: integer({ mode: "boolean" }).notNull().default(false),
 		// Plain-text knowledge base for v1; replaced by RAG later.
 		knowledgeText: text().notNull().default(""),
-		model: text().notNull().default("gpt-4o-search-preview"),
+		model: text().notNull().default("gpt-5.4-mini"),
 		brandColor: text().notNull().default("#000000"),
 		welcomeMessage: text().notNull().default("Hi! How can I help you today?"),
 		escalationThreshold: integer().notNull().default(3),
@@ -231,7 +231,7 @@ export const message = sqliteTable(
 		conversationId: text()
 			.notNull()
 			.references(() => conversation.id, { onDelete: "cascade" }),
-		role: text({ enum: ["user", "assistant", "admin"] }).notNull(),
+		role: text({ enum: ["user", "assistant", "admin", "system"] }).notNull(),
 		content: text().notNull(),
 		sequence: integer().notNull(),
 		// Author for admin messages; null for user/assistant.

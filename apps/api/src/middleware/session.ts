@@ -3,8 +3,6 @@ import { createMiddleware } from "hono/factory";
 import { createAuth } from "@/auth";
 import { db } from "@/lib/db";
 
-import { eq, member } from "@llmchat/db";
-
 import type { AppContext } from "@/env";
 
 export const requireSession = createMiddleware<AppContext>(async (c, next) => {

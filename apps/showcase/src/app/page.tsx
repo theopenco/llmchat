@@ -1,3 +1,5 @@
+import { DashboardLink } from "@/components/DashboardLink";
+import { InlineShowcaseChat } from "@/components/InlineShowcaseChat";
 import { WidgetMount } from "@/components/WidgetMount";
 
 export default function Page() {
@@ -48,12 +50,21 @@ export default function Page() {
 				<div className="card">
 					<h2>Check the inbox</h2>
 					<p>
-						Sign in to the dashboard at{" "}
-						<a href="http://localhost:3001">localhost:3001</a> with{" "}
+						Sign in to the dashboard at <DashboardLink /> with{" "}
 						<code>admin@example.com</code> / <code>admin@example.com</code> to
 						see the conversation land.
 					</p>
 				</div>
+			</section>
+
+			<section id="iframe-embed" className="hero">
+				<h2>Or embed it inline</h2>
+				<p className="lede">
+					This is a showcase preview of how an inline chatbot can look. Messages
+					in this demo are not sent to real support — use the floating bubble
+					for the live chatbot.
+				</p>
+				<InlineShowcaseChat />
 			</section>
 
 			<footer className="footer">

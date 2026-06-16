@@ -3,7 +3,7 @@
 	"compilerOptions": {
 		"outDir": "./dist",
 		"rootDir": "./src",
-		"types": ["@cloudflare/workers-types"]
+		"types": ["@meetploy/types/globals"]
 	},
 	"include": ["src"]
 }

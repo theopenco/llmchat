@@ -8,12 +8,16 @@
 	},
 	"scripts": {
 		"format": "prettier --write .",
-		"lint": "prettier --check ."
+		"lint": "prettier --check .",
+		"test": "vitest run",
+		"gen:web-search-models": "node scripts/gen-web-search-models.mjs"
 	},
 	"dependencies": {
 		"zod": "^4.0.0"
 	},
 	"devDependencies": {
-		"typescript": "5.9.2"
+		"@llmgateway/models": "^1.128.0",
+		"typescript": "5.9.2",
+		"vitest": "^3.0.0"
 	}
 }

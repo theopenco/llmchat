@@ -11,7 +11,7 @@ const colHead =
 const colLink = "text-sm text-muted transition-colors hover:text-ink";
 
 export function SiteFooter() {
-	const competitors = [...allCompetitors].sort((a, b) => a.rank - b.rank);
+	const competitors = allCompetitors.toSorted((a, b) => a.rank - b.rank);
 
 	return (
 		<footer className="mt-32 border-t border-rule bg-paper-deep">
