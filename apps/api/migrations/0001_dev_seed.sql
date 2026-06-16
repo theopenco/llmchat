@@ -34,6 +34,7 @@ INSERT OR IGNORE INTO `project` (
 	`system_prompt`,
 	`welcome_message`,
 	`brand_color`,
+	`model`,
 	`notify_email`,
 	`inbound_email_local`
 ) VALUES (
@@ -44,6 +45,7 @@ INSERT OR IGNORE INTO `project` (
 	'You are the support bot for Acme Tools, a fictional SaaS for managing hardware inventory. Keep replies short and friendly.',
 	'Hi! Ask me anything about Acme Tools.',
 	'#4f46e5',
+	'gpt-5.4-mini',
 	'admin@example.com',
 	'dev'
 );

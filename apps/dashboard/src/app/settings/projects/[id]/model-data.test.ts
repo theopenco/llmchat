@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	DEFAULT_MODEL,
 	formatContextLength,
 	formatPricing,
 	hasWebSearch,
@@ -11,6 +12,8 @@ import {
 	parseGatewayModels,
 	providerLabel,
 	titleCase,
+	WEB_SEARCH_MODEL_IDS,
+	webSearchModels,
 } from "./model-data";
 
 describe("parseGatewayModels", () => {
@@ -51,30 +54,69 @@ describe("parseGatewayModels", () => {
 });
 
 describe("hasWebSearch", () => {
-	it("detects an explicit web_search supported parameter", () => {
-		expect(
-			hasWebSearch({
-				id: "x",
-				name: "X",
-				supported_parameters: ["web_search"],
-			}),
-		).toBe(true);
+	it("is true only for ids in the vendor's web-search set", () => {
+		for (const id of WEB_SEARCH_MODEL_IDS) {
+			expect(hasWebSearch({ id, name: id })).toBe(true);
+		}
 	});
 
-	it("detects web-search naming conventions", () => {
-		expect(hasWebSearch({ id: "sonar", name: "Sonar" })).toBe(true);
+	it("does NOT guess from names — a non-listed model is false even if its name screams search", () => {
+		// These match the old name heuristic but are not in the gateway's set,
+		// so they must be excluded now.
+		expect(hasWebSearch({ id: "sonar", name: "Sonar" })).toBe(false);
 		expect(hasWebSearch({ id: "gpt-4o:online", name: "GPT-4o Online" })).toBe(
-			true,
+			false,
 		);
 		expect(
 			hasWebSearch({ id: "gpt-4o-search-preview", name: "Search Preview" }),
-		).toBe(true);
+		).toBe(false);
+	});
+
+	it("does NOT trust a self-declared web_search supported parameter", () => {
+		// supported_parameters is untrusted gateway data; membership is the
+		// authority, not a flag a row can set on itself.
+		expect(
+			hasWebSearch({
+				id: "totally-not-web-search",
+				name: "X",
+				supported_parameters: ["web_search"],
+			}),
+		).toBe(false);
 	});
 
 	it("returns false for plain chat models", () => {
 		expect(hasWebSearch({ id: "gpt-4o-mini", name: "GPT-4o mini" })).toBe(
 			false,
 		);
+		expect(hasWebSearch({ id: "gpt-4.1-mini", name: "GPT-4.1 mini" })).toBe(
+			false,
+		);
+	});
+});
+
+describe("webSearchModels", () => {
+	it("keeps only web-search models and preserves their objects", () => {
+		const models = [
+			{ id: "gpt-5.4-mini", name: "GPT-5.4 Mini" },
+			{ id: "gpt-4.1-mini", name: "GPT-4.1 Mini" }, // not web search
+			{ id: "claude-opus-4-8", name: "Claude Opus 4.8" },
+			{ id: "gpt-4o-mini", name: "GPT-4o mini" }, // not web search
+		];
+		expect(webSearchModels(models).map((m) => m.id)).toEqual([
+			"gpt-5.4-mini",
+			"claude-opus-4-8",
+		]);
+	});
+
+	it("returns an empty list when nothing qualifies", () => {
+		expect(webSearchModels([{ id: "gpt-4o-mini", name: "x" }])).toEqual([]);
+	});
+});
+
+describe("DEFAULT_MODEL", () => {
+	it("is itself a web-search model, so it survives the picker's filter", () => {
+		expect(WEB_SEARCH_MODEL_IDS.has(DEFAULT_MODEL)).toBe(true);
+		expect(hasWebSearch({ id: DEFAULT_MODEL, name: DEFAULT_MODEL })).toBe(true);
 	});
 });
 

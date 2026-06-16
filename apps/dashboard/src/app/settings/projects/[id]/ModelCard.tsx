@@ -83,7 +83,7 @@ export function ModelCard({
 
 			<p className="flex items-center gap-1.5 text-xs text-muted-foreground">
 				<Info className="size-3.5" />
-				All models available on LLM Gateway are listed.
+				Only models with web search are listed.
 			</p>
 		</SectionCard>
 	);
