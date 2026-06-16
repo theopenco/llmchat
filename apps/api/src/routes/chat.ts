@@ -15,6 +15,7 @@ import {
 	message as messageTable,
 	usageEvent,
 } from "@llmchat/db";
+import { effectiveModel } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 import type { UIMessage } from "ai";
@@ -146,10 +147,20 @@ export const chat = new Hono<AppContext>()
 				a(e(s.projectId, project.id), e(s.active, true)),
 		});
 
+		// Guard the live bot against a project stuck on a model that's no longer
+		// a valid web-search model (e.g. a pre-web-search saved value): run the
+		// default for this request instead of letting the gateway call fail.
+		const model = effectiveModel(project.model);
+		if (model !== project.model) {
+			console.warn(
+				`chat: project ${project.id} model "${project.model}" is not a web-search model; using "${model}"`,
+			);
+		}
+
 		let result: Awaited<ReturnType<typeof streamChat>>;
 		try {
 			result = await streamChat(c.env, {
-				model: project.model,
+				model,
 				systemPrompt: activePromptContent,
 				knowledgeText: project.knowledgeText,
 				sources: activeSources.map((s) => ({
@@ -191,7 +202,7 @@ export const chat = new Hono<AppContext>()
 							projectId: project.id,
 							conversationId: conv.id,
 							messageId: "",
-							model: project.model,
+							model,
 							promptTokens: usage?.inputTokens ?? 0,
 							completionTokens: usage?.outputTokens ?? 0,
 							costUsd: 0,

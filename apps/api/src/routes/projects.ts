@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { requireSession, requireWorkspace } from "@/middleware/session";
 
 import { eq, project } from "@llmchat/db";
+import { DEFAULT_MODEL } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 
@@ -14,7 +15,7 @@ const projectInput = z.object({
 	systemPrompt: z.string().default(""),
 	activeSystemPromptId: z.string().nullable().optional(),
 	knowledgeText: z.string().default(""),
-	model: z.string().default("gpt-5.4-mini"),
+	model: z.string().default(DEFAULT_MODEL),
 	brandColor: z.string().default("#000000"),
 	welcomeMessage: z.string().default("Hi! How can I help you today?"),
 	escalationThreshold: z.number().int().min(1).default(3),
