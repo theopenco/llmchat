@@ -13,7 +13,7 @@ import { ConversationList } from "./_components/ConversationList";
 import { ConversationListSkeleton } from "./_components/ConversationListSkeleton";
 import { DetailPanel } from "./_components/DetailPanel";
 import { NoProjectsEmpty, NoWorkspaceEmpty } from "./_components/empty-states";
-import { initials } from "./_components/format";
+import { initials, pluralize } from "./_components/format";
 import { InboxSkeleton } from "./_components/InboxSkeleton";
 import { InboxStats } from "./_components/InboxStats";
 import { MessageThread } from "./_components/MessageThread";
@@ -239,7 +239,7 @@ export default function InboxPage() {
 										{detailConv.name ?? "Anonymous"}
 									</p>
 									<p className="text-xs text-muted-foreground">
-										{detailConv.messageCount} messages
+										{pluralize(detailConv.messageCount, "message")}
 									</p>
 								</div>
 								{detailConv.escalatedAt && (

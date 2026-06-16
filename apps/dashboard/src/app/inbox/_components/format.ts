@@ -91,6 +91,15 @@ export function parseDevice(
 	return `${parseBrowser(userAgent)} on ${parseOS(userAgent)}`;
 }
 
+/** "1 message", "3 messages" — pluralizes a noun by count. */
+export function pluralize(
+	count: number,
+	singular: string,
+	plural = `${singular}s`,
+): string {
+	return `${count} ${count === 1 ? singular : plural}`;
+}
+
 /** Up-to-2-letter avatar initials from a name; "?" when there's no name. */
 export function initials(name: string | null | undefined): string {
 	const trimmed = name?.trim();

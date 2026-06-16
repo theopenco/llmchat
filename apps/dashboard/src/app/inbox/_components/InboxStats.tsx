@@ -58,7 +58,7 @@ export function InboxStats({
 			<StatItem
 				icon={<MessageSquare className="size-4" />}
 				value={total}
-				label="conversations"
+				label={total === 1 ? "conversation" : "conversations"}
 			/>
 			<StatItem
 				icon={<TriangleAlert className="size-4" />}

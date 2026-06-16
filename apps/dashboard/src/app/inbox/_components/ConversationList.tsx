@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-import { initials, timeAgo } from "./format";
+import { initials, pluralize, timeAgo } from "./format";
 import type { Conversation } from "./types";
 
 function ConversationRow({
@@ -74,7 +74,7 @@ function ConversationRow({
 						</Badge>
 					)}
 					<span className="text-[11px] text-muted-foreground/70">
-						{conversation.messageCount} messages
+						{pluralize(conversation.messageCount, "message")}
 					</span>
 				</div>
 			</div>
@@ -164,7 +164,8 @@ export function ConversationList({
 
 			<div className="border-t px-4 py-2">
 				<p className="text-[11px] text-muted-foreground">
-					{conversations.length} {showArchived ? "archived" : "shown"}
+					{pluralize(conversations.length, "conversation")}
+					{showArchived ? " archived" : ""}
 				</p>
 			</div>
 		</div>

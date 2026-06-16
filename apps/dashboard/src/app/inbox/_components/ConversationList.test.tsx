@@ -50,7 +50,12 @@ describe("ConversationList", () => {
 		setup();
 		expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
 		expect(screen.getByText("How do I reset my device?")).toBeInTheDocument();
-		expect(screen.getByText(/3 messages/)).toBeInTheDocument();
+		expect(screen.getByText("3 messages")).toBeInTheDocument();
+	});
+
+	it("uses a singular label for a single message", () => {
+		setup({ conversations: [conv({ id: "a", messageCount: 1 })] });
+		expect(screen.getByText("1 message")).toBeInTheDocument();
 	});
 
 	it("marks escalated conversations with a badge", () => {

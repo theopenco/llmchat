@@ -4,9 +4,23 @@ import {
 	formatFullDate,
 	initials,
 	parseDevice,
+	pluralize,
 	timeAgo,
 	toDate,
 } from "./format";
+
+describe("pluralize", () => {
+	it("uses the singular only for a count of 1", () => {
+		expect(pluralize(1, "message")).toBe("1 message");
+		expect(pluralize(0, "message")).toBe("0 messages");
+		expect(pluralize(3, "message")).toBe("3 messages");
+	});
+
+	it("supports irregular plurals", () => {
+		expect(pluralize(1, "person", "people")).toBe("1 person");
+		expect(pluralize(2, "person", "people")).toBe("2 people");
+	});
+});
 
 describe("toDate", () => {
 	it("parses ISO strings (the API wire format)", () => {
