@@ -10,8 +10,8 @@
 		--card-foreground: 222.2 84% 4.9%;
 		--popover: 0 0% 100%;
 		--popover-foreground: 222.2 84% 4.9%;
-		--primary: 222.2 47.4% 11.2%;
-		--primary-foreground: 210 40% 98%;
+		--primary: 243 75% 59%;
+		--primary-foreground: 0 0% 100%;
 		--secondary: 210 40% 96.1%;
 		--secondary-foreground: 222.2 47.4% 11.2%;
 		--muted: 210 40% 96.1%;
@@ -28,7 +28,7 @@
 		--info-foreground: 210 40% 98%;
 		--border: 214.3 31.8% 91.4%;
 		--input: 214.3 31.8% 91.4%;
-		--ring: 222.2 84% 4.9%;
+		--ring: 243 75% 59%;
 		--radius: 0.5rem;
 		--sidebar-background: 210 40% 98%;
 		--sidebar-foreground: 215.4 16.3% 40%;
@@ -47,8 +47,8 @@
 		--card-foreground: 210 40% 98%;
 		--popover: 222 25% 14%;
 		--popover-foreground: 210 40% 98%;
-		--primary: 210 40% 98%;
-		--primary-foreground: 222.2 47.4% 11.2%;
+		--primary: 243 75% 67%;
+		--primary-foreground: 0 0% 100%;
 		--secondary: 222 19% 19%;
 		--secondary-foreground: 210 40% 98%;
 		--muted: 222 30% 10%;
@@ -65,7 +65,7 @@
 		--info-foreground: 210 40% 98%;
 		--border: 222 18% 22%;
 		--input: 222 18% 22%;
-		--ring: 217.9 26.8% 60%;
+		--ring: 243 75% 67%;
 		--sidebar-background: 222 33% 8%;
 		--sidebar-foreground: 217.9 10.6% 78%;
 		--sidebar-primary: 210 40% 98%;
@@ -82,11 +82,7 @@ body {
 	height: 100%;
 }
 body {
-	font-family:
-		system-ui,
-		-apple-system,
-		Segoe UI,
-		sans-serif;
+	font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, sans-serif;
 	background: hsl(var(--muted));
 	color: hsl(var(--foreground));
 }

@@ -22,8 +22,22 @@ const app = new Hono<AppContext>();
 app.use(
 	"/api/*",
 	cors({
-		origin: (origin, c) =>
-			isAllowedOrigin(origin, c.env.vars.DASHBOARD_URL) ? origin : null,
+		origin: (origin, c) => {
+			const dash = c.env.vars.DASHBOARD_URL;
+			// Auth/session endpoints are also readable from the marketing site so the
+			// public pages can show "Sign in" vs "Dashboard" based on the session.
+			// Data routes stay pinned to the dashboard origin.
+			if (c.req.path.startsWith("/api/auth")) {
+				const mkt = c.env.vars.MARKETING_URL || "http://localhost:3002";
+				const showcase = c.env.vars.SHOWCASE_URL || "http://localhost:3003";
+				return isAllowedOrigin(origin, dash) ||
+					isAllowedOrigin(origin, mkt) ||
+					isAllowedOrigin(origin, showcase)
+					? origin
+					: null;
+			}
+			return isAllowedOrigin(origin, dash) ? origin : null;
+		},
 		credentials: true,
 	}),
 );

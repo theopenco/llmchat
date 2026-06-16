@@ -52,9 +52,18 @@ export function createAuth(env: Env) {
 		// sign-in works from PR preview links.
 		trustedOrigins: (request) => {
 			const origin = request?.headers.get("origin");
-			return origin && isAllowedOrigin(origin, env.vars.DASHBOARD_URL)
-				? [origin]
-				: [env.vars.DASHBOARD_URL];
+			const dash = env.vars.DASHBOARD_URL;
+			const mkt = env.vars.MARKETING_URL || "http://localhost:3002";
+			const showcase = env.vars.SHOWCASE_URL || "http://localhost:3003";
+			if (
+				origin &&
+				(isAllowedOrigin(origin, dash) ||
+					isAllowedOrigin(origin, mkt) ||
+					isAllowedOrigin(origin, showcase))
+			) {
+				return [origin];
+			}
+			return [dash, mkt, showcase];
 		},
 	});
 }

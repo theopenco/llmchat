@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 @layer base {
+	html {
+		color-scheme: dark;
+	}
 	html,
 	body {
 		height: 100%;
@@ -10,50 +13,59 @@
 
 	body {
 		font-family: var(--font-sans), system-ui, sans-serif;
-		color: #1a1916;
-		background-color: #faf7f0;
-		/* Faint warm paper grain so backgrounds have tooth, not flat fill. */
+		color: #f6f8fc;
+		background-color: #0b0e14;
+		/* Indigo aurora at the top + faint depth — atmosphere, not flat fill. */
 		background-image:
 			radial-gradient(
-				circle at 18% 12%,
-				rgba(181, 65, 30, 0.04),
-				transparent 42%
+				60rem 40rem at 50% -10%,
+				rgba(99, 102, 241, 0.16),
+				transparent 60%
 			),
 			radial-gradient(
-				circle at 88% 0%,
-				rgba(143, 49, 21, 0.035),
-				transparent 38%
+				40rem 30rem at 100% 0%,
+				rgba(79, 70, 229, 0.1),
+				transparent 55%
 			);
+		background-repeat: no-repeat;
 		background-attachment: fixed;
 		-webkit-font-smoothing: antialiased;
 		text-rendering: optimizeLegibility;
 	}
 
 	::selection {
-		background-color: #1a1916;
-		color: #faf7f0;
-	}
-
-	/* Fraunces optical sizing for display headings. */
-	.font-display {
-		font-optical-sizing: auto;
-		font-variation-settings: "opsz" 120;
+		background-color: rgba(99, 102, 241, 0.35);
+		color: #ffffff;
 	}
 }
 
 @layer components {
-	/* Mono eyebrow / kicker used across editorial sections. */
+	/* Mono eyebrow / kicker. */
 	.kicker {
 		font-family: var(--font-mono), monospace;
 		font-size: 0.7rem;
 		letter-spacing: 0.18em;
 		text-transform: uppercase;
-		color: #b5411e;
+		color: #818cf8;
 	}
 
-	/* Long-form article prose rendered from markdown HTML. */
+	/* Subtle dotted-grid backdrop for hero/sections. */
+	.grid-backdrop {
+		background-image: radial-gradient(
+			rgba(255, 255, 255, 0.05) 1px,
+			transparent 1px
+		);
+		background-size: 22px 22px;
+		mask-image: radial-gradient(
+			60% 60% at 50% 40%,
+			#000 0%,
+			transparent 100%
+		);
+	}
+
+	/* Long-form article prose rendered from markdown HTML (dark). */
 	.prose-editorial {
-		color: #3d392f;
+		color: #c7cedb;
 		font-size: 1.0625rem;
 		line-height: 1.75;
 	}
@@ -64,29 +76,29 @@
 		text-wrap: pretty;
 	}
 	.prose-editorial strong {
-		color: #1a1916;
+		color: #f6f8fc;
 		font-weight: 600;
 	}
 	.prose-editorial a {
-		color: #b5411e;
+		color: #818cf8;
 		text-decoration: underline;
 		text-underline-offset: 3px;
 		text-decoration-thickness: 1px;
 	}
 	.prose-editorial h2 {
-		font-family: var(--font-display), serif;
+		font-family: var(--font-display), sans-serif;
 		font-weight: 600;
 		font-size: 1.6rem;
 		line-height: 1.2;
 		letter-spacing: -0.01em;
-		color: #1a1916;
+		color: #f6f8fc;
 		margin-top: 2.2em;
 	}
 	.prose-editorial h3 {
-		font-family: var(--font-display), serif;
+		font-family: var(--font-display), sans-serif;
 		font-weight: 600;
 		font-size: 1.25rem;
-		color: #1a1916;
+		color: #f6f8fc;
 		margin-top: 1.8em;
 	}
 	.prose-editorial ul {
@@ -101,27 +113,29 @@
 		margin-top: 0.5em;
 	}
 	.prose-editorial li::before {
-		content: "—";
+		content: "→";
 		position: absolute;
 		left: 0;
-		color: #b5411e;
+		color: #6366f1;
 	}
 	.prose-editorial code {
 		font-family: var(--font-mono), monospace;
 		font-size: 0.85em;
-		background-color: #f2ebdd;
+		background-color: #141925;
+		border: 1px solid #222a3a;
 		padding: 0.1em 0.35em;
 		border-radius: 4px;
+		color: #c7cedb;
 	}
 
 	/* Drop cap for the first paragraph of an article. */
 	.dropcap > p:first-of-type::first-letter {
-		font-family: var(--font-display), serif;
+		font-family: var(--font-display), sans-serif;
 		font-weight: 700;
 		float: left;
 		font-size: 3.6rem;
 		line-height: 0.82;
 		padding: 0.04em 0.12em 0 0;
-		color: #b5411e;
+		color: #818cf8;
 	}
 }

@@ -1,11 +1,35 @@
 import "./globals.css";
 
 import type { Metadata } from "next";
+import {
+	Bricolage_Grotesque,
+	Hanken_Grotesk,
+	JetBrains_Mono,
+} from "next/font/google";
+
+const display = Bricolage_Grotesque({
+	subsets: ["latin"],
+	weight: ["400", "500", "600", "700", "800"],
+	variable: "--font-display",
+	display: "swap",
+});
+const sans = Hanken_Grotesk({
+	subsets: ["latin"],
+	weight: ["400", "500", "600", "700"],
+	variable: "--font-sans",
+	display: "swap",
+});
+const mono = JetBrains_Mono({
+	subsets: ["latin"],
+	weight: ["400", "500", "600", "700"],
+	variable: "--font-mono",
+	display: "swap",
+});
 
 export const metadata: Metadata = {
-	title: "Acme Tools — llmchat widget showcase",
+	title: "llmchat — live demo",
 	description:
-		"Fake customer site that embeds the llmchat widget for local dev.",
+		"Try the llmchat widget live. Chat with the bubble, send a few messages, and watch it escalate to a human.",
 };
 
 export default function RootLayout({
@@ -14,7 +38,10 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en">
+		<html
+			lang="en"
+			className={`dark ${display.variable} ${sans.variable} ${mono.variable}`}
+		>
 			<body>{children}</body>
 		</html>
 	);

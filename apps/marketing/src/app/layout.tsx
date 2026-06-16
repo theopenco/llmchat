@@ -1,28 +1,31 @@
 import "./globals.css";
 
 import type { Metadata } from "next";
-import { Fraunces, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import {
+	Bricolage_Grotesque,
+	Hanken_Grotesk,
+	JetBrains_Mono,
+} from "next/font/google";
 import { PostHogProvider } from "@/components/PostHogProvider";
 
-// Editorial display serif — characterful, optical, used for headlines.
-const fraunces = Fraunces({
+// Distinctive modern grotesque for display headlines.
+const display = Bricolage_Grotesque({
 	subsets: ["latin"],
-	weight: ["400", "500", "600", "700", "900"],
-	style: ["normal", "italic"],
+	weight: ["400", "500", "600", "700", "800"],
 	variable: "--font-display",
 	display: "swap",
 });
 
-// Warm, readable grotesque for body + UI.
-const hanken = Hanken_Grotesk({
+// Clean, warm grotesque for body + UI.
+const sans = Hanken_Grotesk({
 	subsets: ["latin"],
 	weight: ["400", "500", "600", "700"],
 	variable: "--font-sans",
 	display: "swap",
 });
 
-// Mono for tags, metadata, labels, and code.
-const jetbrains = JetBrains_Mono({
+// Mono for code, tags, metadata, labels.
+const mono = JetBrains_Mono({
 	subsets: ["latin"],
 	weight: ["400", "500", "600", "700"],
 	variable: "--font-mono",
@@ -30,9 +33,9 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "llmchat — AI-first support widget",
+	title: "llmchat — AI support, dropped in",
 	description:
-		"Drop-in chat widget that answers from your docs and escalates to humans. Built on LLM Gateway.",
+		"One script tag. Any model. AI support that answers from your docs and escalates to your team. Built on LLM Gateway.",
 };
 
 export default function RootLayout({
@@ -43,7 +46,7 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`${fraunces.variable} ${hanken.variable} ${jetbrains.variable}`}
+			className={`dark ${display.variable} ${sans.variable} ${mono.variable}`}
 		>
 			<body>
 				<PostHogProvider>{children}</PostHogProvider>
