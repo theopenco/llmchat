@@ -10,7 +10,9 @@ import type { Plan } from "@/lib/workspace-utils";
 import BillingPage from "./page";
 
 const useSearchParams = vi.fn();
-vi.mock("next/navigation", () => ({ useSearchParams: () => useSearchParams() }));
+vi.mock("next/navigation", () => ({
+	useSearchParams: () => useSearchParams(),
+}));
 vi.mock("@/lib/workspace", () => ({ useWorkspace: vi.fn() }));
 vi.mock("@/lib/billing", () => ({
 	startCheckout: vi.fn(),

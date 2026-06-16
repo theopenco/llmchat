@@ -82,7 +82,12 @@ body {
 	height: 100%;
 }
 body {
-	font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, sans-serif;
+	font-family:
+		var(--font-sans),
+		system-ui,
+		-apple-system,
+		Segoe UI,
+		sans-serif;
 	background: hsl(var(--muted));
 	color: hsl(var(--foreground));
 }

@@ -13,6 +13,14 @@ import { BillingPlanCard } from "./_components/BillingPlanCard";
 import { BillingSkeleton } from "./_components/BillingSkeleton";
 import { StatusBanner } from "./_components/StatusBanner";
 
+const redirect = (url: string) => {
+	window.location.href = url;
+};
+const redirectError = (label: string) => (e: unknown) =>
+	toast.error(label, {
+		description: e instanceof Error ? e.message : undefined,
+	});
+
 function BillingContent() {
 	const { workspaces, workspaceId, isLoading } = useWorkspace();
 	const qc = useQueryClient();
@@ -30,23 +38,15 @@ function BillingContent() {
 		}
 	}, [status, qc]);
 
-	const redirect = (url: string) => {
-		window.location.href = url;
-	};
-	const onError = (label: string) => (e: unknown) =>
-		toast.error(label, {
-			description: e instanceof Error ? e.message : undefined,
-		});
-
 	const checkout = useMutation({
 		mutationFn: () => startCheckout(workspaceId!),
 		onSuccess: redirect,
-		onError: onError("Couldn't start checkout"),
+		onError: redirectError("Couldn't start checkout"),
 	});
 	const portal = useMutation({
 		mutationFn: () => openPortal(workspaceId!),
 		onSuccess: redirect,
-		onError: onError("Couldn't open the billing portal"),
+		onError: redirectError("Couldn't open the billing portal"),
 	});
 
 	if (isLoading || !workspaceId) return <BillingSkeleton />;
