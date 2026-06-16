@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
+import { provisionWorkspace } from "@/lib/provisioning";
 import { requireSession } from "@/middleware/session";
 
 import { eq, member, workspace } from "@llmchat/db";
@@ -26,13 +27,7 @@ export const workspaces = new Hono<AppContext>()
 		async (c) => {
 			const userId = c.get("userId");
 			const { name } = c.req.valid("json");
-			const [ws] = await db(c.env)
-				.insert(workspace)
-				.values({ name, ownerId: userId })
-				.returning();
-			await db(c.env)
-				.insert(member)
-				.values({ workspaceId: ws!.id, userId, role: "owner" });
+			const ws = await provisionWorkspace(db(c.env), userId, name);
 			return c.json({ workspace: ws });
 		},
 	);
