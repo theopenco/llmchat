@@ -144,7 +144,7 @@ export const project = sqliteTable(
 		pinned: integer({ mode: "boolean" }).notNull().default(false),
 		// Plain-text knowledge base for v1; replaced by RAG later.
 		knowledgeText: text().notNull().default(""),
-		model: text().notNull().default("gpt-4o-search-preview"),
+		model: text().notNull().default("gpt-5.4-mini"),
 		brandColor: text().notNull().default("#000000"),
 		welcomeMessage: text().notNull().default("Hi! How can I help you today?"),
 		escalationThreshold: integer().notNull().default(3),
