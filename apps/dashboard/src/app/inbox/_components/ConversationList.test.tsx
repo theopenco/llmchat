@@ -58,6 +58,49 @@ describe("ConversationList", () => {
 		expect(screen.getByText("1 message")).toBeInTheDocument();
 	});
 
+	it("shows an unread marker only for unread conversations", () => {
+		const { rerender } = render(
+			<ConversationList
+				conversations={[conv({ id: "a", unread: true })]}
+				selectedId={null}
+				onSelect={vi.fn()}
+				search=""
+				onSearch={vi.fn()}
+				showArchived={false}
+				onToggleArchived={vi.fn()}
+			/>,
+		);
+		expect(screen.getByLabelText("Unread")).toBeInTheDocument();
+
+		rerender(
+			<ConversationList
+				conversations={[conv({ id: "a", unread: false })]}
+				selectedId={null}
+				onSelect={vi.fn()}
+				search=""
+				onSearch={vi.fn()}
+				showArchived={false}
+				onToggleArchived={vi.fn()}
+			/>,
+		);
+		expect(screen.queryByLabelText("Unread")).not.toBeInTheDocument();
+	});
+
+	it("hides the unread marker for the open conversation", () => {
+		render(
+			<ConversationList
+				conversations={[conv({ id: "a", unread: true })]}
+				selectedId="a"
+				onSelect={vi.fn()}
+				search=""
+				onSearch={vi.fn()}
+				showArchived={false}
+				onToggleArchived={vi.fn()}
+			/>,
+		);
+		expect(screen.queryByLabelText("Unread")).not.toBeInTheDocument();
+	});
+
 	it("marks escalated conversations with a badge", () => {
 		setup({
 			conversations: [

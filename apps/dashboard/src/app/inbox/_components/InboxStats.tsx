@@ -50,6 +50,7 @@ export function InboxStats({
 	conversations: Conversation[];
 }) {
 	const total = conversations.length;
+	const unread = conversations.filter((c) => c.unread).length;
 	const escalated = conversations.filter((c) => c.escalatedAt).length;
 	const archived = conversations.filter((c) => c.archivedAt).length;
 
@@ -60,6 +61,13 @@ export function InboxStats({
 				value={total}
 				label={total === 1 ? "conversation" : "conversations"}
 			/>
+			{unread > 0 && (
+				<StatItem
+					icon={<span className="size-2 rounded-full bg-sky-500" />}
+					value={unread}
+					label="unread"
+				/>
+			)}
 			<StatItem
 				icon={<TriangleAlert className="size-4" />}
 				value={escalated}

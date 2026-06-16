@@ -36,6 +36,7 @@ export const conversations = new Hono<AppContext>()
 			const { projectId } = c.req.param();
 			const { search, archived, limit, offset } = c.req.valid("query");
 			const workspaceId = c.get("workspaceId");
+			const userId = c.get("userId");
 
 			const proj = await db(c.env).query.project.findFirst({
 				where: (pt, { and: a, eq: e }) =>
@@ -95,10 +96,31 @@ export const conversations = new Hono<AppContext>()
 				firstMessages.map((m) => [m.conversationId, m.content]),
 			);
 
+			// Per-viewer read state: a conversation is unread when this user has
+			// seen fewer messages than it currently has (or never opened it).
+			const reads = ids.length
+				? await db(c.env)
+						.select({
+							conversationId: readStatus.conversationId,
+							lastReadMessageCount: readStatus.lastReadMessageCount,
+						})
+						.from(readStatus)
+						.where(
+							and(
+								eq(readStatus.userId, userId),
+								inArray(readStatus.conversationId, ids),
+							),
+						)
+				: [];
+			const readByConv = new Map(
+				reads.map((r) => [r.conversationId, r.lastReadMessageCount]),
+			);
+
 			return c.json({
 				conversations: filtered.map((r) => ({
 					...r,
 					firstMessage: firstByConv.get(r.id) ?? null,
+					unread: (readByConv.get(r.id) ?? 0) < r.messageCount,
 				})),
 			});
 		},

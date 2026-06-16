@@ -12,6 +12,8 @@ export interface Conversation {
 	updatedAt: string;
 	/** First visitor message, used as the list preview (added by the list API). */
 	firstMessage?: string | null;
+	/** True when the current user hasn't seen the latest messages. */
+	unread?: boolean;
 }
 
 export interface Message {

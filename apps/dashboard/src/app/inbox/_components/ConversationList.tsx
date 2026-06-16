@@ -19,6 +19,7 @@ function ConversationRow({
 	onSelect: () => void;
 }) {
 	const escalated = Boolean(conversation.escalatedAt);
+	const unread = Boolean(conversation.unread);
 	return (
 		<button
 			type="button"
@@ -46,13 +47,22 @@ function ConversationRow({
 						aria-hidden
 					/>
 				)}
+				{unread && !selected && (
+					<span
+						className="absolute -left-0.5 -top-0.5 size-2.5 rounded-full bg-sky-500 ring-2 ring-card"
+						aria-label="Unread"
+					/>
+				)}
 			</div>
 
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 				<div className="flex items-center justify-between gap-2">
 					<span
 						className={cn(
-							"truncate text-sm font-medium",
+							"truncate text-sm",
+							unread && !selected
+								? "font-semibold text-foreground"
+								: "font-medium",
 							selected ? "text-primary" : "text-foreground",
 						)}
 					>
@@ -62,7 +72,14 @@ function ConversationRow({
 						{timeAgo(conversation.updatedAt)}
 					</span>
 				</div>
-				<p className="truncate text-xs text-muted-foreground">
+				<p
+					className={cn(
+						"truncate text-xs",
+						unread && !selected
+							? "font-medium text-foreground"
+							: "text-muted-foreground",
+					)}
+				>
 					{conversation.firstMessage?.trim() ||
 						conversation.email ||
 						"No messages yet"}

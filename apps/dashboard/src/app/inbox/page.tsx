@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +105,40 @@ export default function InboxPage() {
 
 	const selectedConv = allConversations.find((c) => c.id === selectedId);
 	const detailConv = thread.data?.conversation ?? selectedConv ?? null;
+
+	// Mark a conversation read for this user (existing readStatus PATCH), then
+	// refresh the list so its unread dot clears. Best-effort: a failure just
+	// leaves the dot.
+	const markRead = useCallback(
+		async (id: string) => {
+			if (!projectId || !workspaceId) return;
+			try {
+				await api(`/api/projects/${projectId}/conversations/${id}`, {
+					method: "PATCH",
+					body: { read: true },
+					workspaceId,
+				});
+				await qc.invalidateQueries({ queryKey: ["conversations", projectId] });
+			} catch {
+				/* non-critical */
+			}
+		},
+		[projectId, workspaceId, qc],
+	);
+
+	function handleSelect(id: string) {
+		setSelectedId(id);
+		void markRead(id);
+	}
+
+	// Keep it read as new messages stream in while the thread is open. Keyed on
+	// the loaded message count so it fires on new messages, not every poll.
+	const loadedMessageCount = thread.data?.messages.length;
+	useEffect(() => {
+		if (selectedId && loadedMessageCount !== undefined) {
+			void markRead(selectedId);
+		}
+	}, [selectedId, loadedMessageCount, markRead]);
 
 	async function handleCreateWorkspace() {
 		try {
@@ -214,7 +248,7 @@ export default function InboxPage() {
 						<ConversationList
 							conversations={visibleConversations}
 							selectedId={selectedId}
-							onSelect={setSelectedId}
+							onSelect={handleSelect}
 							search={search}
 							onSearch={setSearch}
 							showArchived={showArchived}
