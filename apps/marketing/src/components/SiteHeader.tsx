@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { AuthButton } from "@/components/AuthButton";
-
-const showcaseUrl =
-	process.env.NEXT_PUBLIC_SHOWCASE_URL ?? "http://localhost:3003";
+import { LiveDemoLink } from "@/components/LiveDemoLink";
 
 type NavKey = "features" | "resources" | "compare";
 
@@ -72,7 +70,9 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 									href="/blog"
 									className="block px-4 py-3.5 transition-colors hover:bg-paper-raise"
 								>
-									<span className="block text-sm font-medium text-ink">Blog</span>
+									<span className="block text-sm font-medium text-ink">
+										Blog
+									</span>
 									<span className="mt-0.5 block text-xs text-faint">
 										Product news, guides & changelog
 									</span>
@@ -88,13 +88,7 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 						Compare
 					</Link>
 
-					<a
-						href={showcaseUrl}
-						className="hidden items-center gap-1.5 rounded-full border border-rule px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-accent/40 hover:text-ink sm:inline-flex"
-					>
-						<span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_2px_rgba(99,102,241,0.6)]" />
-						Live demo
-					</a>
+					<LiveDemoLink className="hidden items-center gap-1.5 rounded-full border border-rule px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-accent/40 hover:text-ink sm:inline-flex" />
 
 					<AuthButton />
 				</nav>

@@ -1,12 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { useSession } from "@/lib/auth-client";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
-
-const dashboardUrl =
-	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
+import {
+	CANONICAL_DASHBOARD_URL,
+	resolveForCurrentHost,
+} from "@/lib/site-urls";
 
 /**
  * Flips between "Sign in" and "Dashboard" based on the cross-app session.
@@ -23,8 +25,14 @@ export function AuthButton({
 	const { data, isPending } = useSession();
 	const signedIn = !!data?.user;
 
+	// Resolve after mount so preview hosts link to their preview dashboard.
+	// Starts at the canonical URL to keep server/client markup in sync.
+	const [href, setHref] = useState(CANONICAL_DASHBOARD_URL);
+	useEffect(() => {
+		setHref(resolveForCurrentHost(CANONICAL_DASHBOARD_URL));
+	}, []);
+
 	const label = signedIn ? "Dashboard" : "Sign in";
-	const href = dashboardUrl;
 	const event = signedIn
 		? ANALYTICS_EVENTS.ctaClicked
 		: ANALYTICS_EVENTS.ctaClicked;
