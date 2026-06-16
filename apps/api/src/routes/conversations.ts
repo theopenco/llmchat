@@ -11,6 +11,7 @@ import {
 	conversation,
 	desc,
 	eq,
+	inArray,
 	like,
 	message as messageTable,
 	readStatus,
@@ -73,7 +74,33 @@ export const conversations = new Hono<AppContext>()
 				filtered = rows.filter((r) => matchSet.has(r.id));
 			}
 
-			return c.json({ conversations: filtered });
+			// Attach the first visitor message (sequence 1) as a list preview —
+			// one bounded query keyed on the page of conversations we're returning.
+			const ids = filtered.map((r) => r.id);
+			const firstMessages = ids.length
+				? await db(c.env)
+						.select({
+							conversationId: messageTable.conversationId,
+							content: messageTable.content,
+						})
+						.from(messageTable)
+						.where(
+							and(
+								inArray(messageTable.conversationId, ids),
+								eq(messageTable.sequence, 1),
+							),
+						)
+				: [];
+			const firstByConv = new Map(
+				firstMessages.map((m) => [m.conversationId, m.content]),
+			);
+
+			return c.json({
+				conversations: filtered.map((r) => ({
+					...r,
+					firstMessage: firstByConv.get(r.id) ?? null,
+				})),
+			});
 		},
 	)
 	.get("/projects/:projectId/conversations/:id", async (c) => {

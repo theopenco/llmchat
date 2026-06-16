@@ -10,6 +10,7 @@ export interface ReplyComposerProps {
 	onChange: (value: string) => void;
 	onSend: () => void;
 	placeholder: string;
+	pending?: boolean;
 }
 
 export function ReplyComposer({
@@ -17,24 +18,34 @@ export function ReplyComposer({
 	onChange,
 	onSend,
 	placeholder,
+	pending = false,
 }: ReplyComposerProps) {
+	const canSend = value.trim().length > 0 && !pending;
+
+	function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+		// Enter sends; Shift+Enter inserts a newline.
+		if (e.key === "Enter" && !e.shiftKey) {
+			e.preventDefault();
+			if (canSend) onSend();
+		}
+	}
+
 	return (
-		<div className="flex flex-col gap-2 p-3">
+		<div className="flex flex-col gap-2 border-t p-3">
 			<Textarea
 				rows={2}
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
+				onKeyDown={handleKeyDown}
 				placeholder={placeholder}
 			/>
-			<div className="flex justify-end">
-				<Button
-					type="button"
-					size="sm"
-					onClick={onSend}
-					disabled={!value.trim()}
-				>
+			<div className="flex items-center justify-between gap-2">
+				<span className="text-[11px] text-muted-foreground">
+					Enter to send · Shift+Enter for a new line
+				</span>
+				<Button type="button" size="sm" onClick={onSend} disabled={!canSend}>
 					<Send />
-					Send
+					{pending ? "Sending…" : "Send"}
 				</Button>
 			</div>
 		</div>
