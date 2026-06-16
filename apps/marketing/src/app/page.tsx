@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { matrix } from "content-collections";
 import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -7,36 +8,65 @@ import { TrackedLink } from "@/components/TrackedLink";
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
+const providers = [
+	"OpenAI",
+	"Anthropic",
+	"Google",
+	"Mistral",
+	"Llama",
+	"DeepSeek",
+	"xAI",
+	"Cohere",
+];
+
 const features = [
 	{
 		n: "01",
 		title: "Drop-in widget",
-		body: "One script tag. Loads in a shadow DOM so your styles never leak.",
+		body: "One script tag. Loads in a shadow DOM so your styles never leak — and theirs never leak into you.",
 	},
 	{
 		n: "02",
 		title: "Answers from your docs",
-		body: "Paste in your knowledge base or system prompt. The bot stays on-topic.",
+		body: "Paste your knowledge base or system prompt. The bot stays on-topic and admits when it doesn't know.",
 	},
 	{
 		n: "03",
-		title: "Escalation to humans",
-		body: "When the bot can't help, the conversation lands in your inbox with full context.",
+		title: "Escalates to humans",
+		body: "When the bot can't help, the conversation lands in your inbox with full context — no lost threads.",
 	},
 	{
 		n: "04",
 		title: "Email threading",
-		body: "Replies go out as email and customer responses thread back into the same conversation.",
+		body: "Replies go out as email and customer responses thread back into the same conversation automatically.",
 	},
 	{
 		n: "05",
-		title: "Built on LLM Gateway",
-		body: "Swap models without code changes. Cost and usage attribution per project.",
+		title: "Any model, any time",
+		body: "Built on LLM Gateway. Swap GPT, Claude, or a custom model per project — a config change, not a rewrite.",
 	},
 	{
 		n: "06",
 		title: "Self-hostable",
-		body: "Open architecture on Ploy + D1 + KV. No surprise vendors.",
+		body: "Open architecture on serverless edge infra. Run the whole stack on your own account. No surprise vendors.",
+	},
+];
+
+const steps = [
+	{
+		k: "Step 01",
+		title: "Create a project",
+		body: "Sign up, name your bot, and grab your public key. A workspace is provisioned for you instantly.",
+	},
+	{
+		k: "Step 02",
+		title: "Paste the snippet",
+		body: "Drop one script tag before </body>. The widget mounts in an isolated shadow DOM and inherits your brand color.",
+	},
+	{
+		k: "Step 03",
+		title: "Watch it work",
+		body: "It answers from your docs, escalates when stuck, and routes every hand-off into a single team inbox.",
 	},
 ];
 
@@ -45,95 +75,245 @@ export default function Home() {
 		<>
 			<SiteHeader active="features" />
 
-			<main className="mx-auto max-w-6xl px-6">
-				{/* Hero */}
-				<section className="animate-rise-in pt-20 sm:pt-28">
-					<p className="kicker">AI-first support · Built on LLM Gateway</p>
-					<h1 className="font-display mt-5 max-w-4xl text-5xl font-semibold leading-[0.95] tracking-tight-display text-ink sm:text-8xl">
-						AI support that{" "}
-						<em className="font-normal italic text-accent">actually</em>{" "}
-						escalates
-					</h1>
-					<p className="mt-7 max-w-xl text-lg leading-relaxed text-muted">
-						Drop a single script tag on your site. The bot answers from your
-						docs, hands off to your team when it can&apos;t, and threads replies
-						through email — all from one inbox.
-					</p>
-					<div className="mt-9 flex flex-wrap gap-3">
-						<TrackedLink
-							href={dashboardUrl}
-							event={ANALYTICS_EVENTS.signupStarted}
-							eventProps={{ source: "home_hero" }}
-							className="rounded-full bg-ink px-7 py-3.5 font-mono text-[0.74rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
-						>
-							Get started free
-						</TrackedLink>
-						<a
-							href="#features"
-							className="rounded-full border border-rule px-7 py-3.5 font-mono text-[0.74rem] uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-ink"
-						>
-							See features
-						</a>
+			<main>
+				{/* ── Hero ─────────────────────────────────────────────── */}
+				<section className="relative overflow-hidden">
+					<div className="grid-backdrop pointer-events-none absolute inset-0" />
+					<div className="relative mx-auto max-w-6xl px-6 pb-20 pt-20 sm:pt-28">
+						<div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
+							<div className="animate-rise-in">
+								<span className="inline-flex items-center gap-2 rounded-full border border-rule bg-paper-card/60 px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted">
+									<span className="size-1.5 rounded-full bg-accent shadow-[0_0_10px_2px_rgba(99,102,241,0.7)]" />
+									Built on LLM Gateway
+								</span>
+
+								<h1 className="font-display mt-6 text-5xl font-semibold leading-[1.02] tracking-tight-display text-ink sm:text-6xl">
+									AI support that
+									<br />
+									actually{" "}
+									<span className="bg-gradient-to-r from-accent-soft to-accent bg-clip-text text-transparent">
+										escalates
+									</span>
+									.
+								</h1>
+
+								<p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
+									One script tag. Any model. llmchat answers from your docs,
+									hands off to your team when it can&apos;t, and threads replies
+									through email — all from a single inbox.
+								</p>
+
+								<div className="mt-9 flex flex-wrap items-center gap-3">
+									<TrackedLink
+										href={dashboardUrl}
+										event={ANALYTICS_EVENTS.signupStarted}
+										eventProps={{ source: "home_hero" }}
+										className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(99,102,241,0.7)] transition-colors hover:bg-accent-deep"
+									>
+										Get started free
+										<span aria-hidden>→</span>
+									</TrackedLink>
+									<Link
+										href="/docs"
+										className="rounded-full border border-rule px-6 py-3 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
+									>
+										Read the docs
+									</Link>
+								</div>
+
+								<p className="mt-5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint">
+									Free tier · No credit card · Live in 5 minutes
+								</p>
+							</div>
+
+							{/* Code card */}
+							<div className="animate-rise-in [animation-delay:120ms]">
+								<div className="rounded-2xl border border-rule bg-paper-card/80 shadow-glow backdrop-blur-sm">
+									<div className="flex items-center gap-2 border-b border-rule px-4 py-3">
+										<span className="size-3 rounded-full bg-[#ff5f57]" />
+										<span className="size-3 rounded-full bg-[#febc2e]" />
+										<span className="size-3 rounded-full bg-[#28c840]" />
+										<span className="ml-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-faint">
+											index.html
+										</span>
+									</div>
+									<pre className="overflow-x-auto px-5 py-5 font-mono text-[0.82rem] leading-relaxed text-ink-soft [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+										<code>{matrix.llmchatEmbed}</code>
+									</pre>
+									<div className="flex items-center justify-between border-t border-rule px-5 py-3">
+										<span className="font-mono text-[0.68rem] uppercase tracking-[0.12em] text-faint">
+											That&apos;s the whole integration
+										</span>
+										<span className="inline-flex items-center gap-1.5 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-accent-soft">
+											<span className="size-1.5 rounded-full bg-accent-soft" />
+											live
+										</span>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						{/* Provider marquee */}
+						<div className="animate-fade-in mt-20 [animation-delay:240ms]">
+							<p className="text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] text-faint">
+								Run any model — swap without touching code
+							</p>
+							<div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+								{providers.map((p) => (
+									<span
+										key={p}
+										className="font-display text-lg font-medium text-muted/70 transition-colors hover:text-ink"
+									>
+										{p}
+									</span>
+								))}
+							</div>
+						</div>
 					</div>
 				</section>
 
-				{/* Marquee rule */}
-				<div className="mt-20 flex items-center gap-4 border-t-2 border-ink pt-3">
-					<span className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-faint">
-						What you get
-					</span>
-					<span className="h-px flex-1 bg-rule" />
-					<span className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-faint">
-						Six things, no platform
-					</span>
-				</div>
-
-				{/* Features */}
-				<section
-					id="features"
-					className="mt-2 grid gap-px overflow-hidden border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3"
-				>
-					{features.map((f) => (
-						<div
-							key={f.title}
-							className="group bg-paper p-8 transition-colors hover:bg-paper-card"
-						>
-							<span className="font-display text-3xl font-semibold text-accent/30 transition-colors group-hover:text-accent">
-								{f.n}
-							</span>
-							<h2 className="font-display mt-4 text-xl font-semibold tracking-tight-display text-ink">
-								{f.title}
+				{/* ── Features ─────────────────────────────────────────── */}
+				<section id="features" className="mx-auto max-w-6xl px-6 py-24">
+					<div className="flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
+						<div>
+							<p className="kicker">What you get</p>
+							<h2 className="font-display mt-3 max-w-2xl text-3xl font-semibold leading-tight tracking-tight-display text-ink sm:text-4xl">
+								A focused support tool — not another platform to learn.
 							</h2>
-							<p className="mt-2 text-sm leading-relaxed text-muted">
-								{f.body}
-							</p>
 						</div>
-					))}
-				</section>
-
-				{/* Closing CTA */}
-				<section className="mt-24 overflow-hidden rounded-3xl bg-ink px-8 py-20 text-center">
-					<p className="font-mono text-[0.72rem] uppercase tracking-[0.16em] text-accent">
-						Ship support today
-					</p>
-					<h2 className="font-display mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight-display text-paper sm:text-6xl">
-						Your docs already know the answers. Let them reply.
-					</h2>
-					<div className="mt-9 flex flex-wrap justify-center gap-3">
-						<TrackedLink
-							href={dashboardUrl}
-							event={ANALYTICS_EVENTS.signupStarted}
-							eventProps={{ source: "home_closing" }}
-							className="rounded-full bg-paper px-7 py-3.5 font-mono text-[0.74rem] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-accent hover:text-paper"
-						>
-							Get started free
-						</TrackedLink>
 						<Link
 							href="/compare"
-							className="rounded-full border border-paper/30 px-7 py-3.5 font-mono text-[0.74rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-paper/10"
+							className="shrink-0 text-sm font-medium text-accent-soft transition-colors hover:text-accent"
 						>
-							Compare alternatives
+							See how it compares →
 						</Link>
+					</div>
+
+					<div className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
+						{features.map((f) => (
+							<div
+								key={f.title}
+								className="group bg-paper p-7 transition-colors hover:bg-paper-card"
+							>
+								<span className="font-mono text-xs font-medium text-faint transition-colors group-hover:text-accent-soft">
+									{f.n}
+								</span>
+								<h3 className="font-display mt-4 text-xl font-semibold tracking-tight-display text-ink">
+									{f.title}
+								</h3>
+								<p className="mt-2 text-sm leading-relaxed text-muted">
+									{f.body}
+								</p>
+							</div>
+						))}
+					</div>
+				</section>
+
+				{/* ── How it works ─────────────────────────────────────── */}
+				<section className="border-y border-rule bg-paper-deep/60">
+					<div className="mx-auto max-w-6xl px-6 py-24">
+						<p className="kicker">From zero to live</p>
+						<h2 className="font-display mt-3 max-w-2xl text-3xl font-semibold leading-tight tracking-tight-display text-ink sm:text-4xl">
+							Three steps. About five minutes.
+						</h2>
+
+						<div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule md:grid-cols-3">
+							{steps.map((s, i) => (
+								<div key={s.title} className="relative bg-paper p-8">
+									<span className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-accent-soft">
+										{s.k}
+									</span>
+									<h3 className="font-display mt-3 text-xl font-semibold tracking-tight-display text-ink">
+										{s.title}
+									</h3>
+									<p className="mt-2 text-sm leading-relaxed text-muted">
+										{s.body}
+									</p>
+									{i < steps.length - 1 && (
+										<span
+											aria-hidden
+											className="absolute right-5 top-8 hidden font-display text-2xl text-rule md:block"
+										>
+											→
+										</span>
+									)}
+								</div>
+							))}
+						</div>
+					</div>
+				</section>
+
+				{/* ── Resources teaser ─────────────────────────────────── */}
+				<section className="mx-auto max-w-6xl px-6 py-24">
+					<div className="grid gap-6 lg:grid-cols-3">
+						<Link
+							href="/compare"
+							className="group flex flex-col justify-between rounded-3xl border border-rule bg-paper-card/50 p-8 transition-colors hover:border-accent/40 lg:col-span-2"
+						>
+							<div>
+								<p className="kicker">Compare</p>
+								<h3 className="font-display mt-3 text-2xl font-semibold tracking-tight-display text-ink">
+									llmchat vs. Chatbase, Fin, Intercom, Chatwoot & Crisp
+								</h3>
+								<p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
+									An honest, side-by-side breakdown across setup, AI, escalation,
+									channels, and pricing — including where the others are stronger.
+								</p>
+							</div>
+							<span className="mt-6 text-sm font-medium text-accent-soft transition-colors group-hover:text-accent">
+								See the full matrix →
+							</span>
+						</Link>
+
+						<Link
+							href="/blog"
+							className="group flex flex-col justify-between rounded-3xl border border-rule bg-paper-card/50 p-8 transition-colors hover:border-accent/40"
+						>
+							<div>
+								<p className="kicker">The Journal</p>
+								<h3 className="font-display mt-3 text-2xl font-semibold tracking-tight-display text-ink">
+									Field notes on AI support
+								</h3>
+								<p className="mt-3 text-sm leading-relaxed text-muted">
+									Guides, announcements, and the engineering behind the product.
+								</p>
+							</div>
+							<span className="mt-6 text-sm font-medium text-accent-soft transition-colors group-hover:text-accent">
+								Read the blog →
+							</span>
+						</Link>
+					</div>
+				</section>
+
+				{/* ── Closing CTA ──────────────────────────────────────── */}
+				<section className="mx-auto max-w-6xl px-6 pb-28">
+					<div className="relative overflow-hidden rounded-[2rem] border border-accent/30 bg-gradient-to-b from-paper-card to-paper px-8 py-20 text-center shadow-glow">
+						<div className="grid-backdrop pointer-events-none absolute inset-0" />
+						<div className="relative">
+							<p className="kicker">Ship support today</p>
+							<h2 className="font-display mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight-display text-ink sm:text-6xl">
+								Your docs already know the answers.
+								<br />
+								Let them reply.
+							</h2>
+							<div className="mt-10 flex flex-wrap justify-center gap-3">
+								<TrackedLink
+									href={dashboardUrl}
+									event={ANALYTICS_EVENTS.signupStarted}
+									eventProps={{ source: "home_closing" }}
+									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(99,102,241,0.7)] transition-colors hover:bg-accent-deep"
+								>
+									Get started free
+									<span aria-hidden>→</span>
+								</TrackedLink>
+								<Link
+									href="/compare"
+									className="rounded-full border border-rule px-7 py-3.5 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
+								>
+									Compare alternatives
+								</Link>
+							</div>
+						</div>
 					</div>
 				</section>
 			</main>

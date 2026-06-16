@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
 
+// Mirrors apps/marketing — the shared Clean Slate (dark) identity.
 const config: Config = {
 	content: ["./src/**/*.{ts,tsx}"],
 	theme: {
@@ -10,28 +11,22 @@ const config: Config = {
 				mono: ["var(--font-mono)", "ui-monospace", "monospace"],
 			},
 			colors: {
-				// Clean Slate — dark. Token names kept (paper/ink/accent) so existing
-				// pages re-skin automatically; values now match the dashboard's dark
-				// slate + indigo brand.
-				paper: "#0B0E14", // page background (deep slate)
-				"paper-deep": "#090C11", // deeper sections / footer
-				"paper-card": "#141925", // cards / panels
-				"paper-raise": "#1B2233", // raised surfaces / hover
-				ink: "#F6F8FC", // primary text (near-white)
-				"ink-soft": "#C7CEDB", // secondary text
-				muted: "#8A93A6", // muted text
-				faint: "#5C6577", // faint text / metadata
-				rule: "#222A3A", // borders
-				"rule-soft": "#1A2130", // subtle borders
-				accent: "#6366F1", // indigo-500 brand
-				"accent-soft": "#818CF8", // indigo-400
-				"accent-deep": "#4F46E5", // indigo-600
+				paper: "#0B0E14",
+				"paper-deep": "#090C11",
+				"paper-card": "#141925",
+				"paper-raise": "#1B2233",
+				ink: "#F6F8FC",
+				"ink-soft": "#C7CEDB",
+				muted: "#8A93A6",
+				faint: "#5C6577",
+				rule: "#222A3A",
+				"rule-soft": "#1A2130",
+				accent: "#6366F1",
+				"accent-soft": "#818CF8",
+				"accent-deep": "#4F46E5",
 			},
 			letterSpacing: {
 				"tight-display": "-0.02em",
-			},
-			maxWidth: {
-				prose: "42rem",
 			},
 			boxShadow: {
 				glow: "0 0 0 1px rgba(99,102,241,0.25), 0 20px 60px -20px rgba(99,102,241,0.35)",
@@ -46,15 +41,10 @@ const config: Config = {
 					"0%": { opacity: "0" },
 					"100%": { opacity: "1" },
 				},
-				marquee: {
-					"0%": { transform: "translateX(0)" },
-					"100%": { transform: "translateX(-50%)" },
-				},
 			},
 			animation: {
 				"rise-in": "rise-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both",
 				"fade-in": "fade-in 0.9s ease both",
-				marquee: "marquee 28s linear infinite",
 			},
 		},
 	},

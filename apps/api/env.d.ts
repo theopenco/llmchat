@@ -10,6 +10,8 @@ declare module "@meetploy/nextjs" {
 			BETTER_AUTH_URL: string;
 			BETTER_AUTH_SECRET: string;
 			DASHBOARD_URL: string;
+			MARKETING_URL: string;
+			SHOWCASE_URL: string;
 			LLMGATEWAY_API_KEY: string;
 			STRIPE_SECRET_KEY: string;
 			STRIPE_WEBHOOK_SECRET: string;
@@ -31,6 +33,8 @@ declare global {
 			BETTER_AUTH_URL: string;
 			BETTER_AUTH_SECRET: string;
 			DASHBOARD_URL: string;
+			MARKETING_URL: string;
+			SHOWCASE_URL: string;
 			LLMGATEWAY_API_KEY: string;
 			STRIPE_SECRET_KEY: string;
 			STRIPE_WEBHOOK_SECRET: string;
