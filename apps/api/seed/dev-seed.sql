@@ -1,5 +1,12 @@
--- Dev seed: a default admin user, workspace, and project so the showcase
--- and dashboard work out-of-the-box without manual signup.
+-- Dev seed (NOT an auto-applied migration).
+--
+-- This file is applied ONLY by `pnpm seed`, against the local Ploy SQLite DB
+-- (.ploy/db/llmchat_db.db). It is intentionally NOT in apps/api/migrations/,
+-- so production deploys never create or re-assert this admin user. See
+-- apps/api/scripts/seed.mjs and the "Zero-setup local dev" section of AGENTS.md.
+--
+-- Creates a default admin user, workspace, and demo project so the dashboard
+-- and showcase work out-of-the-box locally without manual signup.
 --
 -- Sign in:   admin@example.com  /  admin@example.com
 -- Widget key: local-dev-key
@@ -7,6 +14,8 @@
 -- The password hash is scrypt(N=16384,r=16,p=1,dkLen=64) in better-auth's
 -- "<saltHex>:<keyHex>" format. Salt is fixed so this seed is reproducible.
 -- Safe to ship because it only matches the literal password "admin@example.com".
+--
+-- All statements are INSERT OR IGNORE: applying repeatedly is a no-op.
 
 INSERT OR IGNORE INTO `user` (`id`, `name`, `email`, `email_verified`)
 VALUES ('dev-admin', 'Local Admin', 'admin@example.com', 1);
