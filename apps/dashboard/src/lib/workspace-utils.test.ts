@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { resolveWorkspaceId } from "./workspace-utils";
 
-const ws = (...ids: string[]) => ids.map((id) => ({ id, name: id }));
+const ws = (...ids: string[]) =>
+	ids.map((id) => ({ id, name: id, plan: "free" as const }));
 
 describe("resolveWorkspaceId", () => {
 	it("returns null when the user has no workspaces", () => {

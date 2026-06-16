@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import {
 	Check,
 	ChevronsUpDown,
+	CreditCard,
 	ExternalLink,
 	FolderKanban,
 	LifeBuoy,
@@ -47,6 +48,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
 	{ title: "Conversations", href: "/inbox", icon: MessagesSquare },
 	{ title: "Projects", href: "/settings/projects", icon: FolderKanban },
+	{ title: "Billing", href: "/settings/billing", icon: CreditCard },
 ];
 
 const SETUP_STEPS = [
