@@ -1,7 +1,9 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 
 import { db } from "@/lib/db";
 import {
+	StripeError,
 	createCheckoutSession,
 	createCustomer,
 	createPortalSession,
@@ -16,6 +18,23 @@ import type { AppContext } from "@/env";
 const billingPage = (dashboardUrl: string, query = "") =>
 	`${dashboardUrl}/settings/billing${query}`;
 
+/** Billing is only live once the operator has set the Stripe secret (and, for
+ * Checkout, the Pro price id). Until then we short-circuit with a stable code
+ * the dashboard renders gracefully — never an opaque 500 from a missing key. */
+const configured = (value?: string) =>
+	typeof value === "string" && value.trim() !== "";
+
+/** Translate a reachable Stripe API error into a clean, logged 502 so real
+ * failures stay diagnosable server-side instead of surfacing as opaque 500s.
+ * Non-Stripe errors propagate unchanged. */
+function stripeFailure(c: Context<AppContext>, err: unknown) {
+	if (err instanceof StripeError) {
+		console.error(`[billing] Stripe ${err.status}: ${err.body}`);
+		return c.json({ error: "stripe_error" }, 502);
+	}
+	throw err;
+}
+
 export const billing = new Hono<AppContext>()
 	// Start a Pro subscription Checkout. Owner-only. Reuses the workspace's
 	// Stripe customer if it has one, else creates and stores it (so retries
@@ -26,40 +45,53 @@ export const billing = new Hono<AppContext>()
 		const { STRIPE_SECRET_KEY, STRIPE_PRO_PRICE_ID, DASHBOARD_URL } =
 			c.env.vars;
 
+		// Never call Stripe without a key — short-circuit with a stable code.
+		if (!configured(STRIPE_SECRET_KEY) || !configured(STRIPE_PRO_PRICE_ID)) {
+			return c.json({ error: "billing_not_configured" }, 503);
+		}
+
 		const ws = await db(c.env).query.workspace.findFirst({
 			where: (w, { eq: e }) => e(w.id, workspaceId),
 		});
 		if (!ws) return c.json({ error: "workspace not found" }, 404);
 
-		let customerId = ws.stripeCustomerId;
-		if (!customerId) {
-			const owner = await db(c.env).query.user.findFirst({
-				where: (u, { eq: e }) => e(u.id, userId),
-			});
-			const customer = await createCustomer(STRIPE_SECRET_KEY, {
-				email: owner?.email,
-				metadata: { workspaceId },
-			});
-			customerId = customer.id;
-			await db(c.env)
-				.update(workspace)
-				.set({ stripeCustomerId: customerId })
-				.where(eq(workspace.id, workspaceId));
-		}
+		try {
+			let customerId = ws.stripeCustomerId;
+			if (!customerId) {
+				const owner = await db(c.env).query.user.findFirst({
+					where: (u, { eq: e }) => e(u.id, userId),
+				});
+				const customer = await createCustomer(STRIPE_SECRET_KEY, {
+					email: owner?.email,
+					metadata: { workspaceId },
+				});
+				customerId = customer.id;
+				await db(c.env)
+					.update(workspace)
+					.set({ stripeCustomerId: customerId })
+					.where(eq(workspace.id, workspaceId));
+			}
 
-		const session = await createCheckoutSession(STRIPE_SECRET_KEY, {
-			customer: customerId,
-			priceId: STRIPE_PRO_PRICE_ID,
-			workspaceId,
-			successUrl: billingPage(DASHBOARD_URL, "?status=success"),
-			cancelUrl: billingPage(DASHBOARD_URL, "?status=cancel"),
-		});
-		return c.json({ url: session.url });
+			const session = await createCheckoutSession(STRIPE_SECRET_KEY, {
+				customer: customerId,
+				priceId: STRIPE_PRO_PRICE_ID,
+				workspaceId,
+				successUrl: billingPage(DASHBOARD_URL, "?status=success"),
+				cancelUrl: billingPage(DASHBOARD_URL, "?status=cancel"),
+			});
+			return c.json({ url: session.url });
+		} catch (err) {
+			return stripeFailure(c, err);
+		}
 	})
 	// Open the Stripe Billing Portal so the owner can manage/cancel. Owner-only.
 	.post("/billing/portal", requireSession, requireOwner, async (c) => {
 		const workspaceId = c.get("workspaceId");
 		const { STRIPE_SECRET_KEY, DASHBOARD_URL } = c.env.vars;
+
+		if (!configured(STRIPE_SECRET_KEY)) {
+			return c.json({ error: "billing_not_configured" }, 503);
+		}
 
 		const ws = await db(c.env).query.workspace.findFirst({
 			where: (w, { eq: e }) => e(w.id, workspaceId),
@@ -68,11 +100,15 @@ export const billing = new Hono<AppContext>()
 			return c.json({ error: "no billing customer" }, 400);
 		}
 
-		const session = await createPortalSession(STRIPE_SECRET_KEY, {
-			customer: ws.stripeCustomerId,
-			returnUrl: billingPage(DASHBOARD_URL),
-		});
-		return c.json({ url: session.url });
+		try {
+			const session = await createPortalSession(STRIPE_SECRET_KEY, {
+				customer: ws.stripeCustomerId,
+				returnUrl: billingPage(DASHBOARD_URL),
+			});
+			return c.json({ url: session.url });
+		} catch (err) {
+			return stripeFailure(c, err);
+		}
 	})
 	// Stripe webhook. No auth, no CORS — Stripe calls this directly. The body is
 	// read raw (the exact bytes Stripe signed) and verified before any parsing.

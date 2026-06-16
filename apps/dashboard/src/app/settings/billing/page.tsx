@@ -2,13 +2,17 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
-import { toast } from "sonner";
+import { Suspense, useEffect, useState } from "react";
 
-import { openPortal, startCheckout } from "@/lib/billing";
+import {
+	isBillingNotConfigured,
+	openPortal,
+	startCheckout,
+} from "@/lib/billing";
 import { useWorkspace } from "@/lib/workspace";
 import { WORKSPACES_KEY } from "@/lib/workspace-utils";
 
+import { BillingNotice } from "./_components/BillingNotice";
 import { BillingPlanCard } from "./_components/BillingPlanCard";
 import { BillingSkeleton } from "./_components/BillingSkeleton";
 import { StatusBanner } from "./_components/StatusBanner";
@@ -16,10 +20,13 @@ import { StatusBanner } from "./_components/StatusBanner";
 const redirect = (url: string) => {
 	window.location.href = url;
 };
-const redirectError = (label: string) => (e: unknown) =>
-	toast.error(label, {
-		description: e instanceof Error ? e.message : undefined,
-	});
+
+// A non-OK checkout/portal response shouldn't surface as a raw "API 500" — show
+// a friendly inline message. Missing Stripe config gets its own copy.
+const errorMessage = (e: unknown) =>
+	isBillingNotConfigured(e)
+		? "Billing isn't enabled yet — check back soon."
+		: "Something went wrong. Please try again in a moment.";
 
 function BillingContent() {
 	const { workspaces, workspaceId, isLoading } = useWorkspace();
@@ -27,6 +34,7 @@ function BillingContent() {
 	const params = useSearchParams();
 	const status = params.get("status");
 	const banner = status === "success" || status === "cancel" ? status : null;
+	const [error, setError] = useState<string | null>(null);
 
 	const plan = workspaces.find((w) => w.id === workspaceId)?.plan ?? "free";
 
@@ -40,13 +48,15 @@ function BillingContent() {
 
 	const checkout = useMutation({
 		mutationFn: () => startCheckout(workspaceId!),
+		onMutate: () => setError(null),
 		onSuccess: redirect,
-		onError: redirectError("Couldn't start checkout"),
+		onError: (e) => setError(errorMessage(e)),
 	});
 	const portal = useMutation({
 		mutationFn: () => openPortal(workspaceId!),
+		onMutate: () => setError(null),
 		onSuccess: redirect,
-		onError: redirectError("Couldn't open the billing portal"),
+		onError: (e) => setError(errorMessage(e)),
 	});
 
 	if (isLoading || !workspaceId) return <BillingSkeleton />;
@@ -61,6 +71,7 @@ function BillingContent() {
 			</header>
 
 			{banner && <StatusBanner status={banner} />}
+			{error && <BillingNotice message={error} />}
 
 			<BillingPlanCard
 				plan={plan}

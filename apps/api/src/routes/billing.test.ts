@@ -129,6 +129,46 @@ describe("POST /billing/checkout", () => {
 		);
 	});
 
+	it("503s billing_not_configured when STRIPE_SECRET_KEY is unset (never calls Stripe)", async () => {
+		mockDb({ member: { role: "owner" }, workspace: { id: "ws_1" } });
+		const env = { ...ENV, vars: { ...ENV.vars, STRIPE_SECRET_KEY: "" } };
+		const res = await billing.request(
+			"/billing/checkout",
+			{ method: "POST", headers },
+			env,
+		);
+		expect(res.status).toBe(503);
+		expect(await res.json()).toEqual({ error: "billing_not_configured" });
+		expect(createCustomer).not.toHaveBeenCalled();
+		expect(createCheckoutSession).not.toHaveBeenCalled();
+	});
+
+	it("503s billing_not_configured when STRIPE_PRO_PRICE_ID is unset", async () => {
+		mockDb({ member: { role: "owner" }, workspace: { id: "ws_1" } });
+		const env = { ...ENV, vars: { ...ENV.vars, STRIPE_PRO_PRICE_ID: "" } };
+		const res = await billing.request(
+			"/billing/checkout",
+			{ method: "POST", headers },
+			env,
+		);
+		expect(res.status).toBe(503);
+		expect(createCheckoutSession).not.toHaveBeenCalled();
+	});
+
+	it("502s stripe_error when Stripe rejects the call", async () => {
+		mockDb({
+			member: { role: "owner" },
+			workspace: { id: "ws_1", stripeCustomerId: "cus_1" },
+		});
+		const { StripeError } = await import("@/lib/stripe");
+		vi.mocked(createCheckoutSession).mockRejectedValue(
+			new StripeError(400, '{"error":{"message":"bad"}}', "bad"),
+		);
+		const res = await req("/billing/checkout", { method: "POST", headers });
+		expect(res.status).toBe(502);
+		expect(await res.json()).toEqual({ error: "stripe_error" });
+	});
+
 	it("creates and stores a customer when the workspace has none", async () => {
 		const state = mockDb({
 			member: { role: "owner" },
@@ -164,6 +204,21 @@ describe("POST /billing/portal", () => {
 		mockDb({ workspace: { id: "ws_1", stripeCustomerId: "cus_1" } });
 		const res = await req("/billing/portal", { method: "POST", headers });
 		expect(res.status).toBe(403);
+		expect(createPortalSession).not.toHaveBeenCalled();
+	});
+
+	it("503s billing_not_configured when STRIPE_SECRET_KEY is unset", async () => {
+		mockDb({
+			member: { role: "owner" },
+			workspace: { id: "ws_1", stripeCustomerId: "cus_1" },
+		});
+		const env = { ...ENV, vars: { ...ENV.vars, STRIPE_SECRET_KEY: "" } };
+		const res = await billing.request(
+			"/billing/portal",
+			{ method: "POST", headers },
+			env,
+		);
+		expect(res.status).toBe(503);
 		expect(createPortalSession).not.toHaveBeenCalled();
 	});
 

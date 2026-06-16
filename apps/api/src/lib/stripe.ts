@@ -8,6 +8,7 @@ const STRIPE_API = "https://api.stripe.com/v1";
 export class StripeError extends Error {
 	constructor(
 		readonly status: number,
+		readonly body: string,
 		message: string,
 	) {
 		super(`Stripe ${status}: ${message}`);
@@ -55,11 +56,21 @@ async function stripePost<T>(
 		},
 		body: formEncode(params),
 	});
-	const json = (await res.json()) as { error?: { message?: string } };
+	const text = await res.text();
 	if (!res.ok) {
-		throw new StripeError(res.status, json?.error?.message ?? "request failed");
+		// Preserve the raw body for server-side diagnosis; surface only the
+		// human-readable message (when Stripe sent JSON) in the thrown error.
+		let message = "request failed";
+		try {
+			message =
+				(JSON.parse(text) as { error?: { message?: string } })?.error
+					?.message ?? message;
+		} catch {
+			// Non-JSON error body — keep the default message; raw text is on .body.
+		}
+		throw new StripeError(res.status, text, message);
 	}
-	return json as T;
+	return JSON.parse(text) as T;
 }
 
 export interface StripeCustomer {
