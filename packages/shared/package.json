@@ -9,12 +9,14 @@
 	"scripts": {
 		"format": "prettier --write .",
 		"lint": "prettier --check .",
-		"test": "vitest run"
+		"test": "vitest run",
+		"gen:web-search-models": "node scripts/gen-web-search-models.mjs"
 	},
 	"dependencies": {
 		"zod": "^4.0.0"
 	},
 	"devDependencies": {
+		"@llmgateway/models": "^1.128.0",
 		"typescript": "5.9.2",
 		"vitest": "^3.0.0"
 	}

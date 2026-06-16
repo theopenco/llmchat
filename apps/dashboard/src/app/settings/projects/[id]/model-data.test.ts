@@ -61,14 +61,14 @@ describe("hasWebSearch", () => {
 	});
 
 	it("does NOT guess from names — a non-listed model is false even if its name screams search", () => {
-		// These match the old name heuristic but are not in the gateway's set,
-		// so they must be excluded now.
-		expect(hasWebSearch({ id: "sonar", name: "Sonar" })).toBe(false);
-		expect(hasWebSearch({ id: "gpt-4o:online", name: "GPT-4o Online" })).toBe(
+		// Search-y names that aren't in the generated set must be excluded; the
+		// list is membership-based, not heuristic.
+		expect(hasWebSearch({ id: "made-up-sonar", name: "Sonar" })).toBe(false);
+		expect(hasWebSearch({ id: "ghost:online", name: "Ghost Online" })).toBe(
 			false,
 		);
 		expect(
-			hasWebSearch({ id: "gpt-4o-search-preview", name: "Search Preview" }),
+			hasWebSearch({ id: "fake-search-preview", name: "Search Preview" }),
 		).toBe(false);
 	});
 

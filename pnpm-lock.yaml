@@ -311,6 +311,9 @@ importers:
         specifier: ^4.0.0
         version: 4.4.3
     devDependencies:
+      '@llmgateway/models':
+        specifier: ^1.128.0
+        version: 1.128.0
       typescript:
         specifier: 5.9.2
         version: 5.9.2
@@ -1767,6 +1770,9 @@ packages:
     peerDependencies:
       ai: ^6.0.0
       zod: ^3.24.1 || ^v4
+
+  '@llmgateway/models@1.128.0':
+    resolution: {integrity: sha512-yOUKVIsj0ACtVIEXbRy88miU1tiGQtm/1G6MW+/GghbNwbuGIckGJqFMZ0dDSJDMxOBk2Sty1VeuMEQ2aMoyiA==}
 
   '@llmgateway/models@1.74.2':
     resolution: {integrity: sha512-zxzyC5WLVC0iqGNvAcQzryWxYxVgK1xTapxIgpomUQRC1k4jMbWQoLZvPMbGsG0P6gMyl5rKU6x/xsz/1zuf7w==}
@@ -5779,6 +5785,8 @@ snapshots:
       '@llmgateway/models': 1.74.2
       ai: 6.0.27(zod@4.4.3)
       zod: 4.4.3
+
+  '@llmgateway/models@1.128.0': {}
 
   '@llmgateway/models@1.74.2': {}
 

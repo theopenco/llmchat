@@ -31,8 +31,13 @@ pnpm build                                # turbo run build across all workspace
 pnpm lint                                 # turbo run lint (prettier --check) + oxlint (.oxlintrc.json at repo root)
 pnpm format                               # turbo run format (prettier --write)
 pnpm migrations                           # drizzle-kit generate → apps/api/migrations/
+pnpm gen:web-search-models                # regenerate the web-search model snapshot from @llmgateway/models
 pnpm clean                                # remove dist/.turbo/.next/.ploy
 ```
+
+### Web-search model list
+
+The dashboard model picker (and the chat guard / data migration) only allow **web-search** models. That set is **generated** from the `@llmgateway/models` package into `packages/shared/src/web-search-models.generated.ts` (committed) by `pnpm gen:web-search-models` — the filter is `models.filter(m => m.providers.some(p => p.webSearch === true))`. `@llmgateway/models` is a **dev** dependency of `@llmchat/shared` used only for regeneration; the committed snapshot means build/deploy never needs it. After bumping `@llmgateway/models`, run `pnpm gen:web-search-models`, then `pnpm format`. `@llmchat/shared` re-exports the list with helpers (`isWebSearchModel`, `effectiveModel`, `DEFAULT_MODEL`) as the single source of truth, and throws at import if the snapshot is ever empty (never silently blanks the picker).
 
 Per-package:
 
