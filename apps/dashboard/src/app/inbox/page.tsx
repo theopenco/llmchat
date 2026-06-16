@@ -1,18 +1,19 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
+import { resolveOnboardingState } from "@/lib/onboarding";
 import { resolveSelectedId } from "@/lib/selection";
 import { useWorkspace } from "@/lib/workspace";
 
 import { ConversationList } from "./_components/ConversationList";
 import { ConversationListSkeleton } from "./_components/ConversationListSkeleton";
 import { DetailPanel } from "./_components/DetailPanel";
-import { NoProjectsEmpty, NoWorkspaceEmpty } from "./_components/empty-states";
 import { initials, pluralize } from "./_components/format";
 import { InboxSkeleton } from "./_components/InboxSkeleton";
 import { InboxStats } from "./_components/InboxStats";
@@ -29,6 +30,7 @@ export default function InboxPage() {
 		isLoading: workspacesLoading,
 	} = useWorkspace();
 	const qc = useQueryClient();
+	const router = useRouter();
 	const [projectId, setProjectId] = useState<string | null>(null);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [reply, setReply] = useState("");
@@ -140,20 +142,16 @@ export default function InboxPage() {
 		}
 	}, [selectedId, loadedMessageCount, markRead]);
 
-	async function handleCreateWorkspace() {
-		try {
-			await api("/api/workspaces", {
-				method: "POST",
-				body: { name: "My workspace" },
-			});
-			await qc.invalidateQueries({ queryKey: ["workspaces"] });
-			toast.success("Workspace created");
-		} catch (e) {
-			toast.error("Failed to create workspace", {
-				description: e instanceof Error ? e.message : undefined,
-			});
-		}
-	}
+	// A brand-new account (no workspace or no project) belongs in onboarding,
+	// not the empty inbox.
+	const onboardingState = resolveOnboardingState({
+		loading: workspacesLoading || (!!workspaceId && projects.isLoading),
+		hasWorkspace: workspaces.length > 0,
+		projectCount: projects.data?.projects.length ?? 0,
+	});
+	useEffect(() => {
+		if (onboardingState === "needs-onboarding") router.replace("/onboarding");
+	}, [onboardingState, router]);
 
 	async function handleReply() {
 		if (!reply.trim() || !projectId || !selectedId || !workspaceId) return;
@@ -220,14 +218,9 @@ export default function InboxPage() {
 		}
 	}
 
-	if (workspacesLoading || (!!workspaceId && projects.isLoading)) {
+	// Loading, or redirecting a brand-new account to onboarding.
+	if (onboardingState !== "ready") {
 		return <InboxSkeleton />;
-	}
-	if (workspaces.length === 0) {
-		return <NoWorkspaceEmpty onCreate={handleCreateWorkspace} />;
-	}
-	if (!projects.data?.projects.length) {
-		return <NoProjectsEmpty />;
 	}
 
 	return (
@@ -238,7 +231,7 @@ export default function InboxPage() {
 				{/* Left — list */}
 				<div className="flex w-80 shrink-0 flex-col border-r">
 					<ProjectSwitcher
-						projects={projects.data.projects}
+						projects={projects.data?.projects ?? []}
 						value={projectId}
 						onChange={handleProjectChange}
 					/>
