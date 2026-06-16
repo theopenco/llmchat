@@ -13,6 +13,10 @@ dist/
 .env.*
 !.env.example
 !**/.env.example
+# Showcase production env holds ONLY a public NEXT_PUBLIC_WIDGET_KEY (the
+# operator's public project key) so the prod build is reproducible from the
+# repo. Public by design — never put secrets here.
+!apps/showcase/.env.production
 .dev.vars
 .DS_Store
 .idea/
