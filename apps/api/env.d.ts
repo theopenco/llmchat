@@ -10,11 +10,12 @@ declare module "@meetploy/nextjs" {
 			BETTER_AUTH_URL: string;
 			BETTER_AUTH_SECRET: string;
 			DASHBOARD_URL: string;
-			WIDGET_ALLOWED_ORIGINS: string;
 			LLMGATEWAY_API_KEY: string;
 			STRIPE_SECRET_KEY: string;
 			STRIPE_WEBHOOK_SECRET: string;
 			RESEND_API_KEY: string;
+			POSTHOG_API_KEY?: string;
+			POSTHOG_HOST?: string;
 		};
 		DB: Database;
 		STATE: StateBinding;
@@ -30,11 +31,12 @@ declare global {
 			BETTER_AUTH_URL: string;
 			BETTER_AUTH_SECRET: string;
 			DASHBOARD_URL: string;
-			WIDGET_ALLOWED_ORIGINS: string;
 			LLMGATEWAY_API_KEY: string;
 			STRIPE_SECRET_KEY: string;
 			STRIPE_WEBHOOK_SECRET: string;
 			RESEND_API_KEY: string;
+			POSTHOG_API_KEY?: string;
+			POSTHOG_HOST?: string;
 		};
 		DB: Database;
 		STATE: StateBinding;

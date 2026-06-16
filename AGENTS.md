@@ -73,8 +73,7 @@ To exercise the full loop locally:
 The api ships to workerd. Avoid Node-only deps — they fail to bundle. Already removed for this reason: `resend` SDK (replaced with direct `fetch` in `lib/email.ts` because the SDK pulled in `svix`), `@better-auth/passkey` (pulled in `@simplewebauthn/server` → `@peculiar/x509` + `asn1js`). Email+password auth only, for now. Same risk applies to `@llmgateway/ai-sdk-provider` — if a future version pulls Node deps, swap to a direct `fetch` against `${LLMGATEWAY_BASE_URL}/v1/chat/completions`.
 
 ### Request paths (`apps/api/src/index.ts`)
-
-- **Public widget** (`/v1/*`, CORS via `WIDGET_ALLOWED_ORIGINS`): `POST /v1/chat` streams a UI message stream to the embedded widget; `POST /v1/escalate` flips the conversation to escalated and emails `project.notifyEmail` with a `Reply-To` of `reply+<inboundEmailLocal>@<INBOUND_EMAIL_DOMAIN>`.
+- **Public widget** (`/v1/*`, CORS open to `*` — unauthenticated, gated by per-project public key + rate limiting): `POST /v1/chat` streams a UI message stream to the embedded widget; `POST /v1/escalate` flips the conversation to escalated and emails `project.notifyEmail` with a `Reply-To` of `reply+<inboundEmailLocal>@<INBOUND_EMAIL_DOMAIN>`.
 - **Dashboard API** (`/api/*`, CORS pinned to `DASHBOARD_URL`, credentials): `workspaces`, `projects`, `conversations`, `billing`. Sits behind `requireSession` + `requireWorkspace` (`apps/api/src/middleware/session.ts`); workspace membership is asserted via the `member` table using the `x-workspace-id` header.
 - **Auth** (`/api/auth/*`): Better Auth with the Drizzle adapter, email+password. `createAuth(env)` is called per-request because env is a Ploy binding, not a module-scope value.
 - **Widget asset** (`/widget.js`): served by api with `cache-control: public, max-age=300`.
@@ -96,7 +95,7 @@ The handler returns `result.toUIMessageStreamResponse()` immediately and uses `c
 
 - `apps/api` uses `@/*` → `src/*` (see `apps/api/tsconfig.json`).
 - `@llmchat/db` re-exports tables and `eq`/query operators from drizzle-orm so route files can `import { eq, conversation } from "@llmchat/db"`.
-- `@llmchat/shared` is Zod-only (Zod v4: `z.email()`, `z.url()`, `z.iso.datetime()`).
+- `@llmchat/shared` holds Zod schemas (Zod v4: `z.email()`, `z.url()`, `z.iso.datetime()`) **and** the analytics event taxonomy (`ANALYTICS_EVENTS`) — the single source of truth for event names across all apps.
 
 ### Widget
 
@@ -108,6 +107,13 @@ Two entry points exposed via package `exports`:
 - `@llmchat/widget/styles` → `src/styles.ts` (a `widgetStyles` string for injecting into a shadow root `<style>` element).
 
 The CSS lives as a TS template literal rather than a `.css` file because Next.js (the showcase consumer) doesn't grok Vite's `?inline` syntax — keeping it as a string export works for both bundlers.
+
+### Analytics (PostHog)
+Event names live in `@llmchat/shared` (`ANALYTICS_EVENTS`, object-action / lowercase_snake). All instrumentation imports from there so names never drift. Analytics is **optional everywhere** — every integration no-ops when its key is unset, so local dev needs no PostHog setup.
+
+- **marketing** + **dashboard** use `posthog-js` via a `PostHogProvider` (manual `$pageview` on App Router navigation, autocapture on). Marketing is anonymous (`person_profiles: "identified_only"`); the dashboard `identify()`s the Better Auth user. Fire custom events with the `track()` helper in each app's `src/lib/analytics.ts`; `<TrackedLink>` / `<TrackView>` (marketing) cover CTA clicks and page-view conversions. Env: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` (defaults to `https://us.i.posthog.com`).
+- **api** (workerd) captures widget/server events (`conversation_started`, `widget_message_sent`, `conversation_escalated`) via a direct `fetch` to the PostHog capture API in `lib/posthog.ts` — the Node SDK's timers/batching don't fit a Worker. Always called inside `executionCtx.waitUntil(...)`, never PII (distinct_id = the widget's anonymous `clientId`). Env: `POSTHOG_API_KEY`, `POSTHOG_HOST` (wired in `apps/api/ploy.yaml` → set in `apps/api/.env`). The widget itself is **not** instrumented client-side — keeping its bundle lean — so its events come from the api.
+- **Privacy:** no PII in event properties; EU/UK cookie consent (a CMP gate before `posthog.init`) is still a TODO.
 
 ## Conventions
 

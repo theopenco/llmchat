@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/kv";
 import { streamChat } from "@/lib/llm";
+import { captureEvent } from "@/lib/posthog";
 import { clientIp } from "@/lib/request";
 import { sendEscalationSlack } from "@/lib/slack";
 
@@ -15,7 +16,7 @@ import {
 	message as messageTable,
 	usageEvent,
 } from "@llmchat/db";
-import { effectiveModel } from "@llmchat/shared";
+import { ANALYTICS_EVENTS, effectiveModel } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 import type { UIMessage } from "ai";
@@ -68,7 +69,7 @@ async function findOrCreateConversation(
 			and(e(ct.projectId, projectId), e(ct.clientId, clientId)),
 	});
 	if (existing) {
-		return existing;
+		return { conversation: existing, created: false };
 	}
 	const [created] = await db(env)
 		.insert(conversation)
@@ -82,7 +83,7 @@ async function findOrCreateConversation(
 			messageCount: 0,
 		})
 		.returning();
-	return created!;
+	return { conversation: created!, created: true };
 }
 
 export const chat = new Hono<AppContext>()
@@ -104,12 +105,33 @@ export const chat = new Hono<AppContext>()
 			return c.json({ error: "rate limit exceeded" }, 429);
 		}
 
-		const conv = await findOrCreateConversation(c.env, project.id, clientId, {
-			name,
-			email,
-			ip,
-			userAgent: c.req.header("user-agent") ?? "",
-		});
+		const { conversation: conv, created: convCreated } =
+			await findOrCreateConversation(c.env, project.id, clientId, {
+				name,
+				email,
+				ip,
+				userAgent: c.req.header("user-agent") ?? "",
+			});
+
+		c.executionCtx.waitUntil(
+			(async () => {
+				if (convCreated) {
+					await captureEvent(c.env, {
+						event: ANALYTICS_EVENTS.conversationStarted,
+						distinctId: clientId,
+						properties: {
+							project_id: project.id,
+							workspace_id: project.workspaceId,
+						},
+					});
+				}
+				await captureEvent(c.env, {
+					event: ANALYTICS_EVENTS.widgetMessageSent,
+					distinctId: clientId,
+					properties: { project_id: project.id, role: "user" },
+				});
+			})(),
+		);
 
 		const lastUser = messages[messages.length - 1] as UIMessage;
 		const userText = lastUser?.parts
@@ -280,6 +302,18 @@ export const chat = new Hono<AppContext>()
 			}
 		}
 
+		c.executionCtx.waitUntil(
+			captureEvent(c.env, {
+				event: ANALYTICS_EVENTS.conversationEscalated,
+				distinctId: clientId,
+				properties: {
+					project_id: project.id,
+					workspace_id: project.workspaceId,
+					notified: !!project.notifyEmail,
+					message_count: messages.length,
+				},
+			}),
+		);
 		// Slack notification runs post-response and is failure-tolerant, so it
 		// never blocks or breaks the escalation (no-op when no webhook is set).
 		c.executionCtx.waitUntil(sendEscalationSlack(c.env, project, conv.id));

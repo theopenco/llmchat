@@ -2,6 +2,7 @@ import "./globals.css";
 
 import type { Metadata } from "next";
 import { Fraunces, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import { PostHogProvider } from "@/components/PostHogProvider";
 
 // Editorial display serif — characterful, optical, used for headlines.
 const fraunces = Fraunces({
@@ -44,7 +45,9 @@ export default function RootLayout({
 			lang="en"
 			className={`${fraunces.variable} ${hanken.variable} ${jetbrains.variable}`}
 		>
-			<body>{children}</body>
+			<body>
+				<PostHogProvider>{children}</PostHogProvider>
+			</body>
 		</html>
 	);
 }

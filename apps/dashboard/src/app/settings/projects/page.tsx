@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/empty";
 import { api } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 
 import { CreateProjectDialog } from "./_components/CreateProjectDialog";
 import { DeleteProjectDialog } from "./_components/DeleteProjectDialog";
@@ -55,10 +56,14 @@ export default function ProjectsPage() {
 				body: input,
 				workspaceId: workspaceId!,
 			}),
-		onSuccess: () => {
+		onSuccess: (res) => {
 			qc.invalidateQueries({ queryKey: ["projects"] });
 			setShowCreate(false);
 			setName("");
+			track(ANALYTICS_EVENTS.projectCreated, {
+				project_id: res.project.id,
+				source: "projects_page",
+			});
 			toast.success("Project created");
 		},
 		onError: (e) =>
@@ -73,9 +78,10 @@ export default function ProjectsPage() {
 				method: "DELETE",
 				workspaceId: workspaceId!,
 			}),
-		onSuccess: () => {
+		onSuccess: (_res, id) => {
 			qc.invalidateQueries({ queryKey: ["projects"] });
 			setDeleteId(null);
+			track(ANALYTICS_EVENTS.projectDeleted, { project_id: id });
 			toast.success("Project deleted");
 		},
 		onError: (e) =>

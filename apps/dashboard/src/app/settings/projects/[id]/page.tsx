@@ -17,6 +17,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 
 import { BotBasicsCard } from "./BotBasicsCard";
 import { ChatPreviewCard } from "./ChatPreviewCard";
@@ -151,7 +152,13 @@ export default function ProjectSettingsPage() {
 				<div className="flex flex-col gap-6 lg:flex-row">
 					<main className="flex min-w-0 flex-1 flex-col gap-6">
 						<BotBasicsCard draft={draft} set={set} />
-						<ModelCard value={draft.model} onChange={(m) => set("model", m)} />
+						<ModelCard
+							value={draft.model}
+							onChange={(m) => {
+								set("model", m);
+								track(ANALYTICS_EVENTS.modelChanged, { model: m });
+							}}
+						/>
 						<InstructionsCard
 							value={draft.systemPrompt}
 							onChange={(v) => set("systemPrompt", v)}

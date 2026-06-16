@@ -14,7 +14,9 @@
 		"@content-collections/core": "^0.15.1",
 		"@content-collections/markdown": "^0.1.4",
 		"@content-collections/next": "^0.2.11",
+		"@llmchat/shared": "workspace:^",
 		"next": "15.1.0",
+		"posthog-js": "^1.386.0",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
 		"zod": "^4.0.0"

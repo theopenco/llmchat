@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { resolveOnboardingState } from "@/lib/onboarding";
 import { resolveSelectedId } from "@/lib/selection";
 import { useWorkspace } from "@/lib/workspace";
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 
 import { ConversationList } from "./_components/ConversationList";
 import { ConversationListSkeleton } from "./_components/ConversationListSkeleton";
@@ -131,6 +132,11 @@ export default function InboxPage() {
 	function handleSelect(id: string) {
 		setSelectedId(id);
 		void markRead(id);
+		const c = allConversations.find((x) => x.id === id);
+		track(ANALYTICS_EVENTS.conversationOpened, {
+			conversation_id: id,
+			escalated: !!c?.escalatedAt,
+		});
 	}
 
 	// Keep it read as new messages stream in while the thread is open. Keyed on

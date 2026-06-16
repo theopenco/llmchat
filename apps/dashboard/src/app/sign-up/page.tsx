@@ -10,6 +10,7 @@ import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { signUp } from "@/lib/auth-client";
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { fieldErrors, signUpSchema } from "@/lib/auth-schema";
 
 export default function SignUpPage() {
@@ -48,6 +49,7 @@ export default function SignUpPage() {
 			});
 			return;
 		}
+		track(ANALYTICS_EVENTS.signupCompleted, { method: "email" });
 		// New account → straight into onboarding (workspace is provisioned server-side).
 		router.replace("/onboarding");
 	}

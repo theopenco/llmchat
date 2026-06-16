@@ -15,17 +15,14 @@ env:
   RESEND_FROM_EMAIL: $RESEND_FROM_EMAIL
   INBOUND_EMAIL_DOMAIN: $INBOUND_EMAIL_DOMAIN
   BETTER_AUTH_URL: $BETTER_AUTH_URL
-  BETTER_AUTH_SECRET: $BETTER_AUTH_SECRET
   DASHBOARD_URL: $DASHBOARD_URL
-  # Public CORS policy for the embeddable widget (not a secret): the widget
-  # must load on arbitrary customer sites. Security rests on the public
-  # project key + rate limits, not origin restriction. Per-project allowed
-  # domains can tighten this later.
-  WIDGET_ALLOWED_ORIGINS: "*"
   LLMGATEWAY_API_KEY: $LLMGATEWAY_API_KEY
+  RESEND_API_KEY: $RESEND_API_KEY
   STRIPE_SECRET_KEY: $STRIPE_SECRET_KEY
   STRIPE_WEBHOOK_SECRET: $STRIPE_WEBHOOK_SECRET
-  RESEND_API_KEY: $RESEND_API_KEY
+  BETTER_AUTH_SECRET: $BETTER_AUTH_SECRET
+  POSTHOG_API_KEY: $POSTHOG_API_KEY
+  POSTHOG_HOST: $POSTHOG_HOST
 
 dev:
   port: 8787

@@ -11,6 +11,7 @@ import {
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useSession } from "@/lib/auth-client";
+import { useOnboardingRedirect } from "@/lib/use-onboarding-redirect";
 
 export function DashboardShell({
 	children,
@@ -32,6 +33,9 @@ export function DashboardShell({
 			router.replace("/sign-in");
 		}
 	}, [initialEmail, data, isPending, router]);
+
+	// Send users with no workspace / no projects to the onboarding flow.
+	useOnboardingRedirect(!!email);
 
 	if (!email) {
 		// Still resolving the session client-side -> show the shell skeleton;

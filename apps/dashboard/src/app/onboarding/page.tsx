@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { useSession } from "@/lib/auth-client";
 import { api } from "@/lib/api";
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { defaultSystemPrompt, defaultWelcomeMessage } from "@/lib/onboarding";
 import { useOnboardingState } from "@/lib/use-onboarding";
 
@@ -32,6 +33,11 @@ export default function OnboardingPage() {
 	useEffect(() => {
 		if (!sessionPending && !session?.user) router.replace("/sign-in");
 	}, [sessionPending, session, router]);
+
+	// Mark the start of the onboarding funnel once.
+	useEffect(() => {
+		track(ANALYTICS_EVENTS.onboardingStarted);
+	}, []);
 
 	// Already onboarded → dashboard. Suppressed once we've created a project so
 	// the finish screen isn't yanked away when state flips to "ready".
@@ -73,6 +79,8 @@ export default function OnboardingPage() {
 				publicKey: project.publicKey,
 				brandColor: project.brandColor,
 			});
+			track(ANALYTICS_EVENTS.projectCreated, { source: "onboarding" });
+			track(ANALYTICS_EVENTS.onboardingCompleted);
 		} catch (e) {
 			toast.error("Couldn't create your chatbot", {
 				description: e instanceof Error ? e.message : undefined,

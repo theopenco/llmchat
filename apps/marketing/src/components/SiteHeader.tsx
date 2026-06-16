@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
+import { TrackedLink } from "@/components/TrackedLink";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -79,12 +81,14 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 						Compare
 					</Link>
 
-					<Link
+					<TrackedLink
 						href={dashboardUrl}
+						event={ANALYTICS_EVENTS.ctaClicked}
+						eventProps={{ label: "sign_in", location: "header" }}
 						className="rounded-full bg-ink px-4 py-2 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 					>
 						Sign in
-					</Link>
+					</TrackedLink>
 				</nav>
 			</div>
 		</header>

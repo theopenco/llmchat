@@ -10,6 +10,7 @@ import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { signIn } from "@/lib/auth-client";
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { fieldErrors, signInSchema } from "@/lib/auth-schema";
 
 export default function SignInPage() {
@@ -39,6 +40,7 @@ export default function SignInPage() {
 			});
 			return;
 		}
+		track(ANALYTICS_EVENTS.signedIn, { method: "email" });
 		router.replace("/inbox");
 	}
 

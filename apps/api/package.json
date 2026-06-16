@@ -23,7 +23,6 @@
 		"zod": "^4.0.0"
 	},
 	"devDependencies": {
-		"@llmchat/widget": "workspace:*",
 		"@meetploy/types": "^1.15.1",
 		"typescript": "5.9.2",
 		"vitest": "^3.0.0"

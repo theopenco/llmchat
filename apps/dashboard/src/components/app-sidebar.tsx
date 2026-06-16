@@ -16,6 +16,7 @@ import {
 
 import { api } from "@/lib/api";
 import { signOut } from "@/lib/auth-client";
+import { track, resetAnalytics, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { useWorkspace } from "@/lib/workspace";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -338,9 +339,13 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 								)}
 								<DropdownMenuSeparator />
 								<DropdownMenuItem
-									onClick={() =>
-										signOut().then(() => router.replace("/sign-in"))
-									}
+									onClick={() => {
+										track(ANALYTICS_EVENTS.signedOut);
+										signOut().then(() => {
+											resetAnalytics();
+											router.replace("/sign-in");
+										});
+									}}
 								>
 									<LogOut />
 									Sign out
