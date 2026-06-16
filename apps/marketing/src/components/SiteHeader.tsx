@@ -72,7 +72,9 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 									href="/blog"
 									className="block px-4 py-3.5 transition-colors hover:bg-paper-raise"
 								>
-									<span className="block text-sm font-medium text-ink">Blog</span>
+									<span className="block text-sm font-medium text-ink">
+										Blog
+									</span>
 									<span className="mt-0.5 block text-xs text-faint">
 										Product news, guides & changelog
 									</span>
