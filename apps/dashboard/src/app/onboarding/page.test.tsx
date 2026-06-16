@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useSession } from "@/lib/auth-client";
 import { useOnboardingState } from "@/lib/use-onboarding";
 
@@ -12,7 +12,12 @@ import OnboardingPage from "./page";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 vi.mock("@/lib/auth-client", () => ({ useSession: vi.fn() }));
 vi.mock("@/lib/use-onboarding", () => ({ useOnboardingState: vi.fn() }));
-vi.mock("@/lib/api", () => ({ api: vi.fn() }));
+// Mock only the transport; keep ApiError / isWorkspaceAuthError real so the
+// self-heal branch is exercised exactly as in production.
+vi.mock("@/lib/api", async (orig) => ({
+	...(await orig<typeof import("@/lib/api")>()),
+	api: vi.fn(),
+}));
 
 function renderPage() {
 	const client = new QueryClient({
@@ -26,6 +31,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
+	vi.clearAllMocks();
 	vi.mocked(useSession).mockReturnValue({
 		data: { user: { id: "u1", email: "a@b.com" } },
 		isPending: false,
@@ -107,5 +113,63 @@ describe("OnboardingPage", () => {
 			expect.objectContaining({ workspaceId: "ws-new" }),
 		);
 		expect(await screen.findByText(/acme is ready/i)).toBeInTheDocument();
+	});
+
+	it("self-heals a stale/foreign workspace: 403 on project create → provision fresh → retry → finish", async () => {
+		// The active workspace is one the user isn't a member of (stale localStorage
+		// or a broken client-init context — the cascade behind the prod 403).
+		vi.mocked(useOnboardingState).mockReturnValue({
+			state: "needs-onboarding",
+			workspaceId: "ws-foreign",
+		});
+		const projectCalls: string[] = [];
+		vi.mocked(api).mockImplementation(async (path: string, opts?: unknown) => {
+			if (path === "/api/projects") {
+				const wsId = (opts as { workspaceId?: string } | undefined)
+					?.workspaceId;
+				projectCalls.push(wsId ?? "");
+				// First attempt against the foreign workspace is rejected by the guard.
+				if (wsId === "ws-foreign")
+					throw new ApiError(403, '{"error":"forbidden"}');
+				return {
+					project: { publicKey: "pk_ok", brandColor: "#000000", name: "Acme" },
+				};
+			}
+			if (path === "/api/workspaces") return { workspace: { id: "ws-fresh" } };
+			return {};
+		});
+
+		const user = userEvent.setup();
+		renderPage();
+
+		await user.type(screen.getByLabelText(/business or chatbot name/i), "Acme");
+		await user.click(screen.getByRole("button", { name: /create chatbot/i }));
+
+		// Recovered: provisioned a fresh workspace and retried the project there.
+		expect(api).toHaveBeenCalledWith(
+			"/api/workspaces",
+			expect.objectContaining({ method: "POST", body: { name: "Acme" } }),
+		);
+		expect(projectCalls).toEqual(["ws-foreign", "ws-fresh"]);
+		expect(await screen.findByText(/acme is ready/i)).toBeInTheDocument();
+		const snippet = document.querySelector("pre")?.textContent ?? "";
+		expect(snippet).toContain("pk_ok");
+	});
+
+	it("does not retry on a non-workspace error (e.g. validation 422)", async () => {
+		vi.mocked(api).mockImplementation(async (path: string) => {
+			if (path === "/api/projects")
+				throw new ApiError(422, '{"error":"bad input"}');
+			return {};
+		});
+		const user = userEvent.setup();
+		renderPage();
+
+		await user.type(screen.getByLabelText(/business or chatbot name/i), "Acme");
+		await user.click(screen.getByRole("button", { name: /create chatbot/i }));
+
+		// No workspace provisioning — the error isn't a workspace-auth failure.
+		await screen.findByRole("button", { name: /create chatbot/i });
+		expect(api).not.toHaveBeenCalledWith("/api/workspaces", expect.anything());
 	});
 });
