@@ -1,7 +1,16 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import {
+	DEFAULT_MODEL,
+	isWebSearchModel,
+	WEB_SEARCH_MODEL_IDS,
+} from "@llmchat/shared";
 import { z } from "zod";
+
+// Re-exported so existing imports keep resolving from this module; the values
+// themselves live in @llmchat/shared (the single source of truth).
+export { DEFAULT_MODEL, isWebSearchModel, WEB_SEARCH_MODEL_IDS };
 
 // The gateway is a third-party API, so its payload is untrusted: validate the
 // envelope and drop any individual model that doesn't carry the fields we render.
@@ -46,8 +55,6 @@ export type GatewayModel = z.infer<typeof gatewayModelSchema>;
 
 const GATEWAY_URL = "https://api.llmgateway.io/v1/models";
 
-export const DEFAULT_MODEL = "gpt-5.4-mini";
-
 /**
  * Validate an untrusted gateway payload into a clean model list. Throws when the
  * envelope is unrecognizable; silently drops individual models that are missing
@@ -75,42 +82,9 @@ export function useGatewayModels() {
 	});
 }
 
-/**
- * Models LLM Gateway advertises as web-search-capable, sourced from the
- * gateway's own catalog filter (https://llmgateway.io/models/web-search).
- *
- * The public /v1/models API gives us no usable signal to derive this: its only
- * documented web-search field, `pricing.web_search`, is "0" for every model
- * (including ones that do support search), and there's no server-side
- * capability filter param. So rather than guess from model names, we pin the
- * vendor's published set. Maintain this list as the gateway adds models.
- */
-export const WEB_SEARCH_MODEL_IDS: ReadonlySet<string> = new Set([
-	"gpt-5.5-pro",
-	"gpt-5.5",
-	"gpt-5.4-pro",
-	"gpt-5.4",
-	"gpt-5.4-mini",
-	"gpt-5.4-nano",
-	"gpt-5.3-codex",
-	"gpt-5.2-codex",
-	"claude-opus-4-8",
-	"claude-opus-4-7",
-	"claude-sonnet-4-6",
-	"gemini-pro-latest",
-	"gemini-3.5-flash",
-	"gemini-3.1-pro-preview",
-	"gemini-3.1-flash-lite",
-	"qwen3.7-max",
-	"qwen3.6-plus",
-	"qwen3.6-35b-a3b",
-	"qwen35-397b-a17b",
-	"glm-5.1",
-]);
-
 /** True when the gateway lists this model as web-search-capable. */
 export function hasWebSearch(model: GatewayModel): boolean {
-	return WEB_SEARCH_MODEL_IDS.has(model.id);
+	return isWebSearchModel(model.id);
 }
 
 /** Narrow a model list to only web-search-capable models. */

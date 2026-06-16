@@ -1,6 +1,13 @@
 import { z } from "zod";
 
 export { resolveSiblingUrl } from "./preview-url";
+export {
+	DEFAULT_MODEL,
+	effectiveModel,
+	isWebSearchModel,
+	WEB_SEARCH_MODEL_IDS,
+	WEB_SEARCH_MODELS,
+} from "./models";
 
 export const widgetMessageRole = z.enum(["user", "assistant", "admin"]);
 
