@@ -13,6 +13,7 @@ import { sources } from "@/routes/sources";
 import { systemPrompts } from "@/routes/system-prompts";
 import { widgetAsset } from "@/routes/widget-asset";
 import { widgetMessages } from "@/routes/widget-messages";
+import { widgetRating } from "@/routes/widget-rating";
 import { workspaces } from "@/routes/workspaces";
 
 import type { AppContext } from "@/env";
@@ -75,6 +76,7 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => {
 
 app.route("/v1", chat);
 app.route("/v1", widgetMessages);
+app.route("/v1", widgetRating);
 app.route("/api", workspaces);
 app.route("/api", projects);
 app.route("/api", systemPrompts);
