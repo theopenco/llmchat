@@ -174,6 +174,10 @@ export const conversation = sqliteTable(
 		messageCount: integer().notNull().default(0),
 		escalatedAt: timestamp(),
 		archivedAt: timestamp(),
+		// End-of-conversation CSAT (1–5 stars), prompted on widget close; null =
+		// unrated. Distinct from per-message thumbs (message.rating). Range is
+		// enforced in the /v1/csat route, not by a DB constraint.
+		csatRating: integer(),
 		createdAt: createdAt(),
 		updatedAt: timestamp()
 			.notNull()
