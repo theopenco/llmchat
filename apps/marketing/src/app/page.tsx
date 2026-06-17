@@ -256,8 +256,9 @@ export default function Home() {
 									llmchat vs. Chatbase, Fin, Intercom, Chatwoot & Crisp
 								</h3>
 								<p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
-									An honest, side-by-side breakdown across setup, AI, escalation,
-									channels, and pricing — including where the others are stronger.
+									An honest, side-by-side breakdown across setup, AI,
+									escalation, channels, and pricing — including where the others
+									are stronger.
 								</p>
 							</div>
 							<span className="mt-6 text-sm font-medium text-accent-soft transition-colors group-hover:text-accent">

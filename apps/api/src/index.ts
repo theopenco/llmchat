@@ -56,6 +56,18 @@ app.use(
 	}),
 );
 
+// Billing checkout/portal are called from the dashboard (credentialed), so they
+// need the same dashboard-pinned CORS as /api/*. The webhook (/billing/webhook)
+// is intentionally NOT listed: Stripe calls it server-to-server with no Origin,
+// and it must stay free of any middleware that could touch the raw body.
+const billingBrowserCors = cors({
+	origin: (origin, c) =>
+		isAllowedOrigin(origin, c.env.vars.DASHBOARD_URL) ? origin : null,
+	credentials: true,
+});
+app.use("/billing/checkout", billingBrowserCors);
+app.use("/billing/portal", billingBrowserCors);
+
 app.on(["GET", "POST"], "/api/auth/*", (c) => {
 	const auth = createAuth(c.env);
 	return auth.handler(c.req.raw);
@@ -69,7 +81,9 @@ app.route("/api", systemPrompts);
 app.route("/api", sources);
 app.route("/api", conversations);
 app.route("/", inboundEmail);
-app.route("/api", billing);
+// Billing mounts at root so the webhook is reachable at /billing/webhook
+// (the URL registered in Stripe), not under /api.
+app.route("/", billing);
 app.route("/", widgetAsset);
 app.route("/", embed);
 

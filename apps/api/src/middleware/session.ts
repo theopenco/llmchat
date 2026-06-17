@@ -33,3 +33,26 @@ export const requireWorkspace = createMiddleware<AppContext>(
 		return next();
 	},
 );
+
+// Like requireWorkspace, but asserts the caller is the workspace OWNER (not
+// just a member). Billing actions — checkout, portal — are owner-only.
+export const requireOwner = createMiddleware<AppContext>(async (c, next) => {
+	const userId = c.get("userId");
+	const workspaceId = c.req.header("x-workspace-id");
+	if (!workspaceId) {
+		return c.json({ error: "workspace required" }, 400);
+	}
+	const m = await db(c.env).query.member.findFirst({
+		where: (mt, { and, eq: e }) =>
+			and(
+				e(mt.userId, userId),
+				e(mt.workspaceId, workspaceId),
+				e(mt.role, "owner"),
+			),
+	});
+	if (!m) {
+		return c.json({ error: "forbidden" }, 403);
+	}
+	c.set("workspaceId", workspaceId);
+	return next();
+});
