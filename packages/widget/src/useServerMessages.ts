@@ -15,8 +15,13 @@ export function useServerMessages(
 	projectKey: string,
 	clientId: string,
 	enabled: boolean,
-): { serverMessages: ServerMessage[]; refresh: () => void } {
+): {
+	serverMessages: ServerMessage[];
+	conversationId: string | null;
+	refresh: () => void;
+} {
 	const [serverMessages, setServerMessages] = useState<ServerMessage[]>([]);
+	const [conversationId, setConversationId] = useState<string | null>(null);
 	const abortRef = useRef<AbortController | null>(null);
 
 	const load = useCallback(async () => {
@@ -24,13 +29,14 @@ export function useServerMessages(
 		const controller = new AbortController();
 		abortRef.current = controller;
 		try {
-			const messages = await fetchMessages(
+			const feed = await fetchMessages(
 				apiUrl,
 				projectKey,
 				clientId,
 				controller.signal,
 			);
-			setServerMessages(messages);
+			setServerMessages(feed.messages);
+			setConversationId(feed.conversationId);
 		} catch {
 			// Transient poll failure — keep showing the last good feed.
 		}
@@ -52,5 +58,5 @@ export function useServerMessages(
 		void load();
 	}, [load]);
 
-	return { serverMessages, refresh };
+	return { serverMessages, conversationId, refresh };
 }

@@ -351,6 +351,56 @@ export const widgetStyles = `
 	padding: 0.25rem 0.75rem;
 }
 
+/* ── Per-message rating (assistant thumbs) ─────────────────────────── */
+/* Group an assistant bubble with its rating controls so they read as one
+   left-aligned unit. */
+.llmchat-msg-group {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	align-self: flex-start;
+	gap: 0.25rem;
+	max-width: 85%;
+}
+.llmchat-msg-group .llmchat-msg {
+	max-width: 100%;
+}
+.llmchat-rate {
+	display: flex;
+	gap: 0.125rem;
+	padding-left: 0.125rem;
+}
+.llmchat-rate-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.625rem;
+	height: 1.625rem;
+	border-radius: 0.375rem;
+	background: transparent;
+	border: none;
+	color: #9ca3af;
+	cursor: pointer;
+	transition:
+		background 0.15s ease,
+		color 0.15s ease;
+}
+.llmchat-rate-btn:hover {
+	background: #f3f4f6;
+	color: #4b5563;
+}
+.llmchat-rate-btn[aria-pressed="true"] {
+	color: var(--brand);
+}
+.llmchat-rate-btn:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.llmchat-rate-btn svg {
+	width: 0.875rem;
+	height: 0.875rem;
+}
+
 /* Typing indicator: three bouncing dots inside an assistant bubble. */
 .llmchat-typing {
 	display: flex;

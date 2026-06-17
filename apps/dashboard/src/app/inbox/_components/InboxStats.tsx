@@ -40,9 +40,10 @@ function StatItem({
 }
 
 /**
- * At-a-glance counts derived from the loaded conversation set. Ratings are a
- * disabled placeholder — LLMChat has no rating data yet (TODO: wire up once a
- * resolve/rate flow exists), so we never show a fabricated number.
+ * At-a-glance counts derived from the loaded conversation set. The avg rating
+ * is a disabled placeholder for the upcoming per-conversation CSAT feature
+ * (distinct from the per-message thumbs in the thread), so we never show a
+ * fabricated number.
  */
 export function InboxStats({
 	conversations,

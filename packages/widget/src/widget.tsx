@@ -1,6 +1,6 @@
 import { Chat, useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Composer } from "./components/Composer";
 import { EscalationSection } from "./components/EscalationSection";
@@ -10,8 +10,11 @@ import { WidgetFrame } from "./components/WidgetFrame";
 import { requestEscalation } from "./escalation";
 import { getOrCreateClientId, getText } from "./lib";
 import { mergeMessages } from "./messages-sync";
+import { rateMessage, useMessageRatings } from "./rating";
 import { ShowcaseChat } from "./ShowcaseChat";
 import { useServerMessages } from "./useServerMessages";
+
+import type { Rating } from "./rating";
 
 /**
  * "live" (default) talks to the real API: conversations are created and
@@ -125,12 +128,30 @@ function LiveWidget({
 
 	// Poll the persisted feed while chatting so admin replies from the
 	// dashboard appear without a refresh.
-	const { serverMessages, refresh } = useServerMessages(
+	const { serverMessages, conversationId, refresh } = useServerMessages(
 		apiUrl,
 		projectKey,
 		clientId,
 		open && identified,
 	);
+
+	// Per-message thumbs: optimistic, rolling back if the request fails.
+	const sendRating = useCallback(
+		async (messageId: string, rating: Rating) => {
+			if (!conversationId) {
+				return;
+			}
+			await rateMessage(apiUrl, {
+				projectKey,
+				clientId,
+				conversationId,
+				messageId,
+				rating,
+			});
+		},
+		[apiUrl, projectKey, clientId, conversationId],
+	);
+	const { rate, effective } = useMessageRatings(sendRating);
 
 	// Refetch as soon as a send settles (stream finished or failed) so the
 	// just-persisted exchange replaces the local copy immediately.
@@ -147,8 +168,10 @@ function LiveWidget({
 			mergeMessages(
 				serverMessages,
 				messages.map((m) => ({ id: m.id, role: m.role, content: getText(m) })),
+			).map((m) =>
+				m.rateable ? { ...m, rating: effective(m.id, m.rating ?? null) } : m,
 			),
-		[serverMessages, messages],
+		[serverMessages, messages, effective],
 	);
 	const userMessageCount = displayMessages.filter(
 		(m) => m.role === "user",
@@ -209,6 +232,7 @@ function LiveWidget({
 						messages={displayMessages}
 						typing={loading}
 						error={sendFailed ? SEND_ERROR : null}
+						onRate={conversationId ? rate : undefined}
 					/>
 					{showEscalation && (
 						<EscalationSection
