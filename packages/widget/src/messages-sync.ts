@@ -14,6 +14,9 @@ export interface MessageFeed {
 	/** The visitor's own conversation id (null until one exists), used to
 	 * address messages for rating. */
 	conversationId: string | null;
+	/** Conversation-level CSAT (1–5), null until rated. Lets the widget avoid
+	 * re-prompting an already-rated visitor. */
+	csatRating: number | null;
 	messages: ServerMessage[];
 }
 
@@ -32,6 +35,7 @@ export async function fetchMessages(
 	const data = (await res.json()) as Partial<MessageFeed>;
 	return {
 		conversationId: data.conversationId ?? null,
+		csatRating: data.csatRating ?? null,
 		messages: data.messages ?? [],
 	};
 }

@@ -401,6 +401,68 @@ export const widgetStyles = `
 	height: 0.875rem;
 }
 
+/* ── CSAT closing screen ───────────────────────────────────────────── */
+.llmchat-csat {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	padding: 2rem 1.5rem;
+	text-align: center;
+}
+.llmchat-csat-title {
+	margin: 0;
+	font-size: 1.05rem;
+	font-weight: 600;
+	color: #111827;
+}
+.llmchat-csat-stars {
+	display: flex;
+	gap: 0.25rem;
+}
+.llmchat-csat-star {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.25rem;
+	background: transparent;
+	border: none;
+	color: #f59e0b;
+	cursor: pointer;
+	border-radius: 0.5rem;
+	transition: transform 0.1s ease;
+}
+.llmchat-csat-star:hover {
+	transform: scale(1.12);
+}
+.llmchat-csat-star:active {
+	transform: scale(0.95);
+}
+.llmchat-csat-star:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.llmchat-csat-skip {
+	background: transparent;
+	border: none;
+	color: #6b7280;
+	font: inherit;
+	font-size: 0.85rem;
+	cursor: pointer;
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.375rem;
+}
+.llmchat-csat-skip:hover {
+	color: #111827;
+	text-decoration: underline;
+}
+.llmchat-csat-skip:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+
 /* Typing indicator: three bouncing dots inside an assistant bubble. */
 .llmchat-typing {
 	display: flex;
