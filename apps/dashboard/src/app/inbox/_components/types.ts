@@ -22,4 +22,7 @@ export interface Message {
 	content: string;
 	sequence: number;
 	createdAt: string;
+	/** Visitor thumbs rating on an assistant reply (answer quality); null/absent
+	 * = unrated. Distinct from per-conversation CSAT. */
+	rating?: "up" | "down" | null;
 }
