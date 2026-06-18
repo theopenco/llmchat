@@ -2,6 +2,7 @@
 
 import { useSession } from "@/lib/auth-client";
 import { BrandMark } from "@/components/BrandMark";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const marketingUrl =
 	process.env.NEXT_PUBLIC_MARKETING_URL ?? "http://localhost:3002";
@@ -95,6 +96,8 @@ export function ShowcaseHeader() {
 						<span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_2px_rgba(99,102,241,0.7)]" />
 						Demo
 					</span>
+
+					<ThemeToggle />
 
 					<a
 						href={dashboardUrl}

@@ -6,6 +6,7 @@ import {
 	Hanken_Grotesk,
 	JetBrains_Mono,
 } from "next/font/google";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const display = Bricolage_Grotesque({
 	subsets: ["latin"],
@@ -40,9 +41,19 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`dark ${display.variable} ${sans.variable} ${mono.variable}`}
+			suppressHydrationWarning
+			className={`${display.variable} ${sans.variable} ${mono.variable}`}
 		>
-			<body>{children}</body>
+			<body>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="dark"
+					enableSystem
+					disableTransitionOnChange
+				>
+					{children}
+				</ThemeProvider>
+			</body>
 		</html>
 	);
 }

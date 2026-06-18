@@ -7,6 +7,7 @@ import {
 	JetBrains_Mono,
 } from "next/font/google";
 import { PostHogProvider } from "@/components/PostHogProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 // Distinctive modern grotesque for display headlines.
 const display = Bricolage_Grotesque({
@@ -46,10 +47,18 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`dark ${display.variable} ${sans.variable} ${mono.variable}`}
+			suppressHydrationWarning
+			className={`${display.variable} ${sans.variable} ${mono.variable}`}
 		>
 			<body>
-				<PostHogProvider>{children}</PostHogProvider>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="dark"
+					enableSystem
+					disableTransitionOnChange
+				>
+					<PostHogProvider>{children}</PostHogProvider>
+				</ThemeProvider>
 			</body>
 		</html>
 	);

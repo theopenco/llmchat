@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 
+import { ThemeToggle } from "@/components/ThemeToggle";
+
 type NavKey = "features" | "resources" | "compare";
 
 const links: { label: string; href: string; active?: NavKey }[] = [
@@ -154,6 +156,21 @@ export function MobileNav({
 										<span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_2px_rgba(99,102,241,0.6)]" />
 										Live demo
 									</a>
+								</li>
+								<li
+									className="flex items-center justify-between border-t border-rule-soft py-4 transition-all duration-300"
+									style={{
+										transitionDelay: open
+											? `${80 + (links.length + 1) * 45}ms`
+											: "0ms",
+										opacity: open ? 1 : 0,
+										transform: open ? "translateY(0)" : "translateY(6px)",
+									}}
+								>
+									<span className="text-base font-medium text-ink-soft">
+										Theme
+									</span>
+									<ThemeToggle />
 								</li>
 							</ul>
 						</nav>

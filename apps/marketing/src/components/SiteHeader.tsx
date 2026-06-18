@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AuthButton } from "@/components/AuthButton";
 import { BrandMark } from "@/components/BrandMark";
 import { MobileNav } from "@/components/MobileNav";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { CANONICAL_SHOWCASE_URL } from "@/lib/site-urls";
 
 type NavKey = "features" | "resources" | "compare";
@@ -95,6 +96,8 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 						<span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_2px_rgba(99,102,241,0.6)]" />
 						Live demo
 					</a>
+
+					<ThemeToggle className="hidden sm:inline-flex" />
 
 					<AuthButton />
 
