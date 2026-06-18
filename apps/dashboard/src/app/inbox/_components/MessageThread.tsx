@@ -1,6 +1,6 @@
 "use client";
 
-import { ThumbsDown, ThumbsUp } from "lucide-react";
+import { Headset, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
@@ -94,9 +94,13 @@ export function MessageThread({ messages }: { messages: Message[] }) {
 				m.role === "system" ? (
 					<div
 						key={m.id}
-						className="mx-auto my-1 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground"
+						className="mx-auto my-1 flex max-w-[80%] items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
 					>
-						{m.content}
+						<Headset className="size-4 shrink-0 text-amber-500" />
+						<span className="flex-1">{m.content}</span>
+						<span className="shrink-0 tabular-nums text-muted-foreground/70">
+							{formatMessageTime(m.createdAt)}
+						</span>
 					</div>
 				) : (
 					<MessageBubble key={m.id} message={m} />

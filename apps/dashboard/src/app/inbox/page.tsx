@@ -15,9 +15,10 @@ import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { ConversationList } from "./_components/ConversationList";
 import { ConversationListSkeleton } from "./_components/ConversationListSkeleton";
 import { DetailPanel } from "./_components/DetailPanel";
-import { initials, pluralize } from "./_components/format";
+import { initials, parseDevice, pluralize } from "./_components/format";
 import { InboxSkeleton } from "./_components/InboxSkeleton";
 import { InboxStats } from "./_components/InboxStats";
+import { InboxToolbar } from "./_components/InboxToolbar";
 import { MessageThread } from "./_components/MessageThread";
 import { ProjectSwitcher } from "./_components/ProjectSwitcher";
 import { ReplyComposer } from "./_components/ReplyComposer";
@@ -229,9 +230,36 @@ export default function InboxPage() {
 		return <InboxSkeleton />;
 	}
 
+	const threadSubtitle =
+		[detailConv?.email, parseDevice(detailConv?.userAgent)]
+			.filter(Boolean)
+			.join(" · ") ||
+		(detailConv ? pluralize(detailConv.messageCount, "message") : "");
+
 	return (
 		<div className="flex h-[calc(100vh-3.5rem)] flex-col">
-			<InboxStats conversations={allConversations} />
+			{/* Header band — title + at-a-glance stats */}
+			<header className="flex flex-wrap items-start justify-between gap-4 border-b px-6 py-4">
+				<div>
+					<h1 className="font-display text-2xl font-semibold tracking-tight-display">
+						Conversations
+					</h1>
+					<p className="mt-0.5 text-sm text-muted-foreground">
+						All visitor conversations in one inbox.
+					</p>
+				</div>
+				<InboxStats conversations={allConversations} />
+			</header>
+
+			<InboxToolbar
+				search={search}
+				onSearch={setSearch}
+				showArchived={showArchived}
+				onShowArchivedChange={(archived) => {
+					setShowArchived(archived);
+					setSelectedId(null);
+				}}
+			/>
 
 			<div className="flex min-h-0 flex-1">
 				{/* Left — list */}
@@ -249,12 +277,7 @@ export default function InboxPage() {
 							selectedId={selectedId}
 							onSelect={handleSelect}
 							search={search}
-							onSearch={setSearch}
 							showArchived={showArchived}
-							onToggleArchived={() => {
-								setShowArchived((v) => !v);
-								setSelectedId(null);
-							}}
 						/>
 					)}
 				</div>
@@ -264,15 +287,15 @@ export default function InboxPage() {
 					{selectedId && detailConv ? (
 						<>
 							<div className="flex items-center gap-3 border-b px-6 py-3">
-								<span className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
+								<span className="flex size-9 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
 									{initials(detailConv.name)}
 								</span>
 								<div className="min-w-0 flex-1">
-									<p className="truncate text-sm font-medium">
+									<p className="truncate text-sm font-semibold">
 										{detailConv.name ?? "Anonymous"}
 									</p>
-									<p className="text-xs text-muted-foreground">
-										{pluralize(detailConv.messageCount, "message")}
+									<p className="truncate text-xs text-muted-foreground">
+										{threadSubtitle}
 									</p>
 								</div>
 								{detailConv.escalatedAt && (

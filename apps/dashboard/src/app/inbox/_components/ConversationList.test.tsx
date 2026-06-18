@@ -29,21 +29,17 @@ function setup(
 	props: Partial<React.ComponentProps<typeof ConversationList>> = {},
 ) {
 	const onSelect = vi.fn();
-	const onSearch = vi.fn();
-	const onToggleArchived = vi.fn();
 	render(
 		<ConversationList
 			conversations={[conv({ id: "a" })]}
 			selectedId={null}
 			onSelect={onSelect}
 			search=""
-			onSearch={onSearch}
 			showArchived={false}
-			onToggleArchived={onToggleArchived}
 			{...props}
 		/>,
 	);
-	return { onSelect, onSearch, onToggleArchived };
+	return { onSelect };
 }
 
 describe("ConversationList", () => {
@@ -66,9 +62,7 @@ describe("ConversationList", () => {
 				selectedId={null}
 				onSelect={vi.fn()}
 				search=""
-				onSearch={vi.fn()}
 				showArchived={false}
-				onToggleArchived={vi.fn()}
 			/>,
 		);
 		expect(screen.getByLabelText("Unread")).toBeInTheDocument();
@@ -79,9 +73,7 @@ describe("ConversationList", () => {
 				selectedId={null}
 				onSelect={vi.fn()}
 				search=""
-				onSearch={vi.fn()}
 				showArchived={false}
-				onToggleArchived={vi.fn()}
 			/>,
 		);
 		expect(screen.queryByLabelText("Unread")).not.toBeInTheDocument();
@@ -94,9 +86,7 @@ describe("ConversationList", () => {
 				selectedId="a"
 				onSelect={vi.fn()}
 				search=""
-				onSearch={vi.fn()}
 				showArchived={false}
-				onToggleArchived={vi.fn()}
 			/>,
 		);
 		expect(screen.queryByLabelText("Unread")).not.toBeInTheDocument();
@@ -125,22 +115,12 @@ describe("ConversationList", () => {
 		expect(screen.getByText("ada@example.com")).toBeInTheDocument();
 	});
 
-	it("reports the typed query and selection upward", async () => {
+	it("reports the selected conversation upward", async () => {
 		const user = userEvent.setup();
-		const { onSearch, onSelect } = setup();
-
-		await user.type(screen.getByLabelText("Search conversations"), "x");
-		expect(onSearch).toHaveBeenCalledWith("x");
+		const { onSelect } = setup();
 
 		await user.click(screen.getByText("Ada Lovelace"));
 		expect(onSelect).toHaveBeenCalledWith("a");
-	});
-
-	it("toggles the archived view", async () => {
-		const user = userEvent.setup();
-		const { onToggleArchived } = setup();
-		await user.click(screen.getByRole("button", { name: /archived/i }));
-		expect(onToggleArchived).toHaveBeenCalled();
 	});
 
 	it("distinguishes the empty states", () => {
@@ -150,9 +130,7 @@ describe("ConversationList", () => {
 				selectedId={null}
 				onSelect={vi.fn()}
 				search="zzz"
-				onSearch={vi.fn()}
 				showArchived={false}
-				onToggleArchived={vi.fn()}
 			/>,
 		);
 		expect(
@@ -165,9 +143,7 @@ describe("ConversationList", () => {
 				selectedId={null}
 				onSelect={vi.fn()}
 				search=""
-				onSearch={vi.fn()}
 				showArchived
-				onToggleArchived={vi.fn()}
 			/>,
 		);
 		expect(screen.getByText(/no archived conversations/i)).toBeInTheDocument();
