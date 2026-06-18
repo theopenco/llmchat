@@ -86,10 +86,6 @@ const config: Config = {
 			maxWidth: {
 				prose: "42rem",
 			},
-			boxShadow: {
-				// Subtle indigo halo — used only on the ◆ brand mark.
-				glow: "0 6px 18px -6px hsl(var(--primary) / 0.7)",
-			},
 			keyframes: {
 				"accordion-down": {
 					from: {

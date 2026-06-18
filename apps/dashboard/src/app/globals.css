@@ -17,7 +17,7 @@
 		--card-foreground: 221 39% 11%;
 		--popover: 0 0% 100%;
 		--popover-foreground: 221 39% 11%;
-		--primary: 243 75% 59%; /* indigo-600 #4F46E5 — deeper for contrast on white */
+		--primary: 239 84% 67%; /* indigo-500 #6366F1 — unified brand indigo (matches mockups) */
 		--primary-foreground: 0 0% 100%;
 		--secondary: 220 33% 96%;
 		--secondary-foreground: 221 39% 11%;
@@ -35,16 +35,16 @@
 		--info-foreground: 210 40% 98%;
 		--border: 220 22% 90%;
 		--input: 220 22% 90%;
-		--ring: 243 75% 59%;
+		--ring: 239 84% 67%;
 		--radius: 0.5rem;
 		--sidebar-background: 220 33% 98%;
 		--sidebar-foreground: 221 20% 35%;
-		--sidebar-primary: 243 75% 59%;
+		--sidebar-primary: 239 84% 67%;
 		--sidebar-primary-foreground: 0 0% 100%;
 		--sidebar-accent: 220 33% 94%;
 		--sidebar-accent-foreground: 221 39% 11%;
 		--sidebar-border: 220 22% 90%;
-		--sidebar-ring: 243 75% 59%;
+		--sidebar-ring: 239 84% 67%;
 	}
 
 	.dark {

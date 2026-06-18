@@ -128,7 +128,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild size="lg">
 							<Link href="/inbox">
-								<span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-[0.95rem] font-bold text-primary-foreground shadow-glow">
+								<span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-[0.95rem] font-bold text-primary-foreground">
 									◆
 								</span>
 								<span className="font-display text-base font-semibold tracking-tight-display">
@@ -142,7 +142,9 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 
 			<SidebarContent>
 				<SidebarGroup>
-					<SidebarGroupLabel>Platform</SidebarGroupLabel>
+					<SidebarGroupLabel className="uppercase tracking-[0.12em]">
+						Platform
+					</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
 							{NAV.map((item) => {
@@ -157,7 +159,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 											tooltip={item.title}
 											className={cn(
 												active &&
-													"bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary data-[active=true]:bg-primary/10 data-[active=true]:text-primary",
+													"bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground",
 											)}
 										>
 											<Link href={item.href}>
@@ -175,7 +177,9 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 				{inProject && (
 					<>
 						<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-							<SidebarGroupLabel>Current project</SidebarGroupLabel>
+							<SidebarGroupLabel className="uppercase tracking-[0.12em]">
+								Current project
+							</SidebarGroupLabel>
 							<SidebarGroupContent>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
@@ -232,7 +236,9 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 						</SidebarGroup>
 
 						<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-							<SidebarGroupLabel>Setup</SidebarGroupLabel>
+							<SidebarGroupLabel className="uppercase tracking-[0.12em]">
+								Setup
+							</SidebarGroupLabel>
 							<SidebarGroupContent>
 								<SidebarMenu>
 									{SETUP_STEPS.map((step) => {
@@ -361,8 +367,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</SidebarMenuItem>
-					<SidebarMenuItem className="flex items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:hidden">
-						<span className="text-xs text-muted-foreground">Theme</span>
+					<SidebarMenuItem className="flex items-center px-1 group-data-[collapsible=icon]:hidden">
 						<ModeToggle />
 					</SidebarMenuItem>
 				</SidebarMenu>
