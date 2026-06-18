@@ -19,6 +19,7 @@ import { api } from "@/lib/api";
 import { signOut } from "@/lib/auth-client";
 import { track, resetAnalytics, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { useWorkspace } from "@/lib/workspace";
+import { BrandLogo } from "@/components/brand-logo";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -128,9 +129,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild size="lg">
 							<Link href="/inbox">
-								<span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-[0.95rem] font-bold text-primary-foreground">
-									◆
-								</span>
+								<BrandLogo className="size-8" />
 								<span className="font-display text-base font-semibold tracking-tight-display">
 									llmchat
 								</span>
@@ -250,19 +249,19 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 													isActive={active}
 													className={cn(
 														active &&
-															"bg-indigo-500/10 font-medium text-indigo-600 hover:bg-indigo-500/10 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-400",
+															"bg-sidebar-primary font-medium text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground",
 													)}
 												>
 													<span
 														className={cn(
 															"flex size-4 items-center justify-center rounded-full border",
 															active
-																? "border-indigo-600"
+																? "border-current"
 																: "border-muted-foreground/40",
 														)}
 													>
 														{active && (
-															<span className="size-1.5 rounded-full bg-indigo-600" />
+															<span className="size-1.5 rounded-full bg-current" />
 														)}
 													</span>
 													<span>{step.label}</span>
