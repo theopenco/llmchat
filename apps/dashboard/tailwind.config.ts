@@ -80,6 +80,19 @@ const config: Config = {
 				md: "calc(var(--radius) - 2px)",
 				sm: "calc(var(--radius) - 4px)",
 			},
+			letterSpacing: {
+				"tight-display": "-0.02em",
+			},
+			maxWidth: {
+				prose: "42rem",
+			},
+			boxShadow: {
+				// Indigo brand glow for primary actions — mirrors marketing.
+				glow: "0 8px 24px -10px hsl(var(--primary) / 0.6)",
+				"glow-lg":
+					"0 0 0 1px hsl(var(--primary) / 0.25), 0 20px 60px -20px hsl(var(--primary) / 0.35)",
+				lift: "0 24px 60px -28px rgba(0, 0, 0, 0.5)",
+			},
 			keyframes: {
 				"accordion-down": {
 					from: {
