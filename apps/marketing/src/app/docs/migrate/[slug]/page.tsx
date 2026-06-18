@@ -207,8 +207,8 @@ export default async function MigratePage({
 						Want the full feature comparison first?
 					</h2>
 					<p className="mt-2 text-sm leading-relaxed text-muted">
-						See exactly how Clanker Support and {guide.name} stack up across setup, AI,
-						channels, and pricing before you switch.
+						See exactly how Clanker Support and {guide.name} stack up across
+						setup, AI, channels, and pricing before you switch.
 					</p>
 					<Link
 						href={`/vs/${guide.slug}`}

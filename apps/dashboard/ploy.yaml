@@ -3,7 +3,7 @@ build: pnpm --filter @llmchat/dashboard build
 out: .next
 
 env:
-  NEXT_PUBLIC_API_URL: https://llmchat-api.meetploy.app
+  NEXT_PUBLIC_API_URL: https://api.clankersupport.com
 
 dev:
   port: 3001

@@ -1,5 +1,12 @@
 {
-	"colOrder": ["Clanker Support", "chatbase", "fin", "intercom", "chatwoot", "crisp"],
+	"colOrder": [
+		"Clanker Support",
+		"chatbase",
+		"fin",
+		"intercom",
+		"chatwoot",
+		"crisp"
+	],
 	"colLabels": {
 		"llmchat": "Clanker Support",
 		"chatbase": "Chatbase",
@@ -203,5 +210,5 @@
 			]
 		}
 	],
-	"llmchatEmbed": "<script\n  src=\"https://llmchat-api.meetploy.app/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>"
+	"llmchatEmbed": "<script\n  src=\"https://api.clankersupport.com/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>"
 }

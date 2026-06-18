@@ -34,8 +34,9 @@ export default function ComparePage() {
 						<em className="font-normal italic text-accent">compared.</em>
 					</h1>
 					<p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-						An honest side-by-side of Clanker Support against Chatbase, Fin, Intercom,
-						Chatwoot, and Crisp — including where the others are stronger.
+						An honest side-by-side of Clanker Support against Chatbase, Fin,
+						Intercom, Chatwoot, and Crisp — including where the others are
+						stronger.
 					</p>
 				</section>
 

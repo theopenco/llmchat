@@ -20,7 +20,7 @@
 		{
 			"title": "Swap the messenger embed",
 			"body": "Remove the Intercom messenger loader and add the Clanker Support script tag. The widget loads in a shadow DOM and inherits your brand color, so it fits your site without extra CSS work.",
-			"code": "<script\n  src=\"https://llmchat-api.meetploy.app/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
+			"code": "<script\n  src=\"https://api.clankersupport.com/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
 			"codeLabel": "Add the Clanker Support widget"
 		},
 		{

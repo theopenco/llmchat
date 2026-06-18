@@ -20,7 +20,7 @@
 		{
 			"title": "Swap the loader script",
 			"body": "Remove the Crisp l.js loader and CRISP_WEBSITE_ID, then add the Clanker Support script tag. The widget loads in a shadow DOM so it won't pick up or leak page styles.",
-			"code": "<script\n  src=\"https://llmchat-api.meetploy.app/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
+			"code": "<script\n  src=\"https://api.clankersupport.com/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
 			"codeLabel": "Add the Clanker Support widget"
 		},
 		{

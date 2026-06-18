@@ -19,9 +19,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
 		"inline-flex size-9 items-center justify-center rounded-full border border-rule text-ink-soft transition-colors hover:border-accent/40 hover:text-ink";
 
 	if (!mounted) {
-		return (
-			<span aria-hidden className={`${base} ${className}`} />
-		);
+		return <span aria-hidden className={`${base} ${className}`} />;
 	}
 
 	return (
