@@ -60,7 +60,7 @@ export default function SignUpPage() {
 	return (
 		<AuthLayout
 			heading="Create your account"
-			subheading="Get started with llmchat in seconds"
+			subheading="Get started with Clanker Support in seconds"
 		>
 			<form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
 				<FormField id="name" label="Name (optional)" error={errors.name}>

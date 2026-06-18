@@ -1,8 +1,10 @@
 import type { Config } from "tailwindcss";
 
-// Mirrors apps/marketing — the shared Clean Slate (dark) identity.
+// Mirrors apps/marketing — the shared Clean Slate identity, light + dark via
+// CSS variables (see globals.css).
 const config: Config = {
 	content: ["./src/**/*.{ts,tsx}"],
+	darkMode: "class",
 	theme: {
 		extend: {
 			fontFamily: {
@@ -11,19 +13,19 @@ const config: Config = {
 				mono: ["var(--font-mono)", "ui-monospace", "monospace"],
 			},
 			colors: {
-				paper: "#0B0E14",
-				"paper-deep": "#090C11",
-				"paper-card": "#141925",
-				"paper-raise": "#1B2233",
-				ink: "#F6F8FC",
-				"ink-soft": "#C7CEDB",
-				muted: "#8A93A6",
-				faint: "#5C6577",
-				rule: "#222A3A",
-				"rule-soft": "#1A2130",
-				accent: "#6366F1",
-				"accent-soft": "#818CF8",
-				"accent-deep": "#4F46E5",
+				paper: "rgb(var(--paper) / <alpha-value>)",
+				"paper-deep": "rgb(var(--paper-deep) / <alpha-value>)",
+				"paper-card": "rgb(var(--paper-card) / <alpha-value>)",
+				"paper-raise": "rgb(var(--paper-raise) / <alpha-value>)",
+				ink: "rgb(var(--ink) / <alpha-value>)",
+				"ink-soft": "rgb(var(--ink-soft) / <alpha-value>)",
+				muted: "rgb(var(--muted) / <alpha-value>)",
+				faint: "rgb(var(--faint) / <alpha-value>)",
+				rule: "rgb(var(--rule) / <alpha-value>)",
+				"rule-soft": "rgb(var(--rule-soft) / <alpha-value>)",
+				accent: "rgb(var(--accent) / <alpha-value>)",
+				"accent-soft": "rgb(var(--accent-soft) / <alpha-value>)",
+				"accent-deep": "rgb(var(--accent-deep) / <alpha-value>)",
 			},
 			letterSpacing: {
 				"tight-display": "-0.02em",

@@ -1,30 +1,28 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The product mark from the mockups: a chat bubble in an indigo gradient square.
- * Replaces the earlier ◆ placeholder. Size is set by the caller via className
- * (e.g. `size-8`); the glyph scales to the box.
+ * The Clanker Support product mark, rendered faithfully from `public/logo.svg`
+ * (a cached static asset, not in the JS bundle). The file is brand-indigo,
+ * which reads on both light and dark surfaces. On the indigo onboarding orb,
+ * pass `invert` to flip it to white. Size is set by the caller (e.g. `size-8`).
  */
-export function BrandLogo({ className }: { className?: string }) {
+export function BrandLogo({
+	className,
+	invert,
+}: {
+	className?: string;
+	invert?: boolean;
+}) {
 	return (
-		<span
+		// eslint-disable-next-line @next/next/no-img-element
+		<img
+			src="/logo.svg"
+			alt="Clanker Support"
 			className={cn(
-				"flex shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-600 text-white",
+				"inline-block shrink-0 object-contain",
+				invert && "[filter:brightness(0)_invert(1)]",
 				className,
 			)}
-		>
-			<svg
-				viewBox="0 0 24 24"
-				className="size-[58%]"
-				fill="none"
-				stroke="currentColor"
-				strokeWidth="2"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				aria-hidden
-			>
-				<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-			</svg>
-		</span>
+		/>
 	);
 }

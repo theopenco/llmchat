@@ -22,7 +22,7 @@ export function WelcomeStep({ onNext }: { onNext: () => void }) {
 				<BrandLogo className="size-12" />
 				<div>
 					<h1 className="font-display text-2xl font-semibold tracking-tight-display">
-						Welcome to LLMChat 👋
+						Welcome to Clanker Support 👋
 					</h1>
 					<p className="mt-2 text-sm text-muted-foreground">
 						Let&apos;s set up your AI support bot in just a few minutes.
@@ -34,7 +34,7 @@ export function WelcomeStep({ onNext }: { onNext: () => void }) {
 			<div className="relative my-8 flex h-40 items-center justify-center">
 				<div className="absolute size-40 rounded-full bg-primary/15 blur-2xl dark:bg-primary/25" />
 				<div className="relative flex size-24 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-[0_20px_50px_-12px_hsl(var(--primary)/0.7)]">
-					<BrandLogo className="size-12 bg-transparent from-transparent to-transparent" />
+					<BrandLogo className="size-12" invert />
 				</div>
 				<span className="absolute left-6 top-4 size-2.5 rounded-full bg-indigo-400/70 dark:bg-indigo-300" />
 				<span className="absolute right-8 top-10 size-2 rounded-full bg-violet-400/70 dark:bg-violet-300" />

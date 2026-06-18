@@ -6,11 +6,11 @@ category: "Guides"
 featured: false
 ---
 
-When a conversation escalates in llmchat, we send an email to your configured notify address. What makes it useful rather than just a notification is what happens next: the customer can reply to that email, and their reply threads back into the conversation in your inbox.
+When a conversation escalates in Clanker Support, we send an email to your configured notify address. What makes it useful rather than just a notification is what happens next: the customer can reply to that email, and their reply threads back into the conversation in your inbox.
 
 **Step 1: Configure your notify email.** In your project settings, set the "Notify email" field to wherever you want escalation alerts to land. This is your team inbox or a shared support address.
 
-**Step 2: Set up your inbound email domain.** llmchat uses Resend for both outbound and inbound email. You'll need to configure a receiving domain (e.g., inbound.yourdomain.com) and add the MX records Resend provides. This is a one-time DNS change.
+**Step 2: Set up your inbound email domain.** Clanker Support uses Resend for both outbound and inbound email. You'll need to configure a receiving domain (e.g., inbound.yourdomain.com) and add the MX records Resend provides. This is a one-time DNS change.
 
 **Step 3: Set your inbound email local.** In project settings, set the "Inbound email local" field to a short identifier (e.g., "support" for support@inbound.yourdomain.com). This is the address customers reply to.
 

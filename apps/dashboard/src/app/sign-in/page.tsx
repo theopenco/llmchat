@@ -52,7 +52,7 @@ export default function SignInPage() {
 	return (
 		<AuthLayout
 			heading={<>Welcome back 👋</>}
-			subheading="Sign in to your llmchat dashboard"
+			subheading="Sign in to your Clanker Support dashboard"
 		>
 			<form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
 				<FormField id="email" label="Email" error={errors.email}>

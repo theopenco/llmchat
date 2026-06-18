@@ -5,9 +5,9 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { categories, formatDateShort, type CategoryFilter } from "@/lib/format";
 
 export const metadata = {
-	title: "Journal — llmchat",
+	title: "Journal — Clanker Support",
 	description:
-		"Field notes on AI support: announcements, guides, and engineering from the llmchat team.",
+		"Field notes on AI support: announcements, guides, and engineering from the Clanker Support team.",
 };
 
 export default async function BlogPage({
@@ -38,7 +38,7 @@ export default async function BlogPage({
 			<main className="mx-auto max-w-6xl px-6">
 				{/* Masthead */}
 				<section className="animate-rise-in pt-16 sm:pt-20">
-					<p className="kicker">The llmchat Journal · Est. 2026</p>
+					<p className="kicker">The Clanker Support Journal · Est. 2026</p>
 					<h1 className="font-display mt-4 max-w-4xl text-5xl font-semibold leading-[0.98] tracking-tight-display text-ink sm:text-7xl">
 						Field notes on{" "}
 						<em className="font-normal italic text-accent">AI support</em>
