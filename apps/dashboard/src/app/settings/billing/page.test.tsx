@@ -23,6 +23,15 @@ vi.mock("@/lib/billing", () => ({
 	openPortal: vi.fn(),
 	isBillingNotConfigured: vi.fn(() => false),
 }));
+// The usage card reads a real project count; stub the API so the query resolves.
+vi.mock("@/lib/api", () => ({
+	api: vi.fn(async () => ({ projects: [] })),
+}));
+
+// The page shows "Upgrade to Pro" in both the current-plan card and the Pro
+// tier; either drives checkout, so the tests click the first.
+const clickUpgrade = (user: ReturnType<typeof userEvent.setup>) =>
+	user.click(screen.getAllByRole("button", { name: /upgrade to pro/i })[0]);
 
 function setWorkspace(plan: Plan | null, isLoading = false) {
 	vi.mocked(useWorkspace).mockReturnValue({
@@ -66,10 +75,8 @@ describe("BillingPage", () => {
 		vi.mocked(startCheckout).mockResolvedValue("https://checkout.stripe.com/x");
 		renderPage();
 
-		expect(screen.getByText("Free")).toBeInTheDocument();
-		await userEvent.click(
-			screen.getByRole("button", { name: /upgrade to pro/i }),
-		);
+		expect(screen.getAllByText("Free").length).toBeGreaterThan(0);
+		await clickUpgrade(userEvent.setup());
 		expect(startCheckout).toHaveBeenCalledWith("ws_1");
 		expect(openPortal).not.toHaveBeenCalled();
 	});
@@ -79,7 +86,7 @@ describe("BillingPage", () => {
 		vi.mocked(openPortal).mockResolvedValue("https://billing.stripe.com/x");
 		renderPage();
 
-		expect(screen.getByText("Pro")).toBeInTheDocument();
+		expect(screen.getAllByText("Pro").length).toBeGreaterThan(0);
 		await userEvent.click(
 			screen.getByRole("button", { name: /manage billing/i }),
 		);
@@ -93,9 +100,7 @@ describe("BillingPage", () => {
 		vi.mocked(isBillingNotConfigured).mockReturnValue(true);
 		renderPage();
 
-		await userEvent.click(
-			screen.getByRole("button", { name: /upgrade to pro/i }),
-		);
+		await clickUpgrade(userEvent.setup());
 		expect(await screen.findByRole("alert")).toHaveTextContent(
 			/billing isn't enabled yet/i,
 		);
@@ -107,9 +112,7 @@ describe("BillingPage", () => {
 		vi.mocked(isBillingNotConfigured).mockReturnValue(false);
 		renderPage();
 
-		await userEvent.click(
-			screen.getByRole("button", { name: /upgrade to pro/i }),
-		);
+		await clickUpgrade(userEvent.setup());
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent(/something went wrong/i);
 		expect(alert).not.toHaveTextContent(/500/);
