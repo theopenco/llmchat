@@ -47,6 +47,12 @@ export default function OnboardingPage() {
 		track(ANALYTICS_EVENTS.onboardingStarted);
 	}, []);
 
+	// Warm the live-widget chunk (AI SDK) during the interview so the payoff is
+	// instant — it's lazy-loaded in LiveBotPanel to stay out of the initial load.
+	useEffect(() => {
+		void import("@llmchat/widget");
+	}, []);
+
 	// Already onboarded → dashboard. Suppressed once we've created a project so
 	// the flow isn't yanked away when state flips to "ready".
 	useEffect(() => {

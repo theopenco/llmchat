@@ -1,8 +1,7 @@
 "use client";
 
 import { ArrowRight, Sparkles } from "lucide-react";
-
-import { Widget } from "@llmchat/widget";
+import { lazy, Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
 import { EmbedSnippet } from "@/components/embed-snippet";
@@ -10,6 +9,13 @@ import { apiBaseUrl } from "@/lib/api-base";
 import { cn } from "@/lib/utils";
 
 import { ONBOARDING_PRIMARY } from "./onboarding-steps";
+
+// The live widget pulls in the AI SDK — lazy-load it so it stays out of the
+// onboarding route's initial bundle. The page prefetches this chunk during the
+// interview, so it's usually warm by the time we render the payoff.
+const Widget = lazy(() =>
+	import("@llmchat/widget").then((m) => ({ default: m.Widget })),
+);
 
 export interface LiveProject {
 	id: string;
@@ -50,14 +56,26 @@ export function LiveBotPanel({
 			{/* Framed inline widget — the panel fills this relative container. */}
 			<div className="mx-auto w-full max-w-sm">
 				<div className="relative h-[34rem] overflow-hidden rounded-2xl border border-border shadow-xl">
-					<Widget
-						widgetMode="live"
-						mode="inline"
-						projectKey={project.publicKey}
-						apiUrl={apiBaseUrl()}
-						brandColor={project.brandColor}
-					/>
+					<Suspense
+						fallback={
+							<div className="absolute inset-0 animate-pulse bg-muted" />
+						}
+					>
+						<Widget
+							widgetMode="live"
+							mode="inline"
+							projectKey={project.publicKey}
+							apiUrl={apiBaseUrl()}
+							brandColor={project.brandColor}
+						/>
+					</Suspense>
 				</div>
+				{/* The bot is optional here — the snippet and CTA below are always
+				    reachable, so a model hiccup (e.g. no LLM key on preview) never
+				    blocks finishing onboarding. */}
+				<p className="mt-3 text-center text-xs text-muted-foreground">
+					Bot not responding? You can still grab your snippet and finish below.
+				</p>
 			</div>
 
 			<div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
