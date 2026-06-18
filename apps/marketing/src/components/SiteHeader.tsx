@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { AuthButton } from "@/components/AuthButton";
-
-const showcaseUrl =
-	process.env.NEXT_PUBLIC_SHOWCASE_URL ?? "http://localhost:3003";
+import { CANONICAL_SHOWCASE_URL } from "@/lib/site-urls";
 
 type NavKey = "features" | "resources" | "compare";
 
@@ -91,7 +89,7 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 					</Link>
 
 					<a
-						href={showcaseUrl}
+						href={CANONICAL_SHOWCASE_URL}
 						className="hidden items-center gap-1.5 rounded-full border border-rule px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-accent/40 hover:text-ink sm:inline-flex"
 					>
 						<span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_2px_rgba(99,102,241,0.6)]" />
