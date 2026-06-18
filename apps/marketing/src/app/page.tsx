@@ -186,7 +186,7 @@ export default function Home() {
 							<div>
 								<p className="kicker">Compare</p>
 								<h3 className="font-display mt-3 text-2xl font-semibold tracking-tight-display text-ink">
-									llmchat vs. Chatbase, Fin, Intercom, Chatwoot & Crisp
+									Clanker Support vs. Chatbase, Fin, Intercom, Chatwoot & Crisp
 								</h3>
 								<p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
 									An honest, side-by-side breakdown across setup, AI,

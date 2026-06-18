@@ -24,7 +24,7 @@ export async function generateMetadata({
 	const c = allCompetitors.find((x) => x.id === slug);
 	if (!c) return {};
 	return {
-		title: `Why choose llmchat over ${c.name}? — Comparison`,
+		title: `Why choose Clanker Support over ${c.name}? — Comparison`,
 		description: c.tldr,
 	};
 }
@@ -63,9 +63,9 @@ export default async function VsPage({
 
 				{/* Hero */}
 				<section className="animate-rise-in pt-8">
-					<p className="kicker">llmchat vs. {competitor.name}</p>
+					<p className="kicker">Clanker Support vs. {competitor.name}</p>
 					<h1 className="font-display mt-4 max-w-3xl text-4xl font-semibold leading-[1.02] tracking-tight-display text-ink sm:text-6xl">
-						Why choose llmchat over{" "}
+						Why choose Clanker Support over{" "}
 						<em className="font-normal italic text-accent">
 							{competitor.name}
 						</em>
@@ -108,7 +108,7 @@ export default async function VsPage({
 				<section className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-rule bg-rule sm:grid-cols-2">
 					<div className="bg-ink p-7">
 						<p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-accent">
-							llmchat
+							Clanker Support
 						</p>
 						<p className="font-display mt-2 text-xl leading-snug text-paper">
 							{competitor.tableSummary.llmchat}
@@ -138,7 +138,7 @@ export default async function VsPage({
 									</th>
 									<th className="px-4 py-4 font-mono text-[0.72rem] uppercase tracking-[0.12em] text-accent">
 										<span className="border-b-2 border-accent pb-1">
-											llmchat
+											Clanker Support
 										</span>
 									</th>
 									<th className="px-4 py-4 font-mono text-[0.72rem] uppercase tracking-[0.12em] text-muted">
@@ -201,7 +201,7 @@ export default async function VsPage({
 								<div className="mt-5 grid gap-px overflow-hidden rounded-xl border border-rule bg-rule sm:grid-cols-2">
 									<div className="bg-paper-card p-6">
 										<p className="font-mono text-[0.66rem] uppercase tracking-[0.14em] text-accent">
-											llmchat
+											Clanker Support
 										</p>
 										<p className="mt-2 text-sm leading-relaxed text-ink-soft">
 											{diff.llmchat}
@@ -236,7 +236,7 @@ export default async function VsPage({
 					<div className="mt-8 grid gap-6 sm:grid-cols-2">
 						<div className="rounded-2xl border border-accent/30 bg-paper-deep/50 p-7">
 							<h3 className="font-display text-xl font-semibold text-ink">
-								Choose llmchat if…
+								Choose Clanker Support if…
 							</h3>
 							<ul className="mt-5 space-y-2.5">
 								{competitor.llmchatBestFor.map((item) => (

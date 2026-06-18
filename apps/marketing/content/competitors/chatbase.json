@@ -8,7 +8,7 @@
 	"bestFor": "Teams that need multi-channel AI support and have enterprise security requirements.",
 	"notFor": "Teams wanting a simple drop-in widget, or the freedom to run a custom or self-hosted model.",
 	"pricing": "Free plan (1 agent, basic models); paid from $40/mo (Hobby) to ~$500/mo (Pro), credit-based; Enterprise custom",
-	"heroSubtext": "llmchat is a single script tag that goes live in minutes — no platform onboarding, no SDK. Chatbase lets you pick from its supported models on higher-priced plans; llmchat runs any model or provider — including custom and self-hosted endpoints — on every plan, and you can self-host the whole stack.",
+	"heroSubtext": "Clanker Support is a single script tag that goes live in minutes — no platform onboarding, no SDK. Chatbase lets you pick from its supported models on higher-priced plans; Clanker Support runs any model or provider — including custom and self-hosted endpoints — on every plan, and you can self-host the whole stack.",
 	"heroBadges": [
 		"One script tag",
 		"Model-agnostic",
@@ -111,7 +111,7 @@
 			]
 		}
 	],
-	"tldr": "llmchat is a single script tag that goes live in minutes and lets you swap underlying AI models without touching your code. Chatbase is a full platform with stronger multi-channel support. Choose llmchat if you want simplicity and model flexibility. Choose Chatbase if you need WhatsApp, Slack, or Messenger support today.",
+	"tldr": "Clanker Support is a single script tag that goes live in minutes and lets you swap underlying AI models without touching your code. Chatbase is a full platform with stronger multi-channel support. Choose Clanker Support if you want simplicity and model flexibility. Choose Chatbase if you need WhatsApp, Slack, or Messenger support today.",
 	"llmchatWins": [
 		"One script tag setup — live in under 5 minutes",
 		"Shadow DOM isolation — widget styles never bleed into your page",
@@ -146,26 +146,26 @@
 			"heading": "Setup and integration",
 			"llmchat": "A single script tag. The widget loads in a shadow DOM so your styles and the widget's styles never interfere with each other. Most teams are live in under 5 minutes with no engineering review required.",
 			"competitor": "A platform you onboard into — create an account, configure agents, integrate the SDK. This gives you access to a full feature set including multi-channel deployment, but the upfront setup is more involved.",
-			"bottomLine": "Choose llmchat if fast setup on your website is the priority. Choose Chatbase if you need multi-channel from the start and are willing to invest in platform onboarding."
+			"bottomLine": "Choose Clanker Support if fast setup on your website is the priority. Choose Chatbase if you need multi-channel from the start and are willing to invest in platform onboarding."
 		},
 		{
 			"heading": "Multi-channel support",
 			"llmchat": "Web chat only today. The widget embeds on your site and handles text conversations. There's no WhatsApp, Slack, or Messenger channel support yet.",
 			"competitor": "Supports web chat, WhatsApp, Slack, email, and Messenger out of the box. If your customers need support across multiple channels, Chatbase has a clear advantage today.",
-			"bottomLine": "This is the most significant difference. If multi-channel is a current requirement, Chatbase is the better fit. If web-only support covers your use case, llmchat is simpler."
+			"bottomLine": "This is the most significant difference. If multi-channel is a current requirement, Chatbase is the better fit. If web-only support covers your use case, Clanker Support is simpler."
 		},
 		{
 			"heading": "Model flexibility",
 			"llmchat": "Built on LLM Gateway — you choose the AI model per project and switch it with a config change, not a code change. Run a smaller, cheaper model for routine questions and a more capable one for complex queries.",
 			"competitor": "Lets you choose from a list of supported models (GPT-4o, Claude, Gemini, DeepSeek, Meta), but the more capable ones are gated behind higher-priced plans and premium models burn credits faster. You can't bring a custom or self-hosted endpoint.",
-			"bottomLine": "Choose llmchat if you care about model choice, cost optimization across tiers, or vendor diversity. Choose Chatbase if you'd rather not think about the model layer."
+			"bottomLine": "Choose Clanker Support if you care about model choice, cost optimization across tiers, or vendor diversity. Choose Chatbase if you'd rather not think about the model layer."
 		},
 		{
 			"heading": "Ownership and self-hosting",
 			"llmchat": "Fully self-hostable on Cloudflare infrastructure — D1, KV, and workerd. Your conversations live in your database, on your account. The architecture is open and auditable.",
 			"competitor": "SaaS-only. Your data lives in Chatbase's infrastructure. They are SOC 2 certified and GDPR compliant, which satisfies most compliance requirements — but you can't run it on your own infrastructure.",
-			"bottomLine": "Choose llmchat if data residency or infrastructure ownership is a requirement. Choose Chatbase if managed SaaS with compliance certifications is sufficient."
+			"bottomLine": "Choose Clanker Support if data residency or infrastructure ownership is a requirement. Choose Chatbase if managed SaaS with compliance certifications is sufficient."
 		}
 	],
-	"migrationNote": "Switching from Chatbase to llmchat primarily involves re-pasting your knowledge base content into your llmchat project and replacing the Chatbase embed code with the llmchat script tag. Conversation history stored in Chatbase can be exported but won't automatically transfer to llmchat's inbox. For teams on multiple channels, note that llmchat is web-only — you'd need a separate solution for WhatsApp or Slack."
+	"migrationNote": "Switching from Chatbase to Clanker Support primarily involves re-pasting your knowledge base content into your Clanker Support project and replacing the Chatbase embed code with the Clanker Support script tag. Conversation history stored in Chatbase can be exported but won't automatically transfer to Clanker Support's inbox. For teams on multiple channels, note that Clanker Support is web-only — you'd need a separate solution for WhatsApp or Slack."
 }

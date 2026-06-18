@@ -27,9 +27,9 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "llmchat — live demo",
+	title: "Clanker Support — live demo",
 	description:
-		"Try the llmchat widget live. Chat with the bubble, send a few messages, and watch it escalate to a human.",
+		"Try the Clanker Support widget live. Chat with the bubble, send a few messages, and watch it escalate to a human.",
 };
 
 export default function RootLayout({

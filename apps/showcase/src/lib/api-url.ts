@@ -8,7 +8,7 @@ export const CANONICAL_DASHBOARD_URL =
 /**
  * Public project/embed key the live floating widget uses. Public by design —
  * defaults to the seeded `local-dev-key`; set NEXT_PUBLIC_WIDGET_KEY to a real
- * LLMChat project key in production.
+ * Clanker Support project key in production.
  */
 export const WIDGET_PROJECT_KEY =
 	process.env.NEXT_PUBLIC_WIDGET_KEY ?? "local-dev-key";

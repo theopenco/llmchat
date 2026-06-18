@@ -20,7 +20,7 @@ export async function generateMetadata({
 	const post = allPosts.find((p) => p.slug === slug);
 	if (!post) return {};
 	return {
-		title: `${post.title} — llmchat Journal`,
+		title: `${post.title} — Clanker Support Journal`,
 		description: post.description,
 	};
 }
@@ -76,7 +76,7 @@ export default async function PostPage({
 						</p>
 						<div className="mt-8 flex items-center justify-center gap-2 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
 							<span className="h-px w-8 bg-rule" />
-							By the llmchat team
+							By the Clanker Support team
 							<span className="h-px w-8 bg-rule" />
 						</div>
 					</header>

@@ -20,7 +20,7 @@ export function SiteFooter() {
 					<div>
 						<div className="flex items-baseline gap-0.5">
 							<span className="font-display text-3xl font-semibold tracking-tight-display text-ink">
-								llmchat
+								Clanker Support
 							</span>
 							<span className="text-3xl leading-none text-accent">.</span>
 						</div>
@@ -93,7 +93,7 @@ export function SiteFooter() {
 
 				<div className="mt-16 flex flex-col items-start justify-between gap-3 border-t border-rule pt-6 sm:flex-row sm:items-center">
 					<p className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
-						© {new Date().getFullYear()} llmchat.io
+						© {new Date().getFullYear()} Clanker Support
 					</p>
 					<p className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
 						Built on{" "}

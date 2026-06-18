@@ -1,7 +1,7 @@
 {
-	"colOrder": ["llmchat", "chatbase", "fin", "intercom", "chatwoot", "crisp"],
+	"colOrder": ["Clanker Support", "chatbase", "fin", "intercom", "chatwoot", "crisp"],
 	"colLabels": {
-		"llmchat": "llmchat",
+		"llmchat": "Clanker Support",
 		"chatbase": "Chatbase",
 		"fin": "Fin",
 		"intercom": "Intercom",
@@ -29,7 +29,7 @@
 					"intercom": "no",
 					"chatwoot": "no",
 					"crisp": "no",
-					"note": "llmchat loads in a shadow DOM so your page styles never affect the widget and vice versa."
+					"note": "Clanker Support loads in a shadow DOM so your page styles never affect the widget and vice versa."
 				},
 				{
 					"label": "Self-hostable",
@@ -71,7 +71,7 @@
 					"intercom": "no",
 					"chatwoot": "no",
 					"crisp": "no",
-					"note": "llmchat runs any model or provider — including custom and self-hosted endpoints — via LLM Gateway. Chatbase lets you pick from its supported models (premium ones gated to higher plans); Fin, Intercom, Chatwoot, and Crisp are fixed to their own AI stack."
+					"note": "Clanker Support runs any model or provider — including custom and self-hosted endpoints — via LLM Gateway. Chatbase lets you pick from its supported models (premium ones gated to higher plans); Fin, Intercom, Chatwoot, and Crisp are fixed to their own AI stack."
 				},
 				{
 					"label": "Custom system prompt",
@@ -113,7 +113,7 @@
 					"intercom": "partial",
 					"chatwoot": "partial",
 					"crisp": "partial",
-					"note": "llmchat threads inbound email replies directly back into the widget conversation."
+					"note": "Clanker Support threads inbound email replies directly back into the widget conversation."
 				},
 				{
 					"label": "Configurable escalation threshold",
@@ -146,7 +146,7 @@
 					"intercom": "yes",
 					"chatwoot": "yes",
 					"crisp": "yes",
-					"note": "llmchat handles email for escalation threading, not yet as a standalone inbox channel."
+					"note": "Clanker Support handles email for escalation threading, not yet as a standalone inbox channel."
 				},
 				{
 					"label": "WhatsApp / social media",
@@ -180,7 +180,7 @@
 					"intercom": "no",
 					"chatwoot": "yes",
 					"crisp": "partial",
-					"note": "Chatwoot is free self-hosted (community) plus a limited free cloud 'Hacker' plan (live chat only, no AI). Crisp has a permanent free plan (2 seats) but no AI. Chatbase's free plan is 1 agent on basic models. llmchat has no free tier — pricing is usage-based and publicly listed, so you only pay for what you use."
+					"note": "Chatwoot is free self-hosted (community) plus a limited free cloud 'Hacker' plan (live chat only, no AI). Crisp has a permanent free plan (2 seats) but no AI. Chatbase's free plan is 1 agent on basic models. Clanker Support has no free tier — pricing is usage-based and publicly listed, so you only pay for what you use."
 				},
 				{
 					"label": "Pricing model",

@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 
-const DISMISSED_KEY = "llmchat:onboarding:dismissed";
+const DISMISSED_KEY = "Clanker Support:onboarding:dismissed";
 
 /** Marks onboarding as dismissed so the redirect below stops firing. */
 export function dismissOnboarding() {

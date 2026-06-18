@@ -8,7 +8,7 @@
 	"bestFor": "Mid-market and enterprise teams wanting a single platform for support, sales, and marketing.",
 	"notFor": "Teams that only need a support widget — full platform pricing applies regardless.",
 	"pricing": "From $29/seat/mo (annual) + $0.99 per Fin outcome; enterprise by quote",
-	"heroSubtext": "Intercom is a full customer communication platform — support, sales, and marketing. If you only need a support widget, you're paying for a lot you won't use, starting at $29/seat/month plus $0.99 per Fin resolution. llmchat is purpose-built for support, with no seats to buy.",
+	"heroSubtext": "Intercom is a full customer communication platform — support, sales, and marketing. If you only need a support widget, you're paying for a lot you won't use, starting at $29/seat/month plus $0.99 per Fin resolution. Clanker Support is purpose-built for support, with no seats to buy.",
 	"heroBadges": [
 		"Support-only focus",
 		"Model-agnostic",
@@ -101,7 +101,7 @@
 			]
 		}
 	],
-	"tldr": "Intercom is a full customer communication platform — support, sales, and marketing in one. If you need all three, it's a powerful investment. If you only need a support widget, you're paying for a lot you won't use. llmchat is purpose-built for support and costs significantly less.",
+	"tldr": "Intercom is a full customer communication platform — support, sales, and marketing in one. If you need all three, it's a powerful investment. If you only need a support widget, you're paying for a lot you won't use. Clanker Support is purpose-built for support and costs significantly less.",
 	"llmchatWins": [
 		"Purpose-built for support — no unused platform surface",
 		"Usage-based pricing with no seats to buy vs. Intercom's per-seat model",
@@ -137,7 +137,7 @@
 			"heading": "Scope: widget vs. platform",
 			"llmchat": "A focused support widget with an inbox, AI, escalation, and email threading. Nothing more. Every feature is in service of the support use case. Simpler to set up, simpler to reason about, and priced accordingly.",
 			"competitor": "A full customer communication platform: live chat, AI support, email campaigns, product tours, a built-in CRM, and outbound messaging. Powerful if you need all of it. The breadth means there's always more to configure.",
-			"bottomLine": "Choose Intercom if you're consolidating support, sales, and marketing into one tool. Choose llmchat if support is the only use case — you'll ship faster and spend less."
+			"bottomLine": "Choose Intercom if you're consolidating support, sales, and marketing into one tool. Choose Clanker Support if support is the only use case — you'll ship faster and spend less."
 		},
 		{
 			"heading": "Pricing",
@@ -149,14 +149,14 @@
 			"heading": "Model and infrastructure flexibility",
 			"llmchat": "Model-agnostic — choose any LLM per project and switch it with a config change. Self-hostable on Cloudflare infrastructure for teams with data residency requirements. Open architecture throughout.",
 			"competitor": "Runs on Intercom's proprietary Fin AI infrastructure. SaaS-only — no self-hosting option. Strong compliance posture (GDPR, SOC 2) for teams that need certifications but not infrastructure ownership.",
-			"bottomLine": "Choose llmchat if you want model flexibility or self-hosting. Choose Intercom if managed SaaS with compliance certifications is the right posture for your team."
+			"bottomLine": "Choose Clanker Support if you want model flexibility or self-hosting. Choose Intercom if managed SaaS with compliance certifications is the right posture for your team."
 		},
 		{
 			"heading": "Ecosystem and integrations",
 			"llmchat": "Newer product with a smaller integration footprint. Connects to LLM Gateway for models, Resend for email, and Stripe for billing. No native CRM or helpdesk integrations today.",
 			"competitor": "Extensive marketplace with hundreds of integrations. 25,000+ customers means a large body of shared knowledge, templates, and third-party tooling built specifically for Intercom.",
-			"bottomLine": "If ecosystem depth, community resources, and third-party integrations are a priority, Intercom has the clear advantage. llmchat is the better choice when you want something that works without needing a large ecosystem."
+			"bottomLine": "If ecosystem depth, community resources, and third-party integrations are a priority, Intercom has the clear advantage. Clanker Support is the better choice when you want something that works without needing a large ecosystem."
 		}
 	],
-	"migrationNote": "Migrating from Intercom primarily means replacing the Intercom widget embed with the llmchat script tag, re-creating your knowledge base content in llmchat's project settings, and pointing your team to the llmchat inbox. Conversation history and customer data from Intercom can be exported but won't carry over automatically. Teams that depend on Intercom's CRM, campaigns, or product tours will need separate tools for those use cases — llmchat doesn't cover them."
+	"migrationNote": "Migrating from Intercom primarily means replacing the Intercom widget embed with the Clanker Support script tag, re-creating your knowledge base content in Clanker Support's project settings, and pointing your team to the Clanker Support inbox. Conversation history and customer data from Intercom can be exported but won't carry over automatically. Teams that depend on Intercom's CRM, campaigns, or product tours will need separate tools for those use cases — Clanker Support doesn't cover them."
 }

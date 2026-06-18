@@ -33,7 +33,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "llmchat — AI support, dropped in",
+	title: "Clanker Support — AI support, dropped in",
 	description:
 		"One script tag. Any model. AI support that answers from your docs and escalates to your team. Built on LLM Gateway.",
 };

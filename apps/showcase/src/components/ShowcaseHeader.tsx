@@ -22,7 +22,7 @@ export function ShowcaseHeader() {
 						◆
 					</span>
 					<span className="font-display text-lg font-semibold tracking-tight-display text-ink">
-						llmchat
+						Clanker Support
 					</span>
 				</a>
 

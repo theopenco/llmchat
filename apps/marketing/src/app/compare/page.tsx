@@ -11,9 +11,9 @@ const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
 export const metadata = {
-	title: "AI support, compared — llmchat vs. the alternatives",
+	title: "AI support, compared — Clanker Support vs. the alternatives",
 	description:
-		"How llmchat compares to Chatbase, Fin, Intercom, Chatwoot, and Crisp across setup, AI, escalation, channels, and pricing.",
+		"How Clanker Support compares to Chatbase, Fin, Intercom, Chatwoot, and Crisp across setup, AI, escalation, channels, and pricing.",
 };
 
 const { colOrder, colLabels, featureGroups } = matrix;
@@ -34,7 +34,7 @@ export default function ComparePage() {
 						<em className="font-normal italic text-accent">compared.</em>
 					</h1>
 					<p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-						An honest side-by-side of llmchat against Chatbase, Fin, Intercom,
+						An honest side-by-side of Clanker Support against Chatbase, Fin, Intercom,
 						Chatwoot, and Crisp — including where the others are stronger.
 					</p>
 				</section>
@@ -43,7 +43,7 @@ export default function ComparePage() {
 				<section className="mt-12 border-l-2 border-accent bg-paper-deep/60 p-7">
 					<p className="kicker">The short version</p>
 					<p className="mt-3 max-w-3xl text-lg leading-relaxed text-ink-soft">
-						llmchat is the pick if you want{" "}
+						Clanker Support is the pick if you want{" "}
 						<strong className="font-semibold text-ink">
 							a single script tag
 						</strong>{" "}
@@ -75,7 +75,7 @@ export default function ComparePage() {
 										Feature
 									</th>
 									{colOrder.map((col) => {
-										const isLlm = col === "llmchat";
+										const isLlm = col === "Clanker Support";
 										return (
 											<th
 												key={col}
@@ -126,7 +126,7 @@ export default function ComparePage() {
 													)}
 												</td>
 												{colOrder.map((col) => {
-													const isLlm = col === "llmchat";
+													const isLlm = col === "Clanker Support";
 													const value = (row as Record<string, string>)[col];
 													return (
 														<td
@@ -186,7 +186,7 @@ export default function ComparePage() {
 									href={`/vs/${c.id}`}
 									className="mt-5 inline-flex items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-ink transition-colors hover:text-accent"
 								>
-									llmchat vs. {c.name}
+									Clanker Support vs. {c.name}
 									<span aria-hidden>→</span>
 								</Link>
 							</div>
@@ -197,7 +197,7 @@ export default function ComparePage() {
 				{/* CTA */}
 				<section className="mt-24 overflow-hidden rounded-3xl bg-ink px-8 py-16 text-center">
 					<p className="font-mono text-[0.72rem] uppercase tracking-[0.16em] text-accent">
-						Try llmchat free
+						Try Clanker Support free
 					</p>
 					<h2 className="font-display mx-auto mt-4 max-w-2xl text-4xl font-semibold leading-tight tracking-tight-display text-paper sm:text-5xl">
 						One script tag. No credit card. See if it fits.

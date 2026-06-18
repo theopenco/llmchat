@@ -8,7 +8,7 @@
 	"bestFor": "Small to mid-sized teams wanting an all-in-one support + CRM platform with European data hosting.",
 	"notFor": "Teams wanting model flexibility or a lightweight website integration.",
 	"pricing": "Free plan (2 seats, no AI); AI from ~€45/mo (Mini); Essentials €95, Plus €295",
-	"heroSubtext": "Crisp is all-in-one: chat, email, CRM, knowledge base, and push notifications. llmchat is focused: support widget with model-agnostic AI. If you need CRM, use Crisp. If you want a drop-in widget with full model flexibility and self-hosting, use llmchat.",
+	"heroSubtext": "Crisp is all-in-one: chat, email, CRM, knowledge base, and push notifications. Clanker Support is focused: support widget with model-agnostic AI. If you need CRM, use Crisp. If you want a drop-in widget with full model flexibility and self-hosting, use Clanker Support.",
 	"heroBadges": [
 		"Model-agnostic",
 		"Self-hostable",
@@ -101,7 +101,7 @@
 			]
 		}
 	],
-	"tldr": "Crisp is an all-in-one support + CRM platform with flat pricing and European hosting. llmchat is a focused drop-in widget with model-agnostic AI and self-hosting. Choose Crisp if you need CRM features, omnichannel, or EU data residency. Choose llmchat if you want the simplest possible setup and model flexibility.",
+	"tldr": "Crisp is an all-in-one support + CRM platform with flat pricing and European hosting. Clanker Support is a focused drop-in widget with model-agnostic AI and self-hosting. Choose Crisp if you need CRM features, omnichannel, or EU data residency. Choose Clanker Support if you want the simplest possible setup and model flexibility.",
 	"llmchatWins": [
 		"One script tag setup — no platform to configure",
 		"Model-agnostic — swap AI models per project without code changes",
@@ -137,26 +137,26 @@
 			"heading": "All-in-one vs. focused widget",
 			"llmchat": "A focused support widget with inbox, AI, escalation, and email threading. The entire product is one use case: handle support conversations on your site, hand off to your team when needed.",
 			"competitor": "A complete customer platform: live chat, email inbox, CRM, knowledge base, product tours, push notifications, and omnichannel messaging. Genuinely all-in-one for customer communication.",
-			"bottomLine": "Choose Crisp if you're replacing multiple tools (support + CRM + email marketing) with one. Choose llmchat if support is the only use case and you want something to set up in minutes."
+			"bottomLine": "Choose Crisp if you're replacing multiple tools (support + CRM + email marketing) with one. Choose Clanker Support if support is the only use case and you want something to set up in minutes."
 		},
 		{
 			"heading": "Pricing model",
 			"llmchat": "Usage-based — you pay for actual LLM token consumption. Costs scale down when things are quiet. Better for low-to-medium volume teams or those with variable traffic.",
 			"competitor": "Flat-rate monthly pricing with a permanent free plan, though AI features start on the Mini plan (~€45/mo). Predictable and easy to budget. Better for high-volume teams where a fixed cost is lower than per-usage costs.",
-			"bottomLine": "Choose Crisp for flat-rate predictability at consistent volume. Choose llmchat for usage-based costs that scale down when things are quiet."
+			"bottomLine": "Choose Crisp for flat-rate predictability at consistent volume. Choose Clanker Support for usage-based costs that scale down when things are quiet."
 		},
 		{
 			"heading": "AI model flexibility",
 			"llmchat": "Built on LLM Gateway — model-agnostic by design. Choose GPT-4o, Claude, or a custom endpoint per project. Change the model with a config update, not a code change.",
 			"competitor": "Runs Hugo, their own AI agent product, on a fixed model stack. The AI is configured with your knowledge base, but the underlying model choice is theirs.",
-			"bottomLine": "Choose llmchat if picking the model provider or optimizing model cost per project matters. Choose Crisp if you'd rather not think about the model layer and want a no-code AI setup."
+			"bottomLine": "Choose Clanker Support if picking the model provider or optimizing model cost per project matters. Choose Crisp if you'd rather not think about the model layer and want a no-code AI setup."
 		},
 		{
 			"heading": "European hosting and compliance",
 			"llmchat": "Self-hosted deployment gives you full control over where data lives — any region you choose. The managed cloud version doesn't specifically guarantee European hosting today.",
 			"competitor": "Built and hosted in Europe. Strong default GDPR posture without extra configuration. If EU data residency is a requirement and you're on managed cloud, Crisp handles it natively.",
-			"bottomLine": "Choose Crisp if EU data residency is a requirement and you want it handled for you. Choose llmchat's self-hosted deployment if you need full control over data location."
+			"bottomLine": "Choose Crisp if EU data residency is a requirement and you want it handled for you. Choose Clanker Support's self-hosted deployment if you need full control over data location."
 		}
 	],
-	"migrationNote": "Switching from Crisp to llmchat means replacing the Crisp widget script tag with llmchat's, re-entering your knowledge base content in project settings, and routing your escalation notifications to your team. Crisp's CRM data (contacts, conversation history) can be exported but won't transfer to llmchat — llmchat doesn't have a CRM component. If you're using Crisp for email campaigns or product tours, those use cases aren't covered by llmchat."
+	"migrationNote": "Switching from Crisp to Clanker Support means replacing the Crisp widget script tag with Clanker Support's, re-entering your knowledge base content in project settings, and routing your escalation notifications to your team. Crisp's CRM data (contacts, conversation history) can be exported but won't transfer to Clanker Support — Clanker Support doesn't have a CRM component. If you're using Crisp for email campaigns or product tours, those use cases aren't covered by Clanker Support."
 }

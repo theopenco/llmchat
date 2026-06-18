@@ -31,7 +31,7 @@ function BrandPanel() {
 			<div className="flex items-center gap-2">
 				<BrandLogo className="size-9" />
 				<span className="font-display text-xl font-semibold tracking-tight-display">
-					llmchat
+					Clanker Support
 				</span>
 			</div>
 
@@ -105,7 +105,7 @@ export function AuthLayout({
 				</div>
 				<footer className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 p-6 text-xs text-muted-foreground">
 					<span>
-						© {new Date().getFullYear()} llmchat. All rights reserved.
+						© {new Date().getFullYear()} Clanker Support. All rights reserved.
 					</span>
 					<Link href="/" className="hover:text-foreground">
 						Privacy

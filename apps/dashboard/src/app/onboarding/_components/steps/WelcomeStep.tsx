@@ -22,7 +22,7 @@ export function WelcomeStep({ onNext }: { onNext: () => void }) {
 				<BrandLogo className="size-12" />
 				<div>
 					<h1 className="font-display text-2xl font-semibold tracking-tight-display">
-						Welcome to LLMChat 👋
+						Welcome to Clanker Support 👋
 					</h1>
 					<p className="mt-2 text-sm text-muted-foreground">
 						Let&apos;s set up your AI support bot in just a few minutes.

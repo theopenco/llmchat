@@ -18,7 +18,7 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 						◆
 					</span>
 					<span className="font-display text-lg font-semibold tracking-tight-display text-ink">
-						llmchat
+						Clanker Support
 					</span>
 				</Link>
 

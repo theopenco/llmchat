@@ -8,7 +8,7 @@
 	"bestFor": "Teams wanting open-source ownership and multi-channel support who are comfortable running infrastructure.",
 	"notFor": "Teams wanting a minimal drop-in widget — Chatwoot is a full platform.",
 	"pricing": "Free self-hosted (community) & a free cloud 'Hacker' plan (live chat only, no AI); paid cloud from $19/agent/mo",
-	"heroSubtext": "Both self-hostable — but different stacks. Chatwoot runs on Ruby on Rails with PostgreSQL and Redis. llmchat runs serverless on Cloudflare's edge: no database to provision, no app server to maintain.",
+	"heroSubtext": "Both self-hostable — but different stacks. Chatwoot runs on Ruby on Rails with PostgreSQL and Redis. Clanker Support runs serverless on Cloudflare's edge: no database to provision, no app server to maintain.",
 	"heroBadges": [
 		"Serverless self-hosting",
 		"Model-agnostic",
@@ -101,7 +101,7 @@
 			]
 		}
 	],
-	"tldr": "Both llmchat and Chatwoot are self-hostable. The difference is scope and stack: Chatwoot is a full multi-channel platform running on Rails + PostgreSQL; llmchat is a focused widget running serverless on Cloudflare's edge. Choose Chatwoot for open-source, multi-channel coverage. Choose llmchat for a lighter setup and model-agnostic AI.",
+	"tldr": "Both Clanker Support and Chatwoot are self-hostable. The difference is scope and stack: Chatwoot is a full multi-channel platform running on Rails + PostgreSQL; Clanker Support is a focused widget running serverless on Cloudflare's edge. Choose Chatwoot for open-source, multi-channel coverage. Choose Clanker Support for a lighter setup and model-agnostic AI.",
 	"llmchatWins": [
 		"Lighter self-hosting — serverless on Cloudflare, no database to manage",
 		"Model-agnostic AI — swap LLMs per project without code changes",
@@ -136,26 +136,26 @@
 			"heading": "Self-hosting: same goal, different stacks",
 			"llmchat": "Self-hosted on Cloudflare infrastructure — D1 for the database, KV for cache and rate limiting, workerd for compute. Serverless and edge-native. No database server to provision or maintain.",
 			"competitor": "Self-hosted on a Ruby on Rails application with PostgreSQL and Redis. A production-grade traditional web application stack. More operational surface to manage, but also more mature and battle-tested.",
-			"bottomLine": "Choose llmchat if you want self-hosting without managing a database server. Choose Chatwoot if you're comfortable with Rails/PostgreSQL and want the full platform that stack enables."
+			"bottomLine": "Choose Clanker Support if you want self-hosting without managing a database server. Choose Chatwoot if you're comfortable with Rails/PostgreSQL and want the full platform that stack enables."
 		},
 		{
 			"heading": "Scope: widget vs. full platform",
 			"llmchat": "A focused support widget with an inbox, AI, escalation, and email threading. Fast to set up, easy to reason about. No multi-channel inbox, no agent reporting, no knowledge base UI.",
 			"competitor": "A full customer support platform: multi-channel inbox, knowledge base with AI search, agent management with roles and teams, canned responses, reports, and conversation labels.",
-			"bottomLine": "Choose Chatwoot if you need WhatsApp, Instagram, or email as channels and want full agent management. Choose llmchat if a web widget with an inbox is all you need."
+			"bottomLine": "Choose Chatwoot if you need WhatsApp, Instagram, or email as channels and want full agent management. Choose Clanker Support if a web widget with an inbox is all you need."
 		},
 		{
 			"heading": "Open source licensing",
 			"llmchat": "Open architecture — the code is readable and the stack is transparent — but not MIT-licensed open source in the contribution sense. You can audit and fork the concepts, but it's not a community-governed project.",
 			"competitor": "Fully open-source under the MIT License. 25,000+ GitHub stars, active contributors, and a long history of community-driven development. If OSS community and contribution rights matter, Chatwoot is the clear choice.",
-			"bottomLine": "Choose Chatwoot if open-source licensing, community contributions, or forking rights are important. Choose llmchat if open architecture (readable, auditable) is sufficient."
+			"bottomLine": "Choose Chatwoot if open-source licensing, community contributions, or forking rights are important. Choose Clanker Support if open architecture (readable, auditable) is sufficient."
 		},
 		{
 			"heading": "AI model flexibility",
 			"llmchat": "Built on LLM Gateway — you pick the AI model per project and change it with a configuration update. Run a cost-efficient model for routine questions and a more capable one for complex queries.",
 			"competitor": "The Captain AI assistant runs on a fixed stack. You configure it with your knowledge base and FAQs, but you don't choose the underlying model.",
-			"bottomLine": "Choose llmchat if model choice or the ability to optimize cost vs. capability per project matters. Choose Chatwoot if you don't need that flexibility and want a larger-scope platform."
+			"bottomLine": "Choose Clanker Support if model choice or the ability to optimize cost vs. capability per project matters. Choose Chatwoot if you don't need that flexibility and want a larger-scope platform."
 		}
 	],
-	"migrationNote": "Migrating from Chatwoot to llmchat is primarily a widget swap and knowledge base re-import. Replace the Chatwoot widget script with the llmchat script tag, copy your knowledge base content into llmchat's project settings, and update your escalation email address. Conversation history from Chatwoot can be exported but won't migrate automatically. Note that llmchat doesn't currently replace Chatwoot's multi-channel inbox — if you're using WhatsApp or Instagram, you'll need to handle those separately."
+	"migrationNote": "Migrating from Chatwoot to Clanker Support is primarily a widget swap and knowledge base re-import. Replace the Chatwoot widget script with the Clanker Support script tag, copy your knowledge base content into Clanker Support's project settings, and update your escalation email address. Conversation history from Chatwoot can be exported but won't migrate automatically. Note that Clanker Support doesn't currently replace Chatwoot's multi-channel inbox — if you're using WhatsApp or Instagram, you'll need to handle those separately."
 }
