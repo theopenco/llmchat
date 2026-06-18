@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AuthButton } from "@/components/AuthButton";
+import { MobileNav } from "@/components/MobileNav";
 import { CANONICAL_SHOWCASE_URL } from "@/lib/site-urls";
 
 type NavKey = "features" | "resources" | "compare";
@@ -21,7 +22,7 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 					</span>
 				</Link>
 
-				<nav className="flex items-center gap-7">
+				<nav className="flex items-center gap-3 sm:gap-7">
 					<a
 						href="/#features"
 						className={`hidden sm:block ${active === "features" ? navLinkActive : navLink}`}
@@ -97,6 +98,8 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 					</a>
 
 					<AuthButton />
+
+					<MobileNav active={active} showcaseUrl={CANONICAL_SHOWCASE_URL} />
 				</nav>
 			</div>
 		</header>
