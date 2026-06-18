@@ -98,7 +98,7 @@ export default function ProjectSettingsPage() {
 
 	if (!project || !draft) {
 		return (
-			<div className="min-h-svh bg-muted">
+			<div className="min-h-svh">
 				<div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-8 lg:flex-row">
 					<div className="flex flex-1 flex-col gap-6">
 						<Skeleton className="h-20 w-80" />
@@ -137,7 +137,7 @@ export default function ProjectSettingsPage() {
 		modelsQ.data?.find((m) => m.id === selectedId)?.name ?? selectedId;
 
 	return (
-		<div className="min-h-svh bg-muted">
+		<div className="min-h-svh">
 			<div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-8">
 				<ProjectHeader
 					name={draft.name}
