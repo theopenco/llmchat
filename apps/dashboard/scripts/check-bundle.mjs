@@ -58,13 +58,42 @@ export function findUndefinedHelpers(files) {
 	return broken;
 }
 
-function collectJsFiles(dir) {
+/**
+ * Inline `<script>` blocks in prerendered HTML run in the shared global scope,
+ * so an esbuild helper CALLED in one must be DEFINED by some inline script on
+ * the same page (e.g. the `__name` shim in the root layout). A call with no
+ * definition on the page throws at runtime (`__name is not defined`) and breaks
+ * client init. This is the regression the chunk scan can't see: the offending
+ * call lives in the prerendered HTML, not in static/chunks — Ploy's esbuild pass
+ * bakes it into next-themes' inlined theme script.
+ *
+ * @param {{ name: string, code: string }[]} htmlFiles
+ * @returns {{ helper: string, file: string }[]}
+ */
+export function findUndefinedInlineHelpers(htmlFiles) {
+	const inlineScript = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+	const broken = [];
+	for (const file of htmlFiles) {
+		const blob = [...file.code.matchAll(inlineScript)]
+			.map((m) => m[1])
+			.join("\n");
+		if (!blob) continue;
+		for (const helper of ESBUILD_HELPERS) {
+			if (!callPattern(helper).test(blob)) continue;
+			if (defPattern(helper).test(blob)) continue;
+			broken.push({ helper, file: file.name });
+		}
+	}
+	return broken;
+}
+
+function collectFiles(dir, ext) {
 	const out = [];
 	const walk = (d) => {
 		for (const entry of readdirSync(d)) {
 			const p = join(d, entry);
 			if (statSync(p).isDirectory()) walk(p);
-			else if (entry.endsWith(".js"))
+			else if (entry.endsWith(ext))
 				out.push({ name: p, code: readFileSync(p, "utf8") });
 		}
 	};
@@ -77,10 +106,32 @@ function main() {
 	const chunksDir = join(root, ".next", "static", "chunks");
 	let files;
 	try {
-		files = collectJsFiles(chunksDir);
+		files = collectFiles(chunksDir, ".js");
 	} catch {
 		console.error(
 			`bundle check: no built chunks at ${chunksDir}. Run \`next build\` first.`,
+		);
+		process.exit(1);
+	}
+
+	// Prerendered HTML inline scripts (best-effort; absent if no static pages).
+	let htmlFiles = [];
+	try {
+		htmlFiles = collectFiles(join(root, ".next", "server", "app"), ".html");
+	} catch {
+		/* no prerendered app HTML — nothing to scan */
+	}
+	const brokenInline = findUndefinedInlineHelpers(htmlFiles);
+	if (brokenInline.length > 0) {
+		console.error(
+			"bundle check FAILED — prerendered HTML inline scripts call esbuild helpers defined nowhere on the page:",
+		);
+		for (const { helper, file } of brokenInline) {
+			console.error(`  • ${helper} — in ${file}`);
+		}
+		console.error(
+			"This crashes client init at runtime (e.g. `__name is not defined`). " +
+				"Define the helper before the offending inline script (see the root-layout shim).",
 		);
 		process.exit(1);
 	}

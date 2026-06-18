@@ -70,8 +70,8 @@
 		--warning-foreground: 38 96% 11%;
 		--info: 217.2 91.2% 59.8%;
 		--info-foreground: 210 40% 98%;
-		--border: 220 26% 18%; /* rule #222A3A */
-		--input: 220 26% 18%;
+		--border: 222 20% 16%; /* subtle low-contrast slate hairline */
+		--input: 222 22% 20%; /* form fields need a touch more definition */
 		--ring: 239 84% 67%;
 		--sidebar-background: 218 31% 5%; /* paper-deep #090C11 */
 		--sidebar-foreground: 219 22% 82%;
@@ -81,6 +81,13 @@
 		--sidebar-accent-foreground: 220 50% 98%;
 		--sidebar-border: 221 30% 15%; /* rule-soft #1A2130 */
 		--sidebar-ring: 239 84% 67%;
+	}
+
+	/* Every border/divider resolves to the token. Without this, Tailwind v3
+	   preflight falls back to gray-200 — near-white lines that slash the dark
+	   panes. This is the global fix for the dark-mode "white lines". */
+	* {
+		@apply border-border;
 	}
 }
 
