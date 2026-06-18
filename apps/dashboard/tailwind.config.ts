@@ -80,6 +80,12 @@ const config: Config = {
 				md: "calc(var(--radius) - 2px)",
 				sm: "calc(var(--radius) - 4px)",
 			},
+			letterSpacing: {
+				"tight-display": "-0.02em",
+			},
+			maxWidth: {
+				prose: "42rem",
+			},
 			keyframes: {
 				"accordion-down": {
 					from: {

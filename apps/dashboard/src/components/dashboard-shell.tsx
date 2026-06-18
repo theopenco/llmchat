@@ -46,11 +46,13 @@ export function DashboardShell({
 	return (
 		<SidebarProvider>
 			<AppSidebar userEmail={email} />
-			<SidebarInset className="bg-muted">
+			<SidebarInset className="bg-background">
 				{/* Mobile-only bar to open the sidebar drawer; desktop matches the mockup with no top bar. */}
 				<header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-md md:hidden">
 					<SidebarTrigger className="-ml-1" />
-					<span className="font-semibold">LLMChat</span>
+					<span className="font-display font-semibold tracking-tight-display">
+						llmchat
+					</span>
 				</header>
 				<main className="flex-1">{children}</main>
 			</SidebarInset>
