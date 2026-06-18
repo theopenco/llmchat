@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,7 +15,6 @@ import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { fieldErrors, signUpSchema } from "@/lib/auth-schema";
 
 export default function SignUpPage() {
-	const router = useRouter();
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -45,16 +43,21 @@ export default function SignUpPage() {
 			password: parsed.data.password,
 			name: displayName,
 		});
-		setLoading(false);
 		if (res.error) {
+			setLoading(false);
 			toast.error("Sign up failed", {
 				description: res.error.message ?? undefined,
 			});
 			return;
 		}
 		track(ANALYTICS_EVENTS.signupCompleted, { method: "email" });
-		// New account → straight into onboarding (workspace is provisioned server-side).
-		router.replace("/onboarding");
+		// New account → straight into onboarding (workspace is provisioned
+		// server-side). Hard navigation, not router.replace: the session cookie
+		// is set on the API origin, so the client session store on this page is
+		// still "logged out" — a soft nav lands on /onboarding with a stale store
+		// and its auth gate bounces back to sign-in. A full load re-initializes
+		// the session with the cookie present.
+		window.location.assign("/onboarding");
 	}
 
 	return (
