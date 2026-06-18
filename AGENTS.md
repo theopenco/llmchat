@@ -50,7 +50,7 @@ Local env: `cp apps/api/.env.example apps/api/.env` and fill in keys. `ploy dev`
 
 ### Zero-setup local dev
 
-`apps/api/migrations/0001_dev_seed.sql` is an idempotent (`INSERT OR IGNORE`) seed applied automatically by `ploy dev`. It creates:
+The dev seed is **`apps/api/seed/dev-seed.sql`**, applied **only** by `pnpm seed` (the runner is `apps/api/scripts/seed.mjs`). It is deliberately **not** in `apps/api/migrations/`: Ploy auto-applies every migration on `ploy dev` _and_ on deploy, so a seed there would create the admin in production too. Keeping it out means **production deploys never create or re-assert `admin@example.com`**. The seed is idempotent (`INSERT OR IGNORE`) and creates:
 
 - **Admin user:** `admin@example.com` / `admin@example.com` (Better Auth scrypt hash with a fixed salt — only matches that literal password, safe to commit).
 - **Dev workspace + owner member** for the user.
@@ -58,12 +58,13 @@ Local env: `cp apps/api/.env.example apps/api/.env` and fill in keys. `ploy dev`
 
 To exercise the full loop locally:
 
-1. `pnpm dev` — boots api, dashboard, marketing, showcase; migrations apply the seed.
-2. Open `http://localhost:3003` — the **showcase** (`apps/showcase`) is a fake "Acme Tools" landing page that embeds the widget via `WidgetMount.tsx`, pinned to `local-dev-key` and `http://localhost:8787`.
-3. Chat with the bubble; send 3+ messages to trigger "Talk to a human".
-4. Sign in at `http://localhost:3001` with the admin credentials to see the conversation in the dashboard inbox.
+1. `pnpm dev` — boots api, dashboard, marketing, showcase; Ploy applies the real schema migrations and creates the local DB at `.ploy/db/llmchat_db.db`.
+2. `pnpm seed` — once, in another terminal, to insert the admin/workspace/demo project (re-runnable; resolves the local DB, or `PLOY_DB_PATH=<file>` to override). Refuses to run under `NODE_ENV=production`.
+3. Open `http://localhost:3003` — the **showcase** (`apps/showcase`) is a fake "Acme Tools" landing page that embeds the widget via `WidgetMount.tsx`, pinned to `local-dev-key` and `http://localhost:8787`.
+4. Chat with the bubble; send 3+ messages to trigger "Talk to a human".
+5. Sign in at `http://localhost:3001` with the admin credentials to see the conversation in the dashboard inbox.
 
-The seed hash is computed for scrypt `{ N: 16384, r: 16, p: 1, dkLen: 64 }` — Better Auth's defaults via `@better-auth/utils/password`. If they ever change those params, regenerate the hash and update `0001_dev_seed.sql`.
+`apps/api/src/seed.test.ts` enforces the contract: the committed migrations never create the admin/demo project, and the dev seed does (idempotently). The seed hash is computed for scrypt `{ N: 16384, r: 16, p: 1, dkLen: 64 }` — Better Auth's defaults via `@better-auth/utils/password`. If they ever change those params, regenerate the hash and update `apps/api/seed/dev-seed.sql`.
 
 ## Architecture
 

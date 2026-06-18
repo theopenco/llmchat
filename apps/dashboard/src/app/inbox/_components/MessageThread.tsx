@@ -1,11 +1,40 @@
 "use client";
 
+import { Headset, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
 import { formatMessageTime } from "./format";
 import type { Message } from "./types";
+
+/**
+ * Visitor's per-message thumbs (answer quality) on an assistant reply. Shows
+ * up / down / neutral clearly; read-only here. This is NOT the per-conversation
+ * CSAT placeholder in DetailPanel/InboxStats — those are a separate feature.
+ */
+function RatingIndicator({ rating }: { rating: Message["rating"] }) {
+	const base = "flex items-center gap-1 px-1 text-[11px] font-medium";
+	if (rating === "up") {
+		return (
+			<span className={cn(base, "text-emerald-600 dark:text-emerald-400")}>
+				<ThumbsUp className="size-3" />
+				Helpful
+			</span>
+		);
+	}
+	if (rating === "down") {
+		return (
+			<span className={cn(base, "text-rose-600 dark:text-rose-400")}>
+				<ThumbsDown className="size-3" />
+				Not helpful
+			</span>
+		);
+	}
+	return (
+		<span className={cn(base, "text-muted-foreground/60")}>Not rated</span>
+	);
+}
 
 const ROLE = {
 	user: { side: "left", label: "Visitor", labelClass: "text-muted-foreground" },
@@ -44,6 +73,9 @@ function MessageBubble({ message }: { message: Message }) {
 			<span className="px-1 text-[11px] text-muted-foreground">
 				{formatMessageTime(message.createdAt)}
 			</span>
+			{message.role === "assistant" && (
+				<RatingIndicator rating={message.rating} />
+			)}
 		</div>
 	);
 }
@@ -62,9 +94,13 @@ export function MessageThread({ messages }: { messages: Message[] }) {
 				m.role === "system" ? (
 					<div
 						key={m.id}
-						className="mx-auto my-1 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground"
+						className="mx-auto my-1 flex max-w-[80%] items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
 					>
-						{m.content}
+						<Headset className="size-4 shrink-0 text-amber-500" />
+						<span className="flex-1">{m.content}</span>
+						<span className="shrink-0 tabular-nums text-muted-foreground/70">
+							{formatMessageTime(m.createdAt)}
+						</span>
 					</div>
 				) : (
 					<MessageBubble key={m.id} message={m} />

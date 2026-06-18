@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import {
 	Check,
 	ChevronsUpDown,
+	CreditCard,
 	ExternalLink,
 	FolderKanban,
 	LifeBuoy,
@@ -18,6 +19,7 @@ import { api } from "@/lib/api";
 import { signOut } from "@/lib/auth-client";
 import { track, resetAnalytics, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { useWorkspace } from "@/lib/workspace";
+import { BrandLogo } from "@/components/brand-logo";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -47,6 +49,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
 	{ title: "Conversations", href: "/inbox", icon: MessagesSquare },
 	{ title: "Projects", href: "/settings/projects", icon: FolderKanban },
+	{ title: "Billing", href: "/settings/billing", icon: CreditCard },
 ];
 
 const SETUP_STEPS = [
@@ -126,10 +129,10 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild size="lg">
 							<Link href="/inbox">
-								<span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
-									<MessagesSquare className="size-4" />
+								<BrandLogo className="size-8" />
+								<span className="font-display text-base font-semibold tracking-tight-display">
+									llmchat
 								</span>
-								<span className="text-base font-semibold">LLMChat</span>
 							</Link>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
@@ -138,7 +141,9 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 
 			<SidebarContent>
 				<SidebarGroup>
-					<SidebarGroupLabel>Platform</SidebarGroupLabel>
+					<SidebarGroupLabel className="uppercase tracking-[0.12em]">
+						Platform
+					</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
 							{NAV.map((item) => {
@@ -151,6 +156,10 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 											asChild
 											isActive={active}
 											tooltip={item.title}
+											className={cn(
+												active &&
+													"bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground",
+											)}
 										>
 											<Link href={item.href}>
 												<item.icon />
@@ -167,7 +176,9 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 				{inProject && (
 					<>
 						<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-							<SidebarGroupLabel>Current project</SidebarGroupLabel>
+							<SidebarGroupLabel className="uppercase tracking-[0.12em]">
+								Current project
+							</SidebarGroupLabel>
 							<SidebarGroupContent>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
@@ -224,7 +235,9 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 						</SidebarGroup>
 
 						<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-							<SidebarGroupLabel>Setup</SidebarGroupLabel>
+							<SidebarGroupLabel className="uppercase tracking-[0.12em]">
+								Setup
+							</SidebarGroupLabel>
 							<SidebarGroupContent>
 								<SidebarMenu>
 									{SETUP_STEPS.map((step) => {
@@ -236,19 +249,19 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 													isActive={active}
 													className={cn(
 														active &&
-															"bg-indigo-500/10 font-medium text-indigo-600 hover:bg-indigo-500/10 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-400",
+															"bg-sidebar-primary font-medium text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground",
 													)}
 												>
 													<span
 														className={cn(
 															"flex size-4 items-center justify-center rounded-full border",
 															active
-																? "border-indigo-600"
+																? "border-current"
 																: "border-muted-foreground/40",
 														)}
 													>
 														{active && (
-															<span className="size-1.5 rounded-full bg-indigo-600" />
+															<span className="size-1.5 rounded-full bg-current" />
 														)}
 													</span>
 													<span>{step.label}</span>
@@ -353,8 +366,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</SidebarMenuItem>
-					<SidebarMenuItem className="flex items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:hidden">
-						<span className="text-xs text-muted-foreground">Theme</span>
+					<SidebarMenuItem className="flex items-center px-1 group-data-[collapsible=icon]:hidden">
 						<ModeToggle />
 					</SidebarMenuItem>
 				</SidebarMenu>

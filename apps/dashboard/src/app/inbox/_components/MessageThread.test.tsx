@@ -35,9 +35,9 @@ describe("MessageThread", () => {
 				]}
 			/>,
 		);
-		expect(screen.getByText("Visitor requested a human operator")).toHaveClass(
-			"mx-auto",
-		);
+		expect(
+			screen.getByText("Visitor requested a human operator").closest("div"),
+		).toHaveClass("mx-auto");
 		// System notes carry no Visitor/Bot/Admin label.
 		expect(screen.queryByText("Visitor")).not.toBeInTheDocument();
 		expect(screen.queryByText("Admin")).not.toBeInTheDocument();
@@ -67,5 +67,35 @@ describe("MessageThread", () => {
 		expect(
 			screen.getByText(/no messages in this conversation/i),
 		).toBeInTheDocument();
+	});
+
+	it("surfaces the per-message rating on assistant replies", () => {
+		render(
+			<MessageThread
+				messages={[
+					msg({ role: "assistant", content: "up reply", rating: "up" }),
+					msg({ role: "assistant", content: "down reply", rating: "down" }),
+					msg({ role: "assistant", content: "neutral reply", rating: null }),
+				]}
+			/>,
+		);
+		expect(screen.getByText("Helpful")).toBeInTheDocument();
+		expect(screen.getByText("Not helpful")).toBeInTheDocument();
+		expect(screen.getByText("Not rated")).toBeInTheDocument();
+	});
+
+	it("does not show a rating indicator on visitor or admin messages", () => {
+		render(
+			<MessageThread
+				messages={[
+					msg({ role: "user", content: "hi", rating: "up" }),
+					msg({ role: "admin", content: "hello", rating: "down" }),
+				]}
+			/>,
+		);
+		// No rating chips render for non-assistant roles, even if data carried one.
+		expect(screen.queryByText("Helpful")).not.toBeInTheDocument();
+		expect(screen.queryByText("Not helpful")).not.toBeInTheDocument();
+		expect(screen.queryByText("Not rated")).not.toBeInTheDocument();
 	});
 });

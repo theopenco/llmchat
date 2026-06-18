@@ -50,7 +50,7 @@ export const widgetMessages = new Hono<AppContext>().get(
 				a(e(ct.projectId, project.id), e(ct.clientId, clientId)),
 		});
 		if (!conv) {
-			return c.json({ messages: [] });
+			return c.json({ conversationId: null, csatRating: null, messages: [] });
 		}
 
 		const rows = await db(c.env).query.message.findMany({
@@ -59,14 +59,20 @@ export const widgetMessages = new Hono<AppContext>().get(
 		});
 		// Conversation content: never cacheable by intermediaries.
 		c.header("cache-control", "no-store");
+		// The conversation id lets the widget address its own messages for
+		// rating; it's the caller's own id, not another tenant's.
 		// Only the fields the widget needs — no email ids, author ids, etc.
 		return c.json({
+			conversationId: conv.id,
+			// Conversation-level CSAT so the widget never re-prompts a rated visitor.
+			csatRating: conv.csatRating,
 			messages: rows.map((m) => ({
 				id: m.id,
 				role: m.role,
 				content: m.content,
 				sequence: m.sequence,
 				createdAt: m.createdAt,
+				rating: m.rating,
 			})),
 		});
 	},

@@ -3,9 +3,12 @@
 
 import { resolveSelectedId } from "./selection";
 
+export type Plan = "free" | "pro" | "scale";
+
 export interface WorkspaceSummary {
 	id: string;
 	name: string;
+	plan: Plan;
 }
 
 /** Shape of the API's /api/workspaces response. */

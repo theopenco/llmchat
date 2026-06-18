@@ -11,6 +11,7 @@
 		"lint": "turbo run lint && oxlint .",
 		"migrate": "pnpm --filter @llmchat/db migrate",
 		"migrations": "pnpm --filter @llmchat/db migrations",
+		"seed": "node apps/api/scripts/seed.mjs",
 		"test": "turbo run test"
 	},
 	"devDependencies": {

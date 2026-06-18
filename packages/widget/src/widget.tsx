@@ -1,17 +1,25 @@
 import { Chat, useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Composer } from "./components/Composer";
+import { CsatStep } from "./components/CsatStep";
 import { EscalationSection } from "./components/EscalationSection";
 import { IdentifyForm } from "./components/IdentifyForm";
 import { MessageList } from "./components/MessageList";
 import { WidgetFrame } from "./components/WidgetFrame";
+import { rateConversation, shouldPromptCsat } from "./csat";
 import { requestEscalation } from "./escalation";
 import { getOrCreateClientId, getText } from "./lib";
 import { mergeMessages } from "./messages-sync";
+import { rateMessage, useMessageRatings } from "./rating";
 import { ShowcaseChat } from "./ShowcaseChat";
 import { useServerMessages } from "./useServerMessages";
+
+import type { Rating } from "./rating";
+
+/** How long the "Thanks!" screen shows before the panel closes. */
+const CSAT_THANKS_MS = 1200;
 
 /**
  * "live" (default) talks to the real API: conversations are created and
@@ -104,6 +112,12 @@ function LiveWidget({
 	const [escalating, setEscalating] = useState(false);
 	const [escalateFailed, setEscalateFailed] = useState(false);
 	const [clientId, setClientId] = useState("");
+	// CSAT closing screen: "hidden" during chat, "prompt" on close (when
+	// eligible), "thanks" briefly after a rating.
+	const [csatStep, setCsatStep] = useState<"hidden" | "prompt" | "thanks">(
+		"hidden",
+	);
+	const [csatRated, setCsatRated] = useState(false);
 
 	useEffect(() => {
 		setClientId(getOrCreateClientId());
@@ -125,12 +139,26 @@ function LiveWidget({
 
 	// Poll the persisted feed while chatting so admin replies from the
 	// dashboard appear without a refresh.
-	const { serverMessages, refresh } = useServerMessages(
-		apiUrl,
-		projectKey,
-		clientId,
-		open && identified,
+	const { serverMessages, conversationId, csatRating, refresh } =
+		useServerMessages(apiUrl, projectKey, clientId, open && identified);
+
+	// Per-message thumbs: optimistic, rolling back if the request fails.
+	const sendRating = useCallback(
+		async (messageId: string, rating: Rating) => {
+			if (!conversationId) {
+				return;
+			}
+			await rateMessage(apiUrl, {
+				projectKey,
+				clientId,
+				conversationId,
+				messageId,
+				rating,
+			});
+		},
+		[apiUrl, projectKey, clientId, conversationId],
 	);
+	const { rate, effective } = useMessageRatings(sendRating);
 
 	// Refetch as soon as a send settles (stream finished or failed) so the
 	// just-persisted exchange replaces the local copy immediately.
@@ -147,14 +175,62 @@ function LiveWidget({
 			mergeMessages(
 				serverMessages,
 				messages.map((m) => ({ id: m.id, role: m.role, content: getText(m) })),
+			).map((m) =>
+				m.rateable ? { ...m, rating: effective(m.id, m.rating ?? null) } : m,
 			),
-		[serverMessages, messages],
+		[serverMessages, messages, effective],
 	);
 	const userMessageCount = displayMessages.filter(
 		(m) => m.role === "user",
 	).length;
 	const threshold = resolveEscalationThreshold(escalationThreshold);
 	const showEscalation = !escalated && userMessageCount >= threshold;
+
+	// A "real exchange" = at least one persisted visitor message and one bot
+	// reply. Only then (and only when not already rated) do we prompt on close.
+	const hasRealExchange =
+		serverMessages.some((m) => m.role === "user") &&
+		serverMessages.some((m) => m.role === "assistant");
+	const csatEligible = shouldPromptCsat({
+		hasRealExchange,
+		alreadyRated: csatRating != null || csatRated,
+	});
+
+	// Intercept close: when eligible, swap to the CSAT step instead of closing.
+	// A second close (X / Esc / Skip) always closes — never traps the visitor.
+	function handleOpenChange(next: boolean) {
+		if (!next && csatStep === "hidden" && csatEligible) {
+			setCsatStep("prompt");
+			return;
+		}
+		if (!next) {
+			setCsatStep("hidden");
+		}
+		setOpen(next);
+	}
+
+	function submitCsat(rating: number) {
+		setCsatRated(true);
+		setCsatStep("thanks");
+		// Best-effort: a failed POST must never trap the visitor — we close anyway.
+		if (conversationId) {
+			void rateConversation(apiUrl, {
+				projectKey,
+				clientId,
+				conversationId,
+				rating,
+			}).catch(() => {});
+		}
+		setTimeout(() => {
+			setCsatStep("hidden");
+			setOpen(false);
+		}, CSAT_THANKS_MS);
+	}
+
+	function skipCsat() {
+		setCsatStep("hidden");
+		setOpen(false);
+	}
 
 	function handleSend() {
 		void sendMessage({ text: text.trim() });
@@ -192,9 +268,11 @@ function LiveWidget({
 			inline={inline}
 			brandColor={brandColor}
 			open={open}
-			onOpenChange={setOpen}
+			onOpenChange={handleOpenChange}
 		>
-			{!identified ? (
+			{csatStep !== "hidden" ? (
+				<CsatStep step={csatStep} onRate={submitCsat} onSkip={skipCsat} />
+			) : !identified ? (
 				<IdentifyForm
 					name={name}
 					email={email}
@@ -209,6 +287,7 @@ function LiveWidget({
 						messages={displayMessages}
 						typing={loading}
 						error={sendFailed ? SEND_ERROR : null}
+						onRate={conversationId ? rate : undefined}
 					/>
 					{showEscalation && (
 						<EscalationSection

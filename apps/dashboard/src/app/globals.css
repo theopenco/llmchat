@@ -3,21 +3,28 @@
 @tailwind utilities;
 
 @layer base {
+	/*
+	 * Tokens mirror apps/marketing's "Clean Slate" design language so the
+	 * dashboard and marketing read as one product. Dark mode maps 1:1 onto the
+	 * marketing slate + indigo palette; light mode is a coherent counterpart in
+	 * the same hue family (marketing itself is dark-only). Aligning these
+	 * variables is the leverage point — shadcn primitives inherit automatically.
+	 */
 	:root {
-		--background: 0 0% 100%;
-		--foreground: 222.2 84% 4.9%;
+		--background: 220 33% 98%; /* faint slate canvas — white cards pop on it */
+		--foreground: 221 39% 11%; /* #111827 brand neutral */
 		--card: 0 0% 100%;
-		--card-foreground: 222.2 84% 4.9%;
+		--card-foreground: 221 39% 11%;
 		--popover: 0 0% 100%;
-		--popover-foreground: 222.2 84% 4.9%;
-		--primary: 243 75% 59%;
+		--popover-foreground: 221 39% 11%;
+		--primary: 239 84% 67%; /* indigo-500 #6366F1 — unified brand indigo (matches mockups) */
 		--primary-foreground: 0 0% 100%;
-		--secondary: 210 40% 96.1%;
-		--secondary-foreground: 222.2 47.4% 11.2%;
-		--muted: 210 40% 96.1%;
-		--muted-foreground: 215.4 16.3% 46.9%;
-		--accent: 210 40% 96.1%;
-		--accent-foreground: 222.2 47.4% 11.2%;
+		--secondary: 220 33% 96%;
+		--secondary-foreground: 221 39% 11%;
+		--muted: 220 33% 96%;
+		--muted-foreground: 221 14% 43%;
+		--accent: 220 33% 96%;
+		--accent-foreground: 221 39% 11%;
 		--destructive: 0 84.2% 60.2%;
 		--destructive-foreground: 210 40% 98%;
 		--success: 142.1 76.2% 36.3%;
@@ -26,35 +33,35 @@
 		--warning-foreground: 48 96% 89%;
 		--info: 221.2 83.2% 53.3%;
 		--info-foreground: 210 40% 98%;
-		--border: 214.3 31.8% 91.4%;
-		--input: 214.3 31.8% 91.4%;
-		--ring: 243 75% 59%;
+		--border: 220 22% 90%;
+		--input: 220 22% 90%;
+		--ring: 239 84% 67%;
 		--radius: 0.5rem;
-		--sidebar-background: 210 40% 98%;
-		--sidebar-foreground: 215.4 16.3% 40%;
-		--sidebar-primary: 222.2 47.4% 11.2%;
-		--sidebar-primary-foreground: 210 40% 98%;
-		--sidebar-accent: 210 40% 94%;
-		--sidebar-accent-foreground: 222.2 47.4% 11.2%;
-		--sidebar-border: 214.3 31.8% 91.4%;
-		--sidebar-ring: 222.2 84% 4.9%;
+		--sidebar-background: 220 33% 98%;
+		--sidebar-foreground: 221 20% 35%;
+		--sidebar-primary: 239 84% 67%;
+		--sidebar-primary-foreground: 0 0% 100%;
+		--sidebar-accent: 220 33% 94%;
+		--sidebar-accent-foreground: 221 39% 11%;
+		--sidebar-border: 220 22% 90%;
+		--sidebar-ring: 239 84% 67%;
 	}
 
 	.dark {
-		--background: 222 30% 10%;
-		--foreground: 210 40% 98%;
-		--card: 222 25% 14%;
-		--card-foreground: 210 40% 98%;
-		--popover: 222 25% 14%;
-		--popover-foreground: 210 40% 98%;
-		--primary: 243 75% 67%;
+		--background: 220 29% 6%; /* paper #0B0E14 */
+		--foreground: 220 50% 98%; /* ink #F6F8FC */
+		--card: 222 30% 11%; /* paper-card #141925 */
+		--card-foreground: 220 50% 98%;
+		--popover: 222 30% 11%;
+		--popover-foreground: 220 50% 98%;
+		--primary: 239 84% 67%; /* indigo-500 #6366F1 — marketing brand accent */
 		--primary-foreground: 0 0% 100%;
-		--secondary: 222 19% 19%;
-		--secondary-foreground: 210 40% 98%;
-		--muted: 222 30% 10%;
-		--muted-foreground: 217.9 10.6% 64.9%;
-		--accent: 222 19% 19%;
-		--accent-foreground: 210 40% 98%;
+		--secondary: 223 31% 15%; /* paper-raise #1B2233 */
+		--secondary-foreground: 219 22% 82%; /* ink-soft #C7CEDB */
+		--muted: 222 28% 9%; /* subtle fill between canvas and card */
+		--muted-foreground: 221 14% 60%; /* muted #8A93A6 */
+		--accent: 223 31% 15%; /* paper-raise — hover surface */
+		--accent-foreground: 220 50% 98%;
 		--destructive: 0 62.8% 45%;
 		--destructive-foreground: 210 40% 98%;
 		--success: 142.1 70.6% 45.3%;
@@ -63,17 +70,24 @@
 		--warning-foreground: 38 96% 11%;
 		--info: 217.2 91.2% 59.8%;
 		--info-foreground: 210 40% 98%;
-		--border: 222 18% 22%;
-		--input: 222 18% 22%;
-		--ring: 243 75% 67%;
-		--sidebar-background: 222 33% 8%;
-		--sidebar-foreground: 217.9 10.6% 78%;
-		--sidebar-primary: 210 40% 98%;
-		--sidebar-primary-foreground: 222.2 47.4% 11.2%;
-		--sidebar-accent: 222 19% 17%;
-		--sidebar-accent-foreground: 210 40% 98%;
-		--sidebar-border: 222 18% 18%;
-		--sidebar-ring: 217.9 26.8% 60%;
+		--border: 222 20% 16%; /* subtle low-contrast slate hairline */
+		--input: 222 22% 20%; /* form fields need a touch more definition */
+		--ring: 239 84% 67%;
+		--sidebar-background: 218 31% 5%; /* paper-deep #090C11 */
+		--sidebar-foreground: 219 22% 82%;
+		--sidebar-primary: 239 84% 67%;
+		--sidebar-primary-foreground: 0 0% 100%;
+		--sidebar-accent: 223 31% 15%;
+		--sidebar-accent-foreground: 220 50% 98%;
+		--sidebar-border: 221 30% 15%; /* rule-soft #1A2130 */
+		--sidebar-ring: 239 84% 67%;
+	}
+
+	/* Every border/divider resolves to the token. Without this, Tailwind v3
+	   preflight falls back to gray-200 — near-white lines that slash the dark
+	   panes. This is the global fix for the dark-mode "white lines". */
+	* {
+		@apply border-border;
 	}
 }
 
@@ -82,7 +96,48 @@ body {
 	height: 100%;
 }
 body {
-	font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, sans-serif;
-	background: hsl(var(--muted));
+	font-family:
+		var(--font-sans),
+		system-ui,
+		-apple-system,
+		Segoe UI,
+		sans-serif;
+	background-color: hsl(var(--background));
 	color: hsl(var(--foreground));
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+::selection {
+	background-color: hsl(var(--primary) / 0.35);
+	color: hsl(var(--foreground));
+}
+
+@layer components {
+	/* Mono eyebrow / kicker — shared with marketing for section labels. */
+	.kicker {
+		font-family: var(--font-mono), monospace;
+		font-size: 0.7rem;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: hsl(var(--primary));
+	}
+
+	/* Indigo aurora atmosphere — confined to auth / empty-state screens. The
+	   working dashboard canvas (inbox, tables, settings) stays a flat slate. */
+	.dark .aurora {
+		background-image:
+			radial-gradient(
+				60rem 40rem at 50% -10%,
+				rgba(99, 102, 241, 0.1),
+				transparent 60%
+			),
+			radial-gradient(
+				40rem 30rem at 100% 0%,
+				rgba(79, 70, 229, 0.07),
+				transparent 55%
+			);
+		background-repeat: no-repeat;
+		background-attachment: fixed;
+	}
 }

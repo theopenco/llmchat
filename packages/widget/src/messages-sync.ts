@@ -1,4 +1,5 @@
 import type { DisplayMessage } from "./components/MessageList";
+import type { Rating } from "./rating";
 
 export interface ServerMessage {
 	id: string;
@@ -6,22 +7,37 @@ export interface ServerMessage {
 	content: string;
 	sequence: number;
 	createdAt: number;
+	rating?: Rating;
 }
 
-/** GET the persisted conversation feed; [] when none exists yet. */
+export interface MessageFeed {
+	/** The visitor's own conversation id (null until one exists), used to
+	 * address messages for rating. */
+	conversationId: string | null;
+	/** Conversation-level CSAT (1–5), null until rated. Lets the widget avoid
+	 * re-prompting an already-rated visitor. */
+	csatRating: number | null;
+	messages: ServerMessage[];
+}
+
+/** GET the persisted conversation feed; empty when none exists yet. */
 export async function fetchMessages(
 	apiUrl: string,
 	projectKey: string,
 	clientId: string,
 	signal?: AbortSignal,
-): Promise<ServerMessage[]> {
+): Promise<MessageFeed> {
 	const params = new URLSearchParams({ projectKey, clientId });
 	const res = await fetch(`${apiUrl}/v1/messages?${params}`, { signal });
 	if (!res.ok) {
 		throw new Error(`messages failed: ${res.status}`);
 	}
-	const data = (await res.json()) as { messages: ServerMessage[] };
-	return data.messages;
+	const data = (await res.json()) as Partial<MessageFeed>;
+	return {
+		conversationId: data.conversationId ?? null,
+		csatRating: data.csatRating ?? null,
+		messages: data.messages ?? [],
+	};
 }
 
 /**
@@ -51,7 +67,15 @@ export function mergeMessages(
 		}
 	}
 	return [
-		...server.map((s) => ({ id: s.id, role: s.role, content: s.content })),
+		...server.map((s) => ({
+			id: s.id,
+			role: s.role,
+			content: s.content,
+			rating: s.rating ?? null,
+			// Only persisted assistant messages can be rated (they have a stable
+			// DB id); in-flight local messages can't until the feed catches up.
+			rateable: s.role === "assistant",
+		})),
 		...tail,
 	];
 }

@@ -10,6 +10,9 @@ export interface Conversation {
 	archivedAt: string | null;
 	createdAt: string;
 	updatedAt: string;
+	/** End-of-conversation CSAT (1–5 stars); null when the visitor didn't rate.
+	 * Distinct from per-message thumbs (Message.rating). */
+	csatRating: number | null;
 	/** First visitor message, used as the list preview (added by the list API). */
 	firstMessage?: string | null;
 	/** True when the current user hasn't seen the latest messages. */
@@ -22,4 +25,7 @@ export interface Message {
 	content: string;
 	sequence: number;
 	createdAt: string;
+	/** Visitor thumbs rating on an assistant reply (answer quality); null/absent
+	 * = unrated. Distinct from per-conversation CSAT. */
+	rating?: "up" | "down" | null;
 }

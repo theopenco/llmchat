@@ -27,7 +27,10 @@ export function ShowcaseHeader() {
 				</a>
 
 				<nav className="flex items-center gap-7">
-					<a href={`${marketingUrl}/#features`} className={`hidden sm:block ${navLink}`}>
+					<a
+						href={`${marketingUrl}/#features`}
+						className={`hidden sm:block ${navLink}`}
+					>
 						Features
 					</a>
 
@@ -59,7 +62,9 @@ export function ShowcaseHeader() {
 									href={`${marketingUrl}/docs`}
 									className="block border-b border-rule-soft px-4 py-3.5 transition-colors hover:bg-paper-raise"
 								>
-									<span className="block text-sm font-medium text-ink">Docs</span>
+									<span className="block text-sm font-medium text-ink">
+										Docs
+									</span>
 									<span className="mt-0.5 block text-xs text-faint">
 										Setup, widget config & migration guides
 									</span>
@@ -68,7 +73,9 @@ export function ShowcaseHeader() {
 									href={`${marketingUrl}/blog`}
 									className="block px-4 py-3.5 transition-colors hover:bg-paper-raise"
 								>
-									<span className="block text-sm font-medium text-ink">Blog</span>
+									<span className="block text-sm font-medium text-ink">
+										Blog
+									</span>
 									<span className="mt-0.5 block text-xs text-faint">
 										Product news, guides & changelog
 									</span>
@@ -77,7 +84,10 @@ export function ShowcaseHeader() {
 						</div>
 					</div>
 
-					<a href={`${marketingUrl}/compare`} className={`hidden sm:block ${navLink}`}>
+					<a
+						href={`${marketingUrl}/compare`}
+						className={`hidden sm:block ${navLink}`}
+					>
 						Compare
 					</a>
 

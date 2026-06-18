@@ -174,6 +174,10 @@ export const conversation = sqliteTable(
 		messageCount: integer().notNull().default(0),
 		escalatedAt: timestamp(),
 		archivedAt: timestamp(),
+		// End-of-conversation CSAT (1–5 stars), prompted on widget close; null =
+		// unrated. Distinct from per-message thumbs (message.rating). Range is
+		// enforced in the /v1/csat route, not by a DB constraint.
+		csatRating: integer(),
 		createdAt: createdAt(),
 		updatedAt: timestamp()
 			.notNull()
@@ -234,6 +238,9 @@ export const message = sqliteTable(
 		role: text({ enum: ["user", "assistant", "admin", "system"] }).notNull(),
 		content: text().notNull(),
 		sequence: integer().notNull(),
+		// Visitor thumbs rating on an assistant reply; null = unrated. Only
+		// assistant messages are rateable (enforced in the /v1/rating route).
+		rating: text({ enum: ["up", "down"] }),
 		// Author for admin messages; null for user/assistant.
 		authorUserId: text().references(() => user.id),
 		// RFC 5322 Message-ID for outbound email threading + inbound matching.

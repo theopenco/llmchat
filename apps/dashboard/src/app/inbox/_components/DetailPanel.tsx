@@ -127,7 +127,7 @@ export function DetailPanel({
 					</div>
 				)}
 
-				<Section title="Contact">
+				<Section title="Contact details">
 					<Field
 						icon={<User className="size-4" />}
 						label="Name"
@@ -140,7 +140,7 @@ export function DetailPanel({
 					/>
 				</Section>
 
-				<Section title="Session">
+				<Section title="Session info">
 					<Field
 						icon={<Clock className="size-4" />}
 						label="Started"
@@ -168,18 +168,33 @@ export function DetailPanel({
 				</Section>
 
 				<Section title="Rating">
-					{/* Placeholder: LLMChat has no rating/resolve data yet (TODO). */}
-					<div className="flex items-center gap-3 opacity-60">
-						<span className="text-muted-foreground/50">
-							<Star className="size-4" />
-						</span>
-						<div>
-							<p className="text-xs font-medium text-muted-foreground">
-								Visitor rating
-							</p>
-							<p className="text-sm text-muted-foreground">Not collected yet</p>
+					{/* Conversation-level CSAT (1–5), prompted on widget close — distinct
+					    from the per-message thumbs shown in the thread. */}
+					{conversation.csatRating != null ? (
+						<div className="flex items-center gap-2">
+							<div className="flex items-center gap-0.5">
+								{[1, 2, 3, 4, 5].map((n) => (
+									<Star
+										key={n}
+										className={cn(
+											"size-4",
+											n <= conversation.csatRating!
+												? "text-amber-500"
+												: "text-muted-foreground/30",
+										)}
+										fill={
+											n <= conversation.csatRating! ? "currentColor" : "none"
+										}
+									/>
+								))}
+							</div>
+							<span className="text-sm font-medium text-foreground">
+								{conversation.csatRating} / 5
+							</span>
 						</div>
-					</div>
+					) : (
+						<p className="text-sm text-muted-foreground">Not rated</p>
+					)}
 				</Section>
 			</div>
 

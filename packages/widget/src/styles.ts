@@ -351,6 +351,118 @@ export const widgetStyles = `
 	padding: 0.25rem 0.75rem;
 }
 
+/* ── Per-message rating (assistant thumbs) ─────────────────────────── */
+/* Group an assistant bubble with its rating controls so they read as one
+   left-aligned unit. */
+.llmchat-msg-group {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	align-self: flex-start;
+	gap: 0.25rem;
+	max-width: 85%;
+}
+.llmchat-msg-group .llmchat-msg {
+	max-width: 100%;
+}
+.llmchat-rate {
+	display: flex;
+	gap: 0.125rem;
+	padding-left: 0.125rem;
+}
+.llmchat-rate-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.625rem;
+	height: 1.625rem;
+	border-radius: 0.375rem;
+	background: transparent;
+	border: none;
+	color: #9ca3af;
+	cursor: pointer;
+	transition:
+		background 0.15s ease,
+		color 0.15s ease;
+}
+.llmchat-rate-btn:hover {
+	background: #f3f4f6;
+	color: #4b5563;
+}
+.llmchat-rate-btn[aria-pressed="true"] {
+	color: var(--brand);
+}
+.llmchat-rate-btn:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.llmchat-rate-btn svg {
+	width: 0.875rem;
+	height: 0.875rem;
+}
+
+/* ── CSAT closing screen ───────────────────────────────────────────── */
+.llmchat-csat {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	padding: 2rem 1.5rem;
+	text-align: center;
+}
+.llmchat-csat-title {
+	margin: 0;
+	font-size: 1.05rem;
+	font-weight: 600;
+	color: #111827;
+}
+.llmchat-csat-stars {
+	display: flex;
+	gap: 0.25rem;
+}
+.llmchat-csat-star {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.25rem;
+	background: transparent;
+	border: none;
+	color: #f59e0b;
+	cursor: pointer;
+	border-radius: 0.5rem;
+	transition: transform 0.1s ease;
+}
+.llmchat-csat-star:hover {
+	transform: scale(1.12);
+}
+.llmchat-csat-star:active {
+	transform: scale(0.95);
+}
+.llmchat-csat-star:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.llmchat-csat-skip {
+	background: transparent;
+	border: none;
+	color: #6b7280;
+	font: inherit;
+	font-size: 0.85rem;
+	cursor: pointer;
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.375rem;
+}
+.llmchat-csat-skip:hover {
+	color: #111827;
+	text-decoration: underline;
+}
+.llmchat-csat-skip:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+
 /* Typing indicator: three bouncing dots inside an assistant bubble. */
 .llmchat-typing {
 	display: flex;

@@ -56,11 +56,7 @@
 			transparent 1px
 		);
 		background-size: 22px 22px;
-		mask-image: radial-gradient(
-			60% 60% at 50% 40%,
-			#000 0%,
-			transparent 100%
-		);
+		mask-image: radial-gradient(60% 60% at 50% 40%, #000 0%, transparent 100%);
 	}
 
 	/* Long-form article prose rendered from markdown HTML (dark). */

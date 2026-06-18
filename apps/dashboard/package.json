@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "next build",
+		"build": "next build && node scripts/check-bundle.mjs",
 		"dev": "next dev -p 3001",
 		"format": "prettier --write .",
 		"lint": "prettier --check .",

@@ -1,48 +1,44 @@
 "use client";
 
-import { Archive, MessageSquare, Star, TriangleAlert } from "lucide-react";
+import { Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 import type { Conversation } from "./types";
 
-function StatItem({
-	icon,
+function StatCard({
 	value,
 	label,
+	icon,
 	tone,
 }: {
-	icon: React.ReactNode;
 	value: React.ReactNode;
 	label: string;
-	tone?: "amber" | "muted";
+	icon?: React.ReactNode;
+	tone?: "amber";
 }) {
 	return (
-		<div className="flex items-center gap-1.5">
-			<span
+		<div className="min-w-[5rem] rounded-lg border bg-card px-4 py-2 text-center">
+			<div
 				className={cn(
-					"flex size-4 items-center justify-center",
-					tone === "amber"
-						? "text-amber-500"
-						: tone === "muted"
-							? "text-muted-foreground/50"
-							: "text-muted-foreground",
+					"flex items-center justify-center gap-1 text-xl font-semibold leading-none tabular-nums",
+					tone === "amber" ? "text-amber-500" : "text-foreground",
 				)}
 			>
 				{icon}
-			</span>
-			<span className="text-sm font-semibold tabular-nums text-foreground">
 				{value}
-			</span>
-			<span className="text-xs text-muted-foreground">{label}</span>
+			</div>
+			<div className="mt-1 text-[11px] text-muted-foreground">{label}</div>
 		</div>
 	);
 }
 
 /**
- * At-a-glance counts derived from the loaded conversation set. Ratings are a
- * disabled placeholder — LLMChat has no rating data yet (TODO: wire up once a
- * resolve/rate flow exists), so we never show a fabricated number.
+ * Header stat cards derived from the loaded conversation set. "Resolved" is
+ * backed by the archived count — archiving is this app's only "closed" state;
+ * there is no separate resolved status. The avg rating is the mean CSAT across
+ * rated conversations only, shown as "—" when none are rated (never NaN or a
+ * fabricated number).
  */
 export function InboxStats({
 	conversations,
@@ -50,47 +46,30 @@ export function InboxStats({
 	conversations: Conversation[];
 }) {
 	const total = conversations.length;
-	const unread = conversations.filter((c) => c.unread).length;
 	const escalated = conversations.filter((c) => c.escalatedAt).length;
-	const archived = conversations.filter((c) => c.archivedAt).length;
+	const resolved = conversations.filter((c) => c.archivedAt).length;
+
+	const rated = conversations.filter((c) => c.csatRating != null);
+	const avgRating =
+		rated.length > 0
+			? rated.reduce((sum, c) => sum + (c.csatRating ?? 0), 0) / rated.length
+			: null;
 
 	return (
-		<div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b bg-card px-4 py-2.5">
-			<StatItem
-				icon={<MessageSquare className="size-4" />}
-				value={total}
-				label={total === 1 ? "conversation" : "conversations"}
+		<div className="flex flex-wrap items-stretch gap-2">
+			<StatCard value={total} label="Conversations" />
+			<StatCard value={escalated} label="Escalated" tone="amber" />
+			<StatCard value={resolved} label="Resolved" />
+			<StatCard
+				value={avgRating != null ? avgRating.toFixed(1) : "—"}
+				label="Avg rating"
+				icon={
+					<Star
+						className="size-4 text-amber-500"
+						fill={avgRating != null ? "currentColor" : "none"}
+					/>
+				}
 			/>
-			{unread > 0 && (
-				<StatItem
-					icon={<span className="size-2 rounded-full bg-sky-500" />}
-					value={unread}
-					label="unread"
-				/>
-			)}
-			<StatItem
-				icon={<TriangleAlert className="size-4" />}
-				value={escalated}
-				label="escalated"
-				tone="amber"
-			/>
-			<StatItem
-				icon={<Archive className="size-4" />}
-				value={archived}
-				label="archived"
-			/>
-
-			<div
-				className="ml-auto cursor-default select-none opacity-60"
-				title="Ratings aren't collected yet"
-			>
-				<StatItem
-					icon={<Star className="size-4" />}
-					value="—"
-					label="avg rating"
-					tone="muted"
-				/>
-			</div>
 		</div>
 	);
 }

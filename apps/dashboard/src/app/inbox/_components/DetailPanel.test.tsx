@@ -20,6 +20,7 @@ function conv(overrides: Partial<Conversation> = {}): Conversation {
 		archivedAt: null,
 		createdAt: "2026-06-16T05:00:00.000Z",
 		updatedAt: "2026-06-16T05:00:00.000Z",
+		csatRating: null,
 		...overrides,
 	};
 }
@@ -65,9 +66,15 @@ describe("DetailPanel", () => {
 		expect(screen.getByText(/escalated to a human/i)).toBeInTheDocument();
 	});
 
-	it("renders ratings as a disabled placeholder, not a number", () => {
-		setup();
-		expect(screen.getByText(/not collected yet/i)).toBeInTheDocument();
+	it("shows 'Not rated' when the conversation has no CSAT", () => {
+		setup({ csatRating: null });
+		expect(screen.getByText(/not rated/i)).toBeInTheDocument();
+	});
+
+	it("shows the CSAT score when the conversation is rated", () => {
+		setup({ csatRating: 4 });
+		expect(screen.getByText(/4 \/ 5/)).toBeInTheDocument();
+		expect(screen.queryByText(/not rated/i)).not.toBeInTheDocument();
 	});
 
 	it("archives directly but confirms before deleting", async () => {
