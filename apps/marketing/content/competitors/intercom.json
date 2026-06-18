@@ -8,15 +8,15 @@
 	"bestFor": "Mid-market and enterprise teams wanting a single platform for support, sales, and marketing.",
 	"notFor": "Teams that only need a support widget — full platform pricing applies regardless.",
 	"pricing": "From $29/seat/mo (annual) + $0.99 per Fin outcome; enterprise by quote",
-	"heroSubtext": "Intercom is a full customer communication platform — support, sales, and marketing. If you only need a support widget, you're paying for a lot you won't use, starting at $29/seat/month plus $0.99 per Fin resolution. llmchat is purpose-built for support and starts free.",
+	"heroSubtext": "Intercom is a full customer communication platform — support, sales, and marketing. If you only need a support widget, you're paying for a lot you won't use, starting at $29/seat/month plus $0.99 per Fin resolution. llmchat is purpose-built for support, with no seats to buy.",
 	"heroBadges": [
 		"Support-only focus",
 		"Model-agnostic",
 		"Self-hostable",
-		"Free tier"
+		"No per-seat fees"
 	],
 	"tableSummary": {
-		"llmchat": "Support widget — from $0",
+		"llmchat": "Support widget — usage-based, no seats",
 		"competitor": "Full platform — from $29/seat/mo + usage"
 	},
 	"vsCategories": [
@@ -65,12 +65,12 @@
 			"rows": [
 				{
 					"label": "Free tier",
-					"llmchat": "Yes",
+					"llmchat": "No",
 					"competitor": "Trial only"
 				},
 				{
 					"label": "Starting price",
-					"llmchat": "Free",
+					"llmchat": "Pay-as-you-go",
 					"competitor": "$29/seat/mo + $0.99/outcome"
 				},
 				{
@@ -104,7 +104,7 @@
 	"tldr": "Intercom is a full customer communication platform — support, sales, and marketing in one. If you need all three, it's a powerful investment. If you only need a support widget, you're paying for a lot you won't use. llmchat is purpose-built for support and costs significantly less.",
 	"llmchatWins": [
 		"Purpose-built for support — no unused platform surface",
-		"Free tier, then usage-based pricing vs. Intercom's per-seat model",
+		"Usage-based pricing with no seats to buy vs. Intercom's per-seat model",
 		"Model-agnostic — swap underlying LLMs without code changes",
 		"Self-hostable on your own infrastructure",
 		"One script tag setup vs. full platform onboarding",
@@ -141,7 +141,7 @@
 		},
 		{
 			"heading": "Pricing",
-			"llmchat": "Free tier available, then usage-based pricing. Costs scale with actual LLM consumption. A team with modest volume can run for well under $50/month. No seats to buy, no minimum commitments.",
+			"llmchat": "Usage-based pricing. Costs scale with actual LLM consumption. A team with modest volume can run for well under $50/month. No seats to buy, no minimum commitments.",
 			"competitor": "Starts around $29/seat/month (annual) and scales with seat count, usage, and add-ons — plus $0.99 per Fin resolution. The per-seat model means costs grow with your team size, and enterprise plans require a sales conversation.",
 			"bottomLine": "The cost difference is most meaningful at smaller team sizes. At enterprise scale, the calculus changes — Intercom's platform breadth often justifies the investment when you're using more of it."
 		},

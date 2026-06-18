@@ -13,10 +13,10 @@
 		"Model-agnostic",
 		"Self-hostable",
 		"Open architecture",
-		"AI on the free tier"
+		"Usage-based pricing"
 	],
 	"tableSummary": {
-		"llmchat": "Focused widget — from $0, any AI model",
+		"llmchat": "Focused widget — usage-based, any AI model",
 		"competitor": "All-in-one — free plan (no AI); AI from ~€45/mo"
 	},
 	"vsCategories": [
@@ -85,7 +85,7 @@
 			"rows": [
 				{
 					"label": "Free tier",
-					"llmchat": "Yes",
+					"llmchat": "No",
 					"competitor": "Free plan (2 seats) — but no AI features"
 				},
 				{
@@ -95,7 +95,7 @@
 				},
 				{
 					"label": "Starting price",
-					"llmchat": "Free",
+					"llmchat": "Usage-based",
 					"competitor": "Free; AI from ~€45/mo (Mini)"
 				}
 			]
@@ -108,7 +108,7 @@
 		"Self-hostable on your own Cloudflare infrastructure",
 		"Shadow DOM widget with zero style interference",
 		"Open architecture — fully auditable stack",
-		"Free tier with usage-based pricing"
+		"Transparent usage-based pricing — pay only for what you use"
 	],
 	"competitorWins": [
 		"All-in-one: chat, email, CRM, knowledge base, and push notifications",
@@ -141,7 +141,7 @@
 		},
 		{
 			"heading": "Pricing model",
-			"llmchat": "Usage-based — you pay for actual LLM token consumption. Costs scale down when things are quiet. Free tier available. Better for low-to-medium volume teams or those with variable traffic.",
+			"llmchat": "Usage-based — you pay for actual LLM token consumption. Costs scale down when things are quiet. Better for low-to-medium volume teams or those with variable traffic.",
 			"competitor": "Flat-rate monthly pricing with a permanent free plan, though AI features start on the Mini plan (~€45/mo). Predictable and easy to budget. Better for high-volume teams where a fixed cost is lower than per-usage costs.",
 			"bottomLine": "Choose Crisp for flat-rate predictability at consistent volume. Choose llmchat for usage-based costs that scale down when things are quiet."
 		},

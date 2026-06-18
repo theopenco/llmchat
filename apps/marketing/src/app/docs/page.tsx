@@ -221,7 +221,7 @@ export default function DocsPage() {
 							href={dashboardUrl}
 							className="rounded-full bg-paper px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-accent hover:text-paper"
 						>
-							Get started free
+							Get your support agent now
 						</Link>
 						<Link
 							href="/compare"

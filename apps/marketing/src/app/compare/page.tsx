@@ -157,23 +157,13 @@ export default function ComparePage() {
 					<div className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-rule bg-rule sm:grid-cols-2">
 						{competitors.map((c) => (
 							<div key={c.id} className="bg-paper-card p-7">
-								<div className="flex items-start justify-between gap-4">
-									<div>
-										<h3 className="font-display text-2xl font-semibold tracking-tight-display text-ink">
-											{c.name}
-										</h3>
-										<p className="mt-1 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-accent">
-											{c.tagline}
-										</p>
-									</div>
-									<a
-										href={c.url}
-										target="_blank"
-										rel="noreferrer"
-										className="shrink-0 font-mono text-[0.68rem] uppercase tracking-wider text-faint underline-offset-2 hover:text-ink hover:underline"
-									>
-										Visit ↗
-									</a>
+								<div>
+									<h3 className="font-display text-2xl font-semibold tracking-tight-display text-ink">
+										{c.name}
+									</h3>
+									<p className="mt-1 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-accent">
+										{c.tagline}
+									</p>
 								</div>
 								<p className="mt-4 text-sm leading-relaxed text-muted">
 									{c.description}
@@ -219,7 +209,7 @@ export default function ComparePage() {
 							eventProps={{ source: "compare_cta" }}
 							className="rounded-full bg-paper px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-accent hover:text-paper"
 						>
-							Get started free
+							Get your support agent now
 						</TrackedLink>
 						<Link
 							href="/blog"

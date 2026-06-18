@@ -106,7 +106,7 @@ export default async function PostPage({
 							}
 							className="mt-6 inline-block rounded-full bg-ink px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 						>
-							Get started free
+							Get your support agent now
 						</Link>
 					</div>
 				</div>

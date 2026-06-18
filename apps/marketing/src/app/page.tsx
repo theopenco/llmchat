@@ -94,13 +94,13 @@ export default function Home() {
 								eventProps={{ source: "home_hero" }}
 								className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-8px_rgba(99,102,241,0.7)] transition-colors hover:bg-accent-deep"
 							>
-								Get started free
+								Get your support agent now
 								<span aria-hidden>→</span>
 							</TrackedLink>
 						</div>
 
 						<p className="animate-rise-in mt-5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint [animation-delay:260ms]">
-							Free tier · No credit card · Live in 5 minutes
+							Transparent usage-based pricing · Live in 5 minutes
 						</p>
 					</div>
 				</section>
@@ -237,7 +237,7 @@ export default function Home() {
 									eventProps={{ source: "home_closing" }}
 									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(99,102,241,0.7)] transition-colors hover:bg-accent-deep"
 								>
-									Get started free
+									Get your support agent now
 									<span aria-hidden>→</span>
 								</TrackedLink>
 								<Link

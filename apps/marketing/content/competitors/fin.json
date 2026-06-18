@@ -8,15 +8,15 @@
 	"bestFor": "Enterprise teams who want outcome-based pricing and already use Zendesk or Salesforce.",
 	"notFor": "Small teams or those wanting predictable flat-rate pricing.",
 	"pricing": "$0.99 per resolved outcome (usage-based)",
-	"heroSubtext": "Fin charges $0.99 per resolved outcome and runs on its own proprietary model (Fin Apex) — you can't choose the model. llmchat uses LLM usage-based pricing with a free tier and lets you run any model you choose.",
+	"heroSubtext": "Fin charges $0.99 per resolved outcome and runs on its own proprietary model (Fin Apex) — you can't choose the model. llmchat uses LLM usage-based pricing and lets you run any model you choose.",
 	"heroBadges": [
 		"No per-outcome fees",
 		"Model-agnostic",
 		"Self-hostable",
-		"Free tier"
+		"Usage-based pricing"
 	],
 	"tableSummary": {
-		"llmchat": "Usage-based — from $0, no minimums",
+		"llmchat": "Usage-based — no seats, no minimums",
 		"competitor": "$0.99 per resolved outcome — proprietary model"
 	},
 	"vsCategories": [
@@ -35,7 +35,7 @@
 				},
 				{
 					"label": "Free tier",
-					"llmchat": "Yes",
+					"llmchat": "No",
 					"competitor": "14-day trial only"
 				},
 				{
@@ -111,7 +111,7 @@
 		"Predictable usage-based pricing — no per-outcome minimums",
 		"Model-agnostic — not tied to any single AI vendor",
 		"Self-hostable on your own infrastructure",
-		"Free tier available",
+		"Transparent, publicly listed pricing — no sales call required",
 		"Open architecture — auditable by design",
 		"Simpler setup — one script tag vs. platform onboarding"
 	],
@@ -140,7 +140,7 @@
 	"keyDifferences": [
 		{
 			"heading": "Pricing model and predictability",
-			"llmchat": "Usage-based pricing tied to LLM token consumption. Costs scale linearly with actual usage and there's a free tier with no minimums. You know what you're spending before the month ends.",
+			"llmchat": "Usage-based pricing tied to LLM token consumption. Costs scale linearly with actual usage, with no seats and no minimums. You know what you're spending before the month ends.",
 			"competitor": "$0.99 per resolved outcome, billed only when Fin resolves a conversation. Powerful if your AI resolves thousands of tickets — you pay for success, not seats. The trade-off is that per-outcome costs can be harder to forecast than usage-based or flat pricing.",
 			"bottomLine": "Choose Fin if you have high, consistent resolution volume and want to pay per success. Choose llmchat if predictable flat costs or low-volume usage matters more."
 		},
