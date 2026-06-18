@@ -608,6 +608,47 @@ export const widgetStyles = `
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 30%, transparent);
 }
 
+/* ── Quick-reply chips (guided / concierge prompts) ────────────────── */
+.llmchat-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding: 0 1rem 0.85rem;
+}
+.llmchat-chip {
+	font: inherit;
+	font-size: 0.85rem;
+	line-height: 1.2;
+	padding: 0.45rem 0.85rem;
+	border-radius: 9999px;
+	border: 1px solid color-mix(in srgb, var(--brand) 35%, transparent);
+	background: color-mix(in srgb, var(--brand) 8%, transparent);
+	color: var(--brand);
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	transition:
+		background 0.15s ease,
+		transform 0.1s ease;
+}
+.llmchat-chip:hover {
+	background: color-mix(in srgb, var(--brand) 16%, transparent);
+}
+.llmchat-chip:active {
+	transform: translateY(1px);
+}
+.llmchat-chip:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.llmchat-chip-dot {
+	width: 0.85rem;
+	height: 0.85rem;
+	border-radius: 9999px;
+	display: inline-block;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.llmchat *,
 	.llmchat *::before,
