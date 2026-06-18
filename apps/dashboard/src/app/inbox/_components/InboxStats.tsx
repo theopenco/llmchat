@@ -55,6 +55,14 @@ export function InboxStats({
 	const escalated = conversations.filter((c) => c.escalatedAt).length;
 	const archived = conversations.filter((c) => c.archivedAt).length;
 
+	// Average CSAT across rated conversations only. Null when none are rated —
+	// shown as "—" rather than a fabricated number or NaN.
+	const rated = conversations.filter((c) => c.csatRating != null);
+	const avgRating =
+		rated.length > 0
+			? rated.reduce((sum, c) => sum + (c.csatRating ?? 0), 0) / rated.length
+			: null;
+
 	return (
 		<div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b bg-card px-4 py-2.5">
 			<StatItem
@@ -81,15 +89,12 @@ export function InboxStats({
 				label="archived"
 			/>
 
-			<div
-				className="ml-auto cursor-default select-none opacity-60"
-				title="Ratings aren't collected yet"
-			>
+			<div className="ml-auto">
 				<StatItem
 					icon={<Star className="size-4" />}
-					value="—"
+					value={avgRating != null ? avgRating.toFixed(1) : "—"}
 					label="avg rating"
-					tone="muted"
+					tone={avgRating != null ? undefined : "muted"}
 				/>
 			</div>
 		</div>

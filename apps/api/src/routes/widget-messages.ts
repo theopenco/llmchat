@@ -50,7 +50,7 @@ export const widgetMessages = new Hono<AppContext>().get(
 				a(e(ct.projectId, project.id), e(ct.clientId, clientId)),
 		});
 		if (!conv) {
-			return c.json({ conversationId: null, messages: [] });
+			return c.json({ conversationId: null, csatRating: null, messages: [] });
 		}
 
 		const rows = await db(c.env).query.message.findMany({
@@ -64,6 +64,8 @@ export const widgetMessages = new Hono<AppContext>().get(
 		// Only the fields the widget needs — no email ids, author ids, etc.
 		return c.json({
 			conversationId: conv.id,
+			// Conversation-level CSAT so the widget never re-prompts a rated visitor.
+			csatRating: conv.csatRating,
 			messages: rows.map((m) => ({
 				id: m.id,
 				role: m.role,

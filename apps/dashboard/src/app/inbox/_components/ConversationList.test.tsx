@@ -19,6 +19,7 @@ function conv(overrides: Partial<Conversation>): Conversation {
 		archivedAt: null,
 		createdAt: "2026-06-16T05:00:00.000Z",
 		updatedAt: "2026-06-16T05:00:00.000Z",
+		csatRating: null,
 		firstMessage: "How do I reset my device?",
 		...overrides,
 	};

@@ -168,18 +168,30 @@ export function DetailPanel({
 				</Section>
 
 				<Section title="Satisfaction">
-					{/* Disabled placeholder for the upcoming per-conversation CSAT
-					    feature — distinct from the per-message thumbs shown in the
-					    thread. Never show a fabricated number. */}
-					<div className="flex items-center gap-3 opacity-60">
-						<span className="text-muted-foreground/50">
-							<Star className="size-4" />
+					{/* Conversation-level CSAT (1–5), prompted on widget close — distinct
+					    from the per-message thumbs shown in the thread. */}
+					<div className="flex items-center gap-3">
+						<span
+							className={
+								conversation.csatRating != null
+									? "text-amber-500"
+									: "text-muted-foreground/50"
+							}
+						>
+							<Star
+								className="size-4"
+								fill={conversation.csatRating != null ? "currentColor" : "none"}
+							/>
 						</span>
 						<div>
 							<p className="text-xs font-medium text-muted-foreground">
 								Overall conversation rating
 							</p>
-							<p className="text-sm text-muted-foreground">Not collected yet</p>
+							<p className="text-sm text-foreground">
+								{conversation.csatRating != null
+									? `${conversation.csatRating} / 5 ★`
+									: "Not rated"}
+							</p>
 						</div>
 					</div>
 				</Section>
