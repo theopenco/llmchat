@@ -46,8 +46,7 @@ app.use(
 
 // Public widget endpoints: allow ALL origins, unconditionally. The widget is a
 // public embed that must load on any customer site, and these routes are
-// non-credentialed, so `Access-Control-Allow-Origin: *` is valid. This does NOT
-// read WIDGET_ALLOWED_ORIGINS — the env-based gate is gone for /v1/*.
+// non-credentialed, so `Access-Control-Allow-Origin: *` is valid.
 // Per-PROJECT domain restriction (future) is enforced separately server-side
 // (against the request's project), not via this global CORS gate.
 app.use(
