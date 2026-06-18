@@ -155,6 +155,10 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 											asChild
 											isActive={active}
 											tooltip={item.title}
+											className={cn(
+												active &&
+													"bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary data-[active=true]:bg-primary/10 data-[active=true]:text-primary",
+											)}
 										>
 											<Link href={item.href}>
 												<item.icon />

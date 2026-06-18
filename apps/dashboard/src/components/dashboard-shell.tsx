@@ -46,7 +46,7 @@ export function DashboardShell({
 	return (
 		<SidebarProvider>
 			<AppSidebar userEmail={email} />
-			<SidebarInset className="bg-transparent">
+			<SidebarInset className="bg-background">
 				{/* Mobile-only bar to open the sidebar drawer; desktop matches the mockup with no top bar. */}
 				<header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-md md:hidden">
 					<SidebarTrigger className="-ml-1" />

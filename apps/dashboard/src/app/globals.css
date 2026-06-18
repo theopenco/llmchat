@@ -31,12 +31,12 @@
 		--success-foreground: 138 76% 97%;
 		--warning: 38 92% 50%;
 		--warning-foreground: 48 96% 89%;
-		--info: 243 75% 59%;
-		--info-foreground: 0 0% 100%;
+		--info: 221.2 83.2% 53.3%;
+		--info-foreground: 210 40% 98%;
 		--border: 220 22% 90%;
 		--input: 220 22% 90%;
 		--ring: 243 75% 59%;
-		--radius: 0.625rem;
+		--radius: 0.5rem;
 		--sidebar-background: 220 33% 98%;
 		--sidebar-foreground: 221 20% 35%;
 		--sidebar-primary: 243 75% 59%;
@@ -68,8 +68,8 @@
 		--success-foreground: 144 70% 10%;
 		--warning: 38 92% 50%;
 		--warning-foreground: 38 96% 11%;
-		--info: 235 90% 74%;
-		--info-foreground: 220 29% 6%;
+		--info: 217.2 91.2% 59.8%;
+		--info-foreground: 210 40% 98%;
 		--border: 220 26% 18%; /* rule #222A3A */
 		--input: 220 26% 18%;
 		--ring: 239 84% 67%;
@@ -101,24 +101,6 @@ body {
 	text-rendering: optimizeLegibility;
 }
 
-/* Indigo aurora atmosphere on the dark canvas — matches marketing, lighter
-   here since the dashboard is denser than a landing page. */
-.dark body {
-	background-image:
-		radial-gradient(
-			60rem 40rem at 50% -10%,
-			rgba(99, 102, 241, 0.1),
-			transparent 60%
-		),
-		radial-gradient(
-			40rem 30rem at 100% 0%,
-			rgba(79, 70, 229, 0.07),
-			transparent 55%
-		);
-	background-repeat: no-repeat;
-	background-attachment: fixed;
-}
-
 ::selection {
 	background-color: hsl(var(--primary) / 0.35);
 	color: hsl(var(--foreground));
@@ -132,5 +114,23 @@ body {
 		letter-spacing: 0.16em;
 		text-transform: uppercase;
 		color: hsl(var(--primary));
+	}
+
+	/* Indigo aurora atmosphere — confined to auth / empty-state screens. The
+	   working dashboard canvas (inbox, tables, settings) stays a flat slate. */
+	.dark .aurora {
+		background-image:
+			radial-gradient(
+				60rem 40rem at 50% -10%,
+				rgba(99, 102, 241, 0.1),
+				transparent 60%
+			),
+			radial-gradient(
+				40rem 30rem at 100% 0%,
+				rgba(79, 70, 229, 0.07),
+				transparent 55%
+			);
+		background-repeat: no-repeat;
+		background-attachment: fixed;
 	}
 }

@@ -17,7 +17,7 @@ export function AuthCard({
 	children: React.ReactNode;
 }) {
 	return (
-		<main className="flex min-h-screen items-center justify-center p-6">
+		<main className="aurora flex min-h-screen items-center justify-center p-6">
 			<Card className="w-full max-w-sm">
 				<CardHeader>
 					<CardTitle className="text-xl">{title}</CardTitle>
