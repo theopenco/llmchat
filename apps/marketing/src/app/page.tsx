@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { matrix } from "content-collections";
 import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -7,17 +6,6 @@ import { TrackedLink } from "@/components/TrackedLink";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
-
-const providers = [
-	"OpenAI",
-	"Anthropic",
-	"Google",
-	"Mistral",
-	"Llama",
-	"DeepSeek",
-	"xAI",
-	"Cohere",
-];
 
 const features = [
 	{
@@ -79,96 +67,41 @@ export default function Home() {
 				{/* ── Hero ─────────────────────────────────────────────── */}
 				<section className="relative overflow-hidden">
 					<div className="grid-backdrop pointer-events-none absolute inset-0" />
-					<div className="relative mx-auto max-w-6xl px-6 pb-20 pt-20 sm:pt-28">
-						<div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
-							<div className="animate-rise-in">
-								<span className="inline-flex items-center gap-2 rounded-full border border-rule bg-paper-card/60 px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted">
-									<span className="size-1.5 rounded-full bg-accent shadow-[0_0_10px_2px_rgba(99,102,241,0.7)]" />
-									Built on LLM Gateway
-								</span>
+					<div className="relative mx-auto flex max-w-3xl flex-col items-center px-6 pb-28 pt-24 text-center sm:pt-36">
+						<span className="animate-rise-in inline-flex items-center gap-2 rounded-full border border-rule bg-paper-card/60 px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted">
+							<span className="size-1.5 rounded-full bg-accent shadow-[0_0_10px_2px_rgba(99,102,241,0.7)]" />
+							Built on LLM Gateway · Any model
+						</span>
 
-								<h1 className="font-display mt-6 text-5xl font-semibold leading-[1.02] tracking-tight-display text-ink sm:text-6xl">
-									AI support that
-									<br />
-									actually{" "}
-									<span className="bg-gradient-to-r from-accent-soft to-accent bg-clip-text text-transparent">
-										escalates
-									</span>
-									.
-								</h1>
+						<h1 className="font-display animate-rise-in mt-7 text-balance text-5xl font-semibold leading-[1.02] tracking-tight-display text-ink [animation-delay:80ms] sm:text-7xl">
+							AI support that actually{" "}
+							<span className="bg-gradient-to-r from-accent-soft to-accent bg-clip-text text-transparent">
+								escalates
+							</span>
+							.
+						</h1>
 
-								<p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-									One script tag. Any model. llmchat answers from your docs,
-									hands off to your team when it can&apos;t, and threads replies
-									through email — all from a single inbox.
-								</p>
+						<p className="animate-rise-in mt-7 max-w-xl text-pretty text-lg leading-relaxed text-muted [animation-delay:140ms]">
+							It answers from your docs, hands off to a human the moment it
+							can&apos;t, and threads every reply through email — so no customer
+							is left talking to a wall, and nothing lands in a black hole.
+						</p>
 
-								<div className="mt-9 flex flex-wrap items-center gap-3">
-									<TrackedLink
-										href={dashboardUrl}
-										event={ANALYTICS_EVENTS.signupStarted}
-										eventProps={{ source: "home_hero" }}
-										className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(99,102,241,0.7)] transition-colors hover:bg-accent-deep"
-									>
-										Get started free
-										<span aria-hidden>→</span>
-									</TrackedLink>
-									<Link
-										href="/docs"
-										className="rounded-full border border-rule px-6 py-3 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
-									>
-										Read the docs
-									</Link>
-								</div>
-
-								<p className="mt-5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint">
-									Free tier · No credit card · Live in 5 minutes
-								</p>
-							</div>
-
-							{/* Code card */}
-							<div className="animate-rise-in [animation-delay:120ms]">
-								<div className="rounded-2xl border border-rule bg-paper-card/80 shadow-glow backdrop-blur-sm">
-									<div className="flex items-center gap-2 border-b border-rule px-4 py-3">
-										<span className="size-3 rounded-full bg-[#ff5f57]" />
-										<span className="size-3 rounded-full bg-[#febc2e]" />
-										<span className="size-3 rounded-full bg-[#28c840]" />
-										<span className="ml-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-faint">
-											index.html
-										</span>
-									</div>
-									<pre className="overflow-x-auto px-5 py-5 font-mono text-[0.82rem] leading-relaxed text-ink-soft [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-										<code>{matrix.llmchatEmbed}</code>
-									</pre>
-									<div className="flex items-center justify-between border-t border-rule px-5 py-3">
-										<span className="font-mono text-[0.68rem] uppercase tracking-[0.12em] text-faint">
-											That&apos;s the whole integration
-										</span>
-										<span className="inline-flex items-center gap-1.5 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-accent-soft">
-											<span className="size-1.5 rounded-full bg-accent-soft" />
-											live
-										</span>
-									</div>
-								</div>
-							</div>
+						<div className="animate-rise-in mt-10 [animation-delay:200ms]">
+							<TrackedLink
+								href={dashboardUrl}
+								event={ANALYTICS_EVENTS.signupStarted}
+								eventProps={{ source: "home_hero" }}
+								className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-8px_rgba(99,102,241,0.7)] transition-colors hover:bg-accent-deep"
+							>
+								Get started free
+								<span aria-hidden>→</span>
+							</TrackedLink>
 						</div>
 
-						{/* Provider marquee */}
-						<div className="animate-fade-in mt-20 [animation-delay:240ms]">
-							<p className="text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] text-faint">
-								Run any model — swap without touching code
-							</p>
-							<div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-								{providers.map((p) => (
-									<span
-										key={p}
-										className="font-display text-lg font-medium text-muted/70 transition-colors hover:text-ink"
-									>
-										{p}
-									</span>
-								))}
-							</div>
-						</div>
+						<p className="animate-rise-in mt-5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint [animation-delay:260ms]">
+							Free tier · No credit card · Live in 5 minutes
+						</p>
 					</div>
 				</section>
 
