@@ -1,28 +1,28 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The Clanker Support product mark. The logo lives in `public/logo.svg` (a
- * monochrome silhouette) and is painted via a CSS mask so it inherits the
- * current color — `bg-primary` here — and adapts to light/dark themes without
- * shipping the 56KB SVG in the JS bundle. Size is set by the caller via
- * className (e.g. `size-8`).
+ * The Clanker Support product mark, rendered faithfully from `public/logo.svg`
+ * (a cached static asset, not in the JS bundle). The file is brand-indigo,
+ * which reads on both light and dark surfaces. On the indigo onboarding orb,
+ * pass `invert` to flip it to white. Size is set by the caller (e.g. `size-8`).
  */
-export function BrandLogo({ className }: { className?: string }) {
+export function BrandLogo({
+	className,
+	invert,
+}: {
+	className?: string;
+	invert?: boolean;
+}) {
 	return (
-		<span
-			role="img"
-			aria-label="Clanker Support"
-			className={cn("inline-block shrink-0 bg-primary", className)}
-			style={{
-				maskImage: "url(/logo.svg)",
-				WebkitMaskImage: "url(/logo.svg)",
-				maskRepeat: "no-repeat",
-				WebkitMaskRepeat: "no-repeat",
-				maskPosition: "center",
-				WebkitMaskPosition: "center",
-				maskSize: "contain",
-				WebkitMaskSize: "contain",
-			}}
+		// eslint-disable-next-line @next/next/no-img-element
+		<img
+			src="/logo.svg"
+			alt="Clanker Support"
+			className={cn(
+				"inline-block shrink-0 object-contain",
+				invert && "[filter:brightness(0)_invert(1)]",
+				className,
+			)}
 		/>
 	);
 }
