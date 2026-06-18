@@ -11,7 +11,11 @@ import OnboardingPage from "./page";
 
 const push = vi.fn();
 const replace = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
+let searchParams = new URLSearchParams();
+vi.mock("next/navigation", () => ({
+	useRouter: () => ({ push, replace }),
+	useSearchParams: () => searchParams,
+}));
 vi.mock("@/lib/auth-client", () => ({ useSession: vi.fn() }));
 vi.mock("@/lib/use-onboarding", () => ({ useOnboardingState: vi.fn() }));
 vi.mock("sonner", () => ({
@@ -119,6 +123,7 @@ async function interview(
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	searchParams = new URLSearchParams();
 	vi.mocked(useSession).mockReturnValue({
 		data: { user: { id: "u1", email: "a@b.com" } },
 		isPending: false,
@@ -284,5 +289,73 @@ describe("OnboardingPage (conversational)", () => {
 			await screen.findByRole("button", { name: /try again/i }),
 		).toBeInTheDocument();
 		expect(screen.queryByTestId("live-widget")).not.toBeInTheDocument();
+	});
+});
+
+describe("OnboardingPage — new-bot mode (already-onboarded user)", () => {
+	beforeEach(() => {
+		// ?new=1 and an existing, fully-onboarded workspace.
+		searchParams = new URLSearchParams("new=1");
+		vi.mocked(useOnboardingState).mockReturnValue({
+			state: "ready",
+			workspaceId: "ws-1",
+		});
+	});
+
+	it("shows the flow (not redirected to the dashboard) for a ready user", async () => {
+		renderPage();
+		expect(
+			await screen.findByRole("heading", { name: /build another bot/i }),
+		).toBeInTheDocument();
+		expect(replace).not.toHaveBeenCalledWith("/inbox");
+	});
+
+	it("creates a NEW project in the existing workspace — no duplication, no new workspace, lands selected", async () => {
+		const u = user();
+		renderPage();
+		await interview(u, { name: "Second Bot" });
+
+		// New project created in the existing workspace…
+		expect(api).toHaveBeenCalledWith(
+			"/api/projects",
+			expect.objectContaining({
+				method: "POST",
+				workspaceId: "ws-1",
+				body: expect.objectContaining({ name: "Second Bot" }),
+			}),
+		);
+		// …exactly once (no duplicate creation)…
+		const projectPosts = vi
+			.mocked(api)
+			.mock.calls.filter(
+				([path, opts]) =>
+					path === "/api/projects" &&
+					(opts as { method?: string } | undefined)?.method === "POST",
+			);
+		expect(projectPosts).toHaveLength(1);
+		// …and the workspace is never re-provisioned.
+		expect(api).not.toHaveBeenCalledWith("/api/workspaces", expect.anything());
+
+		// Finishing lands on the new project (selected via its settings route).
+		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
+		await u.click(screen.getByRole("button", { name: /go to dashboard/i }));
+		expect(push).toHaveBeenCalledWith("/settings/projects/p1");
+	});
+
+	it("does not re-provision the workspace on a 403 (no self-heal in new-bot mode)", async () => {
+		vi.mocked(api).mockImplementation(async (path: string) => {
+			if (path === "/api/projects")
+				throw new ApiError(403, '{"error":"forbidden"}');
+			return {};
+		});
+		const u = user();
+		renderPage();
+		await interview(u, { name: "Second Bot" });
+
+		// Surfaces as an error + retry; never spawns a workspace.
+		expect(
+			await screen.findByRole("button", { name: /try again/i }),
+		).toBeInTheDocument();
+		expect(api).not.toHaveBeenCalledWith("/api/workspaces", expect.anything());
 	});
 });

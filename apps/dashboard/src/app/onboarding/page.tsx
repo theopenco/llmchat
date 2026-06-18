@@ -1,8 +1,8 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { widgetStyles } from "@llmchat/widget/styles";
@@ -26,12 +26,16 @@ interface CreatedProject extends LiveProject {
 	workspaceId: string;
 }
 
-export default function OnboardingPage() {
+function OnboardingFlow() {
 	const router = useRouter();
 	const qc = useQueryClient();
 	const { data: session, isPending: sessionPending } = useSession();
 	const { state, workspaceId } = useOnboardingState();
 	const { setWorkspaceId } = useWorkspace();
+
+	// "New bot" mode: an already-onboarded user adding another bot to their
+	// existing workspace. Reuses the whole flow but skips first-run-only routing.
+	const newBot = useSearchParams().get("new") === "1";
 
 	const [busy, setBusy] = useState(false);
 	const [created, setCreated] = useState<CreatedProject | null>(null);
@@ -42,10 +46,10 @@ export default function OnboardingPage() {
 		if (!sessionPending && !session?.user) router.replace("/sign-in");
 	}, [sessionPending, session, router]);
 
-	// Mark the start of the onboarding funnel once.
+	// Mark the start of the funnel once — first-run only (new-bot isn't onboarding).
 	useEffect(() => {
-		track(ANALYTICS_EVENTS.onboardingStarted);
-	}, []);
+		if (!newBot) track(ANALYTICS_EVENTS.onboardingStarted);
+	}, [newBot]);
 
 	// Warm the live-widget chunk (AI SDK) during the interview so the payoff is
 	// instant — it's lazy-loaded in LiveBotPanel to stay out of the initial load.
@@ -53,12 +57,13 @@ export default function OnboardingPage() {
 		void import("@llmchat/widget");
 	}, []);
 
-	// Already onboarded → dashboard. Suppressed once we've created a project so
-	// the flow isn't yanked away when state flips to "ready".
+	// First-run only: an already-onboarded user landing here is sent to the
+	// dashboard. In new-bot mode that's exactly who we want, so we don't redirect.
+	// Suppressed once a project is created so the flow isn't yanked away.
 	useEffect(() => {
-		if (!created && session?.user && state === "ready")
+		if (!newBot && !created && session?.user && state === "ready")
 			router.replace("/inbox");
-	}, [created, session, state, router]);
+	}, [newBot, created, session, state, router]);
 
 	// Provision a fresh free-plan workspace and make it the active selection.
 	async function provisionWorkspace(name: string): Promise<string> {
@@ -88,10 +93,15 @@ export default function OnboardingPage() {
 		return project;
 	}
 
-	// Interview complete → provision the real project. Mirrors the proven flow:
-	// create on the resolved workspace; on a workspace-auth rejection (absent /
-	// stale / foreign id) provision a fresh one and retry once so a broken
-	// context can't strand the user on a 403.
+	// Interview complete → provision the project.
+	//
+	// First-run: create on the resolved workspace; on a workspace-auth rejection
+	// (absent / stale / foreign id) provision a fresh one and retry once so a
+	// broken context can't strand the user on a 403.
+	//
+	// New-bot: the workspace already exists and is resolved (the guard waits for
+	// it), so we always create a *new* project inside it and never re-provision
+	// the workspace — a 403 surfaces as an error instead of spawning a workspace.
 	async function handleComplete(draft: BotDraft) {
 		setBusy(true);
 		setSetupError(null);
@@ -101,7 +111,7 @@ export default function OnboardingPage() {
 			try {
 				project = await createProject(wsId, draft);
 			} catch (e) {
-				if (!isWorkspaceAuthError(e)) throw e;
+				if (newBot || !isWorkspaceAuthError(e)) throw e;
 				wsId = await provisionWorkspace(draft.name);
 				project = await createProject(wsId, draft);
 			}
@@ -129,8 +139,10 @@ export default function OnboardingPage() {
 				brandColor: draft.brandColor,
 				workspaceId: wsId,
 			});
-			track(ANALYTICS_EVENTS.projectCreated, { source: "onboarding" });
-			track(ANALYTICS_EVENTS.onboardingCompleted);
+			track(ANALYTICS_EVENTS.projectCreated, {
+				source: newBot ? "new_bot" : "onboarding",
+			});
+			if (!newBot) track(ANALYTICS_EVENTS.onboardingCompleted);
 		} catch (e) {
 			setSetupError(draft);
 			setBusy(false);
@@ -140,13 +152,14 @@ export default function OnboardingPage() {
 		}
 	}
 
-	// Loading, redirecting to sign-in, or redirecting an already-onboarded user.
-	// Once a project is created we keep showing the flow regardless of state.
-	if (
-		sessionPending ||
-		!session?.user ||
-		(!created && state !== "needs-onboarding")
-	) {
+	// Wait for the session + workspace to resolve before deciding anything.
+	// First-run: an already-onboarded user (state "ready") is bounced to the
+	// dashboard by the effect above, so we hold the skeleton. New-bot: we want
+	// the "ready" user, so we only hold while still loading.
+	const resolving =
+		sessionPending || !session?.user || (!created && state === "loading");
+	const blockedFirstRun = !newBot && !created && state === "ready";
+	if (resolving || blockedFirstRun) {
 		return <OnboardingSkeleton />;
 	}
 
@@ -175,7 +188,9 @@ export default function OnboardingPage() {
 						<header className="flex flex-col items-center gap-3 text-center">
 							<BrandLogo className="size-11" />
 							<h1 className="font-display text-3xl font-semibold tracking-tight-display">
-								Let&apos;s build your support bot
+								{newBot
+									? "Let's build another bot"
+									: "Let's build your support bot"}
 							</h1>
 							<p className="max-w-md text-balance text-sm text-muted-foreground">
 								No forms, no setup wizard. Just chat with the assistant below —
@@ -210,5 +225,15 @@ export default function OnboardingPage() {
 				)}
 			</div>
 		</main>
+	);
+}
+
+export default function OnboardingPage() {
+	// useSearchParams needs a Suspense boundary; the skeleton doubles as the
+	// fallback so there's no flash before the flow resolves.
+	return (
+		<Suspense fallback={<OnboardingSkeleton />}>
+			<OnboardingFlow />
+		</Suspense>
 	);
 }

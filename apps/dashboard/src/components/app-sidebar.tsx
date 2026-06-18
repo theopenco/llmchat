@@ -13,6 +13,7 @@ import {
 	LifeBuoy,
 	LogOut,
 	MessagesSquare,
+	Plus,
 } from "lucide-react";
 
 import { api } from "@/lib/api";
@@ -229,6 +230,13 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 												</DropdownMenuItem>
 											))}
 										</DropdownMenuGroup>
+										<DropdownMenuSeparator />
+										<DropdownMenuItem
+											onClick={() => router.push("/onboarding?new=1")}
+										>
+											<Plus />
+											<span>New bot</span>
+										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
 							</SidebarGroupContent>
