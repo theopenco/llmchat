@@ -128,10 +128,12 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild size="lg">
 							<Link href="/inbox">
-								<span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
-									<MessagesSquare className="size-4" />
+								<span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-[0.95rem] font-bold text-primary-foreground shadow-glow">
+									◆
 								</span>
-								<span className="text-base font-semibold">LLMChat</span>
+								<span className="font-display text-base font-semibold tracking-tight-display">
+									llmchat
+								</span>
 							</Link>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
