@@ -7,6 +7,7 @@ import {
 	JetBrains_Mono,
 } from "next/font/google";
 import { PostHogProvider } from "@/components/PostHogProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 // Distinctive modern grotesque for display headlines.
 const display = Bricolage_Grotesque({
@@ -33,7 +34,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "llmchat — AI support, dropped in",
+	title: "Clanker Support — AI support, dropped in",
 	description:
 		"One script tag. Any model. AI support that answers from your docs and escalates to your team. Built on LLM Gateway.",
 };
@@ -46,10 +47,18 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`dark ${display.variable} ${sans.variable} ${mono.variable}`}
+			suppressHydrationWarning
+			className={`${display.variable} ${sans.variable} ${mono.variable}`}
 		>
 			<body>
-				<PostHogProvider>{children}</PostHogProvider>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="dark"
+					enableSystem
+					disableTransitionOnChange
+				>
+					<PostHogProvider>{children}</PostHogProvider>
+				</ThemeProvider>
 			</body>
 		</html>
 	);

@@ -131,7 +131,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 							<Link href="/inbox">
 								<BrandLogo className="size-8" />
 								<span className="font-display text-base font-semibold tracking-tight-display">
-									llmchat
+									Clanker Support
 								</span>
 							</Link>
 						</SidebarMenuButton>

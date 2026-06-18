@@ -23,7 +23,7 @@ export async function generateMetadata({
 	const guide = allMigrations.find((m) => m.slug === slug);
 	if (!guide) return {};
 	return {
-		title: `Migrate from ${guide.name} to llmchat`,
+		title: `Migrate from ${guide.name} to Clanker Support`,
 		description: guide.intro,
 	};
 }
@@ -65,7 +65,7 @@ export default async function MigratePage({
 						{guide.estimatedTime}
 					</span>
 					<h1 className="font-display mt-5 text-4xl font-semibold leading-[1.04] tracking-tight-display text-ink sm:text-5xl">
-						Migrate from {guide.name} to llmchat
+						Migrate from {guide.name} to Clanker Support
 					</h1>
 					<p className="mt-6 text-lg leading-relaxed text-muted">
 						{guide.intro}
@@ -87,7 +87,7 @@ export default async function MigratePage({
 						</div>
 						<CodeBlock
 							code={matrix.llmchatEmbed}
-							label="Add the llmchat widget"
+							label="Add the Clanker Support widget"
 						/>
 					</div>
 				</section>
@@ -132,7 +132,7 @@ export default async function MigratePage({
 						Concept mapping
 					</h2>
 					<p className="mt-1 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint">
-						{guide.name} → llmchat
+						{guide.name} → Clanker Support
 					</p>
 					<div className="mt-5 overflow-hidden rounded-xl border border-rule">
 						<table className="w-full border-collapse text-left text-sm">
@@ -207,14 +207,14 @@ export default async function MigratePage({
 						Want the full feature comparison first?
 					</h2>
 					<p className="mt-2 text-sm leading-relaxed text-muted">
-						See exactly how llmchat and {guide.name} stack up across setup, AI,
-						channels, and pricing before you switch.
+						See exactly how Clanker Support and {guide.name} stack up across
+						setup, AI, channels, and pricing before you switch.
 					</p>
 					<Link
 						href={`/vs/${guide.slug}`}
 						className="mt-4 inline-flex items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-ink transition-colors hover:text-accent"
 					>
-						llmchat vs. {guide.name} →
+						Clanker Support vs. {guide.name} →
 					</Link>
 				</section>
 

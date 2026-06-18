@@ -2,26 +2,26 @@
 	"rank": 2,
 	"slug": "fin",
 	"name": "Fin",
-	"tagline": "From Fin (inside Intercom) to a standalone llmchat widget",
+	"tagline": "From Fin (inside Intercom) to a standalone Clanker Support widget",
 	"estimatedTime": "~30 minutes",
-	"intro": "Fin runs inside Intercom or your existing helpdesk, so moving to llmchat means adopting a standalone widget and inbox rather than swapping just the AI layer. The upside: predictable usage-based pricing with no per-outcome minimums, and a model you control.",
-	"quickSummary": "Stand up an llmchat project, recreate your answer content, and replace the Intercom/Fin messenger embed with the llmchat script tag. Your existing helpdesk data stays where it is.",
+	"intro": "Fin runs inside Intercom or your existing helpdesk, so moving to Clanker Support means adopting a standalone widget and inbox rather than swapping just the AI layer. The upside: predictable usage-based pricing with no per-outcome minimums, and a model you control.",
+	"quickSummary": "Stand up an Clanker Support project, recreate your answer content, and replace the Intercom/Fin messenger embed with the Clanker Support script tag. Your existing helpdesk data stays where it is.",
 	"oldEmbedLabel": "Remove the Intercom / Fin messenger",
 	"oldEmbed": "<script>\n  window.intercomSettings = {\n    api_base: \"https://api-iam.intercom.io\",\n    app_id: \"XXXXXXXX\",\n  };\n</script>\n<script>\n  // Intercom messenger loader (Fin runs inside this)\n  (function(){ /* … intercom snippet … */ })();\n</script>",
 	"steps": [
 		{
-			"title": "Create your llmchat project",
-			"body": "Sign up and create a project. You'll get a public key for the widget. Because llmchat is a standalone widget + inbox, you don't need to keep paying for the surrounding Intercom platform unless you use it for other things."
+			"title": "Create your Clanker Support project",
+			"body": "Sign up and create a project. You'll get a public key for the widget. Because Clanker Support is a standalone widget + inbox, you don't need to keep paying for the surrounding Intercom platform unless you use it for other things."
 		},
 		{
 			"title": "Recreate your answer content",
-			"body": "Fin draws on your help center and configured content. Copy your core help-center articles and FAQs into your llmchat knowledge base. You don't need to migrate everything — start with the topics that drive the most conversations."
+			"body": "Fin draws on your help center and configured content. Copy your core help-center articles and FAQs into your Clanker Support knowledge base. You don't need to migrate everything — start with the topics that drive the most conversations."
 		},
 		{
 			"title": "Replace the messenger embed",
-			"body": "Remove the Intercom messenger loader (Fin lives inside it) and add the llmchat script tag. If you're keeping Intercom for other workflows, you can run them side by side during a transition and remove the messenger once you're confident.",
-			"code": "<script\n  src=\"https://llmchat-api.meetploy.app/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
-			"codeLabel": "Add the llmchat widget"
+			"body": "Remove the Intercom messenger loader (Fin lives inside it) and add the Clanker Support script tag. If you're keeping Intercom for other workflows, you can run them side by side during a transition and remove the messenger once you're confident.",
+			"code": "<script\n  src=\"https://api.clankersupport.com/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
+			"codeLabel": "Add the Clanker Support widget"
 		},
 		{
 			"title": "Configure escalation and your notify email",
@@ -29,7 +29,7 @@
 		},
 		{
 			"title": "Set up email threading (optional)",
-			"body": "If you want customer email replies to thread back into the widget conversation, point an inbound domain at llmchat and set your inbound email local in project settings. Replies then flow both ways — your team answers from the inbox, the customer sees it in the widget. No separate helpdesk required."
+			"body": "If you want customer email replies to thread back into the widget conversation, point an inbound domain at Clanker Support and set your inbound email local in project settings. Replies then flow both ways — your team answers from the inbox, the customer sees it in the widget. No separate helpdesk required."
 		},
 		{
 			"title": "Test, then go live",
@@ -52,7 +52,7 @@
 		},
 		{
 			"from": "Intercom Inbox",
-			"to": "llmchat inbox"
+			"to": "Clanker Support inbox"
 		},
 		{
 			"from": "Resolution workflows",
@@ -64,7 +64,7 @@
 		"Bot tone and instructions via the system prompt"
 	],
 	"doesntTransfer": [
-		"Voice channel — llmchat is web chat + email today",
+		"Voice channel — Clanker Support is web chat + email today",
 		"Zendesk / Salesforce / HubSpot actions and lookups",
 		"Intercom CRM, campaigns, and conversation history"
 	]

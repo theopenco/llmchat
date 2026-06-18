@@ -3,9 +3,51 @@
 @tailwind utilities;
 
 @layer base {
-	html {
-		color-scheme: dark;
+	/*
+	 * Clean Slate palette as RGB channels so Tailwind's `<alpha-value>` (e.g.
+	 * `bg-paper/70`) keeps working. `:root` is light; `.dark` (set by
+	 * next-themes) swaps to the original dark identity.
+	 */
+	:root {
+		color-scheme: light;
+		--paper: 248 250 252;
+		--paper-deep: 241 245 249;
+		--paper-card: 255 255 255;
+		--paper-raise: 241 245 249;
+		--ink: 15 23 42;
+		--ink-soft: 51 65 85;
+		--muted: 71 85 105;
+		--faint: 100 116 139;
+		--rule: 226 232 240;
+		--rule-soft: 241 245 249;
+		--accent: 99 102 241;
+		--accent-soft: 79 70 229;
+		--accent-deep: 67 56 202;
+		--aurora-1: rgba(99, 102, 241, 0.08);
+		--aurora-2: rgba(129, 140, 248, 0.06);
+		--grid-dot: rgba(15, 23, 42, 0.06);
 	}
+
+	.dark {
+		color-scheme: dark;
+		--paper: 11 14 20;
+		--paper-deep: 9 12 17;
+		--paper-card: 20 25 37;
+		--paper-raise: 27 34 51;
+		--ink: 246 248 252;
+		--ink-soft: 199 206 219;
+		--muted: 138 147 166;
+		--faint: 92 101 119;
+		--rule: 34 42 58;
+		--rule-soft: 26 33 48;
+		--accent: 99 102 241;
+		--accent-soft: 129 140 248;
+		--accent-deep: 79 70 229;
+		--aurora-1: rgba(99, 102, 241, 0.16);
+		--aurora-2: rgba(79, 70, 229, 0.1);
+		--grid-dot: rgba(255, 255, 255, 0.05);
+	}
+
 	html,
 	body {
 		height: 100%;
@@ -13,20 +55,16 @@
 
 	body {
 		font-family: var(--font-sans), system-ui, sans-serif;
-		color: #f6f8fc;
-		background-color: #0b0e14;
+		color: rgb(var(--ink));
+		background-color: rgb(var(--paper));
 		/* Indigo aurora at the top + faint depth — atmosphere, not flat fill. */
 		background-image:
 			radial-gradient(
 				60rem 40rem at 50% -10%,
-				rgba(99, 102, 241, 0.16),
+				var(--aurora-1),
 				transparent 60%
 			),
-			radial-gradient(
-				40rem 30rem at 100% 0%,
-				rgba(79, 70, 229, 0.1),
-				transparent 55%
-			);
+			radial-gradient(40rem 30rem at 100% 0%, var(--aurora-2), transparent 55%);
 		background-repeat: no-repeat;
 		background-attachment: fixed;
 		-webkit-font-smoothing: antialiased;
@@ -46,22 +84,19 @@
 		font-size: 0.7rem;
 		letter-spacing: 0.18em;
 		text-transform: uppercase;
-		color: #818cf8;
+		color: rgb(var(--accent-soft));
 	}
 
 	/* Subtle dotted-grid backdrop for hero/sections. */
 	.grid-backdrop {
-		background-image: radial-gradient(
-			rgba(255, 255, 255, 0.05) 1px,
-			transparent 1px
-		);
+		background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
 		background-size: 22px 22px;
 		mask-image: radial-gradient(60% 60% at 50% 40%, #000 0%, transparent 100%);
 	}
 
-	/* Long-form article prose rendered from markdown HTML (dark). */
+	/* Long-form article prose rendered from markdown HTML. */
 	.prose-editorial {
-		color: #c7cedb;
+		color: rgb(var(--ink-soft));
 		font-size: 1.0625rem;
 		line-height: 1.75;
 	}
@@ -72,11 +107,11 @@
 		text-wrap: pretty;
 	}
 	.prose-editorial strong {
-		color: #f6f8fc;
+		color: rgb(var(--ink));
 		font-weight: 600;
 	}
 	.prose-editorial a {
-		color: #818cf8;
+		color: rgb(var(--accent-soft));
 		text-decoration: underline;
 		text-underline-offset: 3px;
 		text-decoration-thickness: 1px;
@@ -87,14 +122,14 @@
 		font-size: 1.6rem;
 		line-height: 1.2;
 		letter-spacing: -0.01em;
-		color: #f6f8fc;
+		color: rgb(var(--ink));
 		margin-top: 2.2em;
 	}
 	.prose-editorial h3 {
 		font-family: var(--font-display), sans-serif;
 		font-weight: 600;
 		font-size: 1.25rem;
-		color: #f6f8fc;
+		color: rgb(var(--ink));
 		margin-top: 1.8em;
 	}
 	.prose-editorial ul {
@@ -112,16 +147,16 @@
 		content: "→";
 		position: absolute;
 		left: 0;
-		color: #6366f1;
+		color: rgb(var(--accent));
 	}
 	.prose-editorial code {
 		font-family: var(--font-mono), monospace;
 		font-size: 0.85em;
-		background-color: #141925;
-		border: 1px solid #222a3a;
+		background-color: rgb(var(--paper-raise));
+		border: 1px solid rgb(var(--rule));
 		padding: 0.1em 0.35em;
 		border-radius: 4px;
-		color: #c7cedb;
+		color: rgb(var(--ink-soft));
 	}
 
 	/* Drop cap for the first paragraph of an article. */
@@ -132,6 +167,6 @@
 		font-size: 3.6rem;
 		line-height: 0.82;
 		padding: 0.04em 0.12em 0 0;
-		color: #818cf8;
+		color: rgb(var(--accent-soft));
 	}
 }

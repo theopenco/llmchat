@@ -1,14 +1,14 @@
 ---
-title: "Introducing llmchat: AI support that actually escalates"
-description: "Today we're launching llmchat — a drop-in widget that answers from your docs and hands off to your team when the bot can't help."
+title: "Introducing Clanker Support: AI support that actually escalates"
+description: "Today we're launching Clanker Support — a drop-in widget that answers from your docs and hands off to your team when the bot can't help."
 date: "2026-05-20"
 category: "Announcements"
 featured: true
 ---
 
-We built llmchat because we kept running into the same problem: AI chatbots that confidently hallucinate rather than admit they don't know something. Your customers deserve better, and so does your team.
+We built Clanker Support because we kept running into the same problem: AI chatbots that confidently hallucinate rather than admit they don't know something. Your customers deserve better, and so does your team.
 
-llmchat is a single script tag you drop on your site. The widget loads in a shadow DOM so your styles never leak, and you paste in your knowledge base or system prompt to keep the bot on-topic.
+Clanker Support is a single script tag you drop on your site. The widget loads in a shadow DOM so your styles never leak, and you paste in your knowledge base or system prompt to keep the bot on-topic.
 
 When the bot genuinely can't help — after a configurable number of exchanges — it escalates. The full conversation lands in your inbox with context intact. Your team picks it up, replies by email, and the customer sees it threaded back into the same chat window.
 

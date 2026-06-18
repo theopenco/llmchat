@@ -33,7 +33,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "llmchat — dashboard",
+	title: "Clanker Support — dashboard",
 };
 
 export default function RootLayout({

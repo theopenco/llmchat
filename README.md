@@ -19,7 +19,7 @@ apps/
   api/          # Hono — public chat (SSE), dashboard API, webhooks, serves widget.js
                 #   migrations/ — D1 SQL migrations (Ploy applies these on dev/deploy)
   dashboard/    # Next.js — admin inbox + project settings
-  marketing/    # Next.js — llmchat.io landing
+  marketing/    # Next.js — clankersupport.com landing
 packages/
   db/           # Drizzle schema + client; emits SQL into apps/api/migrations
   shared/       # Zod schemas + shared types

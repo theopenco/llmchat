@@ -42,7 +42,7 @@ export default function Page() {
 							</span>
 
 							<h1 className="font-display mt-6 text-5xl font-semibold leading-[1.03] tracking-tight-display text-ink sm:text-6xl">
-								See llmchat answer —
+								See Clanker Support answer —
 								<br />
 								then{" "}
 								<span className="bg-gradient-to-r from-accent-soft to-accent bg-clip-text text-transparent">
@@ -53,9 +53,11 @@ export default function Page() {
 
 							<p className="mt-6 text-lg leading-relaxed text-muted">
 								The chat bubble in the bottom-right is the{" "}
-								<span className="text-ink-soft">real llmchat widget</span> — the
-								same single script tag you drop on your own site, pointed at the
-								live API. Try it.
+								<span className="text-ink-soft">
+									real Clanker Support widget
+								</span>{" "}
+								— the same single script tag you drop on your own site, pointed
+								at the live API. Try it.
 							</p>
 
 							<div className="mt-9 flex flex-wrap items-center gap-3">
@@ -123,7 +125,7 @@ export default function Page() {
 
 				<footer className="border-t border-rule">
 					<div className="mx-auto max-w-6xl px-6 py-8 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint">
-						llmchat live demo · widget config in{" "}
+						Clanker Support live demo · widget config in{" "}
 						<span className="text-muted">
 							apps/showcase/src/components/WidgetMount.tsx
 						</span>

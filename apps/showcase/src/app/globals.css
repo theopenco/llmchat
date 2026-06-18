@@ -3,9 +3,51 @@
 @tailwind utilities;
 
 @layer base {
-	html {
-		color-scheme: dark;
+	/*
+	 * Clean Slate palette as RGB channels so Tailwind's `<alpha-value>` keeps
+	 * working. `:root` is light; `.dark` (set by next-themes) is the dark
+	 * identity. Mirrors apps/marketing.
+	 */
+	:root {
+		color-scheme: light;
+		--paper: 248 250 252;
+		--paper-deep: 241 245 249;
+		--paper-card: 255 255 255;
+		--paper-raise: 241 245 249;
+		--ink: 15 23 42;
+		--ink-soft: 51 65 85;
+		--muted: 71 85 105;
+		--faint: 100 116 139;
+		--rule: 226 232 240;
+		--rule-soft: 241 245 249;
+		--accent: 99 102 241;
+		--accent-soft: 79 70 229;
+		--accent-deep: 67 56 202;
+		--aurora-1: rgba(99, 102, 241, 0.08);
+		--aurora-2: rgba(129, 140, 248, 0.06);
+		--grid-dot: rgba(15, 23, 42, 0.06);
 	}
+
+	.dark {
+		color-scheme: dark;
+		--paper: 11 14 20;
+		--paper-deep: 9 12 17;
+		--paper-card: 20 25 37;
+		--paper-raise: 27 34 51;
+		--ink: 246 248 252;
+		--ink-soft: 199 206 219;
+		--muted: 138 147 166;
+		--faint: 92 101 119;
+		--rule: 34 42 58;
+		--rule-soft: 26 33 48;
+		--accent: 99 102 241;
+		--accent-soft: 129 140 248;
+		--accent-deep: 79 70 229;
+		--aurora-1: rgba(99, 102, 241, 0.16);
+		--aurora-2: rgba(79, 70, 229, 0.1);
+		--grid-dot: rgba(255, 255, 255, 0.05);
+	}
+
 	html,
 	body {
 		height: 100%;
@@ -17,19 +59,15 @@
 	body {
 		margin: 0;
 		font-family: var(--font-sans), system-ui, sans-serif;
-		color: #f6f8fc;
-		background-color: #0b0e14;
+		color: rgb(var(--ink));
+		background-color: rgb(var(--paper));
 		background-image:
 			radial-gradient(
 				60rem 40rem at 50% -10%,
-				rgba(99, 102, 241, 0.16),
+				var(--aurora-1),
 				transparent 60%
 			),
-			radial-gradient(
-				40rem 30rem at 100% 0%,
-				rgba(79, 70, 229, 0.1),
-				transparent 55%
-			);
+			radial-gradient(40rem 30rem at 100% 0%, var(--aurora-2), transparent 55%);
 		background-repeat: no-repeat;
 		background-attachment: fixed;
 		-webkit-font-smoothing: antialiased;
@@ -48,14 +86,11 @@
 		font-size: 0.7rem;
 		letter-spacing: 0.18em;
 		text-transform: uppercase;
-		color: #818cf8;
+		color: rgb(var(--accent-soft));
 	}
 
 	.grid-backdrop {
-		background-image: radial-gradient(
-			rgba(255, 255, 255, 0.05) 1px,
-			transparent 1px
-		);
+		background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
 		background-size: 22px 22px;
 		mask-image: radial-gradient(60% 60% at 50% 40%, #000 0%, transparent 100%);
 	}

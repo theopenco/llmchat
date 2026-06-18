@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
 	content: ["./src/**/*.{ts,tsx}"],
+	darkMode: "class",
 	theme: {
 		extend: {
 			fontFamily: {
@@ -10,22 +11,21 @@ const config: Config = {
 				mono: ["var(--font-mono)", "ui-monospace", "monospace"],
 			},
 			colors: {
-				// Clean Slate — dark. Token names kept (paper/ink/accent) so existing
-				// pages re-skin automatically; values now match the dashboard's dark
-				// slate + indigo brand.
-				paper: "#0B0E14", // page background (deep slate)
-				"paper-deep": "#090C11", // deeper sections / footer
-				"paper-card": "#141925", // cards / panels
-				"paper-raise": "#1B2233", // raised surfaces / hover
-				ink: "#F6F8FC", // primary text (near-white)
-				"ink-soft": "#C7CEDB", // secondary text
-				muted: "#8A93A6", // muted text
-				faint: "#5C6577", // faint text / metadata
-				rule: "#222A3A", // borders
-				"rule-soft": "#1A2130", // subtle borders
-				accent: "#6366F1", // indigo-500 brand
-				"accent-soft": "#818CF8", // indigo-400
-				"accent-deep": "#4F46E5", // indigo-600
+				// Clean Slate. Values come from CSS variables (see globals.css) so the
+				// same token names re-skin for light/dark; channels keep `/<alpha>`.
+				paper: "rgb(var(--paper) / <alpha-value>)", // page background
+				"paper-deep": "rgb(var(--paper-deep) / <alpha-value>)", // deeper sections
+				"paper-card": "rgb(var(--paper-card) / <alpha-value>)", // cards / panels
+				"paper-raise": "rgb(var(--paper-raise) / <alpha-value>)", // raised / hover
+				ink: "rgb(var(--ink) / <alpha-value>)", // primary text
+				"ink-soft": "rgb(var(--ink-soft) / <alpha-value>)", // secondary text
+				muted: "rgb(var(--muted) / <alpha-value>)", // muted text
+				faint: "rgb(var(--faint) / <alpha-value>)", // faint / metadata
+				rule: "rgb(var(--rule) / <alpha-value>)", // borders
+				"rule-soft": "rgb(var(--rule-soft) / <alpha-value>)", // subtle borders
+				accent: "rgb(var(--accent) / <alpha-value>)", // indigo brand
+				"accent-soft": "rgb(var(--accent-soft) / <alpha-value>)",
+				"accent-deep": "rgb(var(--accent-deep) / <alpha-value>)",
 			},
 			letterSpacing: {
 				"tight-display": "-0.02em",

@@ -8,9 +8,9 @@ const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
 export const metadata = {
-	title: "Docs — llmchat",
+	title: "Docs — Clanker Support",
 	description:
-		"Get started with llmchat: drop in the widget, train it on your docs, configure escalation, and migrate from your current support tool.",
+		"Get started with Clanker Support: drop in the widget, train it on your docs, configure escalation, and migrate from your current support tool.",
 };
 
 const startCards = [
@@ -40,7 +40,7 @@ const sections = [
 		title: "Train your bot",
 		paragraphs: [
 			"Your bot answers from a knowledge base you control. In project settings, paste your docs, FAQ answers, and a system prompt that sets the bot's tone and boundaries. Keep it focused — a tight, current knowledge base produces better answers than a sprawling one.",
-			"Because llmchat is built on LLM Gateway, you choose which model runs per project and can swap it with a config change — no code edits. Run a cost-efficient model for routine questions and a more capable one where it matters.",
+			"Because Clanker Support is built on LLM Gateway, you choose which model runs per project and can swap it with a config change — no code edits. Run a cost-efficient model for routine questions and a more capable one where it matters.",
 		],
 	},
 	{
@@ -55,7 +55,7 @@ const sections = [
 		id: "email-threading",
 		title: "Email threading",
 		paragraphs: [
-			"Point an inbound domain at llmchat and set your inbound email local in project settings. Customer replies to escalation emails thread back into the widget conversation automatically, and replies you send from the inbox reach the customer by email — no separate helpdesk required.",
+			"Point an inbound domain at Clanker Support and set your inbound email local in project settings. Customer replies to escalation emails thread back into the widget conversation automatically, and replies you send from the inbox reach the customer by email — no separate helpdesk required.",
 		],
 	},
 ];
@@ -73,7 +73,7 @@ export default function DocsPage() {
 					<p className="kicker">Documentation</p>
 					<h1 className="font-display mt-4 max-w-3xl text-5xl font-semibold leading-[0.98] tracking-tight-display text-ink sm:text-6xl">
 						Build with{" "}
-						<em className="font-normal italic text-accent">llmchat</em>
+						<em className="font-normal italic text-accent">Clanker Support</em>
 					</h1>
 					<p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
 						Everything you need to drop in the widget, train it on your content,
@@ -175,7 +175,7 @@ export default function DocsPage() {
 				{/* Migration guides */}
 				<section id="migrate" className="mt-20 scroll-mt-24">
 					<h2 className="font-display border-b-2 border-ink pb-3 text-3xl font-semibold tracking-tight-display text-ink">
-						Migrate to llmchat
+						Migrate to Clanker Support
 					</h2>
 					<p className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
 						Already running a support tool? These guides walk through the embed
@@ -221,7 +221,7 @@ export default function DocsPage() {
 							href={dashboardUrl}
 							className="rounded-full bg-paper px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-accent hover:text-paper"
 						>
-							Get started free
+							Get your support agent now
 						</Link>
 						<Link
 							href="/compare"

@@ -53,7 +53,7 @@ export function DashboardShell({
 					<SidebarTrigger className="-ml-1" />
 					<BrandLogo className="size-6" />
 					<span className="font-display font-semibold tracking-tight-display">
-						llmchat
+						Clanker Support
 					</span>
 				</header>
 				<main className="flex-1">{children}</main>

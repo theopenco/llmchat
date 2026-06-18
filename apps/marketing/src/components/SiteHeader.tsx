@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { AuthButton } from "@/components/AuthButton";
-
-const showcaseUrl =
-	process.env.NEXT_PUBLIC_SHOWCASE_URL ?? "http://localhost:3003";
+import { BrandMark } from "@/components/BrandMark";
+import { MobileNav } from "@/components/MobileNav";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { CANONICAL_SHOWCASE_URL } from "@/lib/site-urls";
 
 type NavKey = "features" | "resources" | "compare";
 
@@ -15,15 +16,13 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 		<header className="sticky top-0 z-40 border-b border-rule/70 bg-paper/70 backdrop-blur-xl">
 			<div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
 				<Link href="/" className="group flex items-center gap-2">
-					<span className="flex size-7 items-center justify-center rounded-lg bg-accent text-[0.9rem] font-bold text-white shadow-[0_6px_18px_-6px_rgba(99,102,241,0.7)]">
-						◆
-					</span>
+					<BrandMark className="size-8" />
 					<span className="font-display text-lg font-semibold tracking-tight-display text-ink">
-						llmchat
+						Clanker Support
 					</span>
 				</Link>
 
-				<nav className="flex items-center gap-7">
+				<nav className="flex items-center gap-3 sm:gap-7">
 					<a
 						href="/#features"
 						className={`hidden sm:block ${active === "features" ? navLinkActive : navLink}`}
@@ -91,14 +90,18 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 					</Link>
 
 					<a
-						href={showcaseUrl}
+						href={CANONICAL_SHOWCASE_URL}
 						className="hidden items-center gap-1.5 rounded-full border border-rule px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-accent/40 hover:text-ink sm:inline-flex"
 					>
 						<span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_2px_rgba(99,102,241,0.6)]" />
 						Live demo
 					</a>
 
+					<ThemeToggle className="hidden sm:inline-flex" />
+
 					<AuthButton />
+
+					<MobileNav active={active} showcaseUrl={CANONICAL_SHOWCASE_URL} />
 				</nav>
 			</div>
 		</header>

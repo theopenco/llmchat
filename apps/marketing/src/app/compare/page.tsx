@@ -11,9 +11,9 @@ const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
 export const metadata = {
-	title: "AI support, compared — llmchat vs. the alternatives",
+	title: "AI support, compared — Clanker Support vs. the alternatives",
 	description:
-		"How llmchat compares to Chatbase, Fin, Intercom, Chatwoot, and Crisp across setup, AI, escalation, channels, and pricing.",
+		"How Clanker Support compares to Chatbase, Fin, Intercom, Chatwoot, and Crisp across setup, AI, escalation, channels, and pricing.",
 };
 
 const { colOrder, colLabels, featureGroups } = matrix;
@@ -34,8 +34,9 @@ export default function ComparePage() {
 						<em className="font-normal italic text-accent">compared.</em>
 					</h1>
 					<p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-						An honest side-by-side of llmchat against Chatbase, Fin, Intercom,
-						Chatwoot, and Crisp — including where the others are stronger.
+						An honest side-by-side of Clanker Support against Chatbase, Fin,
+						Intercom, Chatwoot, and Crisp — including where the others are
+						stronger.
 					</p>
 				</section>
 
@@ -43,7 +44,7 @@ export default function ComparePage() {
 				<section className="mt-12 border-l-2 border-accent bg-paper-deep/60 p-7">
 					<p className="kicker">The short version</p>
 					<p className="mt-3 max-w-3xl text-lg leading-relaxed text-ink-soft">
-						llmchat is the pick if you want{" "}
+						Clanker Support is the pick if you want{" "}
 						<strong className="font-semibold text-ink">
 							a single script tag
 						</strong>{" "}
@@ -75,7 +76,7 @@ export default function ComparePage() {
 										Feature
 									</th>
 									{colOrder.map((col) => {
-										const isLlm = col === "llmchat";
+										const isLlm = col === "Clanker Support";
 										return (
 											<th
 												key={col}
@@ -126,7 +127,7 @@ export default function ComparePage() {
 													)}
 												</td>
 												{colOrder.map((col) => {
-													const isLlm = col === "llmchat";
+													const isLlm = col === "Clanker Support";
 													const value = (row as Record<string, string>)[col];
 													return (
 														<td
@@ -157,23 +158,13 @@ export default function ComparePage() {
 					<div className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-rule bg-rule sm:grid-cols-2">
 						{competitors.map((c) => (
 							<div key={c.id} className="bg-paper-card p-7">
-								<div className="flex items-start justify-between gap-4">
-									<div>
-										<h3 className="font-display text-2xl font-semibold tracking-tight-display text-ink">
-											{c.name}
-										</h3>
-										<p className="mt-1 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-accent">
-											{c.tagline}
-										</p>
-									</div>
-									<a
-										href={c.url}
-										target="_blank"
-										rel="noreferrer"
-										className="shrink-0 font-mono text-[0.68rem] uppercase tracking-wider text-faint underline-offset-2 hover:text-ink hover:underline"
-									>
-										Visit ↗
-									</a>
+								<div>
+									<h3 className="font-display text-2xl font-semibold tracking-tight-display text-ink">
+										{c.name}
+									</h3>
+									<p className="mt-1 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-accent">
+										{c.tagline}
+									</p>
 								</div>
 								<p className="mt-4 text-sm leading-relaxed text-muted">
 									{c.description}
@@ -196,7 +187,7 @@ export default function ComparePage() {
 									href={`/vs/${c.id}`}
 									className="mt-5 inline-flex items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-ink transition-colors hover:text-accent"
 								>
-									llmchat vs. {c.name}
+									Clanker Support vs. {c.name}
 									<span aria-hidden>→</span>
 								</Link>
 							</div>
@@ -207,7 +198,7 @@ export default function ComparePage() {
 				{/* CTA */}
 				<section className="mt-24 overflow-hidden rounded-3xl bg-ink px-8 py-16 text-center">
 					<p className="font-mono text-[0.72rem] uppercase tracking-[0.16em] text-accent">
-						Try llmchat free
+						Try Clanker Support free
 					</p>
 					<h2 className="font-display mx-auto mt-4 max-w-2xl text-4xl font-semibold leading-tight tracking-tight-display text-paper sm:text-5xl">
 						One script tag. No credit card. See if it fits.
@@ -219,7 +210,7 @@ export default function ComparePage() {
 							eventProps={{ source: "compare_cta" }}
 							className="rounded-full bg-paper px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-accent hover:text-paper"
 						>
-							Get started free
+							Get your support agent now
 						</TrackedLink>
 						<Link
 							href="/blog"

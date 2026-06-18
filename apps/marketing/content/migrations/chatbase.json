@@ -2,26 +2,26 @@
 	"rank": 1,
 	"slug": "chatbase",
 	"name": "Chatbase",
-	"tagline": "From the Chatbase embed to a single llmchat script tag",
+	"tagline": "From the Chatbase embed to a single Clanker Support script tag",
 	"estimatedTime": "~20 minutes",
-	"intro": "Migrating from Chatbase to llmchat is mostly a knowledge-base re-import and a one-line embed swap. Your bot's brain lives in text you already have, and the llmchat widget drops in with a single script tag — no SDK, no platform onboarding.",
-	"quickSummary": "Replace the Chatbase embed snippet with the llmchat script tag, then paste your knowledge base into your llmchat project. Everything else is configuration in the dashboard.",
+	"intro": "Migrating from Chatbase to Clanker Support is mostly a knowledge-base re-import and a one-line embed swap. Your bot's brain lives in text you already have, and the Clanker Support widget drops in with a single script tag — no SDK, no platform onboarding.",
+	"quickSummary": "Replace the Chatbase embed snippet with the Clanker Support script tag, then paste your knowledge base into your Clanker Support project. Everything else is configuration in the dashboard.",
 	"oldEmbedLabel": "Remove the Chatbase embed",
 	"oldEmbed": "<script>\n  window.embeddedChatbotConfig = {\n    chatbotId: \"XXXXXXXX\",\n    domain: \"www.chatbase.co\",\n  };\n</script>\n<script\n  src=\"https://www.chatbase.co/embed.min.js\"\n  chatbotId=\"XXXXXXXX\"\n  domain=\"www.chatbase.co\"\n  defer\n></script>",
 	"steps": [
 		{
-			"title": "Create your llmchat project",
+			"title": "Create your Clanker Support project",
 			"body": "Sign up, create a workspace, and add a project. Your project gets a public key (pk_live_…) used to bootstrap the widget. Set your brand color while you're here — the widget inherits it automatically."
 		},
 		{
 			"title": "Import your knowledge base",
-			"body": "In Chatbase, your bot is trained on uploaded files and text sources. Export or copy that content and paste it into your llmchat project's knowledge base / system prompt field. Keep it focused and current — this is your bot's working memory."
+			"body": "In Chatbase, your bot is trained on uploaded files and text sources. Export or copy that content and paste it into your Clanker Support project's knowledge base / system prompt field. Keep it focused and current — this is your bot's working memory."
 		},
 		{
 			"title": "Swap the embed snippet",
-			"body": "Delete the Chatbase embed from your site and drop in the llmchat script tag. Replace the public key with your project's. The widget loads in a shadow DOM, so your page styles and the widget never interfere.",
-			"code": "<script\n  src=\"https://llmchat-api.meetploy.app/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
-			"codeLabel": "Add the llmchat widget"
+			"body": "Delete the Chatbase embed from your site and drop in the Clanker Support script tag. Replace the public key with your project's. The widget loads in a shadow DOM, so your page styles and the widget never interfere.",
+			"code": "<script\n  src=\"https://api.clankersupport.com/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
+			"codeLabel": "Add the Clanker Support widget"
 		},
 		{
 			"title": "Configure escalation and your notify email",
@@ -29,7 +29,7 @@
 		},
 		{
 			"title": "Set up email threading (optional)",
-			"body": "If you want customer email replies to thread back into the widget conversation, point an inbound domain at llmchat and set your inbound email local in project settings. Replies then flow both ways — your team answers from the inbox, the customer sees it in the widget. No separate helpdesk required."
+			"body": "If you want customer email replies to thread back into the widget conversation, point an inbound domain at Clanker Support and set your inbound email local in project settings. Replies then flow both ways — your team answers from the inbox, the customer sees it in the widget. No separate helpdesk required."
 		},
 		{
 			"title": "Test, then go live",
@@ -67,7 +67,7 @@
 	],
 	"doesntTransfer": [
 		"Past conversation history (export from Chatbase for your records)",
-		"WhatsApp, Slack, and Messenger channels — llmchat is web-only today",
+		"WhatsApp, Slack, and Messenger channels — Clanker Support is web-only today",
 		"Chatbase-specific integrations and actions"
 	]
 }
