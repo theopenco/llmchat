@@ -23,10 +23,10 @@ function conv(overrides: Partial<Conversation> = {}): Conversation {
 	};
 }
 
-/** The avg rating chip is the only stat labelled "avg rating". */
+/** The avg rating card is the only stat labelled "Avg rating". */
 function avgValue(): string | null {
-	const label = screen.getByText("avg rating");
-	// StatItem renders [value][label] as siblings; value is the previous span.
+	const label = screen.getByText("Avg rating");
+	// StatCard renders [value][label] as sibling divs; value is the previous one.
 	return label.previousElementSibling?.textContent ?? null;
 }
 

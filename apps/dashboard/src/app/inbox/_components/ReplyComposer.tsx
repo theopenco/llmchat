@@ -31,22 +31,25 @@ export function ReplyComposer({
 	}
 
 	return (
-		<div className="flex flex-col gap-2 border-t p-3">
-			<Textarea
-				rows={2}
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				onKeyDown={handleKeyDown}
-				placeholder={placeholder}
-			/>
-			<div className="flex items-center justify-between gap-2">
-				<span className="text-[11px] text-muted-foreground">
-					Enter to send · Shift+Enter for a new line
-				</span>
-				<Button type="button" size="sm" onClick={onSend} disabled={!canSend}>
-					<Send />
-					{pending ? "Sending…" : "Send"}
-				</Button>
+		<div className="border-t p-3">
+			<div className="rounded-lg border bg-card focus-within:ring-1 focus-within:ring-ring">
+				<Textarea
+					rows={2}
+					value={value}
+					onChange={(e) => onChange(e.target.value)}
+					onKeyDown={handleKeyDown}
+					placeholder={placeholder}
+					className="resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+				/>
+				<div className="flex items-center justify-between gap-2 px-3 pb-2">
+					<span className="text-[11px] text-muted-foreground">
+						Enter to send · Shift+Enter for a new line
+					</span>
+					<Button type="button" size="sm" onClick={onSend} disabled={!canSend}>
+						<Send />
+						{pending ? "Sending…" : "Send"}
+					</Button>
+				</div>
 			</div>
 		</div>
 	);

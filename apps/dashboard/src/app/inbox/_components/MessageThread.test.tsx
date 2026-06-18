@@ -35,9 +35,9 @@ describe("MessageThread", () => {
 				]}
 			/>,
 		);
-		expect(screen.getByText("Visitor requested a human operator")).toHaveClass(
-			"mx-auto",
-		);
+		expect(
+			screen.getByText("Visitor requested a human operator").closest("div"),
+		).toHaveClass("mx-auto");
 		// System notes carry no Visitor/Bot/Admin label.
 		expect(screen.queryByText("Visitor")).not.toBeInTheDocument();
 		expect(screen.queryByText("Admin")).not.toBeInTheDocument();

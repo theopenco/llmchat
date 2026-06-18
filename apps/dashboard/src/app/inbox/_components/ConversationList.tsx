@@ -1,9 +1,8 @@
 "use client";
 
-import { Archive, MessageCircle, Search } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 import { initials, pluralize, timeAgo } from "./format";
@@ -27,7 +26,9 @@ function ConversationRow({
 			aria-current={selected}
 			className={cn(
 				"flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
-				selected ? "bg-primary/10 ring-1 ring-primary/20" : "hover:bg-muted/60",
+				selected
+					? "bg-primary/10 ring-1 ring-inset ring-primary/20"
+					: "hover:bg-muted/60",
 			)}
 		>
 			<div className="relative shrink-0">
@@ -41,15 +42,9 @@ function ConversationRow({
 				>
 					{initials(conversation.name)}
 				</span>
-				{escalated && (
-					<span
-						className="absolute -right-0.5 -top-0.5 size-3 rounded-full bg-amber-500 ring-2 ring-card"
-						aria-hidden
-					/>
-				)}
 				{unread && !selected && (
 					<span
-						className="absolute -left-0.5 -top-0.5 size-2.5 rounded-full bg-sky-500 ring-2 ring-card"
+						className="absolute -left-0.5 -top-0.5 size-2.5 rounded-full bg-primary ring-2 ring-card"
 						aria-label="Unread"
 					/>
 				)}
@@ -60,9 +55,7 @@ function ConversationRow({
 					<span
 						className={cn(
 							"truncate text-sm",
-							unread && !selected
-								? "font-semibold text-foreground"
-								: "font-medium",
+							unread && !selected ? "font-semibold" : "font-medium",
 							selected ? "text-primary" : "text-foreground",
 						)}
 					>
@@ -103,10 +96,9 @@ export interface ConversationListProps {
 	conversations: Conversation[];
 	selectedId: string | null;
 	onSelect: (id: string) => void;
+	/** Read-only context for the empty-state copy; filtering lives in the toolbar. */
 	search: string;
-	onSearch: (value: string) => void;
 	showArchived: boolean;
-	onToggleArchived: () => void;
 }
 
 export function ConversationList({
@@ -114,44 +106,10 @@ export function ConversationList({
 	selectedId,
 	onSelect,
 	search,
-	onSearch,
 	showArchived,
-	onToggleArchived,
 }: ConversationListProps) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
-			<div className="border-b px-3 py-3">
-				<div className="mb-2.5 flex items-center justify-between">
-					<h2 className="text-sm font-semibold tracking-tight">
-						Conversations
-					</h2>
-					<button
-						type="button"
-						onClick={onToggleArchived}
-						aria-pressed={showArchived}
-						className={cn(
-							"flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors",
-							showArchived
-								? "bg-primary text-primary-foreground"
-								: "text-muted-foreground hover:text-foreground",
-						)}
-					>
-						<Archive className="size-3" />
-						Archived
-					</button>
-				</div>
-				<div className="relative">
-					<Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-					<Input
-						value={search}
-						onChange={(e) => onSearch(e.target.value)}
-						placeholder="Search by name, email, or message…"
-						aria-label="Search conversations"
-						className="h-8 pl-8 text-xs"
-					/>
-				</div>
-			</div>
-
 			<div className="min-h-0 flex-1 overflow-y-auto p-1.5">
 				{conversations.length === 0 ? (
 					<div className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">

@@ -127,7 +127,7 @@ export function DetailPanel({
 					</div>
 				)}
 
-				<Section title="Contact">
+				<Section title="Contact details">
 					<Field
 						icon={<User className="size-4" />}
 						label="Name"
@@ -140,7 +140,7 @@ export function DetailPanel({
 					/>
 				</Section>
 
-				<Section title="Session">
+				<Section title="Session info">
 					<Field
 						icon={<Clock className="size-4" />}
 						label="Started"
@@ -167,33 +167,34 @@ export function DetailPanel({
 					/>
 				</Section>
 
-				<Section title="Satisfaction">
+				<Section title="Rating">
 					{/* Conversation-level CSAT (1–5), prompted on widget close — distinct
 					    from the per-message thumbs shown in the thread. */}
-					<div className="flex items-center gap-3">
-						<span
-							className={
-								conversation.csatRating != null
-									? "text-amber-500"
-									: "text-muted-foreground/50"
-							}
-						>
-							<Star
-								className="size-4"
-								fill={conversation.csatRating != null ? "currentColor" : "none"}
-							/>
-						</span>
-						<div>
-							<p className="text-xs font-medium text-muted-foreground">
-								Overall conversation rating
-							</p>
-							<p className="text-sm text-foreground">
-								{conversation.csatRating != null
-									? `${conversation.csatRating} / 5 ★`
-									: "Not rated"}
-							</p>
+					{conversation.csatRating != null ? (
+						<div className="flex items-center gap-2">
+							<div className="flex items-center gap-0.5">
+								{[1, 2, 3, 4, 5].map((n) => (
+									<Star
+										key={n}
+										className={cn(
+											"size-4",
+											n <= conversation.csatRating!
+												? "text-amber-500"
+												: "text-muted-foreground/30",
+										)}
+										fill={
+											n <= conversation.csatRating! ? "currentColor" : "none"
+										}
+									/>
+								))}
+							</div>
+							<span className="text-sm font-medium text-foreground">
+								{conversation.csatRating} / 5
+							</span>
 						</div>
-					</div>
+					) : (
+						<p className="text-sm text-muted-foreground">Not rated</p>
+					)}
 				</Section>
 			</div>
 
