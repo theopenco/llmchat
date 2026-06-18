@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { allCompetitors } from "content-collections";
 import { ANALYTICS_EVENTS } from "@llmchat/shared";
+import { BrandMark } from "@/components/BrandMark";
 import { TrackedLink } from "@/components/TrackedLink";
 
 const dashboardUrl =
@@ -18,11 +19,14 @@ export function SiteFooter() {
 			<div className="mx-auto max-w-6xl px-6 py-16">
 				<div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
 					<div>
-						<div className="flex items-baseline gap-0.5">
-							<span className="font-display text-3xl font-semibold tracking-tight-display text-ink">
-								Clanker Support
-							</span>
-							<span className="text-3xl leading-none text-accent">.</span>
+						<div className="flex items-center gap-2.5">
+							<BrandMark className="size-8" />
+							<div className="flex items-baseline gap-0.5">
+								<span className="font-display text-3xl font-semibold tracking-tight-display text-ink">
+									Clanker Support
+								</span>
+								<span className="text-3xl leading-none text-accent">.</span>
+							</div>
 						</div>
 						<p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
 							AI support that answers from your docs and escalates to humans —

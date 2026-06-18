@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "@/lib/auth-client";
+import { BrandMark } from "@/components/BrandMark";
 
 const marketingUrl =
 	process.env.NEXT_PUBLIC_MARKETING_URL ?? "http://localhost:3002";
@@ -18,9 +19,7 @@ export function ShowcaseHeader() {
 		<header className="sticky top-0 z-40 border-b border-rule/70 bg-paper/70 backdrop-blur-xl">
 			<div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
 				<a href={marketingUrl} className="group flex items-center gap-2">
-					<span className="flex size-7 items-center justify-center rounded-lg bg-accent text-[0.9rem] font-bold text-white shadow-[0_6px_18px_-6px_rgba(99,102,241,0.7)]">
-						◆
-					</span>
+					<BrandMark className="size-8" />
 					<span className="font-display text-lg font-semibold tracking-tight-display text-ink">
 						Clanker Support
 					</span>
