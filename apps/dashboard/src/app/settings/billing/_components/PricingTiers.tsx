@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Plan } from "@/lib/workspace-utils";
 
-import { PRICING_TIERS, SALES_MAILTO, type PricingTier } from "./billing-plans";
+import { PRICING_TIERS, type PricingTier } from "./billing-plans";
 
 function TierCard({
 	tier,
@@ -32,14 +32,6 @@ function TierCard({
 			return (
 				<Button className="w-full" onClick={onUpgrade} disabled={pending}>
 					{pending ? "Redirecting…" : "Upgrade to Pro"}
-				</Button>
-			);
-		}
-		if (tier.id === "business") {
-			// Sales-led — no Stripe price id, so this is a contact CTA, not checkout.
-			return (
-				<Button className="w-full" asChild>
-					<a href={SALES_MAILTO}>Get Business</a>
 				</Button>
 			);
 		}
@@ -96,7 +88,7 @@ export function PricingTiers({
 	onUpgrade: () => void;
 }) {
 	return (
-		<div className="grid gap-4 md:grid-cols-3">
+		<div className="grid gap-4 sm:grid-cols-2">
 			{PRICING_TIERS.map((tier) => (
 				<TierCard
 					key={tier.id}

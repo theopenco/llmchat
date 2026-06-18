@@ -16,7 +16,6 @@ import { WORKSPACES_KEY } from "@/lib/workspace-utils";
 import { BillingNotice } from "./_components/BillingNotice";
 import { BillingSkeleton } from "./_components/BillingSkeleton";
 import { CurrentPlanCard } from "./_components/CurrentPlanCard";
-import { CustomPlanBanner } from "./_components/CustomPlanBanner";
 import { PricingTiers } from "./_components/PricingTiers";
 import { StatusBanner } from "./_components/StatusBanner";
 import { UsageCard } from "./_components/UsageCard";
@@ -130,8 +129,6 @@ function BillingContent() {
 				pending={pending}
 				onUpgrade={() => checkout.mutate()}
 			/>
-
-			<CustomPlanBanner />
 		</div>
 	);
 }
