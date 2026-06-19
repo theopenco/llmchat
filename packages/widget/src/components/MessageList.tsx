@@ -1,7 +1,27 @@
-import { useEffect, useRef } from "react";
-
+import { useStickToBottom } from "../hooks/useStickToBottom";
 import type { Rating } from "../rating";
 import { ThumbDownIcon, ThumbUpIcon } from "./icons";
+
+/** Down-arrow for the "scroll to latest" affordance. */
+function ArrowDownIcon() {
+	return (
+		<svg
+			width="14"
+			height="14"
+			viewBox="0 0 24 24"
+			fill="none"
+			aria-hidden="true"
+		>
+			<path
+				d="M12 5v14M5 12l7 7 7-7"
+				stroke="currentColor"
+				strokeWidth="2"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+		</svg>
+	);
+}
 
 export interface DisplayMessage {
 	id: string;
@@ -59,14 +79,18 @@ export function MessageList({
 	 * conversation exists). */
 	onRate?: (messageId: string, current: Rating, intent: "up" | "down") => void;
 }) {
-	const endRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		endRef.current?.scrollIntoView({ behavior: "smooth" });
-	}, [messages]);
+	const last = messages[messages.length - 1];
+	const { containerRef, atBottom, scrollToBottom } =
+		useStickToBottom<HTMLDivElement>({
+			// Grows as tokens stream / a message is added — but NOT on a rating
+			// toggle (same length & content), so rating doesn't trigger a scroll.
+			contentKey: `${messages.length}:${last?.content.length ?? 0}`,
+			// The visitor's own sends (role "user") always follow to the bottom.
+			sendKey: messages.reduce((id, m) => (m.role === "user" ? m.id : id), ""),
+		});
 
 	return (
-		<div className="llmchat-messages">
+		<div className="llmchat-messages" ref={containerRef}>
 			{messages.length === 0 && (
 				<div className="llmchat-msg llmchat-msg-assistant">{greeting}</div>
 			)}
@@ -110,7 +134,16 @@ export function MessageList({
 					{error}
 				</div>
 			)}
-			<div ref={endRef} />
+			{typing && !atBottom && (
+				<button
+					type="button"
+					className="llmchat-jump"
+					onClick={scrollToBottom}
+					aria-label="Scroll to latest message"
+				>
+					<ArrowDownIcon />
+				</button>
+			)}
 		</div>
 	);
 }
