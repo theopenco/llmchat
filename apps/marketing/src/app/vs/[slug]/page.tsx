@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
 import { TrackView } from "@/components/TrackView";
+import { pageMeta } from "@/lib/seo";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -23,10 +24,11 @@ export async function generateMetadata({
 	const { slug } = await params;
 	const c = allCompetitors.find((x) => x.id === slug);
 	if (!c) return {};
-	return {
+	return pageMeta({
 		title: `Why choose Clanker Support over ${c.name}? — Comparison`,
 		description: c.tldr,
-	};
+		path: `/vs/${slug}`,
+	});
 }
 
 export default async function VsPage({

@@ -8,3 +8,10 @@ export const CANONICAL_DASHBOARD_URL =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 export const CANONICAL_SHOWCASE_URL =
 	process.env.NEXT_PUBLIC_SHOWCASE_URL ?? "http://localhost:3003";
+
+/** The marketing site's own canonical origin — the base for metadataBase,
+ * canonical tags, the sitemap, and robots. Falls back to the production host
+ * (this site *is* clankersupport.com) so SEO URLs are absolute even when
+ * NEXT_PUBLIC_SITE_URL isn't set. */
+export const CANONICAL_SITE_URL =
+	process.env.NEXT_PUBLIC_SITE_URL ?? "https://clankersupport.com";

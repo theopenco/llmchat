@@ -3,12 +3,14 @@ import { allPosts } from "content-collections";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { categories, formatDateShort, type CategoryFilter } from "@/lib/format";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = {
+export const metadata = pageMeta({
 	title: "Journal — Clanker Support",
 	description:
 		"Field notes on AI support: announcements, guides, and engineering from the Clanker Support team.",
-};
+	path: "/blog",
+});
 
 export default async function BlogPage({
 	searchParams,

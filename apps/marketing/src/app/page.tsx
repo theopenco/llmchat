@@ -3,9 +3,34 @@ import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
+import { JsonLd } from "@/components/JsonLd";
+import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
+
+// Organization + WebSite structured data for the home page.
+const orgJsonLd = {
+	"@context": "https://schema.org",
+	"@graph": [
+		{
+			"@type": "Organization",
+			"@id": `${CANONICAL_SITE_URL}/#org`,
+			name: "Clanker Support",
+			url: CANONICAL_SITE_URL,
+			logo: `${CANONICAL_SITE_URL}/logo.svg`,
+			description:
+				"An AI-powered support agent you drop into any site with one script tag — it answers from your docs and escalates to your team.",
+		},
+		{
+			"@type": "WebSite",
+			"@id": `${CANONICAL_SITE_URL}/#website`,
+			name: "Clanker Support",
+			url: CANONICAL_SITE_URL,
+			publisher: { "@id": `${CANONICAL_SITE_URL}/#org` },
+		},
+	],
+};
 
 const features = [
 	{
@@ -61,6 +86,7 @@ const steps = [
 export default function Home() {
 	return (
 		<>
+			<JsonLd data={orgJsonLd} />
 			<SiteHeader active="features" />
 
 			<main>
