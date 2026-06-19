@@ -541,6 +541,24 @@ export const widgetStyles = `
 	padding: 0.5rem 0.875rem;
 	border-bottom: 1px solid #e0e7ff;
 }
+/* "Powered by Clanker Support" attribution at the foot of the panel (plan-gated). */
+.llmchat-powered-by {
+	display: block;
+	text-align: center;
+	padding: 0.4rem 0.875rem 0.55rem;
+	font-size: 0.7rem;
+	color: #9ca3af;
+	text-decoration: none;
+	border-top: 1px solid #f1f5f9;
+	background: #fff;
+}
+.llmchat-powered-by:hover {
+	color: #6b7280;
+}
+.llmchat-powered-by-name {
+	font-weight: 600;
+	color: #6b7280;
+}
 .llmchat-error {
 	color: #b91c1c;
 	font-size: 0.85rem;

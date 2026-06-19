@@ -6,7 +6,7 @@ const ws = (...ids: string[]) =>
 	ids.map((id) => ({
 		id,
 		name: id,
-		plan: "free" as const,
+		plan: "starter" as const,
 		role: "owner" as const,
 	}));
 

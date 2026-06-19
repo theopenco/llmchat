@@ -1,41 +1,72 @@
-import type { Plan } from "@/lib/workspace-utils";
+import { BILLING_TIERS, type PaidPlan } from "@llmchat/shared";
 
 /**
- * The hosted plan shown on the billing page. Static product copy (not fetched
- * from Stripe), so the displayed price must stay in sync with the Stripe price
- * behind STRIPE_PRO_PRICE_ID.
+ * Display copy for the three paid tiers. The *entitlement numbers* (projects,
+ * seats, monthly responses) are read straight from the shared tier table so the
+ * page can never advertise a limit the server doesn't enforce.
  *
- * Interim state: the free tier has been removed (hosted is moving to usage-based
- * per-message pricing — see the billing notice). Pro remains the one live,
- * self-serve checkout. We list only capabilities, never invented usage limits.
- *
- * `plan` ties the tier to the internal workspace plan enum so we can mark the
- * caller's current tier.
+ * There are deliberately NO prices here: the real amounts live in Stripe (the
+ * collaborator sets them; price ids are env config) and are shown to the user
+ * at Checkout. We never hardcode a dollar figure that could drift from Stripe.
  */
-export interface PricingTier {
-	id: "pro";
-	plan: Plan;
+export interface TierDisplay {
+	plan: PaidPlan;
 	name: string;
-	price: string;
 	tagline: string;
+	/** The recommended tier — gets the "Most popular" accent. */
+	highlight: boolean;
 	features: string[];
 }
 
-export const PRICING_TIERS: PricingTier[] = [
+const fmt = (n: number) => n.toLocaleString("en-US");
+
+/** Build the feature bullets for a tier from its real entitlements + a little
+ * tier-specific capability copy. */
+function features(plan: PaidPlan, extra: string[]): string[] {
+	const t = BILLING_TIERS[plan];
+	const projects = `${t.maxProjects} project${t.maxProjects === 1 ? "" : "s"}`;
+	const seats = `${t.maxMembers} team member${t.maxMembers === 1 ? "" : "s"}`;
+	const responses = t.allowOverage
+		? `${fmt(t.maxResponsesPerMonth)} responses/mo included`
+		: `${fmt(t.maxResponsesPerMonth)} responses/mo`;
+	const overage = t.allowOverage
+		? "Then billed per response"
+		: "Hard cap — no overage";
+	const models = t.modelAccess === "all" ? "All models" : "Basic models";
+	const branding =
+		t.branding === "custom"
+			? "Custom branding"
+			: t.branding === "off"
+				? "No “Powered by” badge"
+				: "“Powered by” badge";
+	return [projects, seats, responses, overage, models, branding, ...extra];
+}
+
+export const TIERS: TierDisplay[] = [
 	{
-		id: "pro",
-		plan: "pro",
-		name: "Pro",
-		price: "$29",
-		tagline: "For growing teams",
-		features: [
-			"Unlimited projects",
-			"All AI models",
-			"Priority support",
-			"Custom branding",
-		],
+		plan: "starter",
+		name: "Starter",
+		tagline: "Launch your first support agent",
+		highlight: false,
+		features: features("starter", ["Community support"]),
+	},
+	{
+		plan: "growth",
+		name: "Growth",
+		tagline: "For growing support teams",
+		highlight: true,
+		features: features("growth", ["Email support"]),
+	},
+	{
+		plan: "scale",
+		name: "Scale",
+		tagline: "High volume, fully white-labeled",
+		highlight: false,
+		features: features("scale", ["Priority support"]),
 	},
 ];
 
-/** The single live tier. Convenience accessor so cards don't re-find it. */
-export const PRO_TIER = PRICING_TIERS[0];
+/** Human-readable tier name for a stored plan value (incl. the unpaid state). */
+export function planName(plan: string): string {
+	return TIERS.find((t) => t.plan === plan)?.name ?? "No subscription";
+}

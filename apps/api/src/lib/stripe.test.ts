@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { formEncode, hmacSha256Hex, verifyStripeSignature } from "./stripe";
+import {
+	createCheckoutSession,
+	formEncode,
+	hmacSha256Hex,
+	reportMeterEvent,
+	verifyStripeSignature,
+} from "./stripe";
 
 const SECRET = "whsec_test_fixture_secret";
 
@@ -32,6 +38,91 @@ describe("formEncode", () => {
 
 	it("omits null/undefined values", () => {
 		expect(formEncode({ a: "1", b: null, c: undefined })).toBe("a=1");
+	});
+});
+
+describe("createCheckoutSession (request shape)", () => {
+	afterEach(() => vi.unstubAllGlobals());
+
+	function captureFetch() {
+		const calls: { url: string; body: string }[] = [];
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (url: string, init: RequestInit) => {
+				calls.push({ url, body: String(init.body) });
+				return new Response(JSON.stringify({ id: "cs", url: "https://co" }), {
+					status: 200,
+				});
+			}),
+		);
+		return calls;
+	}
+
+	it("adds the metered overage price as a quantity-less line item", async () => {
+		const calls = captureFetch();
+		await createCheckoutSession("sk", {
+			customer: "cus_1",
+			priceId: "price_base",
+			overagePriceId: "price_overage",
+			plan: "growth",
+			workspaceId: "ws_1",
+			successUrl: "https://s",
+			cancelUrl: "https://c",
+		});
+		const body = calls[0]!.body;
+		expect(body).toContain("line_items%5B0%5D%5Bprice%5D=price_base");
+		expect(body).toContain("line_items%5B0%5D%5Bquantity%5D=1");
+		expect(body).toContain("line_items%5B1%5D%5Bprice%5D=price_overage");
+		// The metered line item must NOT carry a quantity.
+		expect(body).not.toContain("line_items%5B1%5D%5Bquantity%5D");
+		// Card upfront, no trial; plan stamped for the webhook.
+		expect(body).toContain("payment_method_collection=always");
+		expect(body).toContain("metadata%5Bplan%5D=growth");
+		expect(body).toContain("subscription_data%5Bmetadata%5D%5Bplan%5D=growth");
+		expect(body).not.toContain("trial");
+	});
+
+	it("omits the overage line item when no overage price is given (Starter)", async () => {
+		const calls = captureFetch();
+		await createCheckoutSession("sk", {
+			customer: "cus_1",
+			priceId: "price_starter",
+			plan: "starter",
+			workspaceId: "ws_1",
+			successUrl: "https://s",
+			cancelUrl: "https://c",
+		});
+		expect(calls[0]!.body).not.toContain("line_items%5B1%5D");
+	});
+});
+
+describe("reportMeterEvent (request shape)", () => {
+	afterEach(() => vi.unstubAllGlobals());
+
+	it("POSTs a meter event keyed by customer with value 1 by default", async () => {
+		const calls: { url: string; body: string }[] = [];
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (url: string, init: RequestInit) => {
+				calls.push({ url, body: String(init.body) });
+				return new Response(JSON.stringify({ identifier: "id" }), {
+					status: 200,
+				});
+			}),
+		);
+		await reportMeterEvent("sk", {
+			eventName: "clanker_response",
+			customerId: "cus_42",
+			identifier: "evt_abc",
+		});
+		expect(calls[0]!.url).toBe(
+			"https://api.stripe.com/v1/billing/meter_events",
+		);
+		const body = calls[0]!.body;
+		expect(body).toContain("event_name=clanker_response");
+		expect(body).toContain("identifier=evt_abc");
+		expect(body).toContain("payload%5Bstripe_customer_id%5D=cus_42");
+		expect(body).toContain("payload%5Bvalue%5D=1");
 	});
 });
 

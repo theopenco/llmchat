@@ -12,6 +12,7 @@ import { projects } from "@/routes/projects";
 import { sources } from "@/routes/sources";
 import { systemPrompts } from "@/routes/system-prompts";
 import { widgetAsset } from "@/routes/widget-asset";
+import { widgetConfig } from "@/routes/widget-config";
 import { widgetCsat } from "@/routes/widget-csat";
 import { widgetMessages } from "@/routes/widget-messages";
 import { widgetRating } from "@/routes/widget-rating";
@@ -68,6 +69,7 @@ const billingBrowserCors = cors({
 });
 app.use("/billing/checkout", billingBrowserCors);
 app.use("/billing/portal", billingBrowserCors);
+app.use("/billing/usage", billingBrowserCors);
 
 app.on(["GET", "POST"], "/api/auth/*", (c) => {
 	const auth = createAuth(c.env);
@@ -75,6 +77,7 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => {
 });
 
 app.route("/v1", chat);
+app.route("/v1", widgetConfig);
 app.route("/v1", widgetMessages);
 app.route("/v1", widgetRating);
 app.route("/v1", widgetCsat);

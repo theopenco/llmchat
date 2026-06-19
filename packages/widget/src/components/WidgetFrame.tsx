@@ -25,6 +25,7 @@ export function WidgetFrame({
 	open,
 	onOpenChange,
 	badge,
+	footer,
 	children,
 }: {
 	inline: boolean;
@@ -33,6 +34,8 @@ export function WidgetFrame({
 	onOpenChange: (open: boolean) => void;
 	/** Optional header adornment, e.g. the showcase "Demo mode" pill. */
 	badge?: ReactNode;
+	/** Optional panel footer below the conversation, e.g. the "Powered by" badge. */
+	footer?: ReactNode;
 	children: ReactNode;
 }) {
 	const launcherRef = useRef<HTMLButtonElement>(null);
@@ -127,6 +130,7 @@ export function WidgetFrame({
 						)}
 					</header>
 					{children}
+					{footer}
 				</div>
 			)}
 		</div>
