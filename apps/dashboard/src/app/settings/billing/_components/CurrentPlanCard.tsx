@@ -1,15 +1,16 @@
-import { Check } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Plan } from "@/lib/workspace-utils";
 
-import { PRICING_TIERS } from "./billing-plans";
+import { PRO_TIER } from "./billing-plans";
 
 /**
- * The caller's current plan: price, tagline, included features, and the
- * plan-driven action (free → upgrade, paid → manage in the Stripe portal).
+ * The caller's billing status. There is no free tier any more, so a workspace
+ * that isn't on a paid plan shows "No active subscription" (never a "$0 Free
+ * plan"), and the action follows the status: not subscribed → upgrade, paid →
+ * manage in the Stripe portal. Capabilities live on the Pro card below, so this
+ * card stays lean — status + price + one action.
  */
 export function CurrentPlanCard({
 	plan,
@@ -22,43 +23,41 @@ export function CurrentPlanCard({
 	onUpgrade: () => void;
 	onManage: () => void;
 }) {
-	const tier = PRICING_TIERS.find((t) => t.plan === plan) ?? PRICING_TIERS[0];
-	const isFree = plan === "free";
+	const subscribed = plan !== "free";
 
 	return (
 		<Card className="flex flex-col">
 			<CardHeader>
 				<div className="flex items-center justify-between gap-3">
 					<CardTitle>Current plan</CardTitle>
-					<Badge variant={isFree ? "secondary" : "success"}>{tier.name}</Badge>
+					<Badge variant={subscribed ? "success" : "secondary"}>
+						{subscribed ? PRO_TIER.name : "No subscription"}
+					</Badge>
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-1 flex-col">
-				<div className="flex items-baseline gap-1">
-					<span className="text-3xl font-semibold tracking-tight-display">
-						{tier.price}
-					</span>
-					<span className="text-sm text-muted-foreground">/ month</span>
-				</div>
-				<p className="mt-1 text-sm text-muted-foreground">
-					{isFree ? "Perfect for getting started." : tier.tagline}
-				</p>
+				{subscribed ? (
+					<>
+						<div className="flex items-baseline gap-1">
+							<span className="text-3xl font-semibold tracking-tight-display">
+								{plan === "pro" ? PRO_TIER.price : ""}
+							</span>
+							{plan === "pro" && (
+								<span className="text-sm text-muted-foreground">/ month</span>
+							)}
+						</div>
+						<p className="mt-1 text-sm text-muted-foreground">
+							{PRO_TIER.tagline}
+						</p>
+					</>
+				) : (
+					<p className="text-sm text-muted-foreground">
+						You&apos;re not on a paid plan — nothing is being billed yet.
+					</p>
+				)}
 
-				<ul className="mt-5 flex flex-1 flex-col gap-2.5">
-					{tier.features.map((f) => (
-						<li key={f} className="flex items-start gap-2 text-sm">
-							<Check className="mt-0.5 size-4 shrink-0 text-primary" />
-							<span>{f}</span>
-						</li>
-					))}
-				</ul>
-
-				<div className="mt-6">
-					{isFree ? (
-						<Button className="w-full" onClick={onUpgrade} disabled={pending}>
-							{pending ? "Redirecting…" : "Upgrade to Pro"}
-						</Button>
-					) : (
+				<div className="mt-auto pt-6">
+					{subscribed ? (
 						<Button
 							variant="outline"
 							className="w-full"
@@ -66,6 +65,10 @@ export function CurrentPlanCard({
 							disabled={pending}
 						>
 							{pending ? "Redirecting…" : "Manage billing"}
+						</Button>
+					) : (
+						<Button className="w-full" onClick={onUpgrade} disabled={pending}>
+							{pending ? "Redirecting…" : "Upgrade to Pro"}
 						</Button>
 					)}
 				</div>

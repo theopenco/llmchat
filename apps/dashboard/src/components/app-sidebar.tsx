@@ -298,7 +298,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 						</p>
 						<Button asChild variant="outline" size="sm" className="mt-3 w-full">
 							<a
-								href="https://docs.meetploy.com"
+								href="https://clankersupport.com/docs"
 								target="_blank"
 								rel="noreferrer"
 							>

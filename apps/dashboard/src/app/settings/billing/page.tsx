@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Info } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -129,6 +130,18 @@ function BillingContent() {
 				pending={pending}
 				onUpgrade={() => checkout.mutate()}
 			/>
+
+			<div className="flex items-start gap-2.5 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+				<Info className="mt-0.5 size-4 shrink-0" />
+				<p>
+					<span className="font-medium text-foreground">
+						Usage-based pricing is on the way.
+					</span>{" "}
+					We&apos;re moving to simple per-message pricing — you&apos;ll pay only
+					for the answers your agent sends. Details are coming soon; nothing
+					changes until then.
+				</p>
+			</div>
 		</div>
 	);
 }
