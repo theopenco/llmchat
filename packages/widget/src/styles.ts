@@ -303,6 +303,29 @@ export const widgetStyles = `
 	border-radius: 9999px;
 	border: 2px solid #fff;
 }
+/* "Scroll to latest": sticky so it floats at the bottom of the scroll area
+   while the visitor reads earlier messages during a streaming reply. */
+.llmchat-jump {
+	position: sticky;
+	bottom: 0.25rem;
+	align-self: center;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	margin-top: 0.25rem;
+	border: none;
+	border-radius: 9999px;
+	background: var(--brand);
+	color: #fff;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+	transition: transform 0.12s ease;
+}
+.llmchat-jump:hover {
+	transform: translateY(-1px);
+}
 .llmchat-msg {
 	max-width: 85%;
 	padding: 0.5rem 0.75rem;
@@ -518,6 +541,24 @@ export const widgetStyles = `
 	padding: 0.5rem 0.875rem;
 	border-bottom: 1px solid #e0e7ff;
 }
+/* "Powered by Clanker Support" attribution at the foot of the panel (plan-gated). */
+.llmchat-powered-by {
+	display: block;
+	text-align: center;
+	padding: 0.4rem 0.875rem 0.55rem;
+	font-size: 0.7rem;
+	color: #9ca3af;
+	text-decoration: none;
+	border-top: 1px solid #f1f5f9;
+	background: #fff;
+}
+.llmchat-powered-by:hover {
+	color: #6b7280;
+}
+.llmchat-powered-by-name {
+	font-weight: 600;
+	color: #6b7280;
+}
 .llmchat-error {
 	color: #b91c1c;
 	font-size: 0.85rem;
@@ -606,6 +647,47 @@ export const widgetStyles = `
 .llmchat-escalate button:focus-visible {
 	outline: none;
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+
+/* ── Quick-reply chips (guided / concierge prompts) ────────────────── */
+.llmchat-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding: 0 1rem 0.85rem;
+}
+.llmchat-chip {
+	font: inherit;
+	font-size: 0.85rem;
+	line-height: 1.2;
+	padding: 0.45rem 0.85rem;
+	border-radius: 9999px;
+	border: 1px solid color-mix(in srgb, var(--brand) 35%, transparent);
+	background: color-mix(in srgb, var(--brand) 8%, transparent);
+	color: var(--brand);
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	transition:
+		background 0.15s ease,
+		transform 0.1s ease;
+}
+.llmchat-chip:hover {
+	background: color-mix(in srgb, var(--brand) 16%, transparent);
+}
+.llmchat-chip:active {
+	transform: translateY(1px);
+}
+.llmchat-chip:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.llmchat-chip-dot {
+	width: 0.85rem;
+	height: 0.85rem;
+	border-radius: 9999px;
+	display: inline-block;
 }
 
 @media (prefers-reduced-motion: reduce) {

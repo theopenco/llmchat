@@ -62,7 +62,11 @@
 		color: rgb(var(--ink));
 		background-color: rgb(var(--paper));
 		background-image:
-			radial-gradient(60rem 40rem at 50% -10%, var(--aurora-1), transparent 60%),
+			radial-gradient(
+				60rem 40rem at 50% -10%,
+				var(--aurora-1),
+				transparent 60%
+			),
 			radial-gradient(40rem 30rem at 100% 0%, var(--aurora-2), transparent 55%);
 		background-repeat: no-repeat;
 		background-attachment: fixed;

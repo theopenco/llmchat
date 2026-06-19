@@ -8,6 +8,7 @@ import {
 } from "next/font/google";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 // Distinctive modern grotesque for display headlines.
 const display = Bricolage_Grotesque({
@@ -33,10 +34,41 @@ const mono = JetBrains_Mono({
 	display: "swap",
 });
 
+const TITLE = "Clanker Support — AI support, dropped in";
+const DESCRIPTION =
+	"One script tag. Any model. An AI-powered support agent that answers from your docs and escalates to your team. Built on LLM Gateway.";
+
 export const metadata: Metadata = {
-	title: "Clanker Support — AI support, dropped in",
-	description:
-		"One script tag. Any model. AI support that answers from your docs and escalates to your team. Built on LLM Gateway.",
+	// Resolves relative canonical/OG URLs (set per page via pageMeta) to absolute.
+	metadataBase: new URL(CANONICAL_SITE_URL),
+	title: TITLE,
+	description: DESCRIPTION,
+	applicationName: "Clanker Support",
+	alternates: { canonical: "/" },
+	openGraph: {
+		type: "website",
+		url: "/",
+		siteName: "Clanker Support",
+		title: TITLE,
+		description: DESCRIPTION,
+		locale: "en_US",
+	},
+	twitter: {
+		card: "summary_large_image",
+		title: TITLE,
+		description: DESCRIPTION,
+	},
+	robots: {
+		index: true,
+		follow: true,
+		googleBot: {
+			index: true,
+			follow: true,
+			"max-image-preview": "large",
+			"max-snippet": -1,
+			"max-video-preview": -1,
+		},
+	},
 };
 
 export default function RootLayout({

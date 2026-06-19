@@ -14,6 +14,7 @@
 	},
 	"dependencies": {
 		"@llmchat/shared": "workspace:*",
+		"@llmchat/widget": "workspace:*",
 		"@radix-ui/react-alert-dialog": "^1.1.15",
 		"@radix-ui/react-avatar": "^1.1.12",
 		"@radix-ui/react-dialog": "^1.1.15",

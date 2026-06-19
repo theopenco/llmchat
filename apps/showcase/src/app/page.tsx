@@ -53,9 +53,11 @@ export default function Page() {
 
 							<p className="mt-6 text-lg leading-relaxed text-muted">
 								The chat bubble in the bottom-right is the{" "}
-								<span className="text-ink-soft">real Clanker Support widget</span> — the
-								same single script tag you drop on your own site, pointed at the
-								live API. Try it.
+								<span className="text-ink-soft">
+									real Clanker Support widget
+								</span>{" "}
+								— the same single script tag you drop on your own site, pointed
+								at the live API. Try it.
 							</p>
 
 							<div className="mt-9 flex flex-wrap items-center gap-3">

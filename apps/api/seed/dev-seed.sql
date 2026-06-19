@@ -29,8 +29,12 @@ VALUES (
 	'00112233445566778899aabbccddeeff:6aa30175b1e2659cbb0b45ea9f596ceb4ea420c505b22c28b7586a38cac986936f2746c188fe58479ea438173abfe48ef33e82de00103d698478e1573d8e87f3'
 );
 
-INSERT OR IGNORE INTO `workspace` (`id`, `name`, `owner_id`)
-VALUES ('dev-workspace', 'Dev Workspace', 'dev-admin');
+-- Seed the dev workspace on the top "scale" tier so local dev exercises the
+-- full product (all models, project/member headroom) without a live Stripe
+-- subscription. Production never runs this seed, so real signups still start at
+-- 'none' and go through the paywall.
+INSERT OR IGNORE INTO `workspace` (`id`, `name`, `owner_id`, `plan`)
+VALUES ('dev-workspace', 'Dev Workspace', 'dev-admin', 'scale');
 
 INSERT OR IGNORE INTO `member` (`id`, `workspace_id`, `user_id`, `role`)
 VALUES ('dev-member', 'dev-workspace', 'dev-admin', 'owner');

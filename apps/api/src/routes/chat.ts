@@ -2,13 +2,16 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
+import { meterEventName } from "@/lib/billing-config";
 import { db } from "@/lib/db";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/kv";
 import { streamChat } from "@/lib/llm";
+import { isResponseBlocked } from "@/lib/plan";
 import { captureEvent } from "@/lib/posthog";
 import { clientIp } from "@/lib/request";
 import { sendEscalationSlack } from "@/lib/slack";
+import { reportMeterEvent } from "@/lib/stripe";
 
 import {
 	conversation,
@@ -16,7 +19,13 @@ import {
 	message as messageTable,
 	usageEvent,
 } from "@llmchat/db";
-import { ANALYTICS_EVENTS, effectiveModel } from "@llmchat/shared";
+import {
+	ANALYTICS_EVENTS,
+	DEFAULT_MODEL,
+	effectiveModel,
+	isModelAllowed,
+	planEntitlements,
+} from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 import type { UIMessage } from "ai";
@@ -94,6 +103,14 @@ export const chat = new Hono<AppContext>()
 			return c.json({ error: "invalid project key" }, 404);
 		}
 
+		// The owning workspace's plan + Stripe customer drive quota enforcement and
+		// overage metering below.
+		const ws = await db(c.env).query.workspace.findFirst({
+			where: (w, { eq: e }) => e(w.id, project.workspaceId),
+			columns: { plan: true, stripeCustomerId: true },
+		});
+		const plan = ws?.plan ?? "none";
+
 		const ip = clientIp(c);
 		const rl = await rateLimit(
 			c.env,
@@ -103,6 +120,15 @@ export const chat = new Hono<AppContext>()
 		);
 		if (!rl.ok) {
 			return c.json({ error: "rate limit exceeded" }, 429);
+		}
+
+		// Monthly response cap. Fixed tiers (Starter, and the unpaid "none" state)
+		// hard-stop at the included quota with a 402 the widget renders as an
+		// upgrade prompt; overage tiers (Growth/Scale) are never blocked here —
+		// Stripe meters the excess. Checked BEFORE any DB write so a capped
+		// workspace creates no conversation/message. Fails OPEN (see isResponseBlocked).
+		if (await isResponseBlocked(c.env, project.workspaceId, plan)) {
+			return c.json({ error: "message_limit_reached" }, 402);
 		}
 
 		const { conversation: conv, created: convCreated } =
@@ -172,11 +198,21 @@ export const chat = new Hono<AppContext>()
 		// Guard the live bot against a project stuck on a model that's no longer
 		// a valid web-search model (e.g. a pre-web-search saved value): run the
 		// default for this request instead of letting the gateway call fail.
-		const model = effectiveModel(project.model);
+		let model = effectiveModel(project.model);
 		if (model !== project.model) {
 			console.warn(
 				`chat: project ${project.id} model "${project.model}" is not a web-search model; using "${model}"`,
 			);
+		}
+		// Tier model-access safety net: if the saved model isn't allowed on the
+		// current plan (e.g. a Growth→Starter downgrade left the project on a
+		// premium model), degrade to the basic default rather than serve a model
+		// they no longer pay for — and never take the live agent down with a 402.
+		if (!isModelAllowed(plan, model)) {
+			console.warn(
+				`chat: project ${project.id} model "${model}" not allowed on plan "${plan}"; using "${DEFAULT_MODEL}"`,
+			);
+			model = DEFAULT_MODEL;
 		}
 
 		let result: Awaited<ReturnType<typeof streamChat>>;
@@ -217,7 +253,7 @@ export const chat = new Hono<AppContext>()
 						.update(conversation)
 						.set({ messageCount: nextSeq + 1, updatedAt: new Date() })
 						.where(eq(conversation.id, conv.id));
-					await db(c.env)
+					const [event] = await db(c.env)
 						.insert(usageEvent)
 						.values({
 							workspaceId: project.workspaceId,
@@ -228,7 +264,31 @@ export const chat = new Hono<AppContext>()
 							promptTokens: usage?.inputTokens ?? 0,
 							completionTokens: usage?.outputTokens ?? 0,
 							costUsd: 0,
-						});
+						})
+						.returning({ id: usageEvent.id });
+
+					// Overage metering: report this billable response to Stripe for
+					// tiers that allow overage. Stripe's metered price applies the
+					// included free quota, so we report EVERY response. Best-effort —
+					// a meter fault must never affect the already-served reply; the
+					// usageEvent id is the idempotency key so a retry can't double-bill.
+					const { STRIPE_SECRET_KEY } = c.env.vars;
+					if (
+						planEntitlements(plan).allowOverage &&
+						ws?.stripeCustomerId &&
+						STRIPE_SECRET_KEY?.trim()
+					) {
+						try {
+							await reportMeterEvent(STRIPE_SECRET_KEY, {
+								eventName: meterEventName(c.env.vars),
+								customerId: ws.stripeCustomerId,
+								value: 1,
+								identifier: event?.id,
+							});
+						} catch (err) {
+							console.error("chat: overage meter report failed", err);
+						}
+					}
 				} catch (err) {
 					// Stream failed — the user message and count are already
 					// persisted; there is just no assistant reply to store.

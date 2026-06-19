@@ -105,9 +105,13 @@ export const workspace = sqliteTable("workspace", {
 		.references(() => user.id),
 	stripeCustomerId: text(),
 	stripeSubscriptionId: text(),
-	plan: text({ enum: ["free", "pro", "scale"] })
+	// Paid-only: new workspaces start at "none" (no active subscription →
+	// entitled to nothing) until a Stripe Checkout completes and the webhook
+	// promotes them to a paid tier. Legacy "free"/"pro" values resolve to "none"
+	// via planEntitlements(). Entitlements live in @llmchat/shared (BILLING_TIERS).
+	plan: text({ enum: ["none", "starter", "growth", "scale"] })
 		.notNull()
-		.default("free"),
+		.default("none"),
 	createdAt: createdAt(),
 });
 

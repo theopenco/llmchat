@@ -12,7 +12,9 @@ import {
 
 import { api } from "./api";
 import {
+	canManage,
 	resolveWorkspaceId,
+	type WorkspaceRole,
 	type WorkspaceSummary,
 	type WorkspacesResponse,
 	WORKSPACES_KEY,
@@ -23,6 +25,11 @@ interface WorkspaceCtx {
 	workspaceId: string | null;
 	setWorkspaceId: (id: string) => void;
 	isLoading: boolean;
+	/** The current user's role in the active workspace (null until resolved). */
+	role: WorkspaceRole | null;
+	/** Whether the active role may manage the workspace (create/edit/delete
+	 * projects, sources, prompts). Drives RoleGate and button enablement. */
+	canManage: boolean;
 }
 
 const Ctx = createContext<WorkspaceCtx>({
@@ -30,6 +37,8 @@ const Ctx = createContext<WorkspaceCtx>({
 	workspaceId: null,
 	setWorkspaceId: () => {},
 	isLoading: false,
+	role: null,
+	canManage: false,
 });
 
 const KEY = "llmchat_workspace_id";
@@ -47,7 +56,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 	// each render just because `.map()` produced a fresh array.
 	const { data, isLoading } = query;
 	const workspaces = useMemo(
-		() => data?.workspaces.map((w) => w.workspace) ?? [],
+		() => data?.workspaces.map((w) => ({ ...w.workspace, role: w.role })) ?? [],
 		[data],
 	);
 
@@ -70,9 +79,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 		set(id);
 	}, []);
 
+	const role = workspaces.find((w) => w.id === workspaceId)?.role ?? null;
+
 	const value = useMemo<WorkspaceCtx>(
-		() => ({ workspaces, workspaceId, setWorkspaceId, isLoading }),
-		[workspaces, workspaceId, setWorkspaceId, isLoading],
+		() => ({
+			workspaces,
+			workspaceId,
+			setWorkspaceId,
+			isLoading,
+			role,
+			canManage: canManage(role),
+		}),
+		[workspaces, workspaceId, setWorkspaceId, isLoading, role],
 	);
 
 	return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

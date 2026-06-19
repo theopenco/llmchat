@@ -1,74 +1,59 @@
-import { Check } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Plan } from "@/lib/workspace-utils";
+import { isPaidPlan } from "@llmchat/shared";
 
-import { PRICING_TIERS } from "./billing-plans";
+import { planName } from "./billing-plans";
 
 /**
- * The caller's current plan: price, tagline, included features, and the
- * plan-driven action (free → upgrade, paid → manage in the Stripe portal).
+ * The caller's billing status. Paid-only product: a workspace with no active
+ * subscription shows "No subscription" (never a "$0 Free plan"), with the call
+ * to action being the tier grid below. A subscribed workspace shows its tier
+ * name and a "Manage billing" button into the Stripe portal. No prices here —
+ * those live in Stripe / Checkout.
  */
 export function CurrentPlanCard({
 	plan,
 	pending,
-	onUpgrade,
+	disabled,
 	onManage,
 }: {
-	plan: Plan;
+	plan: string;
 	pending: boolean;
-	onUpgrade: () => void;
+	disabled?: boolean;
 	onManage: () => void;
 }) {
-	const tier = PRICING_TIERS.find((t) => t.plan === plan) ?? PRICING_TIERS[0];
-	const isFree = plan === "free";
+	const subscribed = isPaidPlan(plan);
 
 	return (
 		<Card className="flex flex-col">
 			<CardHeader>
 				<div className="flex items-center justify-between gap-3">
 					<CardTitle>Current plan</CardTitle>
-					<Badge variant={isFree ? "secondary" : "success"}>{tier.name}</Badge>
+					<Badge variant={subscribed ? "success" : "secondary"}>
+						{subscribed ? planName(plan) : "No subscription"}
+					</Badge>
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-1 flex-col">
-				<div className="flex items-baseline gap-1">
-					<span className="text-3xl font-semibold tracking-tight-display">
-						{tier.price}
-					</span>
-					<span className="text-sm text-muted-foreground">/ month</span>
-				</div>
-				<p className="mt-1 text-sm text-muted-foreground">
-					{isFree ? "Perfect for getting started." : tier.tagline}
+				<p className="text-sm text-muted-foreground">
+					{subscribed
+						? "Your subscription is active. Manage payment method, invoices, or cancel anytime in the billing portal."
+						: "You don’t have an active subscription yet. Choose a plan below to put your support agent live."}
 				</p>
 
-				<ul className="mt-5 flex flex-1 flex-col gap-2.5">
-					{tier.features.map((f) => (
-						<li key={f} className="flex items-start gap-2 text-sm">
-							<Check className="mt-0.5 size-4 shrink-0 text-primary" />
-							<span>{f}</span>
-						</li>
-					))}
-				</ul>
-
-				<div className="mt-6">
-					{isFree ? (
-						<Button className="w-full" onClick={onUpgrade} disabled={pending}>
-							{pending ? "Redirecting…" : "Upgrade to Pro"}
-						</Button>
-					) : (
+				{subscribed && (
+					<div className="mt-auto pt-6">
 						<Button
 							variant="outline"
 							className="w-full"
 							onClick={onManage}
-							disabled={pending}
+							disabled={pending || disabled}
 						>
 							{pending ? "Redirecting…" : "Manage billing"}
 						</Button>
-					)}
-				</div>
+					</div>
+				)}
 			</CardContent>
 		</Card>
 	);

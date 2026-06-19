@@ -14,9 +14,10 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@/components/ui/empty";
-import { api } from "@/lib/api";
+import { api, describeApiError } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
+import { RoleGate } from "@/components/role-gate";
 
 import { CreateProjectDialog } from "./_components/CreateProjectDialog";
 import { DeleteProjectDialog } from "./_components/DeleteProjectDialog";
@@ -67,9 +68,7 @@ export default function ProjectsPage() {
 			toast.success("Project created");
 		},
 		onError: (e) =>
-			toast.error("Failed to create project", {
-				description: e instanceof Error ? e.message : undefined,
-			}),
+			toast.error(describeApiError(e, "Failed to create project")),
 	});
 
 	const remove = useMutation({
@@ -85,9 +84,7 @@ export default function ProjectsPage() {
 			toast.success("Project deleted");
 		},
 		onError: (e) =>
-			toast.error("Failed to delete project", {
-				description: e instanceof Error ? e.message : undefined,
-			}),
+			toast.error(describeApiError(e, "Failed to delete project")),
 	});
 
 	const toggle = useMutation({
@@ -141,10 +138,12 @@ export default function ProjectsPage() {
 						Manage your chat projects and their configurations.
 					</p>
 				</div>
-				<Button onClick={() => setShowCreate(true)}>
-					<Plus />
-					New Project
-				</Button>
+				<RoleGate>
+					<Button onClick={() => setShowCreate(true)}>
+						<Plus />
+						New Project
+					</Button>
+				</RoleGate>
 			</div>
 
 			{(list.length > 0 || search || favOnly) && (
@@ -191,10 +190,18 @@ export default function ProjectsPage() {
 						</EmptyDescription>
 					</EmptyHeader>
 					<EmptyContent>
-						<Button onClick={() => setShowCreate(true)}>
-							<FolderPlus />
-							Create Project
-						</Button>
+						<RoleGate
+							fallback={
+								<p className="text-sm text-muted-foreground">
+									Ask a workspace owner or admin to create one.
+								</p>
+							}
+						>
+							<Button onClick={() => setShowCreate(true)}>
+								<FolderPlus />
+								Create Project
+							</Button>
+						</RoleGate>
 					</EmptyContent>
 				</Empty>
 			) : filtered.length === 0 ? (

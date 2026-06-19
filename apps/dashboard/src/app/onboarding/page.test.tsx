@@ -11,14 +11,35 @@ import OnboardingPage from "./page";
 
 const push = vi.fn();
 const replace = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
+let searchParams = new URLSearchParams();
+vi.mock("next/navigation", () => ({
+	useRouter: () => ({ push, replace }),
+	useSearchParams: () => searchParams,
+}));
 vi.mock("@/lib/auth-client", () => ({ useSession: vi.fn() }));
 vi.mock("@/lib/use-onboarding", () => ({ useOnboardingState: vi.fn() }));
+vi.mock("sonner", () => ({
+	toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() },
+}));
 // Mock only the transport; keep ApiError / isWorkspaceAuthError real so the
 // self-heal branch is exercised exactly as in production.
 vi.mock("@/lib/api", async (orig) => ({
 	...(await orig<typeof import("@/lib/api")>()),
 	api: vi.fn(),
+}));
+
+// The widget package is exercised in its own suite. Stub the chat primitives the
+// live preview uses, and the live Widget (the payoff) to a marker so it doesn't
+// open a real /v1/chat transport.
+vi.mock("@llmchat/widget/styles", () => ({ widgetStyles: "" }));
+vi.mock("@llmchat/widget", () => ({
+	Widget: () => <div data-testid="live-widget" />,
+}));
+vi.mock("@llmchat/widget/chat", () => ({
+	WidgetFrame: ({ children }: { children: React.ReactNode }) => (
+		<div>{children}</div>
+	),
+	MessageList: ({ greeting }: { greeting: string }) => <p>{greeting}</p>,
 }));
 
 function renderPage() {
@@ -32,18 +53,29 @@ function renderPage() {
 	);
 }
 
-/** Welcome → Create your bot → fill name → Continue (creates the project). */
-async function createBot(
-	user: ReturnType<typeof userEvent.setup>,
-	name = "Acme Tools",
+const user = () => userEvent.setup();
+
+/** Fill the setup form and submit. Welcome/brand keep their defaults unless a
+ * caller overrides; source is optional. */
+async function fillForm(
+	u: ReturnType<typeof userEvent.setup>,
+	opts: { name?: string; source?: string } = {},
 ) {
-	await user.click(screen.getByRole("button", { name: /get started/i }));
-	await user.type(screen.getByLabelText(/bot name/i), name);
-	await user.click(screen.getByRole("button", { name: /continue/i }));
+	const { name = "Acme Tools", source } = opts;
+	const nameField = await screen.findByLabelText(/agent name/i);
+	await u.clear(nameField);
+	await u.type(nameField, name);
+	if (source) {
+		await u.type(screen.getByLabelText(/website to learn from/i), source);
+	}
+	await u.click(
+		screen.getByRole("button", { name: /create (my|this) agent/i }),
+	);
 }
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	searchParams = new URLSearchParams();
 	vi.mocked(useSession).mockReturnValue({
 		data: { user: { id: "u1", email: "a@b.com" } },
 		isPending: false,
@@ -55,23 +87,46 @@ beforeEach(() => {
 	vi.mocked(api).mockImplementation(async (path: string) => {
 		if (path === "/api/projects") {
 			return {
-				project: {
-					id: "p1",
-					publicKey: "pk_live",
-					brandColor: "#6366F1",
-					name: "Acme",
-				},
+				project: { id: "p1", publicKey: "pk_live", brandColor: "#6366F1" },
 			};
 		}
 		return {};
 	});
 });
 
-describe("OnboardingPage", () => {
-	it("creates a project with seeded prompt/welcome/brand color, then advances to sources", async () => {
-		const user = userEvent.setup();
+describe("OnboardingPage (form redesign)", () => {
+	it("opens with a plain form and a live preview — not a chat", async () => {
 		renderPage();
-		await createBot(user, "Acme Tools");
+		expect(
+			await screen.findByRole("heading", {
+				name: /build your support agent/i,
+			}),
+		).toBeInTheDocument();
+		// The real fields are present…
+		expect(screen.getByLabelText(/agent name/i)).toBeInTheDocument();
+		expect(screen.getByLabelText(/welcome message/i)).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: /create my agent/i }),
+		).toBeInTheDocument();
+		// …and the old concierge chat is gone.
+		expect(screen.queryByText(/setup assistant/i)).not.toBeInTheDocument();
+	});
+
+	it("requires a name before it will provision", async () => {
+		const u = user();
+		renderPage();
+		// Submit with the name empty.
+		await u.click(screen.getByRole("button", { name: /create my agent/i }));
+		expect(
+			await screen.findByText(/give your agent a name/i),
+		).toBeInTheDocument();
+		expect(api).not.toHaveBeenCalledWith("/api/projects", expect.anything());
+	});
+
+	it("provisions the project from the form, then reveals the live agent", async () => {
+		const u = user();
+		renderPage();
+		await fillForm(u, { name: "Acme Tools" });
 
 		expect(api).toHaveBeenCalledWith(
 			"/api/projects",
@@ -81,36 +136,48 @@ describe("OnboardingPage", () => {
 				body: expect.objectContaining({
 					name: "Acme Tools",
 					systemPrompt: expect.stringContaining("Acme Tools"),
-					welcomeMessage: expect.stringContaining("Acme Tools"),
-					brandColor: "#6366F1",
+					welcomeMessage: expect.stringContaining("How can I help"),
+					brandColor: "#6366F1", // Indigo default
 				}),
 			}),
 		);
 		// No workspace creation needed — one already resolved.
 		expect(api).not.toHaveBeenCalledWith("/api/workspaces", expect.anything());
-		// Lands on the Add sources step.
-		expect(
-			await screen.findByRole("heading", { name: /add sources/i }),
-		).toBeInTheDocument();
-	});
 
-	it("install step shows the public-key snippet and finishing routes to the project page", async () => {
-		const user = userEvent.setup();
-		renderPage();
-		await createBot(user, "Acme Tools");
-
-		// Skip sources → Install widget.
-		await user.click(screen.getByRole("button", { name: /skip for now/i }));
-		expect(
-			await screen.findByRole("heading", { name: /install widget/i }),
-		).toBeInTheDocument();
+		// Payoff: the real agent is mounted and the embed snippet shows the key.
+		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
 		const snippet = document.querySelector("pre")?.textContent ?? "";
 		expect(snippet).toContain("pk_live");
 
-		// Continue → You're all set → Go to dashboard routes to the project page.
-		await user.click(screen.getByRole("button", { name: /^continue$/i }));
-		await user.click(screen.getByRole("button", { name: /go to dashboard/i }));
+		await u.click(screen.getByRole("button", { name: /go to dashboard/i }));
 		expect(push).toHaveBeenCalledWith("/settings/projects/p1");
+	});
+
+	it("adds a knowledge source when a URL is provided", async () => {
+		vi.mocked(api).mockImplementation(async (path: string) => {
+			if (path === "/api/projects") {
+				return {
+					project: { id: "p1", publicKey: "pk_live", brandColor: "#6366F1" },
+				};
+			}
+			if (path === "/api/projects/p1/sources") {
+				return { source: { id: "s1", url: "https://acme.com/help" } };
+			}
+			return {};
+		});
+		const u = user();
+		renderPage();
+		await fillForm(u, { source: "https://acme.com/help" });
+
+		expect(api).toHaveBeenCalledWith(
+			"/api/projects/p1/sources",
+			expect.objectContaining({
+				method: "POST",
+				workspaceId: "ws-1",
+				body: { url: "https://acme.com/help" },
+			}),
+		);
+		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
 	});
 
 	it("provisions a workspace first when the account has none", async () => {
@@ -127,9 +194,9 @@ describe("OnboardingPage", () => {
 			}
 			return {};
 		});
-		const user = userEvent.setup();
+		const u = user();
 		renderPage();
-		await createBot(user, "Acme");
+		await fillForm(u, { name: "Acme" });
 
 		expect(api).toHaveBeenCalledWith(
 			"/api/workspaces",
@@ -139,12 +206,10 @@ describe("OnboardingPage", () => {
 			"/api/projects",
 			expect.objectContaining({ workspaceId: "ws-new" }),
 		);
-		expect(
-			await screen.findByRole("heading", { name: /add sources/i }),
-		).toBeInTheDocument();
+		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
 	});
 
-	it("self-heals a stale/foreign workspace: 403 → provision fresh → retry → sources", async () => {
+	it("self-heals a stale/foreign workspace: 403 → provision fresh → retry → live agent", async () => {
 		vi.mocked(useOnboardingState).mockReturnValue({
 			state: "needs-onboarding",
 			workspaceId: "ws-foreign",
@@ -164,70 +229,97 @@ describe("OnboardingPage", () => {
 			if (path === "/api/workspaces") return { workspace: { id: "ws-fresh" } };
 			return {};
 		});
-		const user = userEvent.setup();
+		const u = user();
 		renderPage();
-		await createBot(user, "Acme");
+		await fillForm(u, { name: "Acme" });
 
 		expect(api).toHaveBeenCalledWith(
 			"/api/workspaces",
 			expect.objectContaining({ method: "POST", body: { name: "Acme" } }),
 		);
 		expect(projectCalls).toEqual(["ws-foreign", "ws-fresh"]);
-		expect(
-			await screen.findByRole("heading", { name: /add sources/i }),
-		).toBeInTheDocument();
+		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
 	});
 
-	it("does not retry on a non-workspace error (e.g. validation 422)", async () => {
+	it("offers a retry without losing the form when provisioning fails", async () => {
 		vi.mocked(api).mockImplementation(async (path: string) => {
-			if (path === "/api/projects")
-				throw new ApiError(422, '{"error":"bad input"}');
+			if (path === "/api/projects") throw new ApiError(500, '{"error":"boom"}');
 			return {};
 		});
-		const user = userEvent.setup();
+		const u = user();
 		renderPage();
-		await createBot(user, "Acme");
+		await fillForm(u, { name: "Acme" });
 
-		// No workspace provisioning — the error isn't a workspace-auth failure;
-		// stays on the Create-your-bot step.
-		expect(api).not.toHaveBeenCalledWith("/api/workspaces", expect.anything());
 		expect(
-			screen.getByRole("heading", { name: /create your bot/i }),
+			await screen.findByRole("button", { name: /try again/i }),
 		).toBeInTheDocument();
+		expect(screen.queryByTestId("live-widget")).not.toBeInTheDocument();
+		// The form is still there with the typed name intact.
+		expect(screen.getByLabelText(/agent name/i)).toHaveValue("Acme");
+	});
+});
+
+describe("OnboardingPage — new-bot mode (already-onboarded user)", () => {
+	beforeEach(() => {
+		// ?new=1 and an existing, fully-onboarded workspace.
+		searchParams = new URLSearchParams("new=1");
+		vi.mocked(useOnboardingState).mockReturnValue({
+			state: "ready",
+			workspaceId: "ws-1",
+		});
 	});
 
-	it("adds a source to the created project", async () => {
-		vi.mocked(api).mockImplementation(async (path: string) => {
-			if (path === "/api/projects") {
-				return {
-					project: { id: "p1", publicKey: "pk_live", brandColor: "#6366F1" },
-				};
-			}
-			if (path === "/api/projects/p1/sources") {
-				return { source: { id: "s1", url: "https://acme.com/help" } };
-			}
-			return {};
-		});
-		const user = userEvent.setup();
+	it("shows the flow (not redirected to the dashboard) for a ready user", async () => {
 		renderPage();
-		await createBot(user, "Acme Tools");
+		expect(
+			await screen.findByRole("heading", {
+				name: /add another support agent/i,
+			}),
+		).toBeInTheDocument();
+		expect(replace).not.toHaveBeenCalledWith("/inbox");
+	});
 
-		await user.type(
-			screen.getByLabelText(/source url/i),
-			"https://acme.com/help",
-		);
-		await user.click(screen.getByRole("button", { name: /^add$/i }));
+	it("creates a NEW project in the existing workspace — no duplication, no new workspace, lands selected", async () => {
+		const u = user();
+		renderPage();
+		await fillForm(u, { name: "Second Bot" });
 
 		expect(api).toHaveBeenCalledWith(
-			"/api/projects/p1/sources",
+			"/api/projects",
 			expect.objectContaining({
 				method: "POST",
 				workspaceId: "ws-1",
-				body: { url: "https://acme.com/help" },
+				body: expect.objectContaining({ name: "Second Bot" }),
 			}),
 		);
+		const projectPosts = vi
+			.mocked(api)
+			.mock.calls.filter(
+				([path, opts]) =>
+					path === "/api/projects" &&
+					(opts as { method?: string } | undefined)?.method === "POST",
+			);
+		expect(projectPosts).toHaveLength(1);
+		expect(api).not.toHaveBeenCalledWith("/api/workspaces", expect.anything());
+
+		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
+		await u.click(screen.getByRole("button", { name: /go to dashboard/i }));
+		expect(push).toHaveBeenCalledWith("/settings/projects/p1");
+	});
+
+	it("does not re-provision the workspace on a 403 (no self-heal in new-bot mode)", async () => {
+		vi.mocked(api).mockImplementation(async (path: string) => {
+			if (path === "/api/projects")
+				throw new ApiError(403, '{"error":"forbidden"}');
+			return {};
+		});
+		const u = user();
+		renderPage();
+		await fillForm(u, { name: "Second Bot" });
+
 		expect(
-			await screen.findByText("https://acme.com/help"),
+			await screen.findByRole("button", { name: /try again/i }),
 		).toBeInTheDocument();
+		expect(api).not.toHaveBeenCalledWith("/api/workspaces", expect.anything());
 	});
 });

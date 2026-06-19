@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,7 +15,6 @@ import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { fieldErrors, signInSchema } from "@/lib/auth-schema";
 
 export default function SignInPage() {
-	const router = useRouter();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
@@ -38,15 +36,21 @@ export default function SignInPage() {
 			password: parsed.data.password,
 			rememberMe: remember,
 		});
-		setLoading(false);
 		if (res.error) {
+			setLoading(false);
 			toast.error("Sign in failed", {
 				description: res.error.message ?? undefined,
 			});
 			return;
 		}
 		track(ANALYTICS_EVENTS.signedIn, { method: "email" });
-		router.replace("/inbox");
+		// Hard navigation, not router.replace: the session cookie is set on the
+		// API origin, so neither SSR nor the already-initialized client session
+		// store reflects it yet — a soft nav lands on the dashboard with a stale
+		// "logged out" store and the auth gate bounces back here (the "press
+		// twice" bug). A full load re-initializes the session with the cookie
+		// present. (Revisit once crossSubDomainCookies is configured for prod.)
+		window.location.assign("/inbox");
 	}
 
 	return (

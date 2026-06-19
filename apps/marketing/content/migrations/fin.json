@@ -20,7 +20,7 @@
 		{
 			"title": "Replace the messenger embed",
 			"body": "Remove the Intercom messenger loader (Fin lives inside it) and add the Clanker Support script tag. If you're keeping Intercom for other workflows, you can run them side by side during a transition and remove the messenger once you're confident.",
-			"code": "<script\n  src=\"https://llmchat-api.meetploy.app/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
+			"code": "<script\n  src=\"https://api.clankersupport.com/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
 			"codeLabel": "Add the Clanker Support widget"
 		},
 		{

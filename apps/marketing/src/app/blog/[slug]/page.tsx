@@ -6,6 +6,9 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackView } from "@/components/TrackView";
 import { formatDate } from "@/lib/format";
+import { pageMeta } from "@/lib/seo";
+import { JsonLd } from "@/components/JsonLd";
+import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 export function generateStaticParams() {
 	return allPosts.map((p) => ({ slug: p.slug }));
@@ -19,10 +22,13 @@ export async function generateMetadata({
 	const { slug } = await params;
 	const post = allPosts.find((p) => p.slug === slug);
 	if (!post) return {};
-	return {
+	return pageMeta({
 		title: `${post.title} — Clanker Support Journal`,
 		description: post.description,
-	};
+		path: `/blog/${slug}`,
+		type: "article",
+		publishedTime: post.date,
+	});
 }
 
 export default async function PostPage({
@@ -39,8 +45,34 @@ export default async function PostPage({
 		.toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 		.slice(0, 2);
 
+	const url = `${CANONICAL_SITE_URL}/blog/${post.slug}`;
+	const articleLd = {
+		"@context": "https://schema.org",
+		"@type": "BlogPosting",
+		headline: post.title,
+		description: post.description,
+		datePublished: post.date,
+		dateModified: post.date,
+		url,
+		mainEntityOfPage: url,
+		author: {
+			"@type": "Organization",
+			name: "Clanker Support",
+			url: CANONICAL_SITE_URL,
+		},
+		publisher: {
+			"@type": "Organization",
+			name: "Clanker Support",
+			logo: {
+				"@type": "ImageObject",
+				url: `${CANONICAL_SITE_URL}/logo.svg`,
+			},
+		},
+	};
+
 	return (
 		<>
+			<JsonLd data={articleLd} />
 			<TrackView
 				event={ANALYTICS_EVENTS.blogPostRead}
 				props={{ slug: post.slug, category: post.category }}

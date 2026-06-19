@@ -3,15 +3,17 @@ import { allMigrations, matrix } from "content-collections";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CodeBlock } from "@/components/CodeBlock";
+import { pageMeta } from "@/lib/seo";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
-export const metadata = {
+export const metadata = pageMeta({
 	title: "Docs — Clanker Support",
 	description:
 		"Get started with Clanker Support: drop in the widget, train it on your docs, configure escalation, and migrate from your current support tool.",
-};
+	path: "/docs",
+});
 
 const startCards = [
 	{

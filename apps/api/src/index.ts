@@ -12,6 +12,7 @@ import { projects } from "@/routes/projects";
 import { sources } from "@/routes/sources";
 import { systemPrompts } from "@/routes/system-prompts";
 import { widgetAsset } from "@/routes/widget-asset";
+import { widgetConfig } from "@/routes/widget-config";
 import { widgetCsat } from "@/routes/widget-csat";
 import { widgetMessages } from "@/routes/widget-messages";
 import { widgetRating } from "@/routes/widget-rating";
@@ -46,8 +47,7 @@ app.use(
 
 // Public widget endpoints: allow ALL origins, unconditionally. The widget is a
 // public embed that must load on any customer site, and these routes are
-// non-credentialed, so `Access-Control-Allow-Origin: *` is valid. This does NOT
-// read WIDGET_ALLOWED_ORIGINS — the env-based gate is gone for /v1/*.
+// non-credentialed, so `Access-Control-Allow-Origin: *` is valid.
 // Per-PROJECT domain restriction (future) is enforced separately server-side
 // (against the request's project), not via this global CORS gate.
 app.use(
@@ -69,6 +69,7 @@ const billingBrowserCors = cors({
 });
 app.use("/billing/checkout", billingBrowserCors);
 app.use("/billing/portal", billingBrowserCors);
+app.use("/billing/usage", billingBrowserCors);
 
 app.on(["GET", "POST"], "/api/auth/*", (c) => {
 	const auth = createAuth(c.env);
@@ -76,6 +77,7 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => {
 });
 
 app.route("/v1", chat);
+app.route("/v1", widgetConfig);
 app.route("/v1", widgetMessages);
 app.route("/v1", widgetRating);
 app.route("/v1", widgetCsat);

@@ -1,7 +1,7 @@
 "use client";
 
-import { Headset, ThumbsDown, ThumbsUp } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useStickToBottom } from "@llmchat/widget/chat";
+import { ArrowDown, Headset, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -81,15 +81,21 @@ function MessageBubble({ message }: { message: Message }) {
 }
 
 export function MessageThread({ messages }: { messages: Message[] }) {
-	const endRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		// Guarded: jsdom (tests) doesn't implement scrollIntoView.
-		endRef.current?.scrollIntoView?.({ block: "end" });
-	}, [messages.length]);
+	const { containerRef, atBottom, scrollToBottom } =
+		useStickToBottom<HTMLDivElement>({
+			// New messages (inbound or replies) — the inbox doesn't token-stream,
+			// so message count is the growth signal.
+			contentKey: messages.length,
+			// The agent's own sends are role "admin"; following those is expected.
+			// Inbound visitor/bot messages instead obey the near-bottom rule.
+			sendKey: messages.reduce((id, m) => (m.role === "admin" ? m.id : id), ""),
+		});
 
 	return (
-		<div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-4">
+		<div
+			ref={containerRef}
+			className="relative flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-4"
+		>
 			{messages.map((m) =>
 				m.role === "system" ? (
 					<div
@@ -111,7 +117,16 @@ export function MessageThread({ messages }: { messages: Message[] }) {
 					No messages in this conversation
 				</div>
 			)}
-			<div ref={endRef} />
+			{!atBottom && messages.length > 0 && (
+				<button
+					type="button"
+					onClick={scrollToBottom}
+					aria-label="Scroll to latest message"
+					className="sticky bottom-2 ml-auto flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:-translate-y-0.5"
+				>
+					<ArrowDown className="size-4" />
+				</button>
+			)}
 		</div>
 	);
 }

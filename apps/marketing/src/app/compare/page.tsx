@@ -6,15 +6,17 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ComparisonCell } from "@/components/ComparisonCell";
 import { TrackedLink } from "@/components/TrackedLink";
+import { pageMeta } from "@/lib/seo";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
-export const metadata = {
+export const metadata = pageMeta({
 	title: "AI support, compared — Clanker Support vs. the alternatives",
 	description:
 		"How Clanker Support compares to Chatbase, Fin, Intercom, Chatwoot, and Crisp across setup, AI, escalation, channels, and pricing.",
-};
+	path: "/compare",
+});
 
 const { colOrder, colLabels, featureGroups } = matrix;
 
@@ -34,8 +36,9 @@ export default function ComparePage() {
 						<em className="font-normal italic text-accent">compared.</em>
 					</h1>
 					<p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-						An honest side-by-side of Clanker Support against Chatbase, Fin, Intercom,
-						Chatwoot, and Crisp — including where the others are stronger.
+						An honest side-by-side of Clanker Support against Chatbase, Fin,
+						Intercom, Chatwoot, and Crisp — including where the others are
+						stronger.
 					</p>
 				</section>
 

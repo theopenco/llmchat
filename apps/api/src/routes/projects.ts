@@ -3,7 +3,12 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { requireSession, requireWorkspace } from "@/middleware/session";
+import { canCreateProject, isModelAllowedForWorkspace } from "@/lib/plan";
+import {
+	requireRole,
+	requireSession,
+	requireWorkspace,
+} from "@/middleware/session";
 
 import { eq, project } from "@llmchat/db";
 import { DEFAULT_MODEL } from "@llmchat/shared";
@@ -46,22 +51,36 @@ export const projects = new Hono<AppContext>()
 		});
 		return c.json({ projects: rows });
 	})
-	.post("/projects", zValidator("json", projectInput), async (c) => {
-		const workspaceId = c.get("workspaceId");
-		const data = c.req.valid("json");
-		const [created] = await db(c.env)
-			.insert(project)
-			.values({
-				...data,
-				workspaceId,
-				publicKey: generatePublicKey(),
-				inboundEmailLocal: generateInboundLocal(),
-			})
-			.returning();
-		return c.json({ project: created });
-	})
+	.post(
+		"/projects",
+		requireRole("admin"),
+		zValidator("json", projectInput),
+		async (c) => {
+			const workspaceId = c.get("workspaceId");
+			const data = c.req.valid("json");
+			// Plan caps (402 → dashboard shows an upgrade prompt): project count,
+			// then model access for the chosen model.
+			if (!(await canCreateProject(c.env, workspaceId))) {
+				return c.json({ error: "project_limit_reached" }, 402);
+			}
+			if (!(await isModelAllowedForWorkspace(c.env, workspaceId, data.model))) {
+				return c.json({ error: "model_not_allowed" }, 402);
+			}
+			const [created] = await db(c.env)
+				.insert(project)
+				.values({
+					...data,
+					workspaceId,
+					publicKey: generatePublicKey(),
+					inboundEmailLocal: generateInboundLocal(),
+				})
+				.returning();
+			return c.json({ project: created });
+		},
+	)
 	.patch(
 		"/projects/:id",
+		requireRole("admin"),
 		zValidator("json", projectInput.partial()),
 		async (c) => {
 			const { id } = c.req.param();
@@ -74,6 +93,14 @@ export const projects = new Hono<AppContext>()
 			if (!existing) {
 				return c.json({ error: "not found" }, 404);
 			}
+			// Gate a model change against the plan's model access (only when the
+			// model is actually being changed).
+			if (
+				data.model &&
+				!(await isModelAllowedForWorkspace(c.env, workspaceId, data.model))
+			) {
+				return c.json({ error: "model_not_allowed" }, 402);
+			}
 			const [updated] = await db(c.env)
 				.update(project)
 				.set(data)
@@ -82,7 +109,7 @@ export const projects = new Hono<AppContext>()
 			return c.json({ project: updated });
 		},
 	)
-	.delete("/projects/:id", async (c) => {
+	.delete("/projects/:id", requireRole("admin"), async (c) => {
 		const { id } = c.req.param();
 		const workspaceId = c.get("workspaceId");
 		const existing = await db(c.env).query.project.findFirst({

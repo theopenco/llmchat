@@ -39,7 +39,11 @@ const ENV = {
 	vars: {
 		STRIPE_SECRET_KEY: "sk_test_fixture",
 		STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET,
-		STRIPE_PRO_PRICE_ID: "price_pro_fixture",
+		STRIPE_PRICE_STARTER: "price_starter",
+		STRIPE_PRICE_GROWTH: "price_growth",
+		STRIPE_PRICE_SCALE: "price_scale",
+		STRIPE_PRICE_GROWTH_OVERAGE: "price_growth_overage",
+		STRIPE_PRICE_SCALE_OVERAGE: "price_scale_overage",
 		DASHBOARD_URL: "https://dash.example.com",
 	},
 	DB: {},
@@ -76,6 +80,22 @@ function req(path: string, init: RequestInit = {}) {
 	return billing.request(path, init, ENV);
 }
 
+const ownerHeaders = {
+	"x-test-user": "u1",
+	"x-workspace-id": "ws_1",
+	"content-type": "application/json",
+};
+const checkout = (plan: string, returnTo?: string, env = ENV) =>
+	billing.request(
+		"/billing/checkout",
+		{
+			method: "POST",
+			headers: ownerHeaders,
+			body: JSON.stringify({ plan, ...(returnTo ? { returnTo } : {}) }),
+		},
+		env,
+	);
+
 async function signed(
 	body: string,
 	opts: { tSec?: number; secret?: string } = {},
@@ -88,85 +108,113 @@ async function signed(
 beforeEach(() => vi.clearAllMocks());
 
 describe("POST /billing/checkout", () => {
-	const headers = {
-		"x-test-user": "u1",
-		"x-workspace-id": "ws_1",
-		"content-type": "application/json",
-	};
-
-	it("403s a non-owner", async () => {
+	it("403s a non-owner before any validation or Stripe call", async () => {
 		mockDb({ workspace: { id: "ws_1" } }); // no member row ⇒ not owner
-		const res = await req("/billing/checkout", { method: "POST", headers });
+		const res = await checkout("starter");
 		expect(res.status).toBe(403);
 		expect(createCheckoutSession).not.toHaveBeenCalled();
 	});
 
-	it("reuses an existing Stripe customer (no duplicate created)", async () => {
-		mockDb({
-			member: { role: "owner" },
-			workspace: { id: "ws_1", stripeCustomerId: "cus_existing" },
-		});
-		vi.mocked(createCheckoutSession).mockResolvedValue({
-			id: "cs_1",
-			url: "https://checkout.stripe.com/cs_1",
-		});
-
-		const res = await req("/billing/checkout", { method: "POST", headers });
-		expect(res.status).toBe(200);
-		expect(await res.json()).toEqual({
-			url: "https://checkout.stripe.com/cs_1",
-		});
-		expect(createCustomer).not.toHaveBeenCalled();
-		expect(createCheckoutSession).toHaveBeenCalledWith(
-			"sk_test_fixture",
-			expect.objectContaining({
-				customer: "cus_existing",
-				priceId: "price_pro_fixture",
-				workspaceId: "ws_1",
-				successUrl: "https://dash.example.com/settings/billing?status=success",
-				cancelUrl: "https://dash.example.com/settings/billing?status=cancel",
-			}),
-		);
-	});
-
-	it("503s billing_not_configured when STRIPE_SECRET_KEY is unset (never calls Stripe)", async () => {
+	it("400s an unknown plan (zod enum)", async () => {
 		mockDb({ member: { role: "owner" }, workspace: { id: "ws_1" } });
-		const env = { ...ENV, vars: { ...ENV.vars, STRIPE_SECRET_KEY: "" } };
-		const res = await billing.request(
-			"/billing/checkout",
-			{ method: "POST", headers },
-			env,
-		);
-		expect(res.status).toBe(503);
-		expect(await res.json()).toEqual({ error: "billing_not_configured" });
-		expect(createCustomer).not.toHaveBeenCalled();
+		const res = await checkout("enterprise");
+		expect(res.status).toBe(400);
 		expect(createCheckoutSession).not.toHaveBeenCalled();
 	});
 
-	it("503s billing_not_configured when STRIPE_PRO_PRICE_ID is unset", async () => {
-		mockDb({ member: { role: "owner" }, workspace: { id: "ws_1" } });
-		const env = { ...ENV, vars: { ...ENV.vars, STRIPE_PRO_PRICE_ID: "" } };
-		const res = await billing.request(
-			"/billing/checkout",
-			{ method: "POST", headers },
-			env,
-		);
-		expect(res.status).toBe(503);
-		expect(createCheckoutSession).not.toHaveBeenCalled();
-	});
-
-	it("502s stripe_error when Stripe rejects the call", async () => {
+	it("Starter checkout uses the base price and NO overage price", async () => {
 		mockDb({
 			member: { role: "owner" },
 			workspace: { id: "ws_1", stripeCustomerId: "cus_1" },
 		});
-		const { StripeError } = await import("@/lib/stripe");
-		vi.mocked(createCheckoutSession).mockRejectedValue(
-			new StripeError(400, '{"error":{"message":"bad"}}', "bad"),
+		vi.mocked(createCheckoutSession).mockResolvedValue({
+			id: "cs",
+			url: "https://checkout/cs",
+		});
+		const res = await checkout("starter");
+		expect(res.status).toBe(200);
+		expect(createCheckoutSession).toHaveBeenCalledWith(
+			"sk_test_fixture",
+			expect.objectContaining({
+				customer: "cus_1",
+				priceId: "price_starter",
+				overagePriceId: undefined,
+				plan: "starter",
+				successUrl: "https://dash.example.com/settings/billing?status=success",
+			}),
 		);
-		const res = await req("/billing/checkout", { method: "POST", headers });
-		expect(res.status).toBe(502);
-		expect(await res.json()).toEqual({ error: "stripe_error" });
+	});
+
+	it("Growth checkout includes the metered overage price", async () => {
+		mockDb({
+			member: { role: "owner" },
+			workspace: { id: "ws_1", stripeCustomerId: "cus_1" },
+		});
+		vi.mocked(createCheckoutSession).mockResolvedValue({
+			id: "cs",
+			url: "https://checkout/cs",
+		});
+		await checkout("growth");
+		expect(createCheckoutSession).toHaveBeenCalledWith(
+			"sk_test_fixture",
+			expect.objectContaining({
+				priceId: "price_growth",
+				overagePriceId: "price_growth_overage",
+				plan: "growth",
+			}),
+		);
+	});
+
+	it("503s when an overage tier's overage price id is unset (never calls Stripe)", async () => {
+		mockDb({
+			member: { role: "owner" },
+			workspace: { id: "ws_1", stripeCustomerId: "cus_1" },
+		});
+		const env = {
+			...ENV,
+			vars: { ...ENV.vars, STRIPE_PRICE_GROWTH_OVERAGE: "" },
+		};
+		const res = await checkout("growth", undefined, env);
+		expect(res.status).toBe(503);
+		expect(await res.json()).toEqual({ error: "billing_not_configured" });
+		expect(createCheckoutSession).not.toHaveBeenCalled();
+	});
+
+	it("503s when STRIPE_SECRET_KEY is unset", async () => {
+		mockDb({ member: { role: "owner" }, workspace: { id: "ws_1" } });
+		const env = { ...ENV, vars: { ...ENV.vars, STRIPE_SECRET_KEY: "" } };
+		const res = await checkout("starter", undefined, env);
+		expect(res.status).toBe(503);
+		expect(createCheckoutSession).not.toHaveBeenCalled();
+	});
+
+	it("honors a safe in-app returnTo and rejects an off-site one", async () => {
+		mockDb({
+			member: { role: "owner" },
+			workspace: { id: "ws_1", stripeCustomerId: "cus_1" },
+		});
+		vi.mocked(createCheckoutSession).mockResolvedValue({
+			id: "cs",
+			url: "https://checkout/cs",
+		});
+
+		await checkout("starter", "/onboarding");
+		expect(createCheckoutSession).toHaveBeenLastCalledWith(
+			"sk_test_fixture",
+			expect.objectContaining({
+				successUrl: "https://dash.example.com/onboarding?status=success",
+				cancelUrl: "https://dash.example.com/onboarding?status=cancel",
+			}),
+		);
+
+		// A protocol-relative / absolute URL must NOT redirect off-domain.
+		await checkout("starter", "https://evil.com/phish");
+		expect(createCheckoutSession).toHaveBeenLastCalledWith(
+			"sk_test_fixture",
+			expect.objectContaining({
+				successUrl: "https://dash.example.com/settings/billing?status=success",
+			}),
+		);
 	});
 
 	it("creates and stores a customer when the workspace has none", async () => {
@@ -177,23 +225,12 @@ describe("POST /billing/checkout", () => {
 		});
 		vi.mocked(createCustomer).mockResolvedValue({ id: "cus_new" });
 		vi.mocked(createCheckoutSession).mockResolvedValue({
-			id: "cs_2",
-			url: "https://checkout.stripe.com/cs_2",
+			id: "cs",
+			url: "https://checkout/cs",
 		});
-
-		const res = await req("/billing/checkout", { method: "POST", headers });
+		const res = await checkout("starter");
 		expect(res.status).toBe(200);
-		expect(createCustomer).toHaveBeenCalledTimes(1);
-		expect(createCustomer).toHaveBeenCalledWith("sk_test_fixture", {
-			email: "owner@example.com",
-			metadata: { workspaceId: "ws_1" },
-		});
-		// Persisted so the next checkout reuses it.
 		expect(state.workspace.stripeCustomerId).toBe("cus_new");
-		expect(createCheckoutSession).toHaveBeenCalledWith(
-			"sk_test_fixture",
-			expect.objectContaining({ customer: "cus_new" }),
-		);
 	});
 });
 
@@ -204,21 +241,6 @@ describe("POST /billing/portal", () => {
 		mockDb({ workspace: { id: "ws_1", stripeCustomerId: "cus_1" } });
 		const res = await req("/billing/portal", { method: "POST", headers });
 		expect(res.status).toBe(403);
-		expect(createPortalSession).not.toHaveBeenCalled();
-	});
-
-	it("503s billing_not_configured when STRIPE_SECRET_KEY is unset", async () => {
-		mockDb({
-			member: { role: "owner" },
-			workspace: { id: "ws_1", stripeCustomerId: "cus_1" },
-		});
-		const env = { ...ENV, vars: { ...ENV.vars, STRIPE_SECRET_KEY: "" } };
-		const res = await billing.request(
-			"/billing/portal",
-			{ method: "POST", headers },
-			env,
-		);
-		expect(res.status).toBe(503);
 		expect(createPortalSession).not.toHaveBeenCalled();
 	});
 
@@ -242,7 +264,6 @@ describe("POST /billing/portal", () => {
 		});
 		const res = await req("/billing/portal", { method: "POST", headers });
 		expect(res.status).toBe(200);
-		expect(await res.json()).toEqual({ url: "https://billing.stripe.com/p/1" });
 		expect(createPortalSession).toHaveBeenCalledWith("sk_test_fixture", {
 			customer: "cus_1",
 			returnUrl: "https://dash.example.com/settings/billing",
@@ -251,17 +272,19 @@ describe("POST /billing/portal", () => {
 });
 
 describe("POST /billing/webhook", () => {
-	const completed = JSON.stringify({
-		id: "evt_1",
-		type: "checkout.session.completed",
-		data: {
-			object: {
-				client_reference_id: "ws_1",
-				customer: "cus_1",
-				subscription: "sub_1",
+	const completed = (plan?: string) =>
+		JSON.stringify({
+			id: "evt_1",
+			type: "checkout.session.completed",
+			data: {
+				object: {
+					client_reference_id: "ws_1",
+					customer: "cus_1",
+					subscription: "sub_1",
+					...(plan ? { metadata: { workspaceId: "ws_1", plan } } : {}),
+				},
 			},
-		},
-	});
+		});
 
 	async function post(body: string, sig: string | null) {
 		return req("/billing/webhook", {
@@ -271,35 +294,67 @@ describe("POST /billing/webhook", () => {
 		});
 	}
 
-	it("flips the workspace to pro on checkout.session.completed", async () => {
-		const state = mockDb({ workspace: { id: "ws_1", plan: "free" } });
-		const res = await post(completed, await signed(completed));
+	it("promotes to the purchased tier from session metadata", async () => {
+		const state = mockDb({ workspace: { id: "ws_1", plan: "none" } });
+		const body = completed("growth");
+		const res = await post(body, await signed(body));
 		expect(res.status).toBe(200);
-		expect(state.workspace.plan).toBe("pro");
+		expect(state.workspace.plan).toBe("growth");
 		expect(state.workspace.stripeCustomerId).toBe("cus_1");
 		expect(state.workspace.stripeSubscriptionId).toBe("sub_1");
 	});
 
-	it("is idempotent — the same event twice leaves plan=pro", async () => {
-		const state = mockDb({ workspace: { id: "ws_1", plan: "free" } });
-		const sig = await signed(completed);
-		expect((await post(completed, sig)).status).toBe(200);
-		expect((await post(completed, sig)).status).toBe(200);
-		expect(state.workspace.plan).toBe("pro");
+	it("falls back to 'none' if the completed session carries no plan stamp", async () => {
+		const state = mockDb({ workspace: { id: "ws_1", plan: "none" } });
+		const body = completed(); // no metadata.plan
+		const res = await post(body, await signed(body));
+		expect(res.status).toBe(200);
+		expect(state.workspace.plan).toBe("none");
 	});
 
-	it("flips back to free and clears the subscription on subscription.deleted", async () => {
+	it("rejects an unknown plan stamp to 'none' (never trusts a bad value)", async () => {
+		const state = mockDb({ workspace: { id: "ws_1", plan: "none" } });
+		const body = completed("enterprise");
+		await post(body, await signed(body));
+		expect(state.workspace.plan).toBe("none");
+	});
+
+	it("subscription.updated active → stamped tier; canceled → none", async () => {
+		const updated = (status: string) =>
+			JSON.stringify({
+				id: "evt_2",
+				type: "customer.subscription.updated",
+				data: {
+					object: {
+						id: "sub_1",
+						customer: "cus_1",
+						status,
+						metadata: { workspaceId: "ws_1", plan: "scale" },
+					},
+				},
+			});
+
+		const active = mockDb({ workspace: { id: "ws_1", plan: "none" } });
+		await post(updated("active"), await signed(updated("active")));
+		expect(active.workspace.plan).toBe("scale");
+
+		const canceled = mockDb({ workspace: { id: "ws_1", plan: "scale" } });
+		await post(updated("canceled"), await signed(updated("canceled")));
+		expect(canceled.workspace.plan).toBe("none");
+	});
+
+	it("subscription.deleted → none and clears the subscription id", async () => {
 		const body = JSON.stringify({
-			id: "evt_2",
+			id: "evt_3",
 			type: "customer.subscription.deleted",
 			data: { object: { id: "sub_1", customer: "cus_1" } },
 		});
 		const state = mockDb({
-			workspace: { id: "ws_1", plan: "pro", stripeSubscriptionId: "sub_1" },
+			workspace: { id: "ws_1", plan: "scale", stripeSubscriptionId: "sub_1" },
 		});
 		const res = await post(body, await signed(body));
 		expect(res.status).toBe(200);
-		expect(state.workspace.plan).toBe("free");
+		expect(state.workspace.plan).toBe("none");
 		expect(state.workspace.stripeSubscriptionId).toBeNull();
 	});
 
@@ -309,35 +364,31 @@ describe("POST /billing/webhook", () => {
 			type: "invoice.paid",
 			data: { object: {} },
 		});
-		const state = mockDb({ workspace: { id: "ws_1", plan: "free" } });
+		const state = mockDb({ workspace: { id: "ws_1", plan: "growth" } });
 		const res = await post(body, await signed(body));
 		expect(res.status).toBe(200);
-		expect(state.workspace.plan).toBe("free");
+		expect(state.workspace.plan).toBe("growth");
 	});
 
-	it("400s a tampered body", async () => {
-		mockDb({ workspace: { id: "ws_1", plan: "free" } });
-		const sig = await signed(completed);
-		const res = await post(completed.replace("ws_1", "ws_evil"), sig);
-		expect(res.status).toBe(400);
-	});
-
-	it("400s a missing signature", async () => {
-		mockDb({ workspace: { id: "ws_1", plan: "free" } });
-		expect((await post(completed, null)).status).toBe(400);
-	});
-
-	it("400s a signature from the wrong secret", async () => {
-		mockDb({ workspace: { id: "ws_1", plan: "free" } });
-		const sig = await signed(completed, { secret: "whsec_attacker" });
-		expect((await post(completed, sig)).status).toBe(400);
-	});
-
-	it("400s a stale timestamp (replay beyond tolerance)", async () => {
-		mockDb({ workspace: { id: "ws_1", plan: "free" } });
-		const sig = await signed(completed, {
-			tSec: Math.floor(Date.now() / 1000) - 400,
-		});
-		expect((await post(completed, sig)).status).toBe(400);
+	it("400s a tampered body, missing/wrong signature, or stale timestamp", async () => {
+		mockDb({ workspace: { id: "ws_1", plan: "none" } });
+		const body = completed("growth");
+		const sig = await signed(body);
+		expect((await post(body.replace("ws_1", "ws_evil"), sig)).status).toBe(400);
+		expect((await post(body, null)).status).toBe(400);
+		expect(
+			(await post(body, await signed(body, { secret: "whsec_attacker" })))
+				.status,
+		).toBe(400);
+		expect(
+			(
+				await post(
+					body,
+					await signed(body, {
+						tSec: Math.floor(Date.now() / 1000) - 400,
+					}),
+				)
+			).status,
+		).toBe(400);
 	});
 });

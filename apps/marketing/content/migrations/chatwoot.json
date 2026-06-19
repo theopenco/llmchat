@@ -20,7 +20,7 @@
 		{
 			"title": "Swap the SDK loader",
 			"body": "Remove the Chatwoot websiteToken SDK loader and drop in the Clanker Support script tag. One line replaces the loader function. The widget loads in a shadow DOM, which Chatwoot's widget doesn't do.",
-			"code": "<script\n  src=\"https://llmchat-api.meetploy.app/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
+			"code": "<script\n  src=\"https://api.clankersupport.com/widget.js\"\n  data-project=\"pk_live_xxxxxxxxxxxx\"\n  data-brand=\"#111827\"\n  defer\n></script>",
 			"codeLabel": "Add the Clanker Support widget"
 		},
 		{

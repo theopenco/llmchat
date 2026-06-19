@@ -1,11 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CreditCard } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-import { api } from "@/lib/api";
 import {
+	fetchUsage,
 	isBillingNotConfigured,
 	openPortal,
 	startCheckout,
@@ -13,11 +14,13 @@ import {
 import { useWorkspace } from "@/lib/workspace";
 import { WORKSPACES_KEY } from "@/lib/workspace-utils";
 
+import type { PaidPlan } from "@llmchat/shared";
+
 import { BillingNotice } from "./_components/BillingNotice";
 import { BillingSkeleton } from "./_components/BillingSkeleton";
 import { CurrentPlanCard } from "./_components/CurrentPlanCard";
-import { PricingTiers } from "./_components/PricingTiers";
 import { StatusBanner } from "./_components/StatusBanner";
+import { TierGrid } from "./_components/TierGrid";
 import { UsageCard } from "./_components/UsageCard";
 
 const redirect = (url: string) => {
@@ -31,57 +34,35 @@ const errorMessage = (e: unknown) =>
 		? "Billing isn't enabled yet — check back soon."
 		: "Something went wrong. Please try again in a moment.";
 
-/** Annual billing has no Stripe price yet, so the toggle is cosmetic/disabled
- * (and we don't advertise a fake annual discount). */
-function CadenceToggle() {
-	return (
-		<div className="inline-flex items-center gap-0.5 rounded-full border p-0.5 text-sm">
-			<span className="rounded-full bg-primary px-3 py-1 font-medium text-primary-foreground">
-				Monthly
-			</span>
-			<button
-				type="button"
-				disabled
-				title="Annual billing is coming soon"
-				className="cursor-not-allowed rounded-full px-3 py-1 text-muted-foreground opacity-60"
-			>
-				Yearly
-			</button>
-		</div>
-	);
-}
-
 function BillingContent() {
-	const { workspaces, workspaceId, isLoading } = useWorkspace();
+	const { workspaces, workspaceId, role, isLoading } = useWorkspace();
 	const qc = useQueryClient();
 	const params = useSearchParams();
 	const status = params.get("status");
 	const banner = status === "success" || status === "cancel" ? status : null;
 	const [error, setError] = useState<string | null>(null);
 
-	const plan = workspaces.find((w) => w.id === workspaceId)?.plan ?? "free";
+	const plan = workspaces.find((w) => w.id === workspaceId)?.plan ?? "none";
+	const isOwner = role === "owner";
 
-	// Real project count for the usage card (no fabricated message totals).
-	const projectsQ = useQuery({
-		queryKey: ["projects", workspaceId],
+	// Real usage-this-month (plan, entitlements, counts) for the meters.
+	const usageQ = useQuery({
+		queryKey: ["billing-usage", workspaceId],
 		enabled: !!workspaceId,
-		queryFn: () =>
-			api<{ projects: unknown[] }>("/api/projects", {
-				workspaceId: workspaceId!,
-			}),
+		queryFn: () => fetchUsage(workspaceId!),
 	});
-	const projectCount = projectsQ.data?.projects.length ?? null;
 
 	// Returning from a successful Checkout, the webhook may have just flipped the
-	// plan server-side — refetch the workspace so the card reflects it.
+	// plan server-side — refetch the workspace + usage so the screen reflects it.
 	useEffect(() => {
 		if (status === "success") {
 			void qc.invalidateQueries({ queryKey: WORKSPACES_KEY });
+			void qc.invalidateQueries({ queryKey: ["billing-usage", workspaceId] });
 		}
-	}, [status, qc]);
+	}, [status, qc, workspaceId]);
 
 	const checkout = useMutation({
-		mutationFn: () => startCheckout(workspaceId!),
+		mutationFn: (target: PaidPlan) => startCheckout(workspaceId!, target),
 		onMutate: () => setError(null),
 		onSuccess: redirect,
 		onError: (e) => setError(errorMessage(e)),
@@ -96,19 +77,17 @@ function BillingContent() {
 	if (isLoading || !workspaceId) return <BillingSkeleton />;
 
 	const pending = checkout.isPending || portal.isPending;
+	const selecting = checkout.isPending ? (checkout.variables ?? null) : null;
 
 	return (
 		<div className="mx-auto w-full max-w-[1100px] space-y-6 p-6">
-			<header className="flex flex-wrap items-start justify-between gap-4">
-				<div className="space-y-1">
-					<h1 className="font-display text-2xl font-semibold tracking-tight-display">
-						Billing
-					</h1>
-					<p className="text-sm text-muted-foreground">
-						Manage your workspace plan and subscription.
-					</p>
-				</div>
-				<CadenceToggle />
+			<header className="space-y-1">
+				<h1 className="font-display text-2xl font-semibold tracking-tight-display">
+					Billing
+				</h1>
+				<p className="text-sm text-muted-foreground">
+					Manage your workspace plan and subscription.
+				</p>
 			</header>
 
 			{banner && <StatusBanner status={banner} />}
@@ -117,18 +96,42 @@ function BillingContent() {
 			<div className="grid gap-4 md:grid-cols-2">
 				<CurrentPlanCard
 					plan={plan}
-					pending={pending}
-					onUpgrade={() => checkout.mutate()}
+					pending={portal.isPending}
+					disabled={!isOwner}
 					onManage={() => portal.mutate()}
 				/>
-				<UsageCard projectCount={projectCount} />
+				{usageQ.data && (
+					<UsageCard
+						usage={usageQ.data.usage}
+						entitlements={usageQ.data.entitlements}
+					/>
+				)}
 			</div>
 
-			<PricingTiers
-				currentPlan={plan}
-				pending={pending}
-				onUpgrade={() => checkout.mutate()}
-			/>
+			<div className="space-y-3">
+				<h2 className="font-display text-lg font-semibold tracking-tight-display">
+					Plans
+				</h2>
+				<TierGrid
+					currentPlan={plan}
+					selecting={selecting}
+					disabled={!isOwner || pending}
+					onSelect={(target) => checkout.mutate(target)}
+				/>
+			</div>
+
+			<div className="flex items-start gap-2.5 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+				<CreditCard className="mt-0.5 size-4 shrink-0" />
+				<p>
+					<span className="font-medium text-foreground">
+						A card is required to start.
+					</span>{" "}
+					Every plan is paid — pick a tier and add a card to put your agent
+					live. You’re billed monthly and can change or cancel anytime; pricing
+					is shown at checkout.
+					{!isOwner && " Only a workspace owner can manage billing."}
+				</p>
+			</div>
 		</div>
 	);
 }
