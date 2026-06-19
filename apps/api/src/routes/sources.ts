@@ -4,7 +4,11 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { fetchUrlContent } from "@/lib/fetch-url";
-import { requireSession, requireWorkspace } from "@/middleware/session";
+import {
+	requireRole,
+	requireSession,
+	requireWorkspace,
+} from "@/middleware/session";
 
 import { and, eq, source } from "@llmchat/db";
 
@@ -48,6 +52,7 @@ export const sources = new Hono<AppContext>()
 	})
 	.post(
 		"/projects/:projectId/sources",
+		requireRole("admin"),
 		zValidator("json", createInput),
 		async (c) => {
 			const { projectId } = c.req.param();
@@ -84,6 +89,7 @@ export const sources = new Hono<AppContext>()
 	)
 	.patch(
 		"/projects/:projectId/sources/:id",
+		requireRole("admin"),
 		zValidator("json", updateInput),
 		async (c) => {
 			const { projectId, id } = c.req.param();
@@ -133,43 +139,53 @@ export const sources = new Hono<AppContext>()
 			return c.json({ source: updated });
 		},
 	)
-	.post("/projects/:projectId/sources/:id/refresh", async (c) => {
-		const { projectId, id } = c.req.param();
-		const workspaceId = c.get("workspaceId");
-		const proj = await ensureProject(c.env, projectId, workspaceId);
-		if (!proj) return c.json({ error: "not found" }, 404);
-		const existing = await db(c.env).query.source.findFirst({
-			where: (s, { and: a, eq: e }) =>
-				a(e(s.id, id), e(s.projectId, projectId)),
-		});
-		if (!existing) return c.json({ error: "not found" }, 404);
+	.post(
+		"/projects/:projectId/sources/:id/refresh",
+		requireRole("admin"),
+		async (c) => {
+			const { projectId, id } = c.req.param();
+			const workspaceId = c.get("workspaceId");
+			const proj = await ensureProject(c.env, projectId, workspaceId);
+			if (!proj) return c.json({ error: "not found" }, 404);
+			const existing = await db(c.env).query.source.findFirst({
+				where: (s, { and: a, eq: e }) =>
+					a(e(s.id, id), e(s.projectId, projectId)),
+			});
+			if (!existing) return c.json({ error: "not found" }, 404);
 
-		const fetched = await tryFetch(existing.url);
-		const [updated] = await db(c.env)
-			.update(source)
-			.set({
-				title: fetched.error ? existing.title : fetched.title || existing.title,
-				content: fetched.error ? existing.content : fetched.content,
-				lastError: fetched.error,
-				lastFetchedAt: new Date(),
-				updatedAt: new Date(),
-			})
-			.where(and(eq(source.id, id), eq(source.projectId, projectId)))
-			.returning();
-		return c.json({ source: updated });
-	})
-	.delete("/projects/:projectId/sources/:id", async (c) => {
-		const { projectId, id } = c.req.param();
-		const workspaceId = c.get("workspaceId");
-		const proj = await ensureProject(c.env, projectId, workspaceId);
-		if (!proj) return c.json({ error: "not found" }, 404);
-		const result = await db(c.env)
-			.delete(source)
-			.where(and(eq(source.id, id), eq(source.projectId, projectId)))
-			.returning({ id: source.id });
-		if (result.length === 0) return c.json({ error: "not found" }, 404);
-		return c.json({ ok: true });
-	});
+			const fetched = await tryFetch(existing.url);
+			const [updated] = await db(c.env)
+				.update(source)
+				.set({
+					title: fetched.error
+						? existing.title
+						: fetched.title || existing.title,
+					content: fetched.error ? existing.content : fetched.content,
+					lastError: fetched.error,
+					lastFetchedAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.where(and(eq(source.id, id), eq(source.projectId, projectId)))
+				.returning();
+			return c.json({ source: updated });
+		},
+	)
+	.delete(
+		"/projects/:projectId/sources/:id",
+		requireRole("admin"),
+		async (c) => {
+			const { projectId, id } = c.req.param();
+			const workspaceId = c.get("workspaceId");
+			const proj = await ensureProject(c.env, projectId, workspaceId);
+			if (!proj) return c.json({ error: "not found" }, 404);
+			const result = await db(c.env)
+				.delete(source)
+				.where(and(eq(source.id, id), eq(source.projectId, projectId)))
+				.returning({ id: source.id });
+			if (result.length === 0) return c.json({ error: "not found" }, 404);
+			return c.json({ ok: true });
+		},
+	);
 async function tryFetch(url: string): Promise<{
 	title: string;
 	content: string;
