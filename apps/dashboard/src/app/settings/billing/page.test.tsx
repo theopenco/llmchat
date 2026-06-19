@@ -35,10 +35,12 @@ const clickUpgrade = (user: ReturnType<typeof userEvent.setup>) =>
 
 function setWorkspace(plan: Plan | null, isLoading = false) {
 	vi.mocked(useWorkspace).mockReturnValue({
-		workspaces: plan ? [{ id: "ws_1", name: "WS", plan }] : [],
+		workspaces: plan ? [{ id: "ws_1", name: "WS", plan, role: "owner" }] : [],
 		workspaceId: plan ? "ws_1" : null,
 		setWorkspaceId: vi.fn(),
 		isLoading,
+		role: plan ? "owner" : null,
+		canManage: !!plan,
 	});
 }
 

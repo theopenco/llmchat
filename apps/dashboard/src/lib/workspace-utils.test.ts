@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveWorkspaceId } from "./workspace-utils";
+import { canManage, resolveWorkspaceId } from "./workspace-utils";
 
 const ws = (...ids: string[]) =>
-	ids.map((id) => ({ id, name: id, plan: "free" as const }));
+	ids.map((id) => ({
+		id,
+		name: id,
+		plan: "free" as const,
+		role: "owner" as const,
+	}));
 
 describe("resolveWorkspaceId", () => {
 	it("returns null when the user has no workspaces", () => {
@@ -27,5 +32,18 @@ describe("resolveWorkspaceId", () => {
 
 	it("does not treat an empty string as a valid stored id", () => {
 		expect(resolveWorkspaceId("", ws("a", "b"))).toBe("a");
+	});
+});
+
+describe("canManage", () => {
+	it("grants owner and admin", () => {
+		expect(canManage("owner")).toBe(true);
+		expect(canManage("admin")).toBe(true);
+	});
+
+	it("denies agents and unresolved/unknown roles", () => {
+		expect(canManage("agent")).toBe(false);
+		expect(canManage(null)).toBe(false);
+		expect(canManage(undefined)).toBe(false);
 	});
 });

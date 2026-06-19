@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { api } from "@/lib/api";
+import { api, describeApiError } from "@/lib/api";
 
 import type { Project, Source } from "./types";
 
@@ -25,7 +25,7 @@ export function useProjectMutations(id: string, workspaceId: string | null) {
 			qc.invalidateQueries({ queryKey: ["projects"] });
 			toast.success("Project updated successfully");
 		},
-		onError: () => toast.error("Could not save project"),
+		onError: (e) => toast.error(describeApiError(e, "Could not save project")),
 	});
 
 	const remove = useMutation({
@@ -39,7 +39,8 @@ export function useProjectMutations(id: string, workspaceId: string | null) {
 			toast.success("Project deleted");
 			router.push("/settings/projects");
 		},
-		onError: () => toast.error("Could not delete project"),
+		onError: (e) =>
+			toast.error(describeApiError(e, "Could not delete project")),
 	});
 
 	const addSource = useMutation({
@@ -53,7 +54,7 @@ export function useProjectMutations(id: string, workspaceId: string | null) {
 			qc.invalidateQueries({ queryKey: ["sources", id] });
 			toast.success("Source added successfully");
 		},
-		onError: () => toast.error("Could not add source"),
+		onError: (e) => toast.error(describeApiError(e, "Could not add source")),
 	});
 
 	const refreshSource = useMutation({
@@ -66,7 +67,8 @@ export function useProjectMutations(id: string, workspaceId: string | null) {
 			qc.invalidateQueries({ queryKey: ["sources", id] });
 			toast.success("Source refreshed");
 		},
-		onError: () => toast.error("Could not refresh source"),
+		onError: (e) =>
+			toast.error(describeApiError(e, "Could not refresh source")),
 	});
 
 	const deleteSource = useMutation({
@@ -79,7 +81,7 @@ export function useProjectMutations(id: string, workspaceId: string | null) {
 			qc.invalidateQueries({ queryKey: ["sources", id] });
 			toast.success("Source removed");
 		},
-		onError: () => toast.error("Could not remove source"),
+		onError: (e) => toast.error(describeApiError(e, "Could not remove source")),
 	});
 
 	return { save, remove, addSource, refreshSource, deleteSource };

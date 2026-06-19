@@ -21,6 +21,7 @@ import { signOut } from "@/lib/auth-client";
 import { track, resetAnalytics, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { useWorkspace } from "@/lib/workspace";
 import { BrandLogo } from "@/components/brand-logo";
+import { RoleGate } from "@/components/role-gate";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -103,8 +104,9 @@ function scrollToStep(stepId: string) {
 export function AppSidebar({ userEmail }: { userEmail: string }) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const { workspaces, workspaceId, setWorkspaceId } = useWorkspace();
+	const { workspaces, workspaceId, setWorkspaceId, role } = useWorkspace();
 	const initials = userEmail.slice(0, 2).toUpperCase();
+	const roleLabel = role ? role[0].toUpperCase() + role.slice(1) : "Member";
 
 	const projectMatch = pathname.match(/^\/settings\/projects\/([^/]+)$/);
 	const currentProjectId = projectMatch?.[1] ?? null;
@@ -230,13 +232,15 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 												</DropdownMenuItem>
 											))}
 										</DropdownMenuGroup>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem
-											onClick={() => router.push("/onboarding?new=1")}
-										>
-											<Plus />
-											<span>New bot</span>
-										</DropdownMenuItem>
+										<RoleGate>
+											<DropdownMenuSeparator />
+											<DropdownMenuItem
+												onClick={() => router.push("/onboarding?new=1")}
+											>
+												<Plus />
+												<span>New bot</span>
+											</DropdownMenuItem>
+										</RoleGate>
 									</DropdownMenuContent>
 								</DropdownMenu>
 							</SidebarGroupContent>
@@ -323,7 +327,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 									<div className="grid flex-1 text-left text-sm leading-tight">
 										<span className="truncate font-medium">{userEmail}</span>
 										<span className="truncate text-xs text-muted-foreground">
-											Admin
+											{roleLabel}
 										</span>
 									</div>
 									<ChevronsUpDown className="ml-auto size-4" />

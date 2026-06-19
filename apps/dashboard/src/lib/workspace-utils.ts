@@ -5,15 +5,32 @@ import { resolveSelectedId } from "./selection";
 
 export type Plan = "free" | "pro" | "scale";
 
+/** Workspace RBAC roles, mirrored from the API. Higher roles include the
+ * capabilities of lower ones: owner ⊃ admin ⊃ agent. */
+export type WorkspaceRole = "owner" | "admin" | "agent";
+
 export interface WorkspaceSummary {
 	id: string;
 	name: string;
 	plan: Plan;
+	/** The current user's role in this workspace. */
+	role: WorkspaceRole;
 }
 
-/** Shape of the API's /api/workspaces response. */
+/** Shape of the API's /api/workspaces response — a join row pairing each
+ * workspace with the caller's membership role. */
 export interface WorkspacesResponse {
-	workspaces: { workspace: WorkspaceSummary }[];
+	workspaces: {
+		workspace: Omit<WorkspaceSummary, "role">;
+		role: WorkspaceRole;
+	}[];
+}
+
+/** Whether a role may perform workspace-management actions (create/edit/delete
+ * projects, manage sources & prompts). Agents are support-only: they work the
+ * inbox but can't reconfigure bots. Mirrors the API's requireRole("admin"). */
+export function canManage(role: WorkspaceRole | null | undefined): boolean {
+	return role === "owner" || role === "admin";
 }
 
 /** Shared react-query key so server prefetch and the client provider hydrate
