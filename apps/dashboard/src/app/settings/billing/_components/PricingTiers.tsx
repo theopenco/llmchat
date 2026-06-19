@@ -1,83 +1,16 @@
 import { Check } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import type { Plan } from "@/lib/workspace-utils";
 
-import { PRICING_TIERS, type PricingTier } from "./billing-plans";
+import { PRO_TIER } from "./billing-plans";
 
-function TierCard({
-	tier,
-	currentPlan,
-	pending,
-	onUpgrade,
-}: {
-	tier: PricingTier;
-	currentPlan: Plan;
-	pending: boolean;
-	onUpgrade: () => void;
-}) {
-	const isCurrent = tier.plan === currentPlan;
-
-	function action() {
-		if (isCurrent) {
-			return (
-				<Button variant="outline" className="w-full" disabled>
-					Current plan
-				</Button>
-			);
-		}
-		if (tier.id === "pro") {
-			return (
-				<Button className="w-full" onClick={onUpgrade} disabled={pending}>
-					{pending ? "Redirecting…" : "Upgrade to Pro"}
-				</Button>
-			);
-		}
-		// Free tier while on a paid plan: no self-serve downgrade.
-		return (
-			<Button variant="outline" className="w-full" disabled>
-				Free plan
-			</Button>
-		);
-	}
-
-	return (
-		<div
-			className={cn(
-				"relative flex flex-col rounded-2xl border bg-card p-6",
-				tier.popular && "ring-1 ring-primary",
-			)}
-		>
-			{tier.popular && (
-				<Badge className="absolute right-4 top-4">Most popular</Badge>
-			)}
-			<h3 className="font-display text-lg font-semibold tracking-tight-display">
-				{tier.name}
-			</h3>
-			<div className="mt-2 flex items-baseline gap-1">
-				<span className="text-3xl font-semibold tracking-tight-display">
-					{tier.price}
-				</span>
-				<span className="text-sm text-muted-foreground">/ month</span>
-			</div>
-			<p className="mt-1 text-sm text-muted-foreground">{tier.tagline}</p>
-
-			<ul className="mt-5 flex flex-1 flex-col gap-2.5">
-				{tier.features.map((f) => (
-					<li key={f} className="flex items-start gap-2 text-sm">
-						<Check className="mt-0.5 size-4 shrink-0 text-primary" />
-						<span>{f}</span>
-					</li>
-				))}
-			</ul>
-
-			<div className="mt-6">{action()}</div>
-		</div>
-	);
-}
-
+/**
+ * The single hosted tier (Pro). With the free tier removed there's nothing to
+ * compare against, so this renders one full-width card — no tier grid and no
+ * "Most popular" badge (which would be meaningless with one option). Features
+ * are capabilities only; usage limits are intentionally not listed.
+ */
 export function PricingTiers({
 	currentPlan,
 	pending,
@@ -87,17 +20,50 @@ export function PricingTiers({
 	pending: boolean;
 	onUpgrade: () => void;
 }) {
+	const isCurrent = currentPlan === PRO_TIER.plan;
+
 	return (
-		<div className="grid gap-4 sm:grid-cols-2">
-			{PRICING_TIERS.map((tier) => (
-				<TierCard
-					key={tier.id}
-					tier={tier}
-					currentPlan={currentPlan}
-					pending={pending}
-					onUpgrade={onUpgrade}
-				/>
-			))}
-		</div>
+		<section className="rounded-2xl border bg-card p-6">
+			<div className="flex flex-wrap items-start justify-between gap-4">
+				<div>
+					<h3 className="font-display text-lg font-semibold tracking-tight-display">
+						{PRO_TIER.name}
+					</h3>
+					<div className="mt-2 flex items-baseline gap-1">
+						<span className="text-3xl font-semibold tracking-tight-display">
+							{PRO_TIER.price}
+						</span>
+						<span className="text-sm text-muted-foreground">/ month</span>
+					</div>
+					<p className="mt-1 text-sm text-muted-foreground">
+						{PRO_TIER.tagline}
+					</p>
+				</div>
+				<div className="w-full sm:w-auto">
+					{isCurrent ? (
+						<Button variant="outline" className="w-full sm:w-auto" disabled>
+							Current plan
+						</Button>
+					) : (
+						<Button
+							className="w-full sm:w-auto"
+							onClick={onUpgrade}
+							disabled={pending}
+						>
+							{pending ? "Redirecting…" : "Upgrade to Pro"}
+						</Button>
+					)}
+				</div>
+			</div>
+
+			<ul className="mt-5 grid gap-2.5 sm:grid-cols-2">
+				{PRO_TIER.features.map((f) => (
+					<li key={f} className="flex items-start gap-2 text-sm">
+						<Check className="mt-0.5 size-4 shrink-0 text-primary" />
+						<span>{f}</span>
+					</li>
+				))}
+			</ul>
+		</section>
 	);
 }

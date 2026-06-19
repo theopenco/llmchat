@@ -72,15 +72,34 @@ describe("BillingPage", () => {
 		expect(screen.queryByText("Current plan")).not.toBeInTheDocument();
 	});
 
-	it("free plan → upgrade starts checkout for the workspace", async () => {
+	it("no subscription → upgrade starts checkout for the workspace", async () => {
 		setWorkspace("free");
 		vi.mocked(startCheckout).mockResolvedValue("https://checkout.stripe.com/x");
 		renderPage();
 
-		expect(screen.getAllByText("Free").length).toBeGreaterThan(0);
+		// A non-paying workspace is shown as "No subscription", never a Free plan.
+		expect(screen.getByText("No subscription")).toBeInTheDocument();
 		await clickUpgrade(userEvent.setup());
 		expect(startCheckout).toHaveBeenCalledWith("ws_1");
 		expect(openPortal).not.toHaveBeenCalled();
+	});
+
+	// Data honesty: the free tier is gone and we never render invented prices or
+	// usage limits while usage-based pricing is still TBD.
+	it("never shows a Free tier, a $0 price, or fabricated message limits", () => {
+		setWorkspace("free");
+		renderPage();
+
+		expect(screen.queryByText(/free/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/\$0/)).not.toBeInTheDocument();
+		expect(
+			screen.queryByText(/messages?\s*\/\s*month/i),
+		).not.toBeInTheDocument();
+		expect(screen.queryByText(/1,000|10,000/)).not.toBeInTheDocument();
+		// The honest forward-looking notice is present instead.
+		expect(
+			screen.getByText(/usage-based pricing is on the way/i),
+		).toBeInTheDocument();
 	});
 
 	it("pro plan → manage opens the billing portal", async () => {
