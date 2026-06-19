@@ -20,7 +20,7 @@ export async function captureEvent(
 ): Promise<void> {
 	const apiKey = env.vars.POSTHOG_API_KEY;
 	if (!apiKey) return;
-	const host = env.vars.POSTHOG_HOST || "https://us.i.posthog.com";
+	const host = env.vars.POSTHOG_HOST || "https://eu.i.posthog.com";
 
 	try {
 		await fetch(`${host}/capture/`, {

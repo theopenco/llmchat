@@ -1,6 +1,13 @@
 import { z } from "zod";
 
 export * from "./analytics";
+export {
+	CONSENT_STORAGE_KEY,
+	type ConsentValue,
+	getStoredConsent,
+	isConsentRequiredRegion,
+	setStoredConsent,
+} from "./consent";
 export { resolveSiblingUrl } from "./preview-url";
 export {
 	DEFAULT_MODEL,
