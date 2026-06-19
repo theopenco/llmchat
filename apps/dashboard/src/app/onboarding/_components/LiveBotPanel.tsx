@@ -45,7 +45,7 @@ export function LiveBotPanel({
 					Live
 				</span>
 				<h1 className="mt-3 font-display text-2xl font-semibold tracking-tight-display">
-					Meet {project.name} — your bot is ready
+					Meet {project.name} — your agent is ready
 				</h1>
 				<p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
 					Say hi below to try it, exactly as your visitors will. Then drop the
@@ -74,7 +74,8 @@ export function LiveBotPanel({
 				    reachable, so a model hiccup (e.g. no LLM key on preview) never
 				    blocks finishing onboarding. */}
 				<p className="mt-3 text-center text-xs text-muted-foreground">
-					Bot not responding? You can still grab your snippet and finish below.
+					Agent not responding? You can still grab your snippet and finish
+					below.
 				</p>
 			</div>
 

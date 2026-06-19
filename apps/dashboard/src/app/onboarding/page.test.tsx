@@ -28,9 +28,9 @@ vi.mock("@/lib/api", async (orig) => ({
 	api: vi.fn(),
 }));
 
-// The widget package is exercised in its own suite; here we stub the chat
-// primitives to a minimal text UI so we can drive the conversation, and the
-// live Widget to a marker (it would otherwise open a real /v1/chat transport).
+// The widget package is exercised in its own suite. Stub the chat primitives the
+// live preview uses, and the live Widget (the payoff) to a marker so it doesn't
+// open a real /v1/chat transport.
 vi.mock("@llmchat/widget/styles", () => ({ widgetStyles: "" }));
 vi.mock("@llmchat/widget", () => ({
 	Widget: () => <div data-testid="live-widget" />,
@@ -39,46 +39,7 @@ vi.mock("@llmchat/widget/chat", () => ({
 	WidgetFrame: ({ children }: { children: React.ReactNode }) => (
 		<div>{children}</div>
 	),
-	MessageList: ({
-		messages,
-		error,
-	}: {
-		messages: { id: string; content: string }[];
-		error: string | null;
-	}) => (
-		<div>
-			{messages.map((m) => (
-				<p key={m.id}>{m.content}</p>
-			))}
-			{error && <div role="alert">{error}</div>}
-		</div>
-	),
-	Composer: ({
-		value,
-		disabled,
-		onChange,
-		onSubmit,
-	}: {
-		value: string;
-		disabled: boolean;
-		onChange: (v: string) => void;
-		onSubmit: () => void;
-	}) => (
-		<form
-			onSubmit={(e) => {
-				e.preventDefault();
-				onSubmit();
-			}}
-		>
-			<textarea
-				aria-label="Message"
-				value={value}
-				disabled={disabled}
-				onChange={(e) => onChange(e.target.value)}
-			/>
-			<button type="submit">Send</button>
-		</form>
-	),
+	MessageList: ({ greeting }: { greeting: string }) => <p>{greeting}</p>,
 }));
 
 function renderPage() {
@@ -94,31 +55,22 @@ function renderPage() {
 
 const user = () => userEvent.setup();
 
-async function answerText(u: ReturnType<typeof userEvent.setup>, text: string) {
-	const box = await screen.findByLabelText(/message/i);
-	await u.clear(box);
-	await u.type(box, text);
-	await u.click(screen.getByRole("button", { name: /send/i }));
-}
-
-/** Walk the scripted interview: name → welcome (use suggested) → brand → source. */
-async function interview(
+/** Fill the setup form and submit. Welcome/brand keep their defaults unless a
+ * caller overrides; source is optional. */
+async function fillForm(
 	u: ReturnType<typeof userEvent.setup>,
-	opts: { name?: string; color?: RegExp; source?: string } = {},
+	opts: { name?: string; source?: string } = {},
 ) {
-	const { name = "Acme Tools", color = /indigo/i, source } = opts;
-
-	await answerText(u, name); // name
-	await screen.findByText(/greet visitors/i); // welcome prompt
-	await u.click(screen.getByRole("button", { name: /send/i })); // accept prefilled
-	await screen.findByText(/brand color/i); // brand prompt
-	await u.click(screen.getByRole("button", { name: color })); // pick color chip
-	await screen.findByText(/website or docs/i); // source prompt
+	const { name = "Acme Tools", source } = opts;
+	const nameField = await screen.findByLabelText(/agent name/i);
+	await u.clear(nameField);
+	await u.type(nameField, name);
 	if (source) {
-		await answerText(u, source);
-	} else {
-		await u.click(screen.getByRole("button", { name: /skip for now/i }));
+		await u.type(screen.getByLabelText(/website to learn from/i), source);
 	}
+	await u.click(
+		screen.getByRole("button", { name: /create (my|this) agent/i }),
+	);
 }
 
 beforeEach(() => {
@@ -142,25 +94,39 @@ beforeEach(() => {
 	});
 });
 
-describe("OnboardingPage (conversational)", () => {
-	it("opens with the concierge interview, not a form", async () => {
+describe("OnboardingPage (form redesign)", () => {
+	it("opens with a plain form and a live preview — not a chat", async () => {
 		renderPage();
 		expect(
 			await screen.findByRole("heading", {
-				name: /build your support bot/i,
+				name: /build your support agent/i,
 			}),
 		).toBeInTheDocument();
-		// The concierge has greeted and asked the first question.
-		expect(await screen.findByText(/setup assistant/i)).toBeInTheDocument();
+		// The real fields are present…
+		expect(screen.getByLabelText(/agent name/i)).toBeInTheDocument();
+		expect(screen.getByLabelText(/welcome message/i)).toBeInTheDocument();
 		expect(
-			await screen.findByText(/what's your business or product called/i),
+			screen.getByRole("button", { name: /create my agent/i }),
 		).toBeInTheDocument();
+		// …and the old concierge chat is gone.
+		expect(screen.queryByText(/setup assistant/i)).not.toBeInTheDocument();
 	});
 
-	it("provisions the project from the interview answers, then reveals the live bot", async () => {
+	it("requires a name before it will provision", async () => {
 		const u = user();
 		renderPage();
-		await interview(u, { name: "Acme Tools" });
+		// Submit with the name empty.
+		await u.click(screen.getByRole("button", { name: /create my agent/i }));
+		expect(
+			await screen.findByText(/give your agent a name/i),
+		).toBeInTheDocument();
+		expect(api).not.toHaveBeenCalledWith("/api/projects", expect.anything());
+	});
+
+	it("provisions the project from the form, then reveals the live agent", async () => {
+		const u = user();
+		renderPage();
+		await fillForm(u, { name: "Acme Tools" });
 
 		expect(api).toHaveBeenCalledWith(
 			"/api/projects",
@@ -170,15 +136,15 @@ describe("OnboardingPage (conversational)", () => {
 				body: expect.objectContaining({
 					name: "Acme Tools",
 					systemPrompt: expect.stringContaining("Acme Tools"),
-					welcomeMessage: expect.stringContaining("Acme Tools"),
-					brandColor: "#6366F1",
+					welcomeMessage: expect.stringContaining("How can I help"),
+					brandColor: "#6366F1", // Indigo default
 				}),
 			}),
 		);
 		// No workspace creation needed — one already resolved.
 		expect(api).not.toHaveBeenCalledWith("/api/workspaces", expect.anything());
 
-		// Payoff: the real bot is mounted and the embed snippet shows the key.
+		// Payoff: the real agent is mounted and the embed snippet shows the key.
 		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
 		const snippet = document.querySelector("pre")?.textContent ?? "";
 		expect(snippet).toContain("pk_live");
@@ -187,7 +153,7 @@ describe("OnboardingPage (conversational)", () => {
 		expect(push).toHaveBeenCalledWith("/settings/projects/p1");
 	});
 
-	it("adds a knowledge source when the user gives a URL instead of skipping", async () => {
+	it("adds a knowledge source when a URL is provided", async () => {
 		vi.mocked(api).mockImplementation(async (path: string) => {
 			if (path === "/api/projects") {
 				return {
@@ -201,7 +167,7 @@ describe("OnboardingPage (conversational)", () => {
 		});
 		const u = user();
 		renderPage();
-		await interview(u, { source: "https://acme.com/help" });
+		await fillForm(u, { source: "https://acme.com/help" });
 
 		expect(api).toHaveBeenCalledWith(
 			"/api/projects/p1/sources",
@@ -230,7 +196,7 @@ describe("OnboardingPage (conversational)", () => {
 		});
 		const u = user();
 		renderPage();
-		await interview(u, { name: "Acme" });
+		await fillForm(u, { name: "Acme" });
 
 		expect(api).toHaveBeenCalledWith(
 			"/api/workspaces",
@@ -243,7 +209,7 @@ describe("OnboardingPage (conversational)", () => {
 		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
 	});
 
-	it("self-heals a stale/foreign workspace: 403 → provision fresh → retry → live bot", async () => {
+	it("self-heals a stale/foreign workspace: 403 → provision fresh → retry → live agent", async () => {
 		vi.mocked(useOnboardingState).mockReturnValue({
 			state: "needs-onboarding",
 			workspaceId: "ws-foreign",
@@ -265,7 +231,7 @@ describe("OnboardingPage (conversational)", () => {
 		});
 		const u = user();
 		renderPage();
-		await interview(u, { name: "Acme" });
+		await fillForm(u, { name: "Acme" });
 
 		expect(api).toHaveBeenCalledWith(
 			"/api/workspaces",
@@ -275,20 +241,21 @@ describe("OnboardingPage (conversational)", () => {
 		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
 	});
 
-	it("offers a retry without losing answers when provisioning fails", async () => {
+	it("offers a retry without losing the form when provisioning fails", async () => {
 		vi.mocked(api).mockImplementation(async (path: string) => {
 			if (path === "/api/projects") throw new ApiError(500, '{"error":"boom"}');
 			return {};
 		});
 		const u = user();
 		renderPage();
-		await interview(u, { name: "Acme" });
+		await fillForm(u, { name: "Acme" });
 
-		// Stayed in the chat; a retry affordance appears (no live widget yet).
 		expect(
 			await screen.findByRole("button", { name: /try again/i }),
 		).toBeInTheDocument();
 		expect(screen.queryByTestId("live-widget")).not.toBeInTheDocument();
+		// The form is still there with the typed name intact.
+		expect(screen.getByLabelText(/agent name/i)).toHaveValue("Acme");
 	});
 });
 
@@ -305,7 +272,9 @@ describe("OnboardingPage — new-bot mode (already-onboarded user)", () => {
 	it("shows the flow (not redirected to the dashboard) for a ready user", async () => {
 		renderPage();
 		expect(
-			await screen.findByRole("heading", { name: /build another bot/i }),
+			await screen.findByRole("heading", {
+				name: /add another support agent/i,
+			}),
 		).toBeInTheDocument();
 		expect(replace).not.toHaveBeenCalledWith("/inbox");
 	});
@@ -313,9 +282,8 @@ describe("OnboardingPage — new-bot mode (already-onboarded user)", () => {
 	it("creates a NEW project in the existing workspace — no duplication, no new workspace, lands selected", async () => {
 		const u = user();
 		renderPage();
-		await interview(u, { name: "Second Bot" });
+		await fillForm(u, { name: "Second Bot" });
 
-		// New project created in the existing workspace…
 		expect(api).toHaveBeenCalledWith(
 			"/api/projects",
 			expect.objectContaining({
@@ -324,7 +292,6 @@ describe("OnboardingPage — new-bot mode (already-onboarded user)", () => {
 				body: expect.objectContaining({ name: "Second Bot" }),
 			}),
 		);
-		// …exactly once (no duplicate creation)…
 		const projectPosts = vi
 			.mocked(api)
 			.mock.calls.filter(
@@ -333,10 +300,8 @@ describe("OnboardingPage — new-bot mode (already-onboarded user)", () => {
 					(opts as { method?: string } | undefined)?.method === "POST",
 			);
 		expect(projectPosts).toHaveLength(1);
-		// …and the workspace is never re-provisioned.
 		expect(api).not.toHaveBeenCalledWith("/api/workspaces", expect.anything());
 
-		// Finishing lands on the new project (selected via its settings route).
 		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
 		await u.click(screen.getByRole("button", { name: /go to dashboard/i }));
 		expect(push).toHaveBeenCalledWith("/settings/projects/p1");
@@ -350,9 +315,8 @@ describe("OnboardingPage — new-bot mode (already-onboarded user)", () => {
 		});
 		const u = user();
 		renderPage();
-		await interview(u, { name: "Second Bot" });
+		await fillForm(u, { name: "Second Bot" });
 
-		// Surfaces as an error + retry; never spawns a workspace.
 		expect(
 			await screen.findByRole("button", { name: /try again/i }),
 		).toBeInTheDocument();

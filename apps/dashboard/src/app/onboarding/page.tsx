@@ -16,9 +16,10 @@ import { defaultSystemPrompt } from "@/lib/onboarding";
 import { useOnboardingState } from "@/lib/use-onboarding";
 import { useWorkspace } from "@/lib/workspace";
 
-import { ConciergeChat } from "./_components/ConciergeChat";
-import { type BotDraft } from "./_components/concierge-script";
+import { initialDraft, type BotDraft } from "./_components/bot-form";
 import { LiveBotPanel, type LiveProject } from "./_components/LiveBotPanel";
+import { LivePreview } from "./_components/LivePreview";
+import { OnboardingForm } from "./_components/OnboardingForm";
 import { OnboardingSkeleton } from "./_components/OnboardingSkeleton";
 
 interface CreatedProject extends LiveProject {
@@ -33,13 +34,15 @@ function OnboardingFlow() {
 	const { state, workspaceId } = useOnboardingState();
 	const { setWorkspaceId } = useWorkspace();
 
-	// "New bot" mode: an already-onboarded user adding another bot to their
+	// "New bot" mode: an already-onboarded user adding another agent to their
 	// existing workspace. Reuses the whole flow but skips first-run-only routing.
 	const newBot = useSearchParams().get("new") === "1";
 
+	// The form draft is lifted here so the live preview (sibling) reflects it.
+	const [draft, setDraft] = useState<BotDraft>(initialDraft);
 	const [busy, setBusy] = useState(false);
 	const [created, setCreated] = useState<CreatedProject | null>(null);
-	const [setupError, setSetupError] = useState<BotDraft | null>(null);
+	const [failed, setFailed] = useState(false);
 
 	// Send unauthenticated visitors to sign-in.
 	useEffect(() => {
@@ -51,8 +54,8 @@ function OnboardingFlow() {
 		if (!newBot) track(ANALYTICS_EVENTS.onboardingStarted);
 	}, [newBot]);
 
-	// Warm the live-widget chunk (AI SDK) during the interview so the payoff is
-	// instant — it's lazy-loaded in LiveBotPanel to stay out of the initial load.
+	// Warm the live-widget chunk (AI SDK) while they fill the form so the payoff
+	// is instant — it's lazy-loaded in LiveBotPanel to stay out of the initial load.
 	useEffect(() => {
 		void import("@llmchat/widget");
 	}, []);
@@ -76,24 +79,24 @@ function OnboardingFlow() {
 		return workspace.id;
 	}
 
-	async function createProject(wsId: string, draft: BotDraft) {
+	async function createProject(wsId: string, d: BotDraft) {
 		const { project } = await api<{
 			project: { id: string; publicKey: string; brandColor: string };
 		}>("/api/projects", {
 			method: "POST",
 			workspaceId: wsId,
 			body: {
-				name: draft.name,
-				systemPrompt: defaultSystemPrompt(draft.name),
-				welcomeMessage: draft.welcomeMessage,
-				brandColor: draft.brandColor,
+				name: d.name,
+				systemPrompt: defaultSystemPrompt(d.name),
+				welcomeMessage: d.welcomeMessage,
+				brandColor: d.brandColor,
 			},
 		});
 		await qc.invalidateQueries({ queryKey: ["projects", wsId] });
 		return project;
 	}
 
-	// Interview complete → provision the project.
+	// Form submitted → provision the project.
 	//
 	// First-run: create on the resolved workspace; on a workspace-auth rejection
 	// (absent / stale / foreign id) provision a fresh one and retry once so a
@@ -102,9 +105,9 @@ function OnboardingFlow() {
 	// New-bot: the workspace already exists and is resolved (the guard waits for
 	// it), so we always create a *new* project inside it and never re-provision
 	// the workspace — a 403 surfaces as an error instead of spawning a workspace.
-	async function handleComplete(draft: BotDraft) {
+	async function handleComplete() {
 		setBusy(true);
-		setSetupError(null);
+		setFailed(false);
 		try {
 			let wsId = workspaceId ?? (await provisionWorkspace(draft.name));
 			let project: { id: string; publicKey: string; brandColor: string };
@@ -117,7 +120,7 @@ function OnboardingFlow() {
 			}
 
 			// Optional knowledge source — non-fatal: a fetch failure must not block
-			// the user from meeting their bot. They can add sources later.
+			// the user from meeting their agent. They can add sources later.
 			if (draft.sourceUrl) {
 				try {
 					await api(`/api/projects/${project.id}/sources`, {
@@ -144,9 +147,9 @@ function OnboardingFlow() {
 			});
 			if (!newBot) track(ANALYTICS_EVENTS.onboardingCompleted);
 		} catch (e) {
-			setSetupError(draft);
+			setFailed(true);
 			setBusy(false);
-			toast.error("Couldn't create your bot", {
+			toast.error("Couldn't create your agent", {
 				description: e instanceof Error ? e.message : undefined,
 			});
 		}
@@ -175,9 +178,9 @@ function OnboardingFlow() {
 				<div className="absolute right-[-6rem] top-1/3 h-[28rem] w-[28rem] rounded-full bg-violet-600/10 blur-3xl dark:bg-violet-600/15" />
 			</div>
 
-			<div className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
+			<div className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-10 px-4 py-10 sm:px-6">
 				{created ? (
-					<div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+					<div className="animate-in fade-in slide-in-from-bottom-2 mx-auto w-full max-w-2xl duration-500">
 						<LiveBotPanel
 							project={created}
 							onFinish={() => router.push(`/settings/projects/${created.id}`)}
@@ -189,37 +192,41 @@ function OnboardingFlow() {
 							<BrandLogo className="size-11" />
 							<h1 className="font-display text-3xl font-semibold tracking-tight-display">
 								{newBot
-									? "Let's build another bot"
-									: "Let's build your support bot"}
+									? "Add another support agent"
+									: "Let's build your support agent"}
 							</h1>
 							<p className="max-w-md text-balance text-sm text-muted-foreground">
-								No forms, no setup wizard. Just chat with the assistant below —
-								it builds your bot from your answers as you go.
+								Fill in the details and watch your agent come to life on the
+								right. Live in about a minute.
 							</p>
 						</header>
 
-						<div className="mx-auto w-full max-w-sm">
-							<div className="relative h-[34rem] overflow-hidden rounded-2xl border border-border shadow-xl">
-								<ConciergeChat onComplete={handleComplete} busy={busy} />
-							</div>
+						<div className="grid items-start gap-8 lg:grid-cols-2">
+							<OnboardingForm
+								draft={draft}
+								onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+								onSubmit={handleComplete}
+								busy={busy}
+								primaryLabel={newBot ? "Create this agent" : "Create my agent"}
+							/>
 
-							{setupError ? (
-								<div className="mt-4 flex flex-col items-center gap-2 text-center">
-									<p className="text-sm text-destructive">
-										Something went wrong creating your bot.
-									</p>
-									<Button
-										variant="outline"
-										onClick={() => handleComplete(setupError)}
-									>
-										Try again
-									</Button>
-								</div>
-							) : (
-								<p className="mt-4 text-center text-xs text-muted-foreground">
-									Free to start · No code · About a minute
-								</p>
-							)}
+							<div className="lg:sticky lg:top-10">
+								<LivePreview
+									name={draft.name}
+									welcomeMessage={draft.welcomeMessage}
+									brandColor={draft.brandColor}
+								/>
+								{failed && (
+									<div className="mt-4 flex flex-col items-center gap-2 text-center">
+										<p className="text-sm text-destructive">
+											Something went wrong creating your agent.
+										</p>
+										<Button variant="outline" onClick={handleComplete}>
+											Try again
+										</Button>
+									</div>
+								)}
+							</div>
 						</div>
 					</>
 				)}
