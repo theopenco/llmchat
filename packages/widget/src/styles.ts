@@ -303,6 +303,29 @@ export const widgetStyles = `
 	border-radius: 9999px;
 	border: 2px solid #fff;
 }
+/* "Scroll to latest": sticky so it floats at the bottom of the scroll area
+   while the visitor reads earlier messages during a streaming reply. */
+.llmchat-jump {
+	position: sticky;
+	bottom: 0.25rem;
+	align-self: center;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	margin-top: 0.25rem;
+	border: none;
+	border-radius: 9999px;
+	background: var(--brand);
+	color: #fff;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+	transition: transform 0.12s ease;
+}
+.llmchat-jump:hover {
+	transform: translateY(-1px);
+}
 .llmchat-msg {
 	max-width: 85%;
 	padding: 0.5rem 0.75rem;

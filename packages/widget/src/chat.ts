@@ -4,3 +4,8 @@
 export { Composer } from "./components/Composer";
 export { MessageList, type DisplayMessage } from "./components/MessageList";
 export { WidgetFrame } from "./components/WidgetFrame";
+export {
+	useStickToBottom,
+	type StickToBottom,
+	type StickToBottomOptions,
+} from "./hooks/useStickToBottom";
