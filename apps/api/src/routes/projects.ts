@@ -3,7 +3,11 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { canCreateProject, isModelAllowedForWorkspace } from "@/lib/plan";
+import {
+	isModelAllowedForWorkspace,
+	projectCount,
+	resolveAccess,
+} from "@/lib/plan";
 import {
 	requireRole,
 	requireSession,
@@ -11,7 +15,12 @@ import {
 } from "@/middleware/session";
 
 import { eq, project } from "@llmchat/db";
-import { DEFAULT_MODEL } from "@llmchat/shared";
+import {
+	DEFAULT_MODEL,
+	isModelAllowed,
+	isPaidPlan,
+	isWithinLimit,
+} from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 
@@ -58,12 +67,21 @@ export const projects = new Hono<AppContext>()
 		async (c) => {
 			const workspaceId = c.get("workspaceId");
 			const data = c.req.valid("json");
-			// Plan caps (402 → dashboard shows an upgrade prompt): project count,
-			// then model access for the chosen model.
-			if (!(await canCreateProject(c.env, workspaceId))) {
+			// Paywall (server-side, non-bypassable): a non-exempt workspace with no
+			// active subscription can't build at all — paid-only, hard gate before
+			// onboarding. Then the per-tier project-count cap and model access.
+			const { exempt, plan, entitlements } = await resolveAccess(
+				c.env,
+				workspaceId,
+			);
+			if (!exempt && !isPaidPlan(plan)) {
+				return c.json({ error: "subscription_required" }, 402);
+			}
+			const count = await projectCount(c.env, workspaceId);
+			if (!isWithinLimit(count, entitlements.maxProjects)) {
 				return c.json({ error: "project_limit_reached" }, 402);
 			}
-			if (!(await isModelAllowedForWorkspace(c.env, workspaceId, data.model))) {
+			if (!exempt && !isModelAllowed(plan, data.model)) {
 				return c.json({ error: "model_not_allowed" }, 402);
 			}
 			const [created] = await db(c.env)

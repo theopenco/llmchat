@@ -1,9 +1,7 @@
 import { Hono } from "hono";
 
 import { db } from "@/lib/db";
-import { workspacePlan } from "@/lib/plan";
-
-import { showPoweredByBadge } from "@llmchat/shared";
+import { resolveAccess } from "@/lib/plan";
 
 import type { AppContext } from "@/env";
 
@@ -25,7 +23,9 @@ export const widgetConfig = new Hono<AppContext>().get(
 		if (!project) {
 			return c.json({ error: "invalid project key" }, 404);
 		}
-		const plan = await workspacePlan(c.env, project.workspaceId);
-		return c.json({ showBranding: showPoweredByBadge(plan) });
+		// Branding follows the resolved tier: exempt/internal and Growth/Scale
+		// suppress the badge; Starter (and unpaid) show it.
+		const { entitlements } = await resolveAccess(c.env, project.workspaceId);
+		return c.json({ showBranding: entitlements.branding === "badge" });
 	},
 );

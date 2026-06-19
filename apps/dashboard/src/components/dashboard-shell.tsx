@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { BrandLogo } from "@/components/brand-logo";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
+import { LaunchBanner } from "@/components/launch-banner";
 import {
 	SidebarInset,
 	SidebarProvider,
@@ -56,7 +57,10 @@ export function DashboardShell({
 						Clanker Support
 					</span>
 				</header>
-				<main className="flex-1">{children}</main>
+				<main className="flex-1">
+					<LaunchBanner />
+					{children}
+				</main>
 			</SidebarInset>
 		</SidebarProvider>
 	);
