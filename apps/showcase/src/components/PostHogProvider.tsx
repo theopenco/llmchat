@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
-import { useConsent } from "@/components/ConsentProvider";
+import {
+	getStoredConsent,
+	isConsentRequiredRegion,
+	setStoredConsent,
+} from "@llmchat/shared";
+import { ConsentBanner } from "@/components/ConsentBanner";
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const POSTHOG_HOST =
@@ -13,8 +18,8 @@ function initPostHog() {
 	if (!POSTHOG_KEY || posthog.__loaded) return;
 	posthog.init(POSTHOG_KEY, {
 		api_host: POSTHOG_HOST,
-		// Marketing traffic is anonymous — only build profiles once a visitor
-		// is identified (e.g. after they reach the app), and never store PII here.
+		// The showcase is anonymous demo traffic — only build profiles once a
+		// visitor is identified elsewhere, and never store PII here.
 		person_profiles: "identified_only",
 		capture_pageview: false, // handled manually for the App Router
 		capture_pageleave: true,
@@ -41,12 +46,35 @@ function PageviewTracker() {
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
-	const { granted } = useConsent();
+	const [showBanner, setShowBanner] = useState(false);
 
 	useEffect(() => {
-		if (!POSTHOG_KEY || !granted) return;
+		if (!POSTHOG_KEY) return;
+		const stored = getStoredConsent();
+		if (stored === "granted") {
+			initPostHog();
+			return;
+		}
+		if (stored === "denied") return;
+		// No decision yet: EU/EEA + UK require opt-in, so gate behind the banner.
+		// Elsewhere, treat continued use as implied consent and load immediately.
+		if (isConsentRequiredRegion()) {
+			setShowBanner(true);
+		} else {
+			initPostHog();
+		}
+	}, []);
+
+	const accept = useCallback(() => {
+		setStoredConsent("granted");
+		setShowBanner(false);
 		initPostHog();
-	}, [granted]);
+	}, []);
+
+	const decline = useCallback(() => {
+		setStoredConsent("denied");
+		setShowBanner(false);
+	}, []);
 
 	return (
 		<>
@@ -54,6 +82,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 				<PageviewTracker />
 			</Suspense>
 			{children}
+			{showBanner && <ConsentBanner onAccept={accept} onDecline={decline} />}
 		</>
 	);
 }

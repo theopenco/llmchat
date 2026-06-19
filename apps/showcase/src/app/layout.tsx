@@ -6,6 +6,7 @@ import {
 	Hanken_Grotesk,
 	JetBrains_Mono,
 } from "next/font/google";
+import { PostHogProvider } from "@/components/PostHogProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 const display = Bricolage_Grotesque({
@@ -51,7 +52,7 @@ export default function RootLayout({
 					enableSystem
 					disableTransitionOnChange
 				>
-					{children}
+					<PostHogProvider>{children}</PostHogProvider>
 				</ThemeProvider>
 			</body>
 		</html>
