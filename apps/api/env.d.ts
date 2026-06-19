@@ -21,6 +21,7 @@ declare module "@meetploy/nextjs" {
 			STRIPE_PRICE_GROWTH_OVERAGE?: string;
 			STRIPE_PRICE_SCALE_OVERAGE?: string;
 			STRIPE_METER_EVENT?: string;
+			INTERNAL_ACCOUNT_EMAILS?: string;
 			RESEND_API_KEY: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;
@@ -50,6 +51,7 @@ declare global {
 			STRIPE_PRICE_GROWTH_OVERAGE?: string;
 			STRIPE_PRICE_SCALE_OVERAGE?: string;
 			STRIPE_METER_EVENT?: string;
+			INTERNAL_ACCOUNT_EMAILS?: string;
 			RESEND_API_KEY: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;

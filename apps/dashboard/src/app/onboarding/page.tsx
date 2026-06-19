@@ -16,13 +16,10 @@ import { defaultSystemPrompt } from "@/lib/onboarding";
 import { useOnboardingState } from "@/lib/use-onboarding";
 import { useWorkspace } from "@/lib/workspace";
 
-import { isPaidPlan } from "@llmchat/shared";
-
 import { initialDraft, type BotDraft } from "./_components/bot-form";
 import { LiveBotPanel, type LiveProject } from "./_components/LiveBotPanel";
 import { LivePreview } from "./_components/LivePreview";
 import { OnboardingForm } from "./_components/OnboardingForm";
-import { OnboardingPaywall } from "./_components/OnboardingPaywall";
 import { OnboardingSkeleton } from "./_components/OnboardingSkeleton";
 
 interface CreatedProject extends LiveProject {
@@ -35,7 +32,7 @@ function OnboardingFlow() {
 	const qc = useQueryClient();
 	const { data: session, isPending: sessionPending } = useSession();
 	const { state, workspaceId } = useOnboardingState();
-	const { setWorkspaceId, workspaces, role } = useWorkspace();
+	const { setWorkspaceId } = useWorkspace();
 
 	// "New bot" mode: an already-onboarded user adding another agent to their
 	// existing workspace. Reuses the whole flow but skips first-run-only routing.
@@ -170,20 +167,10 @@ function OnboardingFlow() {
 		return <OnboardingSkeleton />;
 	}
 
-	// Paywall before onboarding: a first-run workspace with no active
-	// subscription must pick a paid plan before building an agent. New-bot mode
-	// (adding to an existing, already-paid workspace) skips it; server-side caps
-	// still apply there. An unpaid workspace project-create would 402 anyway —
-	// this turns that into an explicit, friendly step.
-	//
-	// Only gate on a LOADED workspace row: if the plan isn't known yet, show the
-	// form rather than flash a paywall (and the 402 backstop still applies).
-	const activeWorkspace = workspaces.find((w) => w.id === workspaceId);
-	const needsPaywall =
-		!newBot &&
-		!created &&
-		!!activeWorkspace &&
-		!isPaidPlan(activeWorkspace.plan);
+	// Build-first-then-pay: onboarding never gates building behind a paywall.
+	// A no-subscription workspace can build its agent here; using/publishing it
+	// (the live widget answering visitors) is what requires an active plan —
+	// enforced server-side on /v1/chat and surfaced by the launch banner.
 
 	return (
 		<main className="relative min-h-svh overflow-hidden bg-background text-foreground">
@@ -205,11 +192,6 @@ function OnboardingFlow() {
 							onFinish={() => router.push(`/settings/projects/${created.id}`)}
 						/>
 					</div>
-				) : needsPaywall && activeWorkspace ? (
-					<OnboardingPaywall
-						workspaceId={activeWorkspace.id}
-						canManage={role === "owner"}
-					/>
 				) : (
 					<>
 						<header className="flex flex-col items-center gap-3 text-center">

@@ -12,7 +12,9 @@ export {
 } from "./models";
 export {
 	BILLING_TIERS,
+	INTERNAL_ENTITLEMENTS,
 	PAID_PLANS,
+	isInternalEmail,
 	isModelAllowed,
 	isOverResponseQuota,
 	isPaidPlan,

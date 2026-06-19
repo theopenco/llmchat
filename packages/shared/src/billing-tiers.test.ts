@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
 	BILLING_TIERS,
+	INTERNAL_ENTITLEMENTS,
 	PAID_PLANS,
+	isInternalEmail,
 	isModelAllowed,
 	isOverResponseQuota,
 	isPaidPlan,
@@ -32,11 +34,12 @@ describe("planEntitlements", () => {
 });
 
 describe("tier shape invariants", () => {
-	it("blocks the unpaid tier from everything billable", () => {
+	it("lets the unpaid tier build one agent but serve nothing (build-first)", () => {
 		const none = BILLING_TIERS.none;
-		expect(none.maxProjects).toBe(0);
-		expect(none.maxResponsesPerMonth).toBe(0);
+		expect(none.maxProjects).toBe(1); // can build a single agent in onboarding
+		expect(none.maxResponsesPerMonth).toBe(0); // ...but the live agent serves 0
 		expect(none.allowOverage).toBe(false);
+		expect(none.priceUsdMonthly).toBe(0);
 	});
 
 	it("only Starter hard-stops; Growth/Scale meter overage", () => {
@@ -59,25 +62,31 @@ describe("tier shape invariants", () => {
 		expect(g.maxResponsesPerMonth).toBeLessThan(sc.maxResponsesPerMonth);
 	});
 
-	it("matches the spec's exact tier numbers", () => {
+	it("matches the spec's exact tier numbers and prices", () => {
 		expect(BILLING_TIERS.starter).toMatchObject({
-			maxProjects: 1,
-			maxMembers: 1,
-			maxResponsesPerMonth: 1_000,
+			priceUsdMonthly: 19,
+			maxProjects: 2,
+			maxMembers: 3,
+			maxResponsesPerMonth: 2_000,
+			allowOverage: false,
 			modelAccess: "basic",
 			branding: "badge",
 		});
 		expect(BILLING_TIERS.growth).toMatchObject({
-			maxProjects: 3,
-			maxMembers: 5,
-			maxResponsesPerMonth: 5_000,
+			priceUsdMonthly: 89,
+			maxProjects: 5,
+			maxMembers: 8,
+			maxResponsesPerMonth: 8_000,
+			allowOverage: true,
 			modelAccess: "all",
 			branding: "off",
 		});
 		expect(BILLING_TIERS.scale).toMatchObject({
-			maxProjects: 10,
+			priceUsdMonthly: 299,
+			maxProjects: 15,
 			maxMembers: 20,
-			maxResponsesPerMonth: 20_000,
+			maxResponsesPerMonth: 25_000,
+			allowOverage: true,
 			modelAccess: "all",
 			branding: "custom",
 		});
@@ -102,16 +111,17 @@ describe("isWithinLimit", () => {
 		expect(isWithinLimit(2, 1)).toBe(false); // somehow over → blocked
 	});
 
-	it("blocks creation at the unpaid tier's zero ceiling", () => {
-		expect(isWithinLimit(0, BILLING_TIERS.none.maxProjects)).toBe(false);
+	it("lets the unpaid tier build its single agent, then blocks the next", () => {
+		expect(isWithinLimit(0, BILLING_TIERS.none.maxProjects)).toBe(true); // 1st
+		expect(isWithinLimit(1, BILLING_TIERS.none.maxProjects)).toBe(false); // 2nd
 	});
 });
 
 describe("isOverResponseQuota", () => {
 	it("hard-stops a fixed plan at (and past) its included quota", () => {
-		expect(isOverResponseQuota("starter", 999)).toBe(false);
-		expect(isOverResponseQuota("starter", 1_000)).toBe(true); // at cap → blocked
-		expect(isOverResponseQuota("starter", 5_000)).toBe(true);
+		expect(isOverResponseQuota("starter", 1_999)).toBe(false);
+		expect(isOverResponseQuota("starter", 2_000)).toBe(true); // at cap → blocked
+		expect(isOverResponseQuota("starter", 9_000)).toBe(true);
 	});
 
 	it("never blocks a plan with overage — Stripe meters the excess", () => {
@@ -123,6 +133,36 @@ describe("isOverResponseQuota", () => {
 	it("blocks an unpaid workspace immediately (zero quota, no overage)", () => {
 		expect(isOverResponseQuota("none", 0)).toBe(true);
 		expect(isOverResponseQuota("free", 0)).toBe(true); // legacy → none
+	});
+});
+
+describe("isInternalEmail", () => {
+	const allow = ["omar@admin.com", "Founder@Clanker.com"];
+
+	it("matches case-insensitively and trims", () => {
+		expect(isInternalEmail("omar@admin.com", allow)).toBe(true);
+		expect(isInternalEmail("OMAR@ADMIN.COM", allow)).toBe(true);
+		expect(isInternalEmail("  founder@clanker.com  ", allow)).toBe(true);
+	});
+
+	it("is false for non-listed, empty, or missing emails", () => {
+		expect(isInternalEmail("user@customer.com", allow)).toBe(false);
+		expect(isInternalEmail("", allow)).toBe(false);
+		expect(isInternalEmail(null, allow)).toBe(false);
+		expect(isInternalEmail(undefined, allow)).toBe(false);
+		expect(isInternalEmail("omar@admin.com", [])).toBe(false); // no allowlist
+	});
+});
+
+describe("INTERNAL_ENTITLEMENTS", () => {
+	it("grants effectively unlimited access with no metering", () => {
+		expect(INTERNAL_ENTITLEMENTS.modelAccess).toBe("all");
+		expect(INTERNAL_ENTITLEMENTS.allowOverage).toBe(false); // never reported to Stripe
+		expect(INTERNAL_ENTITLEMENTS.maxResponsesPerMonth).toBe(
+			Number.MAX_SAFE_INTEGER,
+		);
+		// Never over quota, never out of project/member headroom.
+		expect(isWithinLimit(10_000, INTERNAL_ENTITLEMENTS.maxProjects)).toBe(true);
 	});
 });
 

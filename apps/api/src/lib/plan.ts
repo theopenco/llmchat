@@ -11,16 +11,84 @@ import { db } from "@/lib/db";
 
 import { and, count, eq, gte, member, project, usageEvent } from "@llmchat/db";
 import {
+	INTERNAL_ENTITLEMENTS,
+	isInternalEmail,
 	isModelAllowed,
 	isOverResponseQuota,
 	isWithinLimit,
 	planEntitlements,
 	type Plan,
+	type TierEntitlements,
 } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 
 type Env = AppContext["Bindings"];
+
+/** The operator's internal/founder email allowlist, parsed from env. Empty when
+ * unset — so no workspace is exempt unless explicitly configured. */
+export function internalEmails(env: Env): string[] {
+	const raw = env.vars.INTERNAL_ACCOUNT_EMAILS;
+	if (!raw) return [];
+	return raw
+		.split(",")
+		.map((s) => s.trim())
+		.filter(Boolean);
+}
+
+export interface WorkspaceAccess {
+	/** True when the workspace owner is an internal/founder account — full
+	 * access, no paywall, no metering. Resolved server-side from the owner's DB
+	 * email vs the env allowlist; never from client input. */
+	exempt: boolean;
+	/** Stored plan ("internal" when exempt). */
+	plan: Plan | string;
+	entitlements: TierEntitlements;
+	stripeCustomerId: string | null;
+}
+
+/**
+ * Resolve a workspace's effective access: its plan + entitlements, the Stripe
+ * customer (for metering), and whether it's an exempt internal workspace.
+ *
+ * Exemption is decided by the WORKSPACE OWNER's email (workspace.ownerId →
+ * user.email) against the env allowlist — the same non-spoofable path on the
+ * public chat endpoint (no session) and the dashboard. The owner-email lookup
+ * is skipped entirely when no allowlist is configured (the common case), so it
+ * adds no query for normal traffic.
+ */
+export async function resolveAccess(
+	env: Env,
+	workspaceId: string,
+): Promise<WorkspaceAccess> {
+	const ws = await db(env).query.workspace.findFirst({
+		where: (w, { eq: e }) => e(w.id, workspaceId),
+		columns: { plan: true, ownerId: true, stripeCustomerId: true },
+	});
+	const stripeCustomerId = ws?.stripeCustomerId ?? null;
+	const allow = internalEmails(env);
+	if (ws && allow.length > 0) {
+		const owner = await db(env).query.user.findFirst({
+			where: (u, { eq: e }) => e(u.id, ws.ownerId),
+			columns: { email: true },
+		});
+		if (isInternalEmail(owner?.email, allow)) {
+			return {
+				exempt: true,
+				plan: "internal",
+				entitlements: INTERNAL_ENTITLEMENTS,
+				stripeCustomerId,
+			};
+		}
+	}
+	const plan = ws?.plan ?? "none";
+	return {
+		exempt: false,
+		plan,
+		entitlements: planEntitlements(plan),
+		stripeCustomerId,
+	};
+}
 
 /** Unix-seconds timestamp for the first instant of the current UTC month — the
  * window monthly response quotas are measured over. */
@@ -84,26 +152,28 @@ export async function monthlyResponseCount(
 	return row?.n ?? 0;
 }
 
-/** Whether the workspace may create one more project at its current plan. */
+/** Whether the workspace may create one more project at its current plan.
+ * Honors the internal exemption (unlimited) via resolveAccess. */
 export async function canCreateProject(
 	env: Env,
 	workspaceId: string,
 ): Promise<boolean> {
-	const [plan, used] = await Promise.all([
-		workspacePlan(env, workspaceId),
+	const [{ entitlements }, used] = await Promise.all([
+		resolveAccess(env, workspaceId),
 		projectCount(env, workspaceId),
 	]);
-	return isWithinLimit(used, planEntitlements(plan).maxProjects);
+	return isWithinLimit(used, entitlements.maxProjects);
 }
 
-/** Whether `model` is selectable for this workspace's current plan (Starter is
- * limited to basic models; Growth/Scale get all). */
+/** Whether `model` is selectable for this workspace (Starter is limited to
+ * basic models; Growth/Scale and exempt workspaces get all). */
 export async function isModelAllowedForWorkspace(
 	env: Env,
 	workspaceId: string,
 	model: string,
 ): Promise<boolean> {
-	return isModelAllowed(await workspacePlan(env, workspaceId), model);
+	const { exempt, plan } = await resolveAccess(env, workspaceId);
+	return exempt || isModelAllowed(plan, model);
 }
 
 /** Whether the workspace may add one more member (seat) at its current plan. */

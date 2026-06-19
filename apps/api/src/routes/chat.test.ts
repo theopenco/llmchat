@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
 import { streamChat } from "@/lib/llm";
-import { isResponseBlocked } from "@/lib/plan";
+import { isResponseBlocked, resolveAccess } from "@/lib/plan";
 import { reportMeterEvent } from "@/lib/stripe";
+
+import { planEntitlements } from "@llmchat/shared";
 
 import { chat } from "./chat";
 
@@ -12,7 +14,10 @@ vi.mock("@/lib/kv", () => ({ rateLimit: vi.fn(async () => ({ ok: true })) }));
 vi.mock("@/lib/llm", () => ({ streamChat: vi.fn() }));
 vi.mock("@/lib/posthog", () => ({ captureEvent: vi.fn(async () => {}) }));
 vi.mock("@/lib/request", () => ({ clientIp: () => "1.2.3.4" }));
-vi.mock("@/lib/plan", () => ({ isResponseBlocked: vi.fn() }));
+vi.mock("@/lib/plan", () => ({
+	isResponseBlocked: vi.fn(),
+	resolveAccess: vi.fn(),
+}));
 vi.mock("@/lib/stripe", () => ({ reportMeterEvent: vi.fn(async () => ({})) }));
 
 const ENV = {
@@ -35,11 +40,9 @@ const project = {
 	notifyEmail: null,
 };
 
-/** db whose project/workspace are configurable; all writes resolve. */
-function mockDb({
-	hasProject = true,
-	stripeCustomerId = null as string | null,
-}: { hasProject?: boolean; stripeCustomerId?: string | null } = {}) {
+/** db whose project is configurable; all writes resolve. resolveAccess is mocked
+ * separately, so the workspace row here is unused. */
+function mockDb({ hasProject = true }: { hasProject?: boolean } = {}) {
 	const valuesResult = () =>
 		Object.assign(Promise.resolve([]), {
 			returning: async () => [{ id: "ue1" }],
@@ -47,9 +50,6 @@ function mockDb({
 	vi.mocked(db).mockReturnValue({
 		query: {
 			project: { findFirst: async () => (hasProject ? project : undefined) },
-			workspace: {
-				findFirst: async () => ({ plan: PLAN, stripeCustomerId }),
-			},
 			conversation: { findFirst: async () => ({ id: "c1", messageCount: 0 }) },
 			source: { findMany: async () => [] },
 			systemPrompt: { findFirst: async () => undefined },
@@ -59,20 +59,42 @@ function mockDb({
 	} as unknown as ReturnType<typeof db>);
 }
 
-// The plan the mocked workspace reports — set per test.
-let PLAN = "starter";
+/** Set the resolved access for the workspace under test. */
+function setAccess(opts: {
+	exempt?: boolean;
+	plan?: string;
+	stripeCustomerId?: string | null;
+}) {
+	const plan = opts.plan ?? "starter";
+	vi.mocked(resolveAccess).mockResolvedValue({
+		exempt: opts.exempt ?? false,
+		plan,
+		entitlements: planEntitlements(plan),
+		stripeCustomerId: opts.stripeCustomerId ?? null,
+	});
+}
 
-/** Fake executionCtx that collects waitUntil promises so tests can await them. */
+const streamOk = () =>
+	vi.mocked(streamChat).mockResolvedValue({
+		text: Promise.resolve("hello"),
+		usage: Promise.resolve({ inputTokens: 1, outputTokens: 2 }),
+		toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	} as any);
+
 function makeCtx() {
 	const pending: Promise<unknown>[] = [];
 	return {
 		ctx: {
 			waitUntil: (p: Promise<unknown>) => pending.push(Promise.resolve(p)),
 			passThroughOnException: () => {},
+			props: {},
 		},
 		settle: () => Promise.allSettled(pending),
 	};
 }
+
+type CtxArg = Parameters<typeof chat.request>[3];
 
 function send(body: unknown, ctx: ReturnType<typeof makeCtx>["ctx"]) {
 	return chat.request(
@@ -83,7 +105,7 @@ function send(body: unknown, ctx: ReturnType<typeof makeCtx>["ctx"]) {
 			body: JSON.stringify(body),
 		},
 		ENV,
-		ctx,
+		ctx as unknown as CtxArg,
 	);
 }
 
@@ -95,11 +117,12 @@ const validBody = {
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	PLAN = "starter";
 	mockDb();
+	setAccess({ plan: "starter" });
+	vi.mocked(isResponseBlocked).mockResolvedValue(false);
 });
 
-describe("POST /v1/chat — quota hard-stop", () => {
+describe("POST /v1/chat — paywall (build-first-then-pay)", () => {
 	it("404s an invalid project key", async () => {
 		mockDb({ hasProject: false });
 		const { ctx } = makeCtx();
@@ -108,7 +131,17 @@ describe("POST /v1/chat — quota hard-stop", () => {
 		expect(streamChat).not.toHaveBeenCalled();
 	});
 
-	it("402 message_limit_reached when blocked — never calls the model", async () => {
+	it("402 subscription_required for a no-sub (none) workspace — never calls the model", async () => {
+		setAccess({ plan: "none" });
+		const { ctx } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(402);
+		expect(await res.json()).toMatchObject({ error: "subscription_required" });
+		expect(streamChat).not.toHaveBeenCalled();
+	});
+
+	it("402 message_limit_reached when a subscribed tier hits its cap", async () => {
+		setAccess({ plan: "starter" });
 		vi.mocked(isResponseBlocked).mockResolvedValue(true);
 		const { ctx } = makeCtx();
 		const res = await send(validBody, ctx);
@@ -117,35 +150,34 @@ describe("POST /v1/chat — quota hard-stop", () => {
 		expect(streamChat).not.toHaveBeenCalled();
 	});
 
-	it("streams when under the cap", async () => {
-		vi.mocked(isResponseBlocked).mockResolvedValue(false);
-		vi.mocked(streamChat).mockResolvedValue({
-			text: Promise.resolve("hello"),
-			usage: Promise.resolve({ inputTokens: 1, outputTokens: 2 }),
-			toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		} as any);
+	it("streams when subscribed and under the cap (no meter on a fixed tier)", async () => {
+		setAccess({ plan: "starter" });
+		streamOk();
 		const { ctx, settle } = makeCtx();
 		const res = await send(validBody, ctx);
 		expect(res.status).toBe(200);
 		expect(streamChat).toHaveBeenCalledTimes(1);
 		await settle();
-		// Starter has no overage → no meter event.
 		expect(reportMeterEvent).not.toHaveBeenCalled();
+	});
+
+	it("EXEMPT owner workspace serves even if the quota check would block — and is never metered", async () => {
+		setAccess({ exempt: true, plan: "internal", stripeCustomerId: "cus_x" });
+		vi.mocked(isResponseBlocked).mockResolvedValue(true); // would block a normal tier
+		streamOk();
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(200);
+		expect(streamChat).toHaveBeenCalledTimes(1);
+		await settle();
+		expect(reportMeterEvent).not.toHaveBeenCalled(); // exempt → never billed
 	});
 });
 
 describe("POST /v1/chat — overage metering", () => {
 	it("reports a meter event on overage tiers with a Stripe customer", async () => {
-		PLAN = "growth";
-		mockDb({ stripeCustomerId: "cus_9" });
-		vi.mocked(isResponseBlocked).mockResolvedValue(false);
-		vi.mocked(streamChat).mockResolvedValue({
-			text: Promise.resolve("hello"),
-			usage: Promise.resolve({ inputTokens: 1, outputTokens: 2 }),
-			toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		} as any);
+		setAccess({ plan: "growth", stripeCustomerId: "cus_9" });
+		streamOk();
 		const { ctx, settle } = makeCtx();
 		await send(validBody, ctx);
 		await settle();
@@ -160,15 +192,8 @@ describe("POST /v1/chat — overage metering", () => {
 	});
 
 	it("does not meter when the overage workspace has no Stripe customer", async () => {
-		PLAN = "growth";
-		mockDb({ stripeCustomerId: null });
-		vi.mocked(isResponseBlocked).mockResolvedValue(false);
-		vi.mocked(streamChat).mockResolvedValue({
-			text: Promise.resolve("hello"),
-			usage: Promise.resolve({ inputTokens: 1, outputTokens: 2 }),
-			toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		} as any);
+		setAccess({ plan: "growth", stripeCustomerId: null });
+		streamOk();
 		const { ctx, settle } = makeCtx();
 		await send(validBody, ctx);
 		await settle();

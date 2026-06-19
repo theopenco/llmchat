@@ -3,12 +3,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { planEntitlements } from "@llmchat/shared";
+import { planEntitlements, type PaidPlan } from "@llmchat/shared";
 
 import {
 	fetchUsage,
 	isBillingNotConfigured,
 	openPortal,
+	redirectToStripeCheckout,
 	startCheckout,
 } from "@/lib/billing";
 import { useWorkspace } from "@/lib/workspace";
@@ -23,6 +24,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/workspace", () => ({ useWorkspace: vi.fn() }));
 vi.mock("@/lib/billing", () => ({
 	startCheckout: vi.fn(),
+	redirectToStripeCheckout: vi.fn(),
 	openPortal: vi.fn(),
 	fetchUsage: vi.fn(),
 	isBillingNotConfigured: vi.fn(() => false),
@@ -39,11 +41,16 @@ function setWorkspace(plan: Plan | null, role: "owner" | "agent" = "owner") {
 	});
 }
 
-function usageFor(plan: Plan) {
+function usageFor(
+	plan: Plan,
+	opts: { exempt?: boolean; availablePlans?: PaidPlan[] } = {},
+) {
 	return {
 		plan,
+		exempt: opts.exempt ?? false,
 		entitlements: planEntitlements(plan),
 		usage: { projects: 1, members: 1, responsesThisMonth: 42 },
+		availablePlans: opts.availablePlans ?? ["starter", "growth", "scale"],
 		monthStartUnix: 0,
 	};
 }
@@ -86,14 +93,18 @@ describe("BillingPage", () => {
 		expect(screen.queryByText("Current plan")).not.toBeInTheDocument();
 	});
 
-	it("no subscription → choosing a tier starts checkout for that plan", async () => {
+	it("no subscription → choosing a tier starts checkout + redirects via Stripe.js", async () => {
 		setWorkspace("none");
-		vi.mocked(startCheckout).mockResolvedValue("https://checkout.stripe.com/x");
+		const session = { id: "cs_1", url: "https://checkout.stripe.com/x" };
+		vi.mocked(startCheckout).mockResolvedValue(session);
 		renderPage();
 
 		expect(screen.getByText("No subscription")).toBeInTheDocument();
 		await clickButton(userEvent.setup(), /choose starter/i);
 		expect(startCheckout).toHaveBeenCalledWith("ws_1", "starter");
+		await waitFor(() =>
+			expect(redirectToStripeCheckout).toHaveBeenCalledWith(session),
+		);
 		expect(openPortal).not.toHaveBeenCalled();
 	});
 
@@ -111,14 +122,15 @@ describe("BillingPage", () => {
 		).toBeInTheDocument();
 	});
 
-	// Data honesty: no free tier, and no invented dollar prices (real amounts
-	// live in Stripe and are shown at Checkout). Real entitlement numbers are OK.
-	it("never shows a Free tier or an invented dollar price", () => {
+	// Data honesty: no free tier, and the displayed prices are the real ones
+	// from the shared tier table (which match Stripe) — not fabricated.
+	it("shows the real tier prices and never a Free tier", () => {
 		setWorkspace("none");
 		renderPage();
 		expect(screen.queryByText(/free/i)).not.toBeInTheDocument();
-		expect(screen.queryByText(/\$\d/)).not.toBeInTheDocument();
-		// The card-upfront framing is present instead.
+		expect(screen.getByText("$19")).toBeInTheDocument();
+		expect(screen.getByText("$89")).toBeInTheDocument();
+		expect(screen.getByText("$299")).toBeInTheDocument();
 		expect(
 			screen.getByText(/a card is required to start/i),
 		).toBeInTheDocument();
@@ -143,10 +155,46 @@ describe("BillingPage", () => {
 		setWorkspace("growth");
 		vi.mocked(fetchUsage).mockResolvedValue(usageFor("growth"));
 		renderPage();
-		// 42 responses / 5,000 included (Growth's real quota).
+		// 42 responses / 8,000 included (Growth's real quota).
 		await waitFor(() =>
-			expect(screen.getByText(/42 \/ 5,000/)).toBeInTheDocument(),
+			expect(screen.getByText(/42 \/ 8,000/)).toBeInTheDocument(),
 		);
+	});
+
+	it("renders unconfigured tiers as 'Coming soon' (no fake checkout)", async () => {
+		setWorkspace("none");
+		// Only Growth is purchasable right now.
+		vi.mocked(fetchUsage).mockResolvedValue(
+			usageFor("none", { availablePlans: ["growth"] }),
+		);
+		renderPage();
+		// Wait until usage resolves and availablePlans is applied — Starter + Scale
+		// have no price id yet → disabled "Coming soon".
+		await waitFor(() =>
+			expect(
+				screen.getAllByRole("button", { name: /coming soon/i }),
+			).toHaveLength(2),
+		);
+		screen
+			.getAllByRole("button", { name: /coming soon/i })
+			.forEach((b) => expect(b).toBeDisabled());
+		expect(
+			screen.getByRole("button", { name: /choose growth/i }),
+		).toBeInTheDocument();
+	});
+
+	it("an exempt internal workspace shows full-access, no tiers", async () => {
+		setWorkspace("none");
+		vi.mocked(fetchUsage).mockResolvedValue(usageFor("none", { exempt: true }));
+		renderPage();
+		await waitFor(() =>
+			expect(
+				screen.getByText(/internal account — full access/i),
+			).toBeInTheDocument(),
+		);
+		expect(
+			screen.queryByRole("button", { name: /choose|coming soon/i }),
+		).not.toBeInTheDocument();
 	});
 
 	it("a non-owner cannot trigger checkout (buttons disabled)", () => {

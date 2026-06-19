@@ -13,6 +13,8 @@ export interface TierDisplay {
 	plan: PaidPlan;
 	name: string;
 	tagline: string;
+	/** Whole-USD monthly price, from the shared tier table (matches Stripe). */
+	priceUsdMonthly: number;
 	/** The recommended tier — gets the "Most popular" accent. */
 	highlight: boolean;
 	features: string[];
@@ -47,20 +49,23 @@ export const TIERS: TierDisplay[] = [
 		plan: "starter",
 		name: "Starter",
 		tagline: "Launch your first support agent",
+		priceUsdMonthly: BILLING_TIERS.starter.priceUsdMonthly,
 		highlight: false,
-		features: features("starter", ["Community support"]),
+		features: features("starter", ["Email support"]),
 	},
 	{
 		plan: "growth",
 		name: "Growth",
 		tagline: "For growing support teams",
+		priceUsdMonthly: BILLING_TIERS.growth.priceUsdMonthly,
 		highlight: true,
-		features: features("growth", ["Email support"]),
+		features: features("growth", ["Priority support"]),
 	},
 	{
 		plan: "scale",
 		name: "Scale",
 		tagline: "High volume, fully white-labeled",
+		priceUsdMonthly: BILLING_TIERS.scale.priceUsdMonthly,
 		highlight: false,
 		features: features("scale", ["Priority support"]),
 	},
