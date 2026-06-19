@@ -37,6 +37,7 @@ export interface SitemapInput {
 	posts: { slug: string; date: string }[];
 	competitors: { id: string }[];
 	migrations: { slug: string }[];
+	features: { slug: string }[];
 }
 
 /**
@@ -76,6 +77,18 @@ export function buildSitemap(
 			changeFrequency: "daily",
 			priority: 0.7,
 		},
+		{
+			url: url("/privacy-policy"),
+			lastModified: now,
+			changeFrequency: "yearly",
+			priority: 0.3,
+		},
+		{
+			url: url("/terms-of-use"),
+			lastModified: now,
+			changeFrequency: "yearly",
+			priority: 0.3,
+		},
 	];
 
 	const posts: MetadataRoute.Sitemap = input.posts.map((p) => ({
@@ -99,5 +112,12 @@ export function buildSitemap(
 		priority: 0.6,
 	}));
 
-	return [...staticEntries, ...posts, ...vs, ...migrate];
+	const features: MetadataRoute.Sitemap = input.features.map((f) => ({
+		url: url(`/features/${f.slug}`),
+		lastModified: now,
+		changeFrequency: "monthly",
+		priority: 0.7,
+	}));
+
+	return [...staticEntries, ...posts, ...vs, ...migrate, ...features];
 }

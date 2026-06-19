@@ -6,8 +6,6 @@ import {
 	Hanken_Grotesk,
 	JetBrains_Mono,
 } from "next/font/google";
-import { ConsentProvider } from "@/components/ConsentProvider";
-import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
@@ -47,7 +45,7 @@ const mono = JetBrains_Mono({
 
 const TITLE = "Clanker Support — AI support, dropped in";
 const DESCRIPTION =
-	"One script tag. Any model. An AI-powered support agent that answers from your docs and escalates to your team. Built on LLM Gateway.";
+	"One script tag. Any model. An AI-powered support agent that answers from your docs and escalates to your team — with no lost threads.";
 
 export const metadata: Metadata = {
 	// Resolves relative canonical/OG URLs (set per page via pageMeta) to absolute.
@@ -103,10 +101,7 @@ export default function RootLayout({
 					enableSystem
 					disableTransitionOnChange
 				>
-					<ConsentProvider>
-						<PostHogProvider>{children}</PostHogProvider>
-						<GoogleAnalytics />
-					</ConsentProvider>
+					<PostHogProvider>{children}</PostHogProvider>
 				</ThemeProvider>
 			</body>
 		</html>

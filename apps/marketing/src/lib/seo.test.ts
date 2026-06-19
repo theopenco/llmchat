@@ -12,6 +12,7 @@ const input = {
 	],
 	competitors: [{ id: "intercom" }, { id: "fin" }],
 	migrations: [{ slug: "intercom" }],
+	features: [{ slug: "drop-in-widget" }, { slug: "email-threading" }],
 };
 
 describe("buildSitemap", () => {
@@ -25,15 +26,19 @@ describe("buildSitemap", () => {
 				`${BASE}/compare`,
 				`${BASE}/docs`,
 				`${BASE}/blog`,
+				`${BASE}/privacy-policy`,
+				`${BASE}/terms-of-use`,
 			]),
 		);
 	});
 
-	it("enumerates every dynamic blog / vs / migration page", () => {
+	it("enumerates every dynamic blog / vs / migration / feature page", () => {
 		expect(urls).toContain(`${BASE}/blog/introducing-llmchat`);
 		expect(urls).toContain(`${BASE}/vs/intercom`);
 		expect(urls).toContain(`${BASE}/vs/fin`);
 		expect(urls).toContain(`${BASE}/docs/migrate/intercom`);
+		expect(urls).toContain(`${BASE}/features/drop-in-widget`);
+		expect(urls).toContain(`${BASE}/features/email-threading`);
 	});
 
 	it("has no relative or double-slashed URLs and no duplicates", () => {
@@ -51,8 +56,8 @@ describe("buildSitemap", () => {
 		expect(post?.lastModified).toEqual(new Date("2026-05-01"));
 	});
 
-	it("counts = 4 static + posts + competitors + migrations", () => {
-		expect(entries).toHaveLength(4 + 2 + 2 + 1);
+	it("counts = 6 static + posts + competitors + migrations + features", () => {
+		expect(entries).toHaveLength(6 + 2 + 2 + 1 + 2);
 	});
 });
 

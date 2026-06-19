@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
-import { useConsent } from "@/components/ConsentProvider";
+import {
+	getStoredConsent,
+	isConsentRequiredRegion,
+	setStoredConsent,
+} from "@llmchat/shared";
+import { ConsentBanner } from "@/components/ConsentBanner";
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const POSTHOG_HOST =
@@ -41,12 +46,35 @@ function PageviewTracker() {
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
-	const { granted } = useConsent();
+	const [showBanner, setShowBanner] = useState(false);
 
 	useEffect(() => {
-		if (!POSTHOG_KEY || !granted) return;
+		if (!POSTHOG_KEY) return;
+		const stored = getStoredConsent();
+		if (stored === "granted") {
+			initPostHog();
+			return;
+		}
+		if (stored === "denied") return;
+		// No decision yet: EU/EEA + UK require opt-in, so gate behind the banner.
+		// Elsewhere, treat continued use as implied consent and load immediately.
+		if (isConsentRequiredRegion()) {
+			setShowBanner(true);
+		} else {
+			initPostHog();
+		}
+	}, []);
+
+	const accept = useCallback(() => {
+		setStoredConsent("granted");
+		setShowBanner(false);
 		initPostHog();
-	}, [granted]);
+	}, []);
+
+	const decline = useCallback(() => {
+		setStoredConsent("denied");
+		setShowBanner(false);
+	}, []);
 
 	return (
 		<>
@@ -54,6 +82,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 				<PageviewTracker />
 			</Suspense>
 			{children}
+			{showBanner && <ConsentBanner onAccept={accept} onDecline={decline} />}
 		</>
 	);
 }

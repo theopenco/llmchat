@@ -95,21 +95,27 @@ export function SiteFooter() {
 					</div>
 				</div>
 
-				<div className="mt-16 flex flex-col items-start justify-between gap-3 border-t border-rule pt-6 sm:flex-row sm:items-center">
+				<div className="mt-16 flex flex-col items-start justify-between gap-4 border-t border-rule pt-6 sm:flex-row sm:items-center">
 					<p className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
 						© {new Date().getFullYear()} Clanker Support
 					</p>
-					<p className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
-						Built on{" "}
-						<a
-							href="https://llmgateway.io"
-							target="_blank"
-							rel="noreferrer"
-							className="text-muted underline-offset-2 hover:text-accent hover:underline"
+					<div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+						<Link
+							href="/privacy-policy"
+							className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint transition-colors hover:text-ink"
 						>
-							LLM Gateway
-						</a>
-					</p>
+							Privacy
+						</Link>
+						<Link
+							href="/terms-of-use"
+							className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint transition-colors hover:text-ink"
+						>
+							Terms
+						</Link>
+						<p className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
+							Any model · Self-hostable · No lock-in
+						</p>
+					</div>
 				</div>
 			</div>
 		</footer>
