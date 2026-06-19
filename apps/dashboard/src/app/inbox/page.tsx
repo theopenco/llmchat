@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
-import { api } from "@/lib/api";
+import { api, describeApiError } from "@/lib/api";
 import { resolveOnboardingState } from "@/lib/onboarding";
 import { resolveSelectedId } from "@/lib/selection";
 import { useWorkspace } from "@/lib/workspace";
@@ -173,9 +173,7 @@ export default function InboxPage() {
 			await thread.refetch();
 			await conversations.refetch();
 		} catch (e) {
-			toast.error("Failed to send reply", {
-				description: e instanceof Error ? e.message : undefined,
-			});
+			toast.error(describeApiError(e, "Failed to send reply"));
 		} finally {
 			setSending(false);
 		}
@@ -197,9 +195,7 @@ export default function InboxPage() {
 			setSelectedId(null);
 			await conversations.refetch();
 		} catch (e) {
-			toast.error("Failed to update conversation", {
-				description: e instanceof Error ? e.message : undefined,
-			});
+			toast.error(describeApiError(e, "Failed to update conversation"));
 		} finally {
 			setArchiving(false);
 		}
@@ -217,9 +213,7 @@ export default function InboxPage() {
 			setSelectedId(null);
 			await conversations.refetch();
 		} catch (e) {
-			toast.error("Failed to delete conversation", {
-				description: e instanceof Error ? e.message : undefined,
-			});
+			toast.error(describeApiError(e, "Failed to delete conversation"));
 		} finally {
 			setDeleting(false);
 		}

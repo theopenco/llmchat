@@ -4,7 +4,11 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
-import { requireSession, requireWorkspace } from "@/middleware/session";
+import {
+	requireRole,
+	requireSession,
+	requireWorkspace,
+} from "@/middleware/session";
 
 import {
 	and,
@@ -261,16 +265,20 @@ export const conversations = new Hono<AppContext>()
 			return c.json({ ok: true });
 		},
 	)
-	.delete("/projects/:projectId/conversations/:id", async (c) => {
-		const { projectId, id } = c.req.param();
-		const workspaceId = c.get("workspaceId");
-		const proj = await db(c.env).query.project.findFirst({
-			where: (pt, { and: a, eq: e }) =>
-				a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
-		});
-		if (!proj) {
-			return c.json({ error: "not found" }, 404);
-		}
-		await db(c.env).delete(conversation).where(eq(conversation.id, id));
-		return c.json({ ok: true });
-	});
+	.delete(
+		"/projects/:projectId/conversations/:id",
+		requireRole("admin"),
+		async (c) => {
+			const { projectId, id } = c.req.param();
+			const workspaceId = c.get("workspaceId");
+			const proj = await db(c.env).query.project.findFirst({
+				where: (pt, { and: a, eq: e }) =>
+					a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+			});
+			if (!proj) {
+				return c.json({ error: "not found" }, 404);
+			}
+			await db(c.env).delete(conversation).where(eq(conversation.id, id));
+			return c.json({ ok: true });
+		},
+	);

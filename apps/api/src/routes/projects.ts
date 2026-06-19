@@ -3,7 +3,11 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { requireSession, requireWorkspace } from "@/middleware/session";
+import {
+	requireRole,
+	requireSession,
+	requireWorkspace,
+} from "@/middleware/session";
 
 import { eq, project } from "@llmchat/db";
 import { DEFAULT_MODEL } from "@llmchat/shared";
@@ -46,22 +50,28 @@ export const projects = new Hono<AppContext>()
 		});
 		return c.json({ projects: rows });
 	})
-	.post("/projects", zValidator("json", projectInput), async (c) => {
-		const workspaceId = c.get("workspaceId");
-		const data = c.req.valid("json");
-		const [created] = await db(c.env)
-			.insert(project)
-			.values({
-				...data,
-				workspaceId,
-				publicKey: generatePublicKey(),
-				inboundEmailLocal: generateInboundLocal(),
-			})
-			.returning();
-		return c.json({ project: created });
-	})
+	.post(
+		"/projects",
+		requireRole("admin"),
+		zValidator("json", projectInput),
+		async (c) => {
+			const workspaceId = c.get("workspaceId");
+			const data = c.req.valid("json");
+			const [created] = await db(c.env)
+				.insert(project)
+				.values({
+					...data,
+					workspaceId,
+					publicKey: generatePublicKey(),
+					inboundEmailLocal: generateInboundLocal(),
+				})
+				.returning();
+			return c.json({ project: created });
+		},
+	)
 	.patch(
 		"/projects/:id",
+		requireRole("admin"),
 		zValidator("json", projectInput.partial()),
 		async (c) => {
 			const { id } = c.req.param();
@@ -82,7 +92,7 @@ export const projects = new Hono<AppContext>()
 			return c.json({ project: updated });
 		},
 	)
-	.delete("/projects/:id", async (c) => {
+	.delete("/projects/:id", requireRole("admin"), async (c) => {
 		const { id } = c.req.param();
 		const workspaceId = c.get("workspaceId");
 		const existing = await db(c.env).query.project.findFirst({
