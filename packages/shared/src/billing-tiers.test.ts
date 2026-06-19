@@ -34,10 +34,10 @@ describe("planEntitlements", () => {
 });
 
 describe("tier shape invariants", () => {
-	it("lets the unpaid tier build one agent but serve nothing (build-first)", () => {
+	it("blocks the unpaid tier from everything (hard paywall before onboarding)", () => {
 		const none = BILLING_TIERS.none;
-		expect(none.maxProjects).toBe(1); // can build a single agent in onboarding
-		expect(none.maxResponsesPerMonth).toBe(0); // ...but the live agent serves 0
+		expect(none.maxProjects).toBe(0); // can't even build until subscribed
+		expect(none.maxResponsesPerMonth).toBe(0);
 		expect(none.allowOverage).toBe(false);
 		expect(none.priceUsdMonthly).toBe(0);
 	});
@@ -111,9 +111,8 @@ describe("isWithinLimit", () => {
 		expect(isWithinLimit(2, 1)).toBe(false); // somehow over → blocked
 	});
 
-	it("lets the unpaid tier build its single agent, then blocks the next", () => {
-		expect(isWithinLimit(0, BILLING_TIERS.none.maxProjects)).toBe(true); // 1st
-		expect(isWithinLimit(1, BILLING_TIERS.none.maxProjects)).toBe(false); // 2nd
+	it("blocks creation at the unpaid tier's zero ceiling", () => {
+		expect(isWithinLimit(0, BILLING_TIERS.none.maxProjects)).toBe(false);
 	});
 });
 

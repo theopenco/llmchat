@@ -1,17 +1,19 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { widgetStyles } from "@llmchat/widget/styles";
+import { isPaidPlan } from "@llmchat/shared";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
 import { api, isWorkspaceAuthError } from "@/lib/api";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
+import { fetchUsage } from "@/lib/billing";
 import { defaultSystemPrompt } from "@/lib/onboarding";
 import { useOnboardingState } from "@/lib/use-onboarding";
 import { useWorkspace } from "@/lib/workspace";
@@ -20,6 +22,7 @@ import { initialDraft, type BotDraft } from "./_components/bot-form";
 import { LiveBotPanel, type LiveProject } from "./_components/LiveBotPanel";
 import { LivePreview } from "./_components/LivePreview";
 import { OnboardingForm } from "./_components/OnboardingForm";
+import { OnboardingPaywall } from "./_components/OnboardingPaywall";
 import { OnboardingSkeleton } from "./_components/OnboardingSkeleton";
 
 interface CreatedProject extends LiveProject {
@@ -32,7 +35,15 @@ function OnboardingFlow() {
 	const qc = useQueryClient();
 	const { data: session, isPending: sessionPending } = useSession();
 	const { state, workspaceId } = useOnboardingState();
-	const { setWorkspaceId } = useWorkspace();
+	const { setWorkspaceId, role } = useWorkspace();
+
+	// Resolve the active workspace's plan/exemption to gate building behind the
+	// paywall (first-run only). Shares the billing-usage query cache.
+	const usageQ = useQuery({
+		queryKey: ["billing-usage", workspaceId],
+		enabled: !!workspaceId,
+		queryFn: () => fetchUsage(workspaceId!),
+	});
 
 	// "New bot" mode: an already-onboarded user adding another agent to their
 	// existing workspace. Reuses the whole flow but skips first-run-only routing.
@@ -163,14 +174,26 @@ function OnboardingFlow() {
 	const resolving =
 		sessionPending || !session?.user || (!created && state === "loading");
 	const blockedFirstRun = !newBot && !created && state === "ready";
-	if (resolving || blockedFirstRun) {
+	// First-run: hold the skeleton until the plan is known, so an unpaid user is
+	// never flashed the build form before the paywall resolves.
+	const holdForPlan = !newBot && !created && !!workspaceId && usageQ.isLoading;
+	if (resolving || blockedFirstRun || holdForPlan) {
 		return <OnboardingSkeleton />;
 	}
 
-	// Build-first-then-pay: onboarding never gates building behind a paywall.
-	// A no-subscription workspace can build its agent here; using/publishing it
-	// (the live widget answering visitors) is what requires an active plan —
-	// enforced server-side on /v1/chat and surfaced by the launch banner.
+	// Hard paywall before onboarding: a non-exempt workspace with no active
+	// subscription must choose a plan before building. New-bot mode (adding to an
+	// already-paid workspace) skips it. Building is ALSO blocked server-side
+	// (POST /api/projects → 402 subscription_required), so the gate can't be
+	// bypassed by skipping the UI.
+	const access = usageQ.data;
+	const needsPaywall =
+		!newBot &&
+		!created &&
+		!!workspaceId &&
+		!!access &&
+		!access.exempt &&
+		!isPaidPlan(access.plan);
 
 	return (
 		<main className="relative min-h-svh overflow-hidden bg-background text-foreground">
@@ -192,6 +215,11 @@ function OnboardingFlow() {
 							onFinish={() => router.push(`/settings/projects/${created.id}`)}
 						/>
 					</div>
+				) : needsPaywall && workspaceId ? (
+					<OnboardingPaywall
+						workspaceId={workspaceId}
+						canManage={role === "owner"}
+					/>
 				) : (
 					<>
 						<header className="flex flex-col items-center gap-3 text-center">

@@ -8,9 +8,9 @@
  * record for charging; this table is the system of record for entitlements).
  *
  * The hosted product is **paid-only**: no free tier. A workspace with no active
- * subscription sits at plan `"none"` — it may *build* one agent (so onboarding
- * works build-first) but its live agent serves nothing (zero response quota)
- * until a Stripe Checkout completes and the webhook promotes it to a paid tier.
+ * subscription sits at plan `"none"` — entitled to nothing (a hard paywall sits
+ * before onboarding, so building requires an active plan) until a Stripe
+ * Checkout completes and the webhook promotes it to a paid tier.
  *
  * Internal/founder workspaces are exempt entirely (see INTERNAL_ENTITLEMENTS +
  * isInternalEmail) — full access without paying, resolved server-side.
@@ -46,10 +46,11 @@ export interface TierEntitlements {
 }
 
 export const BILLING_TIERS: Record<Plan, TierEntitlements> = {
-	// Unpaid: may build ONE agent (build-first onboarding) but serves zero
-	// responses — the live agent is blocked until a subscription is active.
+	// Unpaid: entitled to nothing. A hard paywall before onboarding means an
+	// unpaid workspace can't build (0 projects) and its agent serves nothing
+	// (0 responses) until a subscription is active.
 	none: {
-		maxProjects: 1,
+		maxProjects: 0,
 		maxMembers: 1,
 		maxResponsesPerMonth: 0,
 		allowOverage: false,

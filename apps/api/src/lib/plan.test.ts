@@ -100,10 +100,8 @@ describe("canCreateProject", () => {
 		expect(await canCreateProject(ENV, "ws")).toBe(false);
 	});
 
-	it("lets an unpaid workspace build one agent, then blocks the next (build-first)", async () => {
+	it("blocks an unpaid workspace from building at all (hard gate, zero ceiling)", async () => {
 		mockDb({ plan: "none", count: 0 });
-		expect(await canCreateProject(ENV, "ws")).toBe(true);
-		mockDb({ plan: "none", count: 1 });
 		expect(await canCreateProject(ENV, "ws")).toBe(false);
 	});
 });

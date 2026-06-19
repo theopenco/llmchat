@@ -169,26 +169,16 @@ describe("Plan caps — POST /projects (create)", () => {
 		expect(insertSpy).toHaveBeenCalledTimes(1);
 	});
 
-	it("lets an unpaid (none) workspace build its first agent (build-first)", async () => {
+	it("blocks an unpaid (none) workspace from building — subscription_required, never inserts", async () => {
+		// Hard paywall: no sub ⇒ can't build at all (server-side, non-bypassable).
 		mockDb({ role: "owner", plan: "none", projectCount: 0 });
 		const res = await req("/projects", {
 			method: "POST",
 			headers: hdr,
 			body: JSON.stringify({ name: "Bot" }),
 		});
-		expect(res.status).toBe(200);
-		expect(insertSpy).toHaveBeenCalledTimes(1);
-	});
-
-	it("blocks a second agent on an unpaid (none) workspace", async () => {
-		mockDb({ role: "owner", plan: "none", projectCount: 1 });
-		const res = await req("/projects", {
-			method: "POST",
-			headers: hdr,
-			body: JSON.stringify({ name: "Bot" }),
-		});
 		expect(res.status).toBe(402);
-		expect(await res.json()).toMatchObject({ error: "project_limit_reached" });
+		expect(await res.json()).toMatchObject({ error: "subscription_required" });
 		expect(insertSpy).not.toHaveBeenCalled();
 	});
 });
