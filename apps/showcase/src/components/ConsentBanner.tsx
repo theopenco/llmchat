@@ -22,8 +22,8 @@ export function ConsentBanner({
 		>
 			<div className="mx-auto flex max-w-3xl flex-col gap-4 rounded-2xl border border-rule bg-paper-card/95 p-5 shadow-2xl backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-6">
 				<p className="text-sm leading-relaxed text-ink-soft">
-					We use analytics cookies to understand how the site is used and
-					improve it. Nothing is loaded until you accept.
+					We use privacy-friendly analytics to understand how the demo is used
+					and improve it. No data is collected until you accept.
 				</p>
 				<div className="flex shrink-0 gap-3">
 					<button

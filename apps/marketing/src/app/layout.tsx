@@ -6,9 +6,20 @@ import {
 	Hanken_Grotesk,
 	JetBrains_Mono,
 } from "next/font/google";
+import { ConsentProvider } from "@/components/ConsentProvider";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
+
+// Google Search Console ownership verification token (the value from the
+// "HTML tag" method). Hardcoded so it ships in every build's <head> with no
+// deploy-env setup; NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION overrides it if you
+// ever rotate the token. It's public (it lives in page source), so committing
+// it is fine. Rendered by Next as the <meta name="google-site-verification">.
+const GOOGLE_SITE_VERIFICATION =
+	process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ??
+	"Z-Xg-V6yXzYD8GD77wrhsV05ppS78u9NE25JXM_6l50";
 
 // Distinctive modern grotesque for display headlines.
 const display = Bricolage_Grotesque({
@@ -69,6 +80,9 @@ export const metadata: Metadata = {
 			"max-video-preview": -1,
 		},
 	},
+	...(GOOGLE_SITE_VERIFICATION
+		? { verification: { google: GOOGLE_SITE_VERIFICATION } }
+		: {}),
 };
 
 export default function RootLayout({
@@ -89,7 +103,10 @@ export default function RootLayout({
 					enableSystem
 					disableTransitionOnChange
 				>
-					<PostHogProvider>{children}</PostHogProvider>
+					<ConsentProvider>
+						<PostHogProvider>{children}</PostHogProvider>
+						<GoogleAnalytics />
+					</ConsentProvider>
 				</ThemeProvider>
 			</body>
 		</html>
