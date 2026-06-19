@@ -3,8 +3,11 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { planEntitlements } from "@llmchat/shared";
+
 import { api, ApiError } from "@/lib/api";
 import { useSession } from "@/lib/auth-client";
+import { fetchUsage } from "@/lib/billing";
 import { useOnboardingState } from "@/lib/use-onboarding";
 
 import OnboardingPage from "./page";
@@ -26,6 +29,15 @@ vi.mock("sonner", () => ({
 vi.mock("@/lib/api", async (orig) => ({
 	...(await orig<typeof import("@/lib/api")>()),
 	api: vi.fn(),
+}));
+
+// Billing: the onboarding paywall gate reads fetchUsage. Default to a paid plan
+// so the form-flow tests aren't gated; the paywall test overrides to "none".
+vi.mock("@/lib/billing", () => ({
+	fetchUsage: vi.fn(),
+	startCheckout: vi.fn(),
+	redirectToStripeCheckout: vi.fn(),
+	isBillingNotConfigured: vi.fn(() => false),
 }));
 
 // The widget package is exercised in its own suite. Stub the chat primitives the
@@ -92,9 +104,56 @@ beforeEach(() => {
 		}
 		return {};
 	});
+	// Default: an active (paid) plan, so the form-flow tests aren't paywalled.
+	vi.mocked(fetchUsage).mockResolvedValue({
+		plan: "growth",
+		exempt: false,
+		entitlements: planEntitlements("growth"),
+		usage: { projects: 0, members: 1, responsesThisMonth: 0 },
+		availablePlans: ["starter", "growth", "scale"],
+		monthStartUnix: 0,
+	});
 });
 
 describe("OnboardingPage (form redesign)", () => {
+	it("gates an unpaid workspace behind the paywall — the build form is not shown", async () => {
+		vi.mocked(fetchUsage).mockResolvedValue({
+			plan: "none",
+			exempt: false,
+			entitlements: planEntitlements("none"),
+			usage: { projects: 0, members: 1, responsesThisMonth: 0 },
+			availablePlans: ["starter", "growth", "scale"],
+			monthStartUnix: 0,
+		});
+		renderPage();
+		expect(
+			await screen.findByRole("heading", {
+				name: /choose a plan to launch your agent/i,
+			}),
+		).toBeInTheDocument();
+		// The build form must not be reachable while unpaid.
+		expect(screen.queryByLabelText(/agent name/i)).not.toBeInTheDocument();
+	});
+
+	it("lets an exempt internal workspace skip the paywall and build", async () => {
+		vi.mocked(fetchUsage).mockResolvedValue({
+			plan: "none",
+			exempt: true,
+			entitlements: planEntitlements("none"),
+			usage: { projects: 0, members: 1, responsesThisMonth: 0 },
+			availablePlans: [],
+			monthStartUnix: 0,
+		});
+		renderPage();
+		// Exempt → straight to the build form, no paywall.
+		expect(await screen.findByLabelText(/agent name/i)).toBeInTheDocument();
+		expect(
+			screen.queryByRole("heading", {
+				name: /choose a plan to launch your agent/i,
+			}),
+		).not.toBeInTheDocument();
+	});
+
 	it("opens with a plain form and a live preview — not a chat", async () => {
 		renderPage();
 		expect(
@@ -115,8 +174,10 @@ describe("OnboardingPage (form redesign)", () => {
 	it("requires a name before it will provision", async () => {
 		const u = user();
 		renderPage();
-		// Submit with the name empty.
-		await u.click(screen.getByRole("button", { name: /create my agent/i }));
+		// Submit with the name empty (wait for the form past the plan-resolve gate).
+		await u.click(
+			await screen.findByRole("button", { name: /create my agent/i }),
+		);
 		expect(
 			await screen.findByText(/give your agent a name/i),
 		).toBeInTheDocument();

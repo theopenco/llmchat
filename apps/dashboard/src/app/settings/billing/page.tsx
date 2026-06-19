@@ -9,6 +9,7 @@ import {
 	fetchUsage,
 	isBillingNotConfigured,
 	openPortal,
+	redirectToStripeCheckout,
 	startCheckout,
 } from "@/lib/billing";
 import { useWorkspace } from "@/lib/workspace";
@@ -51,6 +52,7 @@ function BillingContent() {
 		enabled: !!workspaceId,
 		queryFn: () => fetchUsage(workspaceId!),
 	});
+	const exempt = usageQ.data?.exempt ?? false;
 
 	// Returning from a successful Checkout, the webhook may have just flipped the
 	// plan server-side — refetch the workspace + usage so the screen reflects it.
@@ -64,7 +66,7 @@ function BillingContent() {
 	const checkout = useMutation({
 		mutationFn: (target: PaidPlan) => startCheckout(workspaceId!, target),
 		onMutate: () => setError(null),
-		onSuccess: redirect,
+		onSuccess: (session) => void redirectToStripeCheckout(session),
 		onError: (e) => setError(errorMessage(e)),
 	});
 	const portal = useMutation({
@@ -93,13 +95,26 @@ function BillingContent() {
 			{banner && <StatusBanner status={banner} />}
 			{error && <BillingNotice message={error} />}
 
+			{exempt && (
+				<div className="rounded-lg border border-primary/40 bg-primary/5 p-4 text-sm">
+					<p className="font-medium text-foreground">
+						Internal account — full access, no billing.
+					</p>
+					<p className="mt-1 text-muted-foreground">
+						This workspace is exempt from plan limits and isn’t charged.
+					</p>
+				</div>
+			)}
+
 			<div className="grid gap-4 md:grid-cols-2">
-				<CurrentPlanCard
-					plan={plan}
-					pending={portal.isPending}
-					disabled={!isOwner}
-					onManage={() => portal.mutate()}
-				/>
+				{!exempt && (
+					<CurrentPlanCard
+						plan={plan}
+						pending={portal.isPending}
+						disabled={!isOwner}
+						onManage={() => portal.mutate()}
+					/>
+				)}
 				{usageQ.data && (
 					<UsageCard
 						usage={usageQ.data.usage}
@@ -108,30 +123,34 @@ function BillingContent() {
 				)}
 			</div>
 
-			<div className="space-y-3">
-				<h2 className="font-display text-lg font-semibold tracking-tight-display">
-					Plans
-				</h2>
-				<TierGrid
-					currentPlan={plan}
-					selecting={selecting}
-					disabled={!isOwner || pending}
-					onSelect={(target) => checkout.mutate(target)}
-				/>
-			</div>
+			{!exempt && (
+				<>
+					<div className="space-y-3">
+						<h2 className="font-display text-lg font-semibold tracking-tight-display">
+							Plans
+						</h2>
+						<TierGrid
+							currentPlan={plan}
+							availablePlans={usageQ.data?.availablePlans}
+							selecting={selecting}
+							disabled={!isOwner || pending}
+							onSelect={(target) => checkout.mutate(target)}
+						/>
+					</div>
 
-			<div className="flex items-start gap-2.5 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
-				<CreditCard className="mt-0.5 size-4 shrink-0" />
-				<p>
-					<span className="font-medium text-foreground">
-						A card is required to start.
-					</span>{" "}
-					Every plan is paid — pick a tier and add a card to put your agent
-					live. You’re billed monthly and can change or cancel anytime; pricing
-					is shown at checkout.
-					{!isOwner && " Only a workspace owner can manage billing."}
-				</p>
-			</div>
+					<div className="flex items-start gap-2.5 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+						<CreditCard className="mt-0.5 size-4 shrink-0" />
+						<p>
+							<span className="font-medium text-foreground">
+								A card is required to start.
+							</span>{" "}
+							Every plan is paid — pick a tier and add a card to put your agent
+							live. You’re billed monthly and can change or cancel anytime.
+							{!isOwner && " Only a workspace owner can manage billing."}
+						</p>
+					</div>
+				</>
+			)}
 		</div>
 	);
 }

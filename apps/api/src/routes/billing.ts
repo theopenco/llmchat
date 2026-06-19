@@ -9,8 +9,8 @@ import {
 	memberCount,
 	monthlyResponseCount,
 	projectCount,
+	resolveAccess,
 	startOfUtcMonth,
-	workspacePlan,
 } from "@/lib/plan";
 import {
 	StripeError,
@@ -26,10 +26,17 @@ import {
 } from "@/middleware/session";
 
 import { eq, workspace } from "@llmchat/db";
-import { PAID_PLANS, isPaidPlan, planEntitlements } from "@llmchat/shared";
+import { PAID_PLANS, isPaidPlan } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
-import type { Plan } from "@llmchat/shared";
+import type { PaidPlan, Plan } from "@llmchat/shared";
+
+/** The paid tiers we can actually sell right now — those whose base Stripe
+ * price id is configured. The others render as "coming soon" in the dashboard
+ * rather than failing at checkout. */
+function availablePlans(vars: AppContext["Bindings"]["vars"]): PaidPlan[] {
+	return PAID_PLANS.filter((p) => configured(planPrices(vars, p).basePriceId));
+}
 
 const billingPage = (dashboardUrl: string, query = "") =>
 	`${dashboardUrl}/settings/billing${query}`;
@@ -98,14 +105,11 @@ export const billing = new Hono<AppContext>()
 			const { STRIPE_SECRET_KEY, DASHBOARD_URL } = c.env.vars;
 			const { basePriceId, overagePriceId } = planPrices(c.env.vars, plan);
 
-			// Never call Stripe without the keys this tier needs. Overage tiers also
-			// require their metered price id to be configured.
-			const needsOverage = planEntitlements(plan).allowOverage;
-			if (
-				!configured(STRIPE_SECRET_KEY) ||
-				!configured(basePriceId) ||
-				(needsOverage && !configured(overagePriceId))
-			) {
+			// Only the base price is required to sell a tier. The metered overage
+			// price is OPTIONAL — when it isn't configured yet the subscription is
+			// created without it (overage simply isn't billed until the price
+			// exists), so a tier we have a base price for is never blocked.
+			if (!configured(STRIPE_SECRET_KEY) || !configured(basePriceId)) {
 				return c.json({ error: "billing_not_configured" }, 503);
 			}
 
@@ -134,13 +138,17 @@ export const billing = new Hono<AppContext>()
 				const session = await createCheckoutSession(STRIPE_SECRET_KEY, {
 					customer: customerId,
 					priceId: basePriceId!,
-					overagePriceId: needsOverage ? overagePriceId : undefined,
+					overagePriceId: configured(overagePriceId)
+						? overagePriceId
+						: undefined,
 					plan,
 					workspaceId,
 					successUrl: returnUrl(DASHBOARD_URL, returnTo, "success"),
 					cancelUrl: returnUrl(DASHBOARD_URL, returnTo, "cancel"),
 				});
-				return c.json({ url: session.url });
+				// Return both: the client redirects via the publishable key +
+				// Stripe.js (sessionId), falling back to the hosted url.
+				return c.json({ id: session.id, url: session.url });
 			} catch (err) {
 				return stripeFailure(c, err);
 			}
@@ -177,16 +185,19 @@ export const billing = new Hono<AppContext>()
 	// fabricated usage. Entitlements come straight from the shared tier table.
 	.get("/billing/usage", requireSession, requireWorkspace, async (c) => {
 		const workspaceId = c.get("workspaceId");
-		const plan = await workspacePlan(c.env, workspaceId);
+		const access = await resolveAccess(c.env, workspaceId);
 		const [projects, members, responses] = await Promise.all([
 			projectCount(c.env, workspaceId),
 			memberCount(c.env, workspaceId),
 			monthlyResponseCount(c.env, workspaceId),
 		]);
 		return c.json({
-			plan,
-			entitlements: planEntitlements(plan),
+			plan: access.plan,
+			exempt: access.exempt,
+			entitlements: access.entitlements,
 			usage: { projects, members, responsesThisMonth: responses },
+			// Which tiers can actually be purchased right now (others → "coming soon").
+			availablePlans: availablePlans(c.env.vars),
 			monthStartUnix: startOfUtcMonth(),
 		});
 	})

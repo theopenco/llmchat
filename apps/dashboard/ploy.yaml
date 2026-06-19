@@ -4,6 +4,10 @@ out: .next
 
 env:
   NEXT_PUBLIC_API_URL: https://api.clankersupport.com
+  # Stripe publishable key (pk_test_… / pk_live_…). Safe to expose to the
+  # browser — used by @stripe/stripe-js to redirect to Checkout. The SECRET key
+  # lives only in the api worker's env, never here.
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: $NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
 dev:
   port: 3001
