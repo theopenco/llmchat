@@ -7,6 +7,7 @@ import {
 	isModelAllowedForWorkspace,
 	isResponseBlocked,
 	monthlyResponseCount,
+	resolveAccess,
 } from "./plan";
 
 vi.mock("@/lib/db", () => ({ db: vi.fn() }));
@@ -20,10 +21,14 @@ function mockDb({
 	plan,
 	count = 0,
 	selectThrows = false,
+	ownerEmail = "user@customer.com",
+	stripeCustomerId = null as string | null,
 }: {
 	plan?: string;
 	count?: number;
 	selectThrows?: boolean;
+	ownerEmail?: string;
+	stripeCustomerId?: string | null;
 }) {
 	const select = vi.fn(() => ({
 		from: () => ({
@@ -35,12 +40,22 @@ function mockDb({
 	}));
 	vi.mocked(db).mockReturnValue({
 		query: {
-			workspace: { findFirst: async () => (plan ? { plan } : undefined) },
+			workspace: {
+				findFirst: async () =>
+					plan ? { plan, ownerId: "owner1", stripeCustomerId } : undefined,
+			},
+			user: { findFirst: async () => ({ email: ownerEmail }) },
 		},
 		select,
 	} as unknown as ReturnType<typeof db>);
 	return select;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const envWith = (emails?: string): any => ({
+	vars: emails ? { INTERNAL_ACCOUNT_EMAILS: emails } : {},
+	DB: {},
+});
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -53,9 +68,9 @@ describe("isResponseBlocked", () => {
 	});
 
 	it("hard-stops a fixed plan at (and past) its quota", async () => {
-		mockDb({ count: 1_000 });
+		mockDb({ count: 2_000 });
 		expect(await isResponseBlocked(ENV, "ws", "starter")).toBe(true);
-		mockDb({ count: 999 });
+		mockDb({ count: 1_999 });
 		expect(await isResponseBlocked(ENV, "ws", "starter")).toBe(false);
 	});
 
@@ -79,15 +94,41 @@ describe("monthlyResponseCount", () => {
 
 describe("canCreateProject", () => {
 	it("allows under the cap and blocks at it", async () => {
-		mockDb({ plan: "starter", count: 0 });
+		mockDb({ plan: "starter", count: 1 }); // starter cap = 2
 		expect(await canCreateProject(ENV, "ws")).toBe(true);
-		mockDb({ plan: "starter", count: 1 });
+		mockDb({ plan: "starter", count: 2 });
 		expect(await canCreateProject(ENV, "ws")).toBe(false);
 	});
 
-	it("blocks an unpaid workspace (zero project ceiling)", async () => {
+	it("blocks an unpaid workspace from building at all (hard gate, zero ceiling)", async () => {
 		mockDb({ plan: "none", count: 0 });
 		expect(await canCreateProject(ENV, "ws")).toBe(false);
+	});
+});
+
+describe("resolveAccess — owner exemption", () => {
+	it("exempts a workspace whose OWNER email is on the internal allowlist", async () => {
+		mockDb({ plan: "none", ownerEmail: "founder@clanker.com" });
+		const access = await resolveAccess(envWith("founder@clanker.com"), "ws");
+		expect(access.exempt).toBe(true);
+		expect(access.plan).toBe("internal");
+		expect(access.entitlements.modelAccess).toBe("all");
+	});
+
+	it("does NOT exempt a normal workspace (owner not listed)", async () => {
+		mockDb({ plan: "growth", ownerEmail: "user@customer.com" });
+		const access = await resolveAccess(envWith("founder@clanker.com"), "ws");
+		expect(access.exempt).toBe(false);
+		expect(access.plan).toBe("growth");
+	});
+
+	it("skips the owner-email lookup entirely when no allowlist is configured", async () => {
+		// A spy on the user query would never fire — exemption is impossible
+		// without an allowlist, so a normal user can't be exempt by default.
+		mockDb({ plan: "starter", ownerEmail: "founder@clanker.com" });
+		const access = await resolveAccess(envWith(undefined), "ws");
+		expect(access.exempt).toBe(false);
+		expect(access.plan).toBe("starter");
 	});
 });
 

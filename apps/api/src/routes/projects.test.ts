@@ -134,8 +134,8 @@ describe("Plan caps — POST /projects (create)", () => {
 	const hdr = { "x-test-user": "u1", "x-workspace-id": "ws_1", ...json };
 
 	it("402 project_limit_reached at the plan's project cap, never inserts", async () => {
-		// Starter allows 1 project; already at 1.
-		mockDb({ role: "owner", plan: "starter", projectCount: 1 });
+		// Starter allows 2 projects; already at 2.
+		mockDb({ role: "owner", plan: "starter", projectCount: 2 });
 		const res = await req("/projects", {
 			method: "POST",
 			headers: hdr,
@@ -169,7 +169,8 @@ describe("Plan caps — POST /projects (create)", () => {
 		expect(insertSpy).toHaveBeenCalledTimes(1);
 	});
 
-	it("blocks an unpaid (none) workspace from creating any project", async () => {
+	it("blocks an unpaid (none) workspace from building — subscription_required, never inserts", async () => {
+		// Hard paywall: no sub ⇒ can't build at all (server-side, non-bypassable).
 		mockDb({ role: "owner", plan: "none", projectCount: 0 });
 		const res = await req("/projects", {
 			method: "POST",
@@ -177,7 +178,8 @@ describe("Plan caps — POST /projects (create)", () => {
 			body: JSON.stringify({ name: "Bot" }),
 		});
 		expect(res.status).toBe(402);
-		expect(await res.json()).toMatchObject({ error: "project_limit_reached" });
+		expect(await res.json()).toMatchObject({ error: "subscription_required" });
+		expect(insertSpy).not.toHaveBeenCalled();
 	});
 });
 

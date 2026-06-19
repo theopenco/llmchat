@@ -1,20 +1,27 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { BillingNotice } from "@/app/settings/billing/_components/BillingNotice";
 import { TierGrid } from "@/app/settings/billing/_components/TierGrid";
 import { BrandLogo } from "@/components/brand-logo";
-import { isBillingNotConfigured, startCheckout } from "@/lib/billing";
+import {
+	fetchUsage,
+	isBillingNotConfigured,
+	redirectToStripeCheckout,
+	startCheckout,
+} from "@/lib/billing";
 
 import type { PaidPlan } from "@llmchat/shared";
 
 /**
- * Paywall shown before onboarding when the workspace has no active subscription
- * (paid-only product). Picking a tier starts Stripe Checkout and, on success,
- * returns the browser to /onboarding to build the agent. Reuses the same
- * TierGrid as the billing screen so the two never drift.
+ * Hard paywall shown before onboarding when the workspace has no active
+ * subscription (paid-only). Picking a tier starts Stripe Checkout and, on
+ * success, returns to /onboarding to build the agent. Reuses the same TierGrid
+ * as the billing screen — same real prices, same "coming soon" gating — so the
+ * two never drift. This is the UX gate; building is also blocked server-side
+ * (POST /api/projects → 402 subscription_required), so it can't be bypassed.
  */
 export function OnboardingPaywall({
 	workspaceId,
@@ -24,13 +31,16 @@ export function OnboardingPaywall({
 	canManage: boolean;
 }) {
 	const [error, setError] = useState<string | null>(null);
+	// Shares the billing-usage cache; only used here for availablePlans.
+	const usageQ = useQuery({
+		queryKey: ["billing-usage", workspaceId],
+		queryFn: () => fetchUsage(workspaceId),
+	});
 	const checkout = useMutation({
 		mutationFn: (plan: PaidPlan) =>
 			startCheckout(workspaceId, plan, "/onboarding"),
 		onMutate: () => setError(null),
-		onSuccess: (url) => {
-			window.location.href = url;
-		},
+		onSuccess: (session) => void redirectToStripeCheckout(session),
 		onError: (e) =>
 			setError(
 				isBillingNotConfigured(e)
@@ -49,7 +59,7 @@ export function OnboardingPaywall({
 				</h1>
 				<p className="max-w-lg text-balance text-sm text-muted-foreground">
 					Clanker Support is paid from day one — pick a plan and add a card to
-					put your support agent live. Billed monthly; change or cancel anytime.
+					get started. Billed monthly; change or cancel anytime.
 				</p>
 			</header>
 
@@ -61,6 +71,7 @@ export function OnboardingPaywall({
 
 			<div className="mt-10">
 				<TierGrid
+					availablePlans={usageQ.data?.availablePlans}
 					selecting={selecting}
 					disabled={!canManage || checkout.isPending}
 					onSelect={(plan) => checkout.mutate(plan)}

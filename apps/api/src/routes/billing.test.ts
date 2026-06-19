@@ -165,19 +165,28 @@ describe("POST /billing/checkout", () => {
 		);
 	});
 
-	it("503s when an overage tier's overage price id is unset (never calls Stripe)", async () => {
+	it("still sells an overage tier when its overage price is unset — just omits the line item", async () => {
 		mockDb({
 			member: { role: "owner" },
 			workspace: { id: "ws_1", stripeCustomerId: "cus_1" },
+		});
+		vi.mocked(createCheckoutSession).mockResolvedValue({
+			id: "cs",
+			url: "https://checkout/cs",
 		});
 		const env = {
 			...ENV,
 			vars: { ...ENV.vars, STRIPE_PRICE_GROWTH_OVERAGE: "" },
 		};
 		const res = await checkout("growth", undefined, env);
-		expect(res.status).toBe(503);
-		expect(await res.json()).toEqual({ error: "billing_not_configured" });
-		expect(createCheckoutSession).not.toHaveBeenCalled();
+		expect(res.status).toBe(200); // base price is enough to sell the tier
+		expect(createCheckoutSession).toHaveBeenCalledWith(
+			"sk_test_fixture",
+			expect.objectContaining({
+				priceId: "price_growth",
+				overagePriceId: undefined,
+			}),
+		);
 	});
 
 	it("503s when STRIPE_SECRET_KEY is unset", async () => {
