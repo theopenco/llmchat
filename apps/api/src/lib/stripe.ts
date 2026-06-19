@@ -95,22 +95,73 @@ export function createCheckoutSession(
 	secretKey: string,
 	args: {
 		customer: string;
+		/** The flat base subscription price for the chosen tier. */
 		priceId: string;
+		/** Optional metered overage price (Growth/Scale). A metered line item
+		 * carries no quantity — Stripe bills it from reported meter events. */
+		overagePriceId?: string;
+		/** The plan being purchased — stamped on the subscription so the webhook
+		 * can map it back to a tier without re-deriving it from the price id. */
+		plan: string;
 		workspaceId: string;
 		successUrl: string;
 		cancelUrl: string;
 	},
 ): Promise<StripeSession> {
+	const lineItems: Array<Record<string, unknown>> = [
+		{ price: args.priceId, quantity: 1 },
+	];
+	// Metered prices must NOT include a quantity; usage comes from meter events.
+	if (args.overagePriceId) lineItems.push({ price: args.overagePriceId });
+
 	return stripePost<StripeSession>(secretKey, "/checkout/sessions", {
 		mode: "subscription",
 		customer: args.customer,
-		"line_items[0][price]": args.priceId,
-		"line_items[0][quantity]": 1,
-		// Map the session AND the resulting subscription back to the workspace.
+		line_items: lineItems,
+		// Paid-only: always collect a card, never offer a trial.
+		payment_method_collection: "always",
+		// Map the session AND the resulting subscription back to the workspace +
+		// purchased tier, so the webhook needs no price→tier lookup. Stamped in
+		// both places: session metadata is read on checkout.session.completed,
+		// subscription metadata on later customer.subscription.* events.
 		client_reference_id: args.workspaceId,
-		subscription_data: { metadata: { workspaceId: args.workspaceId } },
+		metadata: { workspaceId: args.workspaceId, plan: args.plan },
+		subscription_data: {
+			metadata: { workspaceId: args.workspaceId, plan: args.plan },
+		},
 		success_url: args.successUrl,
 		cancel_url: args.cancelUrl,
+	});
+}
+
+/**
+ * Report one usage increment to a Stripe Billing Meter (the current Meters API,
+ * not the deprecated subscription-item usage records). Stripe aggregates events
+ * by customer and applies the metered price's tiering — including the
+ * first-N-free included quota — so we report EVERY billable response and let
+ * Stripe own the billing math. `value` defaults to 1 (one response).
+ *
+ * Best-effort by design: callers run this inside `waitUntil` and ignore the
+ * result, so a meter hiccup never blocks or fails a live response. We still
+ * surface non-2xx via the thrown StripeError for logging at the call site.
+ */
+export function reportMeterEvent(
+	secretKey: string,
+	args: {
+		eventName: string;
+		customerId: string;
+		value?: number;
+		/** Idempotency key so a retried report isn't double-counted. */
+		identifier?: string;
+	},
+): Promise<{ identifier?: string }> {
+	return stripePost(secretKey, "/billing/meter_events", {
+		event_name: args.eventName,
+		identifier: args.identifier,
+		payload: {
+			stripe_customer_id: args.customerId,
+			value: String(args.value ?? 1),
+		},
 	});
 }
 

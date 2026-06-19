@@ -1,9 +1,14 @@
 /** Pure workspace-selection logic, split out from the provider so the
  * stale-selection edge cases can be unit-tested without React. */
 
+import type { Plan } from "@llmchat/shared";
+
 import { resolveSelectedId } from "./selection";
 
-export type Plan = "free" | "pro" | "scale";
+// Billing plan enum, single-sourced from the API's tier table. "none" = no
+// active subscription (paid-only product); starter|growth|scale are the paid
+// tiers. Re-exported so dashboard modules keep importing `Plan` from here.
+export type { Plan };
 
 /** Workspace RBAC roles, mirrored from the API. Higher roles include the
  * capabilities of lower ones: owner ⊃ admin ⊃ agent. */

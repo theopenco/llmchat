@@ -7,6 +7,7 @@ import { CsatStep } from "./components/CsatStep";
 import { EscalationSection } from "./components/EscalationSection";
 import { IdentifyForm } from "./components/IdentifyForm";
 import { MessageList } from "./components/MessageList";
+import { PoweredBy } from "./components/PoweredBy";
 import { WidgetFrame } from "./components/WidgetFrame";
 import { rateConversation, shouldPromptCsat } from "./csat";
 import { requestEscalation } from "./escalation";
@@ -15,6 +16,7 @@ import { mergeMessages } from "./messages-sync";
 import { rateMessage, useMessageRatings } from "./rating";
 import { ShowcaseChat } from "./ShowcaseChat";
 import { useServerMessages } from "./useServerMessages";
+import { useShowBranding } from "./widget-config";
 
 import type { Rating } from "./rating";
 
@@ -122,6 +124,10 @@ function LiveWidget({
 	useEffect(() => {
 		setClientId(getOrCreateClientId());
 	}, []);
+
+	// Server decides whether the "Powered by" badge shows (plan-gated, tamper-
+	// proof). Defaults to shown until the server says otherwise.
+	const showBranding = useShowBranding(apiUrl, projectKey);
 
 	const chat = useMemo(
 		() =>
@@ -269,6 +275,7 @@ function LiveWidget({
 			brandColor={brandColor}
 			open={open}
 			onOpenChange={handleOpenChange}
+			footer={showBranding ? <PoweredBy /> : null}
 		>
 			{csatStep !== "hidden" ? (
 				<CsatStep step={csatStep} onRate={submitCsat} onSkip={skipCsat} />

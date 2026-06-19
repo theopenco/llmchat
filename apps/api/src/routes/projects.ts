@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
+import { canCreateProject, isModelAllowedForWorkspace } from "@/lib/plan";
 import {
 	requireRole,
 	requireSession,
@@ -57,6 +58,14 @@ export const projects = new Hono<AppContext>()
 		async (c) => {
 			const workspaceId = c.get("workspaceId");
 			const data = c.req.valid("json");
+			// Plan caps (402 → dashboard shows an upgrade prompt): project count,
+			// then model access for the chosen model.
+			if (!(await canCreateProject(c.env, workspaceId))) {
+				return c.json({ error: "project_limit_reached" }, 402);
+			}
+			if (!(await isModelAllowedForWorkspace(c.env, workspaceId, data.model))) {
+				return c.json({ error: "model_not_allowed" }, 402);
+			}
 			const [created] = await db(c.env)
 				.insert(project)
 				.values({
@@ -83,6 +92,14 @@ export const projects = new Hono<AppContext>()
 			});
 			if (!existing) {
 				return c.json({ error: "not found" }, 404);
+			}
+			// Gate a model change against the plan's model access (only when the
+			// model is actually being changed).
+			if (
+				data.model &&
+				!(await isModelAllowedForWorkspace(c.env, workspaceId, data.model))
+			) {
+				return c.json({ error: "model_not_allowed" }, 402);
 			}
 			const [updated] = await db(c.env)
 				.update(project)

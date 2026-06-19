@@ -1,29 +1,29 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Plan } from "@/lib/workspace-utils";
+import { isPaidPlan } from "@llmchat/shared";
 
-import { PRO_TIER } from "./billing-plans";
+import { planName } from "./billing-plans";
 
 /**
- * The caller's billing status. There is no free tier any more, so a workspace
- * that isn't on a paid plan shows "No active subscription" (never a "$0 Free
- * plan"), and the action follows the status: not subscribed → upgrade, paid →
- * manage in the Stripe portal. Capabilities live on the Pro card below, so this
- * card stays lean — status + price + one action.
+ * The caller's billing status. Paid-only product: a workspace with no active
+ * subscription shows "No subscription" (never a "$0 Free plan"), with the call
+ * to action being the tier grid below. A subscribed workspace shows its tier
+ * name and a "Manage billing" button into the Stripe portal. No prices here —
+ * those live in Stripe / Checkout.
  */
 export function CurrentPlanCard({
 	plan,
 	pending,
-	onUpgrade,
+	disabled,
 	onManage,
 }: {
-	plan: Plan;
+	plan: string;
 	pending: boolean;
-	onUpgrade: () => void;
+	disabled?: boolean;
 	onManage: () => void;
 }) {
-	const subscribed = plan !== "free";
+	const subscribed = isPaidPlan(plan);
 
 	return (
 		<Card className="flex flex-col">
@@ -31,47 +31,29 @@ export function CurrentPlanCard({
 				<div className="flex items-center justify-between gap-3">
 					<CardTitle>Current plan</CardTitle>
 					<Badge variant={subscribed ? "success" : "secondary"}>
-						{subscribed ? PRO_TIER.name : "No subscription"}
+						{subscribed ? planName(plan) : "No subscription"}
 					</Badge>
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-1 flex-col">
-				{subscribed ? (
-					<>
-						<div className="flex items-baseline gap-1">
-							<span className="text-3xl font-semibold tracking-tight-display">
-								{plan === "pro" ? PRO_TIER.price : ""}
-							</span>
-							{plan === "pro" && (
-								<span className="text-sm text-muted-foreground">/ month</span>
-							)}
-						</div>
-						<p className="mt-1 text-sm text-muted-foreground">
-							{PRO_TIER.tagline}
-						</p>
-					</>
-				) : (
-					<p className="text-sm text-muted-foreground">
-						You&apos;re not on a paid plan — nothing is being billed yet.
-					</p>
-				)}
+				<p className="text-sm text-muted-foreground">
+					{subscribed
+						? "Your subscription is active. Manage payment method, invoices, or cancel anytime in the billing portal."
+						: "You don’t have an active subscription yet. Choose a plan below to put your support agent live."}
+				</p>
 
-				<div className="mt-auto pt-6">
-					{subscribed ? (
+				{subscribed && (
+					<div className="mt-auto pt-6">
 						<Button
 							variant="outline"
 							className="w-full"
 							onClick={onManage}
-							disabled={pending}
+							disabled={pending || disabled}
 						>
 							{pending ? "Redirecting…" : "Manage billing"}
 						</Button>
-					) : (
-						<Button className="w-full" onClick={onUpgrade} disabled={pending}>
-							{pending ? "Redirecting…" : "Upgrade to Pro"}
-						</Button>
-					)}
-				</div>
+					</div>
+				)}
 			</CardContent>
 		</Card>
 	);

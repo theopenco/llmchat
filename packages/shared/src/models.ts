@@ -35,3 +35,23 @@ export function isWebSearchModel(id: string): boolean {
 export function effectiveModel(model: string | null | undefined): string {
 	return model && isWebSearchModel(model) ? model : DEFAULT_MODEL;
 }
+
+// Markers in a model id that denote the cheaper/smaller "basic" class — the
+// only models the Starter tier may run. Matched on the id (case-insensitive) so
+// the classification survives `pnpm gen:web-search-models` regenerating the
+// snapshot, rather than pinning a brittle list of exact ids that drifts.
+const BASIC_MODEL_MARKERS = [
+	"mini",
+	"nano",
+	"haiku",
+	"flash",
+	"lite",
+	"small",
+] as const;
+
+/** True when `id` is a "basic" (cheaper/smaller) model — Starter-tier eligible.
+ * The Starter default (`gpt-5.4-mini`) qualifies via the `mini` marker. */
+export function isBasicModel(id: string): boolean {
+	const lower = id.toLowerCase();
+	return BASIC_MODEL_MARKERS.some((m) => lower.includes(m));
+}

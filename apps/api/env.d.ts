@@ -15,7 +15,12 @@ declare module "@meetploy/nextjs" {
 			LLMGATEWAY_API_KEY: string;
 			STRIPE_SECRET_KEY: string;
 			STRIPE_WEBHOOK_SECRET: string;
-			STRIPE_PRO_PRICE_ID: string;
+			STRIPE_PRICE_STARTER?: string;
+			STRIPE_PRICE_GROWTH?: string;
+			STRIPE_PRICE_SCALE?: string;
+			STRIPE_PRICE_GROWTH_OVERAGE?: string;
+			STRIPE_PRICE_SCALE_OVERAGE?: string;
+			STRIPE_METER_EVENT?: string;
 			RESEND_API_KEY: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;
@@ -39,7 +44,12 @@ declare global {
 			LLMGATEWAY_API_KEY: string;
 			STRIPE_SECRET_KEY: string;
 			STRIPE_WEBHOOK_SECRET: string;
-			STRIPE_PRO_PRICE_ID: string;
+			STRIPE_PRICE_STARTER?: string;
+			STRIPE_PRICE_GROWTH?: string;
+			STRIPE_PRICE_SCALE?: string;
+			STRIPE_PRICE_GROWTH_OVERAGE?: string;
+			STRIPE_PRICE_SCALE_OVERAGE?: string;
+			STRIPE_METER_EVENT?: string;
 			RESEND_API_KEY: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;

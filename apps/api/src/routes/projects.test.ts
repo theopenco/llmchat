@@ -27,6 +27,11 @@ interface State {
 	/** Membership role for the requesting user, or undefined = not a member. */
 	role?: "owner" | "admin" | "agent";
 	existingProject?: Record<string, unknown>;
+	/** Workspace plan for the cap/model-gating checks. Defaults to "scale"
+	 * (max headroom, all models) so RBAC tests aren't gated by billing. */
+	plan?: string;
+	/** Existing project count for the project-cap check. Defaults to 0. */
+	projectCount?: number;
 }
 
 let insertSpy: ReturnType<typeof vi.fn>;
@@ -46,7 +51,14 @@ function mockDb(state: State) {
 				findFirst: async () => state.existingProject,
 				findMany: async () => [{ id: "p1", name: "Existing" }],
 			},
+			workspace: {
+				findFirst: async () => ({ plan: state.plan ?? "scale" }),
+			},
 		},
+		// Count queries (projectCount): db.select({n}).from(...).where(...) → [{n}]
+		select: () => ({
+			from: () => ({ where: async () => [{ n: state.projectCount ?? 0 }] }),
+		}),
 		insert: insertSpy,
 		delete: deleteSpy,
 	};
@@ -115,6 +127,57 @@ describe("RBAC — POST /projects (create)", () => {
 			body: JSON.stringify({ name: "Bot" }),
 		});
 		expect(res.status).toBe(400);
+	});
+});
+
+describe("Plan caps — POST /projects (create)", () => {
+	const hdr = { "x-test-user": "u1", "x-workspace-id": "ws_1", ...json };
+
+	it("402 project_limit_reached at the plan's project cap, never inserts", async () => {
+		// Starter allows 1 project; already at 1.
+		mockDb({ role: "owner", plan: "starter", projectCount: 1 });
+		const res = await req("/projects", {
+			method: "POST",
+			headers: hdr,
+			body: JSON.stringify({ name: "Bot" }),
+		});
+		expect(res.status).toBe(402);
+		expect(await res.json()).toMatchObject({ error: "project_limit_reached" });
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("402 model_not_allowed when a basic-only plan picks a premium model", async () => {
+		mockDb({ role: "owner", plan: "starter", projectCount: 0 });
+		const res = await req("/projects", {
+			method: "POST",
+			headers: hdr,
+			body: JSON.stringify({ name: "Bot", model: "claude-opus-4-8" }),
+		});
+		expect(res.status).toBe(402);
+		expect(await res.json()).toMatchObject({ error: "model_not_allowed" });
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("allows a premium model on an all-models plan", async () => {
+		mockDb({ role: "owner", plan: "scale", projectCount: 0 });
+		const res = await req("/projects", {
+			method: "POST",
+			headers: hdr,
+			body: JSON.stringify({ name: "Bot", model: "claude-opus-4-8" }),
+		});
+		expect(res.status).toBe(200);
+		expect(insertSpy).toHaveBeenCalledTimes(1);
+	});
+
+	it("blocks an unpaid (none) workspace from creating any project", async () => {
+		mockDb({ role: "owner", plan: "none", projectCount: 0 });
+		const res = await req("/projects", {
+			method: "POST",
+			headers: hdr,
+			body: JSON.stringify({ name: "Bot" }),
+		});
+		expect(res.status).toBe(402);
+		expect(await res.json()).toMatchObject({ error: "project_limit_reached" });
 	});
 });
 

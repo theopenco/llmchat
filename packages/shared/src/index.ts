@@ -5,10 +5,24 @@ export { resolveSiblingUrl } from "./preview-url";
 export {
 	DEFAULT_MODEL,
 	effectiveModel,
+	isBasicModel,
 	isWebSearchModel,
 	WEB_SEARCH_MODEL_IDS,
 	WEB_SEARCH_MODELS,
 } from "./models";
+export {
+	BILLING_TIERS,
+	PAID_PLANS,
+	isModelAllowed,
+	isOverResponseQuota,
+	isPaidPlan,
+	isWithinLimit,
+	planEntitlements,
+	showPoweredByBadge,
+	type Plan,
+	type PaidPlan,
+	type TierEntitlements,
+} from "./billing-tiers";
 
 export const widgetMessageRole = z.enum(["user", "assistant", "admin"]);
 
