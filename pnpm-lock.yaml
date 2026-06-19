@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@meetploy/cli':
-        specifier: ^1.41.0
-        version: 1.41.0(@cloudflare/workers-types@4.20260504.1)
+        specifier: ^1.42.0
+        version: 1.42.0(@cloudflare/workers-types@4.20260504.1)
       '@types/node':
         specifier: ^22.10.0
         version: 22.19.17
@@ -61,8 +61,8 @@ importers:
         version: 4.4.3
     devDependencies:
       '@meetploy/types':
-        specifier: ^1.15.1
-        version: 1.15.1
+        specifier: ^1.18.0
+        version: 1.18.0
       typescript:
         specifier: 5.9.2
         version: 5.9.2
@@ -332,8 +332,8 @@ importers:
         version: 0.45.2(@cloudflare/workers-types@4.20260504.1)(@opentelemetry/api@1.9.0)(better-sqlite3@12.9.0)(kysely@0.28.17)
     devDependencies:
       '@meetploy/types':
-        specifier: ^1.15.1
-        version: 1.15.1
+        specifier: ^1.18.0
+        version: 1.18.0
       better-sqlite3:
         specifier: ^12.0.0
         version: 12.9.0
@@ -1816,12 +1816,12 @@ packages:
   '@llmgateway/models@1.74.2':
     resolution: {integrity: sha512-zxzyC5WLVC0iqGNvAcQzryWxYxVgK1xTapxIgpomUQRC1k4jMbWQoLZvPMbGsG0P6gMyl5rKU6x/xsz/1zuf7w==}
 
-  '@meetploy/cli@1.41.0':
-    resolution: {integrity: sha512-Xh1hiOC/vN/uWbkFIa/BCeFiL6Ozukr3MWOgzSvqem2WfIPZq82JORtIr92OfQHGiTJM1J0UwFf3hripP7I5vg==}
+  '@meetploy/cli@1.42.0':
+    resolution: {integrity: sha512-LN340rPBemX771/9CLhGO6poREp3k5gv5A4HEveQedri5/Auxo8VMp6DiFTwsiXAv4vvT40xRFgRLUcpi0dkrA==}
     hasBin: true
 
-  '@meetploy/types@1.15.1':
-    resolution: {integrity: sha512-Wq5j4qwp54mCqgdU8xsrFm3xKDNkpQfLHIVoBB0SJ/dnG/zO1RMwM/d68mIgGsIqNj7nCACDv42AG5ktPfa2lQ==}
+  '@meetploy/types@1.18.0':
+    resolution: {integrity: sha512-A6sd9XeeJIipdXTXh1pPdXNEuwq9qvOI02fWCkaZXWCti/YhYc+Iq1tG56naSfVszpCwsz6Hp0gYyBV7Hc0xBQ==}
 
   '@next/env@15.1.0':
     resolution: {integrity: sha512-UcCO481cROsqJuszPPXJnb7GGuLq617ve4xuAyyNG4VSSocJNtMU5Fsx+Lp6mlN8c7W58aZLc5y6D/2xNmaK+w==}
@@ -5880,7 +5880,7 @@ snapshots:
 
   '@llmgateway/models@1.74.2': {}
 
-  '@meetploy/cli@1.41.0(@cloudflare/workers-types@4.20260504.1)':
+  '@meetploy/cli@1.42.0(@cloudflare/workers-types@4.20260504.1)':
     dependencies:
       '@hono/node-server': 1.19.14(hono@4.12.16)
       chokidar: 4.0.3
@@ -5895,7 +5895,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@meetploy/types@1.15.1': {}
+  '@meetploy/types@1.18.0': {}
 
   '@next/env@15.1.0': {}
 

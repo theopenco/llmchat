@@ -23,7 +23,7 @@
 		"zod": "^4.0.0"
 	},
 	"devDependencies": {
-		"@meetploy/types": "^1.15.1",
+		"@meetploy/types": "^1.18.0",
 		"typescript": "5.9.2",
 		"vitest": "^3.0.0"
 	}

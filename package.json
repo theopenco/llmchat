@@ -15,7 +15,7 @@
 		"test": "turbo run test"
 	},
 	"devDependencies": {
-		"@meetploy/cli": "^1.41.0",
+		"@meetploy/cli": "^1.42.0",
 		"@types/node": "^22.10.0",
 		"oxlint": "^1.69.0",
 		"prettier": "^3.6.2",

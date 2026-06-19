@@ -18,7 +18,7 @@
 		"drizzle-orm": "^0.45.2"
 	},
 	"devDependencies": {
-		"@meetploy/types": "^1.15.1",
+		"@meetploy/types": "^1.18.0",
 		"better-sqlite3": "^12.0.0",
 		"drizzle-kit": "^0.31.0",
 		"typescript": "5.9.2"
