@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CodeBlock } from "@/components/CodeBlock";
 import { TrackView } from "@/components/TrackView";
+import { pageMeta } from "@/lib/seo";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -22,10 +23,11 @@ export async function generateMetadata({
 	const { slug } = await params;
 	const guide = allMigrations.find((m) => m.slug === slug);
 	if (!guide) return {};
-	return {
+	return pageMeta({
 		title: `Migrate from ${guide.name} to Clanker Support`,
 		description: guide.intro,
-	};
+		path: `/docs/migrate/${slug}`,
+	});
 }
 
 export default async function MigratePage({
