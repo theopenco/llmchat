@@ -16,7 +16,6 @@
 		"@content-collections/markdown": "^0.1.4",
 		"@content-collections/next": "^0.2.11",
 		"@llmchat/shared": "workspace:^",
-		"@next/third-parties": "15.1.0",
 		"better-auth": "1.6.9",
 		"next": "15.1.0",
 		"next-themes": "^0.4.6",

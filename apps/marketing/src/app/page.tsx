@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
 import { JsonLd } from "@/components/JsonLd";
+import { FEATURES } from "@/lib/features";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
@@ -31,39 +32,6 @@ const orgJsonLd = {
 		},
 	],
 };
-
-const features = [
-	{
-		n: "01",
-		title: "Drop-in widget",
-		body: "One script tag. Loads in a shadow DOM so your styles never leak — and theirs never leak into you.",
-	},
-	{
-		n: "02",
-		title: "Answers from your docs",
-		body: "Paste your knowledge base or system prompt. The bot stays on-topic and admits when it doesn't know.",
-	},
-	{
-		n: "03",
-		title: "Escalates to humans",
-		body: "When the bot can't help, the conversation lands in your inbox with full context — no lost threads.",
-	},
-	{
-		n: "04",
-		title: "Email threading",
-		body: "Replies go out as email and customer responses thread back into the same conversation automatically.",
-	},
-	{
-		n: "05",
-		title: "Any model, any time",
-		body: "Built on LLM Gateway. Swap GPT, Claude, or a custom model per project — a config change, not a rewrite.",
-	},
-	{
-		n: "06",
-		title: "Self-hostable",
-		body: "Open architecture on serverless edge infra. Run the whole stack on your own account. No surprise vendors.",
-	},
-];
 
 const steps = [
 	{
@@ -96,7 +64,7 @@ export default function Home() {
 					<div className="relative mx-auto flex max-w-3xl flex-col items-center px-6 pb-28 pt-24 text-center sm:pt-36">
 						<span className="animate-rise-in inline-flex items-center gap-2 rounded-full border border-rule bg-paper-card/60 px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted">
 							<span className="size-1.5 rounded-full bg-accent shadow-[0_0_10px_2px_rgba(99,102,241,0.7)]" />
-							Built on LLM Gateway · Any model
+							Any model · One script tag
 						</span>
 
 						<h1 className="font-display animate-rise-in mt-7 text-balance text-5xl font-semibold leading-[1.02] tracking-tight-display text-ink [animation-delay:80ms] sm:text-7xl">
@@ -149,21 +117,26 @@ export default function Home() {
 					</div>
 
 					<div className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
-						{features.map((f) => (
-							<div
-								key={f.title}
-								className="group bg-paper p-7 transition-colors hover:bg-paper-card"
+						{FEATURES.map((f) => (
+							<Link
+								key={f.slug}
+								href={`/features/${f.slug}`}
+								className="group flex flex-col bg-paper p-7 transition-colors hover:bg-paper-card"
 							>
 								<span className="font-mono text-xs font-medium text-faint transition-colors group-hover:text-accent-soft">
-									{f.n}
+									{f.num}
 								</span>
 								<h3 className="font-display mt-4 text-xl font-semibold tracking-tight-display text-ink">
-									{f.title}
+									{f.name}
 								</h3>
 								<p className="mt-2 text-sm leading-relaxed text-muted">
-									{f.body}
+									{f.tagline}
 								</p>
-							</div>
+								<span className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-accent-soft opacity-0 transition-opacity group-hover:opacity-100">
+									Learn more
+									<span aria-hidden>→</span>
+								</span>
+							</Link>
 						))}
 					</div>
 				</section>
