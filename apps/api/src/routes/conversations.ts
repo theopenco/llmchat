@@ -279,29 +279,95 @@ export const conversations = new Hono<AppContext>()
 			avgRating: agg?.avgRating ?? null,
 		});
 	})
-	.get("/projects/:projectId/conversations/:id", async (c) => {
-		const { projectId, id } = c.req.param();
-		const workspaceId = c.get("workspaceId");
-		const proj = await db(c.env).query.project.findFirst({
-			where: (pt, { and: a, eq: e }) =>
-				a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
-		});
-		if (!proj) {
-			return c.json({ error: "not found" }, 404);
-		}
-		const conv = await db(c.env).query.conversation.findFirst({
-			where: (ct, { and: a, eq: e }) =>
-				a(e(ct.id, id), e(ct.projectId, projectId)),
-		});
-		if (!conv) {
-			return c.json({ error: "not found" }, 404);
-		}
-		const messages = await db(c.env).query.message.findMany({
-			where: (mt, { eq: e }) => e(mt.conversationId, id),
-			orderBy: (mt, ops) => ops.asc(mt.sequence),
-		});
-		return c.json({ conversation: conv, messages });
-	})
+	.get(
+		"/projects/:projectId/conversations/:id",
+		zValidator(
+			"query",
+			z.object({
+				limit: z.coerce.number().int().min(1).max(100).default(50),
+				// Keyset on `sequence` (monotonic per conversation). `before` loads the
+				// older page above; `after` is the newest-only poll; neither ⇒ the
+				// latest page. `search` reports where the first hit is so the client can
+				// page to it.
+				before: z.coerce.number().int().optional(),
+				after: z.coerce.number().int().optional(),
+				search: z.string().optional(),
+			}),
+		),
+		async (c) => {
+			const { projectId, id } = c.req.param();
+			const { limit, before, after, search } = c.req.valid("query");
+			const workspaceId = c.get("workspaceId");
+			const proj = await db(c.env).query.project.findFirst({
+				where: (pt, { and: a, eq: e }) =>
+					a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+			});
+			if (!proj) {
+				return c.json({ error: "not found" }, 404);
+			}
+			const conv = await db(c.env).query.conversation.findFirst({
+				where: (ct, { and: a, eq: e }) =>
+					a(e(ct.id, id), e(ct.projectId, projectId)),
+			});
+			if (!conv) {
+				return c.json({ error: "not found" }, 404);
+			}
+
+			let messages;
+			let hasOlder = false;
+			if (after !== undefined) {
+				// Poll: only messages newer than what the client holds. Bounded so a
+				// long-idle tab can't pull an unbounded backlog in one go.
+				messages = await db(c.env).query.message.findMany({
+					where: (mt, { and: a, eq: e, gt }) =>
+						a(e(mt.conversationId, id), gt(mt.sequence, after)),
+					orderBy: (mt, { asc: ascOp }) => ascOp(mt.sequence),
+					limit: 200,
+				});
+			} else {
+				// Latest page (no cursor) or the older page above `before`. Fetch
+				// limit+1 newest-first to detect more history without trusting sequence
+				// to start at 1, then return `limit` rows ascending.
+				const desc = await db(c.env).query.message.findMany({
+					where: (mt, { and: a, eq: e, lt }) =>
+						before === undefined
+							? e(mt.conversationId, id)
+							: a(e(mt.conversationId, id), lt(mt.sequence, before)),
+					orderBy: (mt, { desc: descOp }) => descOp(mt.sequence),
+					limit: limit + 1,
+				});
+				hasOlder = desc.length > limit;
+				messages = desc.slice(0, limit).reverse();
+			}
+
+			// Tell the client the sequence of the FIRST (oldest) message matching the
+			// search term, so it can page older until that message is loaded and then
+			// scroll to it — a hit in an unloaded page would otherwise be invisible.
+			let firstHitSequence: number | null = null;
+			const term = search?.trim();
+			if (term) {
+				const [hit] = await db(c.env)
+					.select({ sequence: messageTable.sequence })
+					.from(messageTable)
+					.where(
+						and(
+							eq(messageTable.conversationId, id),
+							likeContains(messageTable.content, term),
+						),
+					)
+					.orderBy(asc(messageTable.sequence))
+					.limit(1);
+				firstHitSequence = hit?.sequence ?? null;
+			}
+
+			return c.json({
+				conversation: conv,
+				messages,
+				hasOlder,
+				firstHitSequence,
+			});
+		},
+	)
 	.post(
 		"/projects/:projectId/conversations/:id/reply",
 		zValidator("json", z.object({ content: z.string().min(1) })),

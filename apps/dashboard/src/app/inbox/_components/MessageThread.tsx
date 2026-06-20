@@ -2,8 +2,9 @@
 
 import { useStickToBottom } from "@llmchat/widget/chat";
 import { ArrowDown, Headset, ThumbsDown, ThumbsUp } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { formatMessageTime } from "./format";
@@ -101,24 +102,92 @@ function MessageBubble({
 	);
 }
 
+/** Top-of-thread loader: an intersection sentinel that pages in older history
+ * as it scrolls into view, with an explicit button fallback (and the affordance
+ * where IntersectionObserver is absent, e.g. tests). */
+function LoadOlder({
+	onLoadOlder,
+	loading,
+	scrollRef,
+}: {
+	onLoadOlder?: () => void;
+	loading: boolean;
+	scrollRef: React.RefObject<HTMLDivElement | null>;
+}) {
+	const ref = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		const el = ref.current;
+		if (!el || !onLoadOlder || typeof IntersectionObserver === "undefined")
+			return;
+		const io = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((e) => e.isIntersecting) && !loading) onLoadOlder();
+			},
+			{ root: scrollRef.current, rootMargin: "150px" },
+		);
+		io.observe(el);
+		return () => io.disconnect();
+	}, [onLoadOlder, loading, scrollRef]);
+	return (
+		<div ref={ref} className="flex justify-center py-1">
+			<Button
+				variant="ghost"
+				size="sm"
+				onClick={onLoadOlder}
+				disabled={loading}
+			>
+				{loading ? "Loading…" : "Load older messages"}
+			</Button>
+		</div>
+	);
+}
+
 export function MessageThread({
 	messages,
 	search = "",
+	hasOlder = false,
+	onLoadOlder,
+	loadingOlder = false,
 }: {
 	messages: Message[];
 	/** Active inbox search term. When set, every occurrence is highlighted in the
 	 * thread and the first matching message is scrolled into view on open. */
 	search?: string;
+	/** True when older history can be paged in above the loaded window. */
+	hasOlder?: boolean;
+	/** Load the page of older messages above the current window. */
+	onLoadOlder?: () => void;
+	/** True while an older page is being fetched. */
+	loadingOlder?: boolean;
 }) {
 	const { containerRef, atBottom, scrollToBottom } =
 		useStickToBottom<HTMLDivElement>({
-			// New messages (inbound or replies) — the inbox doesn't token-stream,
-			// so message count is the growth signal.
-			contentKey: messages.length,
+			// Growth signal = the NEWEST message's identity, not the count. Appending
+			// a message changes it (→ stick if pinned); prepending older history
+			// leaves it unchanged, so paging in history never reads as new content
+			// and never yanks to the bottom.
+			contentKey: messages.at(-1)?.id ?? messages.length,
 			// The agent's own sends are role "admin"; following those is expected.
 			// Inbound visitor/bot messages instead obey the near-bottom rule.
 			sendKey: messages.reduce((id, m) => (m.role === "admin" ? m.id : id), ""),
 		});
+
+	// Scroll anchoring for prepended history: when the FIRST message changes (an
+	// older page loaded above), keep the viewport on what the user was reading by
+	// pushing scrollTop down by exactly the height that was added on top. Appends
+	// at the bottom leave the first id unchanged, so this is a no-op for them.
+	const firstId = messages[0]?.id;
+	const prevFirstId = useRef(firstId);
+	const prevScrollHeight = useRef(0);
+	useLayoutEffect(() => {
+		const el = containerRef.current;
+		if (!el) return;
+		if (prevFirstId.current !== firstId && prevScrollHeight.current > 0) {
+			el.scrollTop += el.scrollHeight - prevScrollHeight.current;
+		}
+		prevFirstId.current = firstId;
+		prevScrollHeight.current = el.scrollHeight;
+	});
 
 	// The first message (in order) containing the term — the scroll target. A
 	// stable id, so the scroll effect below fires once per open/term-change, not
@@ -146,6 +215,13 @@ export function MessageThread({
 			ref={containerRef}
 			className="relative flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-4"
 		>
+			{hasOlder && (
+				<LoadOlder
+					onLoadOlder={onLoadOlder}
+					loading={loadingOlder}
+					scrollRef={containerRef}
+				/>
+			)}
 			{messages.map((m) =>
 				m.role === "system" ? (
 					<div

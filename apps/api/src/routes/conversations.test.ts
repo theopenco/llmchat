@@ -51,6 +51,10 @@ interface State {
 	snippetRows?: { conversationId: string; content: string }[];
 	/** Sequence-1 previews for the firstMessage query. */
 	firstMessages?: { conversationId: string; content: string }[];
+	/** The conversation the thread endpoint resolves (undefined ⇒ 404). */
+	conv?: Row;
+	/** Rows the thread message window query returns (relational findMany). */
+	threadMessages?: Row[];
 }
 
 /** Records the shape of every message-table query so tests can assert the
@@ -122,6 +126,12 @@ function mockDb(state: State) {
 			},
 			project: {
 				findFirst: async () => state.project,
+			},
+			conversation: {
+				findFirst: async () => state.conv,
+			},
+			message: {
+				findMany: async () => state.threadMessages ?? [],
 			},
 		},
 		select: () => builder(false),
@@ -468,6 +478,92 @@ describe("inbox stats aggregate", () => {
 	it("403s a non-member", async () => {
 		mockDb({});
 		const res = await get("/projects/p1/conversations/stats", MEMBER);
+		expect(res.status).toBe(403);
+	});
+});
+
+describe("thread pagination (GET conversations/:id)", () => {
+	const CONV = { id: "cThread", projectId: "p1" };
+
+	it("latest page: returns ascending messages + hasOlder via the limit+1 sentinel", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: CONV,
+			// Server fetches newest-first limit+1; with limit=2 these 3 rows ⇒ older
+			// history exists.
+			threadMessages: [
+				{ id: "m3", sequence: 3 },
+				{ id: "m2", sequence: 2 },
+				{ id: "m1", sequence: 1 },
+			],
+		});
+		const res = await get("/projects/p1/conversations/cThread?limit=2", MEMBER);
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as {
+			messages: { sequence: number }[];
+			hasOlder: boolean;
+			firstHitSequence: number | null;
+		};
+		// `limit` rows, re-sorted ascending (oldest→newest).
+		expect(body.messages.map((m) => m.sequence)).toEqual([2, 3]);
+		expect(body.hasOlder).toBe(true);
+		expect(body.firstHitSequence).toBeNull();
+	});
+
+	it("after=<seq> (poll) never reports hasOlder — newest-only, no sentinel", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: CONV,
+			threadMessages: [{ id: "m9", sequence: 9 }],
+		});
+		const res = await get("/projects/p1/conversations/cThread?after=8", MEMBER);
+		const body = (await res.json()) as {
+			messages: { sequence: number }[];
+			hasOlder: boolean;
+		};
+		expect(body.messages.map((m) => m.sequence)).toEqual([9]);
+		expect(body.hasOlder).toBe(false);
+	});
+
+	it("search reports the first hit's sequence so the client can page to it", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: CONV,
+			threadMessages: [{ id: "m20", sequence: 20 }],
+			// The firstHit lookup (core select) resolves to this.
+			firstMessages: [
+				{ sequence: 7 } as unknown as {
+					conversationId: string;
+					content: string;
+				},
+			],
+		});
+		const res = await get(
+			"/projects/p1/conversations/cThread?search=refund",
+			MEMBER,
+		);
+		const body = (await res.json()) as { firstHitSequence: number | null };
+		expect(body.firstHitSequence).toBe(7);
+	});
+
+	it("404s when the project isn't in the caller's workspace", async () => {
+		mockDb({ role: "owner", project: undefined });
+		const res = await get("/projects/pX/conversations/cThread", MEMBER);
+		expect(res.status).toBe(404);
+	});
+
+	it("404s when the conversation doesn't exist in the project", async () => {
+		mockDb({ role: "agent", project: PROJECT, conv: undefined });
+		const res = await get("/projects/p1/conversations/nope", MEMBER);
+		expect(res.status).toBe(404);
+	});
+
+	it("403s a non-member (no query runs)", async () => {
+		mockDb({});
+		const res = await get("/projects/p1/conversations/cThread", MEMBER);
 		expect(res.status).toBe(403);
 	});
 });
