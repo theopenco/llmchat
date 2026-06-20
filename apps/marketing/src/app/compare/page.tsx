@@ -6,7 +6,10 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ComparisonCell } from "@/components/ComparisonCell";
 import { TrackedLink } from "@/components/TrackedLink";
-import { pageMeta } from "@/lib/seo";
+import { FaqSection } from "@/components/FaqSection";
+import { JsonLd } from "@/components/JsonLd";
+import { breadcrumbLd, faqPageLd, pageMeta, type Faq } from "@/lib/seo";
+import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -20,11 +23,56 @@ export const metadata = pageMeta({
 
 const { colOrder, colLabels, featureGroups } = matrix;
 
+const faqs: Faq[] = [
+	{
+		question: "What is the best AI support tool?",
+		answer:
+			"It depends on what you need. Clanker Support is the best fit if you want a single script tag, model-agnostic AI, smart escalation, and the option to self-host. Intercom, Chatwoot, and Chatbase reach further if you need WhatsApp, voice, or a full multi-channel platform today.",
+	},
+	{
+		question: "Which AI support tools are self-hostable?",
+		answer:
+			"Of the tools compared here, Clanker Support and Chatwoot are self-hostable. Clanker Support is a focused widget that runs serverless on the edge; Chatwoot is a full multi-channel platform on Rails and PostgreSQL. Chatbase, Fin, Intercom, and Crisp are hosted-only.",
+	},
+	{
+		question: "How is Clanker Support different from Intercom?",
+		answer:
+			"Intercom is a full customer-communication platform spanning support, sales, and marketing. Clanker Support is purpose-built for AI support — one script tag, any model, smart escalation, and email threading — so it costs less and there's far less to learn if support is all you need.",
+	},
+	{
+		question: "Can I use my own AI model with these tools?",
+		answer:
+			"Clanker Support is model-agnostic: it runs on LLM Gateway, so you pick the model per project and swap it with a config change. Fin runs on proprietary models, and most other tools lock you to their own AI. Self-hosting Clanker Support means you bring your own keys.",
+	},
+];
+
 export default function ComparePage() {
 	const competitors = allCompetitors.toSorted((a, b) => a.rank - b.rank);
 
+	// ItemList of the head-to-head comparisons — gives AI systems a structured
+	// map of the "Clanker Support vs X" set behind the visual matrix.
+	const itemListLd = {
+		"@context": "https://schema.org",
+		"@type": "ItemList",
+		name: "Clanker Support vs. the alternatives",
+		itemListElement: competitors.map((c, i) => ({
+			"@type": "ListItem",
+			position: i + 1,
+			name: `Clanker Support vs. ${c.name}`,
+			url: `${CANONICAL_SITE_URL}/vs/${c.id}`,
+		})),
+	};
+
 	return (
 		<>
+			<JsonLd data={itemListLd} />
+			<JsonLd data={faqPageLd(faqs)} />
+			<JsonLd
+				data={breadcrumbLd(CANONICAL_SITE_URL, [
+					{ name: "Home", path: "/" },
+					{ name: "Compare", path: "/compare" },
+				])}
+			/>
 			<SiteHeader active="compare" />
 
 			<main className="mx-auto max-w-6xl px-6">
@@ -196,6 +244,9 @@ export default function ComparePage() {
 						))}
 					</div>
 				</section>
+
+				{/* FAQ */}
+				<FaqSection faqs={faqs} />
 
 				{/* CTA */}
 				<section className="mt-24 overflow-hidden rounded-3xl bg-ink px-8 py-16 text-center">

@@ -33,6 +33,78 @@ export function pageMeta(opts: {
 	};
 }
 
+/**
+ * A single FAQ entry. Question/answer pairs feed both the visible FAQ section
+ * and the `FAQPage` JSON-LD — answer engines (AI Overviews, Perplexity) extract
+ * these directly, so keep answers self-contained and ~40–60 words.
+ */
+export interface Faq {
+	question: string;
+	answer: string;
+}
+
+/**
+ * schema.org `FAQPage`. Render via <JsonLd> alongside a visible FAQ section —
+ * Google requires the marked-up Q&As to also be on the page. Returns null when
+ * there are no FAQs so callers can `faqs.length ? faqPageLd(faqs) : null`.
+ */
+export function faqPageLd(faqs: Faq[]): Record<string, unknown> {
+	return {
+		"@context": "https://schema.org",
+		"@type": "FAQPage",
+		mainEntity: faqs.map((f) => ({
+			"@type": "Question",
+			name: f.question,
+			acceptedAnswer: { "@type": "Answer", text: f.answer },
+		})),
+	};
+}
+
+/**
+ * schema.org `BreadcrumbList` from an ordered list of trail items. Paths are
+ * root-relative ("/compare"); `base` (the canonical origin) makes them absolute,
+ * as Google requires for breadcrumb `item` URLs.
+ */
+export function breadcrumbLd(
+	base: string,
+	items: { name: string; path: string }[],
+): Record<string, unknown> {
+	return {
+		"@context": "https://schema.org",
+		"@type": "BreadcrumbList",
+		itemListElement: items.map((item, i) => ({
+			"@type": "ListItem",
+			position: i + 1,
+			name: item.name,
+			item: `${base}${item.path}`,
+		})),
+	};
+}
+
+/**
+ * schema.org `HowTo` from a sequence of steps. Used on the docs quickstart and
+ * the migration guides so AI systems can extract the procedure for
+ * "how to …" queries.
+ */
+export function howToLd(opts: {
+	name: string;
+	description: string;
+	steps: { name: string; text: string }[];
+}): Record<string, unknown> {
+	return {
+		"@context": "https://schema.org",
+		"@type": "HowTo",
+		name: opts.name,
+		description: opts.description,
+		step: opts.steps.map((s, i) => ({
+			"@type": "HowToStep",
+			position: i + 1,
+			name: s.name,
+			text: s.text,
+		})),
+	};
+}
+
 export interface SitemapInput {
 	posts: { slug: string; date: string }[];
 	competitors: { id: string }[];
@@ -58,6 +130,12 @@ export function buildSitemap(
 			lastModified: now,
 			changeFrequency: "weekly",
 			priority: 1,
+		},
+		{
+			url: url("/pricing"),
+			lastModified: now,
+			changeFrequency: "weekly",
+			priority: 0.9,
 		},
 		{
 			url: url("/compare"),

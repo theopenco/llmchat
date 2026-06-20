@@ -6,7 +6,9 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CodeBlock } from "@/components/CodeBlock";
 import { TrackView } from "@/components/TrackView";
-import { pageMeta } from "@/lib/seo";
+import { JsonLd } from "@/components/JsonLd";
+import { breadcrumbLd, howToLd, pageMeta } from "@/lib/seo";
+import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -43,8 +45,25 @@ export default async function MigratePage({
 		.filter((m) => m.slug !== guide.slug)
 		.toSorted((a, b) => a.rank - b.rank);
 
+	const howToData = howToLd({
+		name: `Migrate from ${guide.name} to Clanker Support`,
+		description: guide.intro,
+		steps: guide.steps.map((s) => ({ name: s.title, text: s.body })),
+	});
+
 	return (
 		<>
+			<JsonLd data={howToData} />
+			<JsonLd
+				data={breadcrumbLd(CANONICAL_SITE_URL, [
+					{ name: "Home", path: "/" },
+					{ name: "Docs", path: "/docs" },
+					{
+						name: `Migrate from ${guide.name}`,
+						path: `/docs/migrate/${guide.slug}`,
+					},
+				])}
+			/>
 			<TrackView
 				event={ANALYTICS_EVENTS.migrationGuideViewed}
 				props={{ competitor: guide.slug }}

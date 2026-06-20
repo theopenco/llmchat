@@ -6,7 +6,7 @@ import { categories, formatDateShort, type CategoryFilter } from "@/lib/format";
 import { pageMeta } from "@/lib/seo";
 
 export const metadata = pageMeta({
-	title: "Journal — Clanker Support",
+	title: "AI Support Blog & Guides — Clanker Support",
 	description:
 		"Field notes on AI support: announcements, guides, and engineering from the Clanker Support team.",
 	path: "/blog",

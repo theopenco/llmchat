@@ -61,6 +61,11 @@ export function SiteFooter() {
 								</Link>
 							</li>
 							<li>
+								<Link href="/pricing" className={colLink}>
+									Pricing
+								</Link>
+							</li>
+							<li>
 								<Link href="/blog" className={colLink}>
 									Blog
 								</Link>

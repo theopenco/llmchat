@@ -163,5 +163,23 @@
 			"bottomLine": "If your operation includes voice or phone support, Fin is the clear choice. If web chat with email escalation covers your use case, Clanker Support works."
 		}
 	],
-	"migrationNote": "Fin runs inside Intercom or your existing helpdesk — switching to Clanker Support means adopting a separate widget and inbox rather than replacing just the AI layer. Your conversation history stays in your existing helpdesk. Re-configure your knowledge base in Clanker Support, replace the chat embed on your site, and you're live. Teams moving off outcome-based pricing typically find usage-based costs predictable by comparison once volume is consistent."
+	"migrationNote": "Fin runs inside Intercom or your existing helpdesk — switching to Clanker Support means adopting a separate widget and inbox rather than replacing just the AI layer. Your conversation history stays in your existing helpdesk. Re-configure your knowledge base in Clanker Support, replace the chat embed on your site, and you're live. Teams moving off outcome-based pricing typically find usage-based costs predictable by comparison once volume is consistent.",
+	"faqs": [
+		{
+			"question": "How does Clanker Support pricing compare to Fin?",
+			"answer": "Fin charges $0.99 per resolved outcome on its proprietary model. Clanker Support is usage-based, billed per message, and runs on any model you choose. Teams moving off outcome-based pricing often find per-message costs more predictable once volume is consistent."
+		},
+		{
+			"question": "Can I choose the AI model with Fin?",
+			"answer": "No. Fin runs on Intercom's proprietary Fin AI Engine, so you're tied to their model roadmap. Clanker Support is built on LLM Gateway, so you can run any provider and switch models per project without touching code."
+		},
+		{
+			"question": "Does Fin support voice and helpdesk integrations?",
+			"answer": "Yes — Fin supports voice channels and integrates deeply with Zendesk, Salesforce, Freshdesk, and HubSpot, taking actions in those systems mid-conversation. Clanker Support is web chat with email escalation only and has no voice or helpdesk integrations today."
+		},
+		{
+			"question": "Should I choose Clanker Support or Fin?",
+			"answer": "Choose Clanker Support if you want predictable usage-based pricing, model choice, and a standalone widget plus inbox. Choose Fin if you need voice support, deep Zendesk or Salesforce workflows, or prefer paying per resolved outcome."
+		}
+	]
 }

@@ -15,6 +15,12 @@ const posts = defineCollection({
 		title: z.string(),
 		description: z.string(),
 		date: z.string(),
+		/** Optional ISO date the post was last revised — drives the visible
+		 * "Last updated" line and BlogPosting.dateModified (freshness signal). */
+		updated: z.string().optional(),
+		/** Optional named author. Falls back to the team byline + Organization
+		 * author in schema when unset. */
+		author: z.string().optional(),
 		category: z.enum(["Announcements", "Guides", "Engineering", "Changelog"]),
 		featured: z.boolean().default(false),
 	}),
@@ -72,6 +78,7 @@ const competitors = defineCollection({
 			}),
 		),
 		migrationNote: z.string(),
+		faqs: z.array(z.object({ question: z.string(), answer: z.string() })),
 	}),
 });
 

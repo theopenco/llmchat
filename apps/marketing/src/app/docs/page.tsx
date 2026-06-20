@@ -3,16 +3,70 @@ import { allMigrations, matrix } from "content-collections";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CodeBlock } from "@/components/CodeBlock";
-import { pageMeta } from "@/lib/seo";
+import { FaqSection } from "@/components/FaqSection";
+import { JsonLd } from "@/components/JsonLd";
+import {
+	breadcrumbLd,
+	faqPageLd,
+	howToLd,
+	pageMeta,
+	type Faq,
+} from "@/lib/seo";
+import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
 export const metadata = pageMeta({
-	title: "Docs — Clanker Support",
+	title: "Docs: Setup, Widget & Migration — Clanker Support",
 	description:
 		"Get started with Clanker Support: drop in the widget, train it on your docs, configure escalation, and migrate from your current support tool.",
 	path: "/docs",
+});
+
+const faqs: Faq[] = [
+	{
+		question: "How do I install Clanker Support?",
+		answer:
+			"Create a project in the dashboard to get your public key, then add a single script tag to your site anywhere before the closing </body> tag. There's no build step or npm package, and most teams are live in under five minutes.",
+	},
+	{
+		question: "How do I train the bot on my own docs?",
+		answer:
+			"In project settings, paste your docs and FAQ answers and write a system prompt that sets the bot's tone and boundaries. A tight, current knowledge base produces better answers than a sprawling one, and updates take effect immediately — no retraining.",
+	},
+	{
+		question: "How do I set up escalation to my team?",
+		answer:
+			"Set an escalation threshold — how many exchanges before the bot hands off — and a notify email. When the bot can't resolve something, the full conversation lands in your inbox with context intact and an alert goes to your notify address.",
+	},
+	{
+		question: "Can I migrate from my current support tool?",
+		answer:
+			"Yes. There are step-by-step guides for Chatbase, Chatwoot, Crisp, Fin, and Intercom that walk through the embed swap, knowledge-base re-import, and exactly what does and doesn't carry over.",
+	},
+];
+
+// HowTo for the quickstart — lets answer engines extract the install procedure
+// for "how to add Clanker Support" queries.
+const quickstartLd = howToLd({
+	name: "Add Clanker Support to your site",
+	description:
+		"Embed the AI support widget on any site with a single script tag.",
+	steps: [
+		{
+			name: "Create a project",
+			text: "Sign up and create a project in the dashboard to get your public key.",
+		},
+		{
+			name: "Paste the script tag",
+			text: "Add the Clanker Support script tag to your site anywhere before the closing </body> tag.",
+		},
+		{
+			name: "Train and configure",
+			text: "Paste your knowledge base, set a system prompt, and choose an escalation threshold and notify email.",
+		},
+	],
 });
 
 const startCards = [
@@ -67,6 +121,14 @@ export default function DocsPage() {
 
 	return (
 		<>
+			<JsonLd data={quickstartLd} />
+			<JsonLd data={faqPageLd(faqs)} />
+			<JsonLd
+				data={breadcrumbLd(CANONICAL_SITE_URL, [
+					{ name: "Home", path: "/" },
+					{ name: "Docs", path: "/docs" },
+				])}
+			/>
 			<SiteHeader active="resources" />
 
 			<main className="mx-auto max-w-5xl px-6">
@@ -209,6 +271,9 @@ export default function DocsPage() {
 						))}
 					</div>
 				</section>
+
+				{/* FAQ */}
+				<FaqSection faqs={faqs} />
 
 				{/* CTA */}
 				<section className="mt-24 overflow-hidden rounded-3xl bg-ink px-8 py-16 text-center">
