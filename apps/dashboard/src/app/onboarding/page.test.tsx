@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -40,13 +40,10 @@ vi.mock("@/lib/billing", () => ({
 	isBillingNotConfigured: vi.fn(() => false),
 }));
 
-// The widget package is exercised in its own suite. Stub the chat primitives the
-// live preview uses, and the live Widget (the payoff) to a marker so it doesn't
-// open a real /v1/chat transport.
+// The widget package is exercised in its own suite. Onboarding now ends at the
+// form + live preview (no in-flow live bot), so we only need the chat primitives
+// the live preview uses, plus the styles import.
 vi.mock("@llmchat/widget/styles", () => ({ widgetStyles: "" }));
-vi.mock("@llmchat/widget", () => ({
-	Widget: () => <div data-testid="live-widget" />,
-}));
 vi.mock("@llmchat/widget/chat", () => ({
 	WidgetFrame: ({ children }: { children: React.ReactNode }) => (
 		<div>{children}</div>
@@ -184,7 +181,7 @@ describe("OnboardingPage (form redesign)", () => {
 		expect(api).not.toHaveBeenCalledWith("/api/projects", expect.anything());
 	});
 
-	it("provisions the project from the form, then reveals the live agent", async () => {
+	it("provisions the project from the form, then routes to its project page", async () => {
 		const u = user();
 		renderPage();
 		await fillForm(u, { name: "Acme Tools" });
@@ -205,13 +202,11 @@ describe("OnboardingPage (form redesign)", () => {
 		// No workspace creation needed — one already resolved.
 		expect(api).not.toHaveBeenCalledWith("/api/workspaces", expect.anything());
 
-		// Payoff: the real agent is mounted and the embed snippet shows the key.
-		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
-		const snippet = document.querySelector("pre")?.textContent ?? "";
-		expect(snippet).toContain("pk_live");
-
-		await u.click(screen.getByRole("button", { name: /go to dashboard/i }));
-		expect(push).toHaveBeenCalledWith("/settings/projects/p1");
+		// Onboarding ends here: straight to the agent's project page (its
+		// settings, where the embed snippet lives) — no in-flow live bot.
+		await waitFor(() =>
+			expect(push).toHaveBeenCalledWith("/settings/projects/p1"),
+		);
 	});
 
 	it("adds a knowledge source when a URL is provided", async () => {
@@ -238,7 +233,9 @@ describe("OnboardingPage (form redesign)", () => {
 				body: { url: "https://acme.com/help" },
 			}),
 		);
-		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
+		await waitFor(() =>
+			expect(push).toHaveBeenCalledWith("/settings/projects/p1"),
+		);
 	});
 
 	it("provisions a workspace first when the account has none", async () => {
@@ -267,7 +264,9 @@ describe("OnboardingPage (form redesign)", () => {
 			"/api/projects",
 			expect.objectContaining({ workspaceId: "ws-new" }),
 		);
-		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
+		await waitFor(() =>
+			expect(push).toHaveBeenCalledWith("/settings/projects/p2"),
+		);
 	});
 
 	it("self-heals a stale/foreign workspace: 403 → provision fresh → retry → live agent", async () => {
@@ -299,7 +298,9 @@ describe("OnboardingPage (form redesign)", () => {
 			expect.objectContaining({ method: "POST", body: { name: "Acme" } }),
 		);
 		expect(projectCalls).toEqual(["ws-foreign", "ws-fresh"]);
-		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
+		await waitFor(() =>
+			expect(push).toHaveBeenCalledWith("/settings/projects/p3"),
+		);
 	});
 
 	it("offers a retry without losing the form when provisioning fails", async () => {
@@ -314,7 +315,8 @@ describe("OnboardingPage (form redesign)", () => {
 		expect(
 			await screen.findByRole("button", { name: /try again/i }),
 		).toBeInTheDocument();
-		expect(screen.queryByTestId("live-widget")).not.toBeInTheDocument();
+		// Provisioning failed → we never navigate away.
+		expect(push).not.toHaveBeenCalled();
 		// The form is still there with the typed name intact.
 		expect(screen.getByLabelText(/agent name/i)).toHaveValue("Acme");
 	});
@@ -363,9 +365,10 @@ describe("OnboardingPage — new-bot mode (already-onboarded user)", () => {
 		expect(projectPosts).toHaveLength(1);
 		expect(api).not.toHaveBeenCalledWith("/api/workspaces", expect.anything());
 
-		expect(await screen.findByTestId("live-widget")).toBeInTheDocument();
-		await u.click(screen.getByRole("button", { name: /go to dashboard/i }));
-		expect(push).toHaveBeenCalledWith("/settings/projects/p1");
+		// New-bot also ends at the new agent's project page.
+		await waitFor(() =>
+			expect(push).toHaveBeenCalledWith("/settings/projects/p1"),
+		);
 	});
 
 	it("does not re-provision the workspace on a 403 (no self-heal in new-bot mode)", async () => {
