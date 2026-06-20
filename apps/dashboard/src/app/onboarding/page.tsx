@@ -19,16 +19,10 @@ import { useOnboardingState } from "@/lib/use-onboarding";
 import { useWorkspace } from "@/lib/workspace";
 
 import { initialDraft, type BotDraft } from "./_components/bot-form";
-import { LiveBotPanel, type LiveProject } from "./_components/LiveBotPanel";
 import { LivePreview } from "./_components/LivePreview";
 import { OnboardingForm } from "./_components/OnboardingForm";
 import { OnboardingPaywall } from "./_components/OnboardingPaywall";
 import { OnboardingSkeleton } from "./_components/OnboardingSkeleton";
-
-interface CreatedProject extends LiveProject {
-	/** The workspace the project actually landed in (may be freshly provisioned). */
-	workspaceId: string;
-}
 
 function OnboardingFlow() {
 	const router = useRouter();
@@ -52,7 +46,9 @@ function OnboardingFlow() {
 	// The form draft is lifted here so the live preview (sibling) reflects it.
 	const [draft, setDraft] = useState<BotDraft>(initialDraft);
 	const [busy, setBusy] = useState(false);
-	const [created, setCreated] = useState<CreatedProject | null>(null);
+	// The id of the just-provisioned project. Set once creation succeeds; the
+	// effect below then leaves onboarding for that agent's project page.
+	const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
 	const [failed, setFailed] = useState(false);
 
 	// Send unauthenticated visitors to sign-in.
@@ -65,19 +61,20 @@ function OnboardingFlow() {
 		if (!newBot) track(ANALYTICS_EVENTS.onboardingStarted);
 	}, [newBot]);
 
-	// Warm the live-widget chunk (AI SDK) while they fill the form so the payoff
-	// is instant — it's lazy-loaded in LiveBotPanel to stay out of the initial load.
+	// Onboarding ends at the form + live preview. The moment a project exists we
+	// route straight to its project page — the agent's settings, where the embed
+	// snippet ("Install widget") lives. Both first-run and new-bot end here.
 	useEffect(() => {
-		void import("@llmchat/widget");
-	}, []);
+		if (createdProjectId) router.push(`/settings/projects/${createdProjectId}`);
+	}, [createdProjectId, router]);
 
 	// First-run only: an already-onboarded user landing here is sent to the
 	// dashboard. In new-bot mode that's exactly who we want, so we don't redirect.
 	// Suppressed once a project is created so the flow isn't yanked away.
 	useEffect(() => {
-		if (!newBot && !created && session?.user && state === "ready")
+		if (!newBot && !createdProjectId && session?.user && state === "ready")
 			router.replace("/inbox");
-	}, [newBot, created, session, state, router]);
+	}, [newBot, createdProjectId, session, state, router]);
 
 	// Provision a fresh (unpaid, plan "none") workspace and select it. The
 	// paywall gate then prompts for a plan before any project is created.
@@ -147,17 +144,13 @@ function OnboardingFlow() {
 				}
 			}
 
-			setCreated({
-				id: project.id,
-				name: draft.name,
-				publicKey: project.publicKey,
-				brandColor: draft.brandColor,
-				workspaceId: wsId,
-			});
 			track(ANALYTICS_EVENTS.projectCreated, {
 				source: newBot ? "new_bot" : "onboarding",
 			});
 			if (!newBot) track(ANALYTICS_EVENTS.onboardingCompleted);
+			// Leave `busy` set: the redirect effect fires off this id, so the form
+			// stays disabled through the navigation rather than flashing re-enabled.
+			setCreatedProjectId(project.id);
 		} catch (e) {
 			setFailed(true);
 			setBusy(false);
@@ -172,12 +165,17 @@ function OnboardingFlow() {
 	// dashboard by the effect above, so we hold the skeleton. New-bot: we want
 	// the "ready" user, so we only hold while still loading.
 	const resolving =
-		sessionPending || !session?.user || (!created && state === "loading");
-	const blockedFirstRun = !newBot && !created && state === "ready";
+		sessionPending ||
+		!session?.user ||
+		(!createdProjectId && state === "loading");
+	const blockedFirstRun = !newBot && !createdProjectId && state === "ready";
 	// First-run: hold the skeleton until the plan is known, so an unpaid user is
 	// never flashed the build form before the paywall resolves.
-	const holdForPlan = !newBot && !created && !!workspaceId && usageQ.isLoading;
-	if (resolving || blockedFirstRun || holdForPlan) {
+	const holdForPlan =
+		!newBot && !createdProjectId && !!workspaceId && usageQ.isLoading;
+	// Once a project exists we're navigating to its page — hold the skeleton so
+	// the form doesn't flash back before the redirect lands.
+	if (createdProjectId || resolving || blockedFirstRun || holdForPlan) {
 		return <OnboardingSkeleton />;
 	}
 
@@ -189,7 +187,7 @@ function OnboardingFlow() {
 	const access = usageQ.data;
 	const needsPaywall =
 		!newBot &&
-		!created &&
+		!createdProjectId &&
 		!!workspaceId &&
 		!!access &&
 		!access.exempt &&
@@ -208,14 +206,7 @@ function OnboardingFlow() {
 			</div>
 
 			<div className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-10 px-4 py-10 sm:px-6">
-				{created ? (
-					<div className="animate-in fade-in slide-in-from-bottom-2 mx-auto w-full max-w-2xl duration-500">
-						<LiveBotPanel
-							project={created}
-							onFinish={() => router.push(`/settings/projects/${created.id}`)}
-						/>
-					</div>
-				) : needsPaywall && workspaceId ? (
+				{needsPaywall && workspaceId ? (
 					<OnboardingPaywall
 						workspaceId={workspaceId}
 						canManage={role === "owner"}

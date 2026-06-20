@@ -11,8 +11,8 @@ import { defaultWelcomeMessage } from "@/lib/onboarding";
  * shows the welcome message — all live as the user types.
  *
  * This is a *preview*, not a live bot: it makes no /v1 call (there's no project
- * yet). After provisioning, the parent swaps in LiveBotPanel — the real
- * <Widget widgetMode="live"> the visitor will actually chat with.
+ * yet). Onboarding ends here — once the form provisions the project, the user is
+ * routed to its settings page, where the real embed snippet lives.
  */
 export function LivePreview({
 	name,
