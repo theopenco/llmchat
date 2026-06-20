@@ -101,7 +101,7 @@ export default function ProjectSettingsPage() {
 			<div className="min-h-svh">
 				<div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-8 lg:flex-row">
 					<div className="flex flex-1 flex-col gap-6">
-						<Skeleton className="h-20 w-80" />
+						<Skeleton className="h-20 w-full sm:w-80" />
 						<Skeleton className="h-48 w-full rounded-2xl" />
 						<Skeleton className="h-40 w-full rounded-2xl" />
 					</div>

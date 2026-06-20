@@ -34,7 +34,7 @@ export function TierGrid({
 	ctaPrefix?: string;
 }) {
 	return (
-		<div className="grid gap-4 md:grid-cols-3">
+		<div className="grid gap-4 lg:grid-cols-3">
 			{TIERS.map((tier) => {
 				const isCurrent = currentPlan === tier.plan;
 				const available = !availablePlans || availablePlans.includes(tier.plan);
