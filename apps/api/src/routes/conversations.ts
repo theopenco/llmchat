@@ -5,6 +5,12 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
 import {
+	MAX_MATCH_CONVERSATIONS,
+	buildSnippet,
+	includesCI,
+	likeContains,
+} from "@/lib/search";
+import {
 	requireRole,
 	requireSession,
 	requireWorkspace,
@@ -12,16 +18,21 @@ import {
 
 import {
 	and,
+	asc,
 	conversation,
 	desc,
 	eq,
 	inArray,
-	like,
 	message as messageTable,
+	or,
 	readStatus,
 } from "@llmchat/db";
 
 import type { AppContext } from "@/env";
+
+/** Why a conversation surfaced in a search: an excerpt of the hit and which
+ * field it came from, so the agent sees the reason in the list. */
+type SearchMatch = { field: "body" | "name" | "email"; snippet: string };
 
 export const conversations = new Hono<AppContext>()
 	.use("*", requireSession, requireWorkspace)
@@ -50,6 +61,8 @@ export const conversations = new Hono<AppContext>()
 				return c.json({ error: "not found" }, 404);
 			}
 
+			const term = search?.trim() ?? "";
+
 			const conditions = [eq(conversation.projectId, projectId)];
 			if (archived === "true") {
 				conditions.push(
@@ -61,6 +74,38 @@ export const conversations = new Hono<AppContext>()
 				);
 			}
 
+			// Content search: a conversation matches on visitor name, email, OR any
+			// message body. The message match is scoped to THIS project via a join
+			// to conversation (never an unscoped scan of every workspace's
+			// messages), bounded, and resolved into the conversation set BEFORE
+			// pagination so search spans the whole project, not just the first page.
+			if (term) {
+				const bodyMatches = await db(c.env)
+					.selectDistinct({ id: messageTable.conversationId })
+					.from(messageTable)
+					.innerJoin(
+						conversation,
+						eq(messageTable.conversationId, conversation.id),
+					)
+					.where(
+						and(
+							eq(conversation.projectId, projectId),
+							likeContains(messageTable.content, term),
+						),
+					)
+					.limit(MAX_MATCH_CONVERSATIONS);
+				const bodyMatchIds = bodyMatches.map((m) => m.id);
+
+				const orParts = [
+					likeContains(conversation.name, term),
+					likeContains(conversation.email, term),
+				];
+				if (bodyMatchIds.length) {
+					orParts.push(inArray(conversation.id, bodyMatchIds));
+				}
+				conditions.push(or(...orParts)!);
+			}
+
 			const rows = await db(c.env)
 				.select()
 				.from(conversation)
@@ -69,19 +114,57 @@ export const conversations = new Hono<AppContext>()
 				.limit(limit)
 				.offset(offset);
 
-			let filtered = rows;
-			if (search) {
-				const matchingMessages = await db(c.env)
-					.select({ conversationId: messageTable.conversationId })
-					.from(messageTable)
-					.where(like(messageTable.content, `%${search}%`));
-				const matchSet = new Set(matchingMessages.map((m) => m.conversationId));
-				filtered = rows.filter((r) => matchSet.has(r.id));
-			}
-
 			// Attach the first visitor message (sequence 1) as a list preview —
 			// one bounded query keyed on the page of conversations we're returning.
-			const ids = filtered.map((r) => r.id);
+			const ids = rows.map((r) => r.id);
+
+			// For the page being returned, pull the first message per conversation
+			// whose body matched (scoped + bounded to these ids) so each row can show
+			// *why* it matched. Ordered by sequence so the snippet is stable.
+			const bodyMatchByConv = new Map<string, string>();
+			if (term && ids.length) {
+				const matchingBodies = await db(c.env)
+					.select({
+						conversationId: messageTable.conversationId,
+						content: messageTable.content,
+					})
+					.from(messageTable)
+					.innerJoin(
+						conversation,
+						eq(messageTable.conversationId, conversation.id),
+					)
+					.where(
+						and(
+							eq(conversation.projectId, projectId),
+							inArray(messageTable.conversationId, ids),
+							likeContains(messageTable.content, term),
+						),
+					)
+					.orderBy(asc(messageTable.sequence));
+				for (const m of matchingBodies) {
+					if (!bodyMatchByConv.has(m.conversationId)) {
+						bodyMatchByConv.set(m.conversationId, m.content);
+					}
+				}
+			}
+
+			// Classify each returned conversation's match: prefer the message body
+			// excerpt (most informative), else flag the name/email hit so the agent
+			// still sees why a no-message-match conversation surfaced.
+			const matchFor = (r: (typeof rows)[number]): SearchMatch | null => {
+				if (!term) return null;
+				const body = bodyMatchByConv.get(r.id);
+				if (body !== undefined) {
+					return { field: "body", snippet: buildSnippet(body, term) };
+				}
+				if (r.name && includesCI(r.name, term)) {
+					return { field: "name", snippet: r.name };
+				}
+				if (r.email && includesCI(r.email, term)) {
+					return { field: "email", snippet: r.email };
+				}
+				return null;
+			};
 			const firstMessages = ids.length
 				? await db(c.env)
 						.select({
@@ -121,10 +204,11 @@ export const conversations = new Hono<AppContext>()
 			);
 
 			return c.json({
-				conversations: filtered.map((r) => ({
+				conversations: rows.map((r) => ({
 					...r,
 					firstMessage: firstByConv.get(r.id) ?? null,
 					unread: (readByConv.get(r.id) ?? 0) < r.messageCount,
+					match: matchFor(r),
 				})),
 			});
 		},
@@ -148,7 +232,7 @@ export const conversations = new Hono<AppContext>()
 		}
 		const messages = await db(c.env).query.message.findMany({
 			where: (mt, { eq: e }) => e(mt.conversationId, id),
-			orderBy: (mt, { asc }) => asc(mt.sequence),
+			orderBy: (mt, ops) => ops.asc(mt.sequence),
 		});
 		return c.json({ conversation: conv, messages });
 	})

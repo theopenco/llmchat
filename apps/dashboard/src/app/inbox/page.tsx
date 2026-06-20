@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { api, describeApiError } from "@/lib/api";
 import { resolveOnboardingState } from "@/lib/onboarding";
 import { resolveSelectedId } from "@/lib/selection";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { useWorkspace } from "@/lib/workspace";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 
@@ -66,15 +67,23 @@ export default function InboxPage() {
 		setSelectedId(null);
 	}
 
+	// Debounce the search term so a server query only fires once the agent pauses
+	// typing — the term is matched server-side (visitor name/email + message body)
+	// and drives the conversation list + the per-row match snippets.
+	const debouncedSearch = useDebouncedValue(search.trim(), 250);
+
 	const conversations = useQuery({
-		queryKey: ["conversations", projectId],
+		queryKey: ["conversations", projectId, debouncedSearch],
 		enabled: !!projectId && !!workspaceId,
 		refetchInterval: 5_000,
-		queryFn: () =>
-			api<{ conversations: Conversation[] }>(
-				`/api/projects/${projectId}/conversations?limit=100`,
+		queryFn: () => {
+			const params = new URLSearchParams({ limit: "100" });
+			if (debouncedSearch) params.set("search", debouncedSearch);
+			return api<{ conversations: Conversation[] }>(
+				`/api/projects/${projectId}/conversations?${params.toString()}`,
 				{ workspaceId: workspaceId! },
-			),
+			);
+		},
 	});
 
 	const thread = useQuery({
@@ -93,19 +102,15 @@ export default function InboxPage() {
 		[conversations.data],
 	);
 
-	// Left list: archived view vs active, then a client-side text filter over the
-	// fields the visitor sees (name, email, first message).
-	const visibleConversations = useMemo(() => {
-		const needle = search.trim().toLowerCase();
-		return allConversations
-			.filter((c) => (showArchived ? c.archivedAt : !c.archivedAt))
-			.filter((c) => {
-				if (!needle) return true;
-				return [c.name, c.email, c.firstMessage]
-					.filter(Boolean)
-					.some((field) => field!.toLowerCase().includes(needle));
-			});
-	}, [allConversations, search, showArchived]);
+	// Left list: text search is server-side (name/email/message body); here we
+	// only split the returned matches into the active vs archived view.
+	const visibleConversations = useMemo(
+		() =>
+			allConversations.filter((c) =>
+				showArchived ? c.archivedAt : !c.archivedAt,
+			),
+		[allConversations, showArchived],
+	);
 
 	const selectedConv = allConversations.find((c) => c.id === selectedId);
 	const detailConv = thread.data?.conversation ?? selectedConv ?? null;
@@ -270,7 +275,7 @@ export default function InboxPage() {
 							conversations={visibleConversations}
 							selectedId={selectedId}
 							onSelect={handleSelect}
-							search={search}
+							search={debouncedSearch}
 							showArchived={showArchived}
 						/>
 					)}
