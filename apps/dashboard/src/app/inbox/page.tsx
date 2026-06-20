@@ -73,12 +73,13 @@ export default function InboxPage() {
 	const debouncedSearch = useDebouncedValue(search.trim(), 250);
 
 	const conversations = useQuery({
-		queryKey: ["conversations", projectId, debouncedSearch],
+		queryKey: ["conversations", projectId, debouncedSearch, showArchived],
 		enabled: !!projectId && !!workspaceId,
 		refetchInterval: 5_000,
 		queryFn: () => {
 			const params = new URLSearchParams({ limit: "100" });
 			if (debouncedSearch) params.set("search", debouncedSearch);
+			if (showArchived) params.set("archived", "true");
 			return api<{ conversations: Conversation[] }>(
 				`/api/projects/${projectId}/conversations?${params.toString()}`,
 				{ workspaceId: workspaceId! },
@@ -97,19 +98,12 @@ export default function InboxPage() {
 			),
 	});
 
+	// Both filters are server-side now: text search (name/email/message body) and
+	// the active-vs-archived split. The returned rows are exactly what the list
+	// should show, so there's no client-side filtering left to do.
 	const allConversations = useMemo(
 		() => conversations.data?.conversations ?? [],
 		[conversations.data],
-	);
-
-	// Left list: text search is server-side (name/email/message body); here we
-	// only split the returned matches into the active vs archived view.
-	const visibleConversations = useMemo(
-		() =>
-			allConversations.filter((c) =>
-				showArchived ? c.archivedAt : !c.archivedAt,
-			),
-		[allConversations, showArchived],
 	);
 
 	const selectedConv = allConversations.find((c) => c.id === selectedId);
@@ -272,7 +266,7 @@ export default function InboxPage() {
 						<ConversationListSkeleton />
 					) : (
 						<ConversationList
-							conversations={visibleConversations}
+							conversations={allConversations}
 							selectedId={selectedId}
 							onSelect={handleSelect}
 							search={debouncedSearch}

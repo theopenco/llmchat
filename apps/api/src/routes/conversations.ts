@@ -23,6 +23,8 @@ import {
 	desc,
 	eq,
 	inArray,
+	isNotNull,
+	isNull,
 	message as messageTable,
 	or,
 	readStatus,
@@ -63,16 +65,16 @@ export const conversations = new Hono<AppContext>()
 
 			const term = search?.trim() ?? "";
 
-			const conditions = [eq(conversation.projectId, projectId)];
-			if (archived === "true") {
-				conditions.push(
-					// archivedAt IS NOT NULL
-					// drizzle has isNotNull but we can also do gte epoch 0
-					// keep simple:
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					eq(conversation.archivedAt, conversation.archivedAt) as any,
-				);
-			}
+			// Active vs archived split, server-side and explicit: archived rows have
+			// a non-null archivedAt. Default (param absent or "false") is the active
+			// view. This goes into the WHERE before LIMIT/OFFSET and composes with
+			// the search OR-group below, so search runs within the chosen view.
+			const conditions = [
+				eq(conversation.projectId, projectId),
+				archived === "true"
+					? isNotNull(conversation.archivedAt)
+					: isNull(conversation.archivedAt),
+			];
 
 			// Content search: a conversation matches on visitor name, email, OR any
 			// message body. The message match is scoped to THIS project via a join
