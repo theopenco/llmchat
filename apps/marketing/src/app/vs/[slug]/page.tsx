@@ -7,7 +7,10 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
 import { TrackView } from "@/components/TrackView";
-import { pageMeta } from "@/lib/seo";
+import { FaqSection } from "@/components/FaqSection";
+import { JsonLd } from "@/components/JsonLd";
+import { breadcrumbLd, faqPageLd, pageMeta } from "@/lib/seo";
+import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -44,8 +47,27 @@ export default async function VsPage({
 		.filter((c) => c.id !== competitor.id)
 		.toSorted((a, b) => a.rank - b.rank);
 
+	const pageUrl = `${CANONICAL_SITE_URL}/vs/${competitor.id}`;
+	const webPageLd = {
+		"@context": "https://schema.org",
+		"@type": "WebPage",
+		name: `Clanker Support vs. ${competitor.name}`,
+		description: competitor.tldr,
+		url: pageUrl,
+		isPartOf: { "@id": `${CANONICAL_SITE_URL}/#website` },
+	};
+
 	return (
 		<>
+			<JsonLd data={webPageLd} />
+			<JsonLd data={faqPageLd(competitor.faqs)} />
+			<JsonLd
+				data={breadcrumbLd(CANONICAL_SITE_URL, [
+					{ name: "Home", path: "/" },
+					{ name: "Compare", path: "/compare" },
+					{ name: `vs. ${competitor.name}`, path: `/vs/${competitor.id}` },
+				])}
+			/>
 			<TrackView
 				event={ANALYTICS_EVENTS.comparisonViewed}
 				props={{ competitor: competitor.id }}
@@ -270,6 +292,12 @@ export default async function VsPage({
 						</div>
 					</div>
 				</section>
+
+				{/* FAQ */}
+				<FaqSection
+					faqs={competitor.faqs}
+					heading={`Clanker Support vs. ${competitor.name} — FAQ`}
+				/>
 
 				{/* Migration band */}
 				<section className="mt-20 flex flex-col items-start justify-between gap-5 rounded-2xl border-l-2 border-accent bg-paper-deep/60 p-7 sm:flex-row sm:items-center">

@@ -157,5 +157,23 @@
 			"bottomLine": "Choose Clanker Support if model choice or the ability to optimize cost vs. capability per project matters. Choose Chatwoot if you don't need that flexibility and want a larger-scope platform."
 		}
 	],
-	"migrationNote": "Migrating from Chatwoot to Clanker Support is primarily a widget swap and knowledge base re-import. Replace the Chatwoot widget script with the Clanker Support script tag, copy your knowledge base content into Clanker Support's project settings, and update your escalation email address. Conversation history from Chatwoot can be exported but won't migrate automatically. Note that Clanker Support doesn't currently replace Chatwoot's multi-channel inbox — if you're using WhatsApp or Instagram, you'll need to handle those separately."
+	"migrationNote": "Migrating from Chatwoot to Clanker Support is primarily a widget swap and knowledge base re-import. Replace the Chatwoot widget script with the Clanker Support script tag, copy your knowledge base content into Clanker Support's project settings, and update your escalation email address. Conversation history from Chatwoot can be exported but won't migrate automatically. Note that Clanker Support doesn't currently replace Chatwoot's multi-channel inbox — if you're using WhatsApp or Instagram, you'll need to handle those separately.",
+	"faqs": [
+		{
+			"question": "Both Clanker Support and Chatwoot are self-hostable — what's the difference?",
+			"answer": "It's the stack and the scope. Chatwoot is a full multi-channel platform you run on Ruby on Rails with PostgreSQL and Redis. Clanker Support is a focused support widget that runs serverless on Cloudflare's edge — no database to provision and no app server to maintain."
+		},
+		{
+			"question": "Does Chatwoot have model-agnostic AI like Clanker Support?",
+			"answer": "No. Chatwoot's Captain AI assistant runs on a fixed stack. Clanker Support is built on LLM Gateway, so you choose the model per project and swap it with a config change — running a cheaper model for routine questions and a more capable one where it matters."
+		},
+		{
+			"question": "Which is easier to self-host?",
+			"answer": "Clanker Support is lighter to operate: it's serverless, so there's no Rails app, PostgreSQL, or Redis to run and patch. Chatwoot gives you a broader open-source platform in return for managing that infrastructure yourself."
+		},
+		{
+			"question": "Should I choose Clanker Support or Chatwoot?",
+			"answer": "Choose Clanker Support for a lightweight, serverless widget with model-agnostic AI and minimal setup. Choose Chatwoot if you want open-source ownership of a full multi-channel inbox — WhatsApp, Instagram, and more — and are comfortable running the infrastructure."
+		}
+	]
 }

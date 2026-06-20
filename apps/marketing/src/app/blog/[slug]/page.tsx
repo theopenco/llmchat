@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackView } from "@/components/TrackView";
 import { formatDate } from "@/lib/format";
-import { pageMeta } from "@/lib/seo";
+import { breadcrumbLd, pageMeta } from "@/lib/seo";
 import { JsonLd } from "@/components/JsonLd";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
@@ -46,20 +46,26 @@ export default async function PostPage({
 		.slice(0, 2);
 
 	const url = `${CANONICAL_SITE_URL}/blog/${post.slug}`;
+	const authorName = post.author ?? "the Clanker Support team";
 	const articleLd = {
 		"@context": "https://schema.org",
 		"@type": "BlogPosting",
 		headline: post.title,
 		description: post.description,
 		datePublished: post.date,
-		dateModified: post.date,
+		// Falls back to the publish date until a post is explicitly revised.
+		dateModified: post.updated ?? post.date,
 		url,
 		mainEntityOfPage: url,
-		author: {
-			"@type": "Organization",
-			name: "Clanker Support",
-			url: CANONICAL_SITE_URL,
-		},
+		// A named author maps to a Person; otherwise the team byline is the
+		// Organization itself (honest default — no invented author identities).
+		author: post.author
+			? { "@type": "Person", name: post.author }
+			: {
+					"@type": "Organization",
+					name: "Clanker Support",
+					url: CANONICAL_SITE_URL,
+				},
 		publisher: {
 			"@type": "Organization",
 			name: "Clanker Support",
@@ -69,10 +75,16 @@ export default async function PostPage({
 			},
 		},
 	};
+	const breadcrumbData = breadcrumbLd(CANONICAL_SITE_URL, [
+		{ name: "Home", path: "/" },
+		{ name: "Journal", path: "/blog" },
+		{ name: post.title, path: `/blog/${post.slug}` },
+	]);
 
 	return (
 		<>
 			<JsonLd data={articleLd} />
+			<JsonLd data={breadcrumbData} />
 			<TrackView
 				event={ANALYTICS_EVENTS.blogPostRead}
 				props={{ slug: post.slug, category: post.category }}
@@ -99,6 +111,14 @@ export default async function PostPage({
 							<span className="text-faint">{formatDate(post.date)}</span>
 							<span className="text-rule">·</span>
 							<span className="text-faint">{post.readingTime} min read</span>
+							{post.updated && (
+								<>
+									<span className="text-rule">·</span>
+									<span className="text-accent">
+										Updated {formatDate(post.updated)}
+									</span>
+								</>
+							)}
 						</div>
 						<h1 className="font-display mt-6 text-4xl font-semibold leading-[1.04] tracking-tight-display text-ink sm:text-6xl">
 							{post.title}
@@ -108,7 +128,7 @@ export default async function PostPage({
 						</p>
 						<div className="mt-8 flex items-center justify-center gap-2 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
 							<span className="h-px w-8 bg-rule" />
-							By the Clanker Support team
+							By {authorName}
 							<span className="h-px w-8 bg-rule" />
 						</div>
 					</header>

@@ -158,5 +158,23 @@
 			"bottomLine": "Choose Crisp if EU data residency is a requirement and you want it handled for you. Choose Clanker Support's self-hosted deployment if you need full control over data location."
 		}
 	],
-	"migrationNote": "Switching from Crisp to Clanker Support means replacing the Crisp widget script tag with Clanker Support's, re-entering your knowledge base content in project settings, and routing your escalation notifications to your team. Crisp's CRM data (contacts, conversation history) can be exported but won't transfer to Clanker Support — Clanker Support doesn't have a CRM component. If you're using Crisp for email campaigns or product tours, those use cases aren't covered by Clanker Support."
+	"migrationNote": "Switching from Crisp to Clanker Support means replacing the Crisp widget script tag with Clanker Support's, re-entering your knowledge base content in project settings, and routing your escalation notifications to your team. Crisp's CRM data (contacts, conversation history) can be exported but won't transfer to Clanker Support — Clanker Support doesn't have a CRM component. If you're using Crisp for email campaigns or product tours, those use cases aren't covered by Clanker Support.",
+	"faqs": [
+		{
+			"question": "Clanker Support vs. Crisp — which is the better fit?",
+			"answer": "Choose Crisp if you need an all-in-one platform with a CRM, omnichannel inbox, and European data hosting. Choose Clanker Support if you want the simplest possible drop-in widget with model-agnostic AI and the option to self-host."
+		},
+		{
+			"question": "Does Crisp let me choose the AI model?",
+			"answer": "No. Crisp's AI assistant runs on a fixed stack you configure with your knowledge base. Clanker Support runs on LLM Gateway, so you pick the model per project and switch it with a config change — no code edits and no vendor lock-in."
+		},
+		{
+			"question": "Does Crisp offer European data hosting?",
+			"answer": "Yes. Crisp is built and hosted in Europe with a strong default GDPR posture. Clanker Support's managed cloud doesn't specifically guarantee EU hosting today, but self-hosting it gives you full control over which region your data lives in."
+		},
+		{
+			"question": "Is Clanker Support an all-in-one platform like Crisp?",
+			"answer": "No, and that's deliberate. Crisp bundles chat, email, a CRM, a knowledge base, and push notifications. Clanker Support is a focused AI support widget. If you need CRM or campaigns, Crisp fits; if you want a lightweight widget, Clanker Support does."
+		}
+	]
 }

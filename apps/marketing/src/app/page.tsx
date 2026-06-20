@@ -4,13 +4,18 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
 import { JsonLd } from "@/components/JsonLd";
+import { FaqSection } from "@/components/FaqSection";
 import { FEATURES } from "@/lib/features";
+import { faqPageLd, type Faq } from "@/lib/seo";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
-// Organization + WebSite structured data for the home page.
+// Organization + WebSite structured data for the home page. No `sameAs` —
+// there are no official brand social profiles to point at yet (adding fake ones
+// would hurt, not help, entity trust). `contactPoint` uses the real support
+// address already published on the Terms page.
 const orgJsonLd = {
 	"@context": "https://schema.org",
 	"@graph": [
@@ -20,8 +25,17 @@ const orgJsonLd = {
 			name: "Clanker Support",
 			url: CANONICAL_SITE_URL,
 			logo: `${CANONICAL_SITE_URL}/logo.svg`,
+			email: "support@clankersupport.com",
+			foundingDate: "2026",
+			slogan: "AI support that actually escalates.",
 			description:
 				"An AI-powered support agent you drop into any site with one script tag — it answers from your docs and escalates to your team.",
+			contactPoint: {
+				"@type": "ContactPoint",
+				contactType: "customer support",
+				email: "support@clankersupport.com",
+				availableLanguage: "English",
+			},
 		},
 		{
 			"@type": "WebSite",
@@ -32,6 +46,36 @@ const orgJsonLd = {
 		},
 	],
 };
+
+// Homepage FAQ — the first entry doubles as the extractable "What is …?"
+// definition block that answer engines lift for category queries.
+const faqs: Faq[] = [
+	{
+		question: "What is Clanker Support?",
+		answer:
+			"Clanker Support is an AI-powered support agent you embed on any site with one script tag. It answers from your docs and sources, then hands off to your team the moment it can't — routing every escalation into a single inbox with the full conversation intact.",
+	},
+	{
+		question: "How do I add Clanker Support to my site?",
+		answer:
+			"Paste one script tag before the closing </body> tag. The widget mounts in an isolated shadow DOM, inherits your brand color, and needs no build step or npm package. Most teams are live in about five minutes.",
+	},
+	{
+		question: "Which AI models does Clanker Support support?",
+		answer:
+			"Any model available through LLM Gateway. You choose the model per project and can swap it with a config change — no code edits — so you can run a cost-efficient model for routine questions and a more capable one where it matters.",
+	},
+	{
+		question: "What happens when the AI can't answer?",
+		answer:
+			"It escalates to a human instead of guessing. The full conversation lands in your team inbox with context intact, a notification goes to your alert email, and the customer can keep the thread going over email — nothing lands in a black hole.",
+	},
+	{
+		question: "Is Clanker Support self-hostable?",
+		answer:
+			"Yes. Clanker Support is open and self-hostable — bring your own keys and run it on your own infrastructure for free. If you'd rather not operate it, the hosted version is usage-based, billed per message.",
+	},
+];
 
 const steps = [
 	{
@@ -55,6 +99,7 @@ export default function Home() {
 	return (
 		<>
 			<JsonLd data={orgJsonLd} />
+			<JsonLd data={faqPageLd(faqs)} />
 			<SiteHeader active="features" />
 
 			<main>
@@ -218,8 +263,13 @@ export default function Home() {
 					</div>
 				</section>
 
+				{/* ── FAQ ──────────────────────────────────────────────── */}
+				<section className="mx-auto max-w-6xl px-6 pb-4">
+					<FaqSection faqs={faqs} />
+				</section>
+
 				{/* ── Closing CTA ──────────────────────────────────────── */}
-				<section className="mx-auto max-w-6xl px-6 pb-28">
+				<section className="mx-auto max-w-6xl px-6 pb-28 pt-24">
 					<div className="relative overflow-hidden rounded-[2rem] border border-accent/30 bg-gradient-to-b from-paper-card to-paper px-8 py-20 text-center shadow-glow">
 						<div className="grid-backdrop pointer-events-none absolute inset-0" />
 						<div className="relative">

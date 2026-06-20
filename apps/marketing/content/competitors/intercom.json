@@ -158,5 +158,23 @@
 			"bottomLine": "If ecosystem depth, community resources, and third-party integrations are a priority, Intercom has the clear advantage. Clanker Support is the better choice when you want something that works without needing a large ecosystem."
 		}
 	],
-	"migrationNote": "Migrating from Intercom primarily means replacing the Intercom widget embed with the Clanker Support script tag, re-creating your knowledge base content in Clanker Support's project settings, and pointing your team to the Clanker Support inbox. Conversation history and customer data from Intercom can be exported but won't carry over automatically. Teams that depend on Intercom's CRM, campaigns, or product tours will need separate tools for those use cases — Clanker Support doesn't cover them."
+	"migrationNote": "Migrating from Intercom primarily means replacing the Intercom widget embed with the Clanker Support script tag, re-creating your knowledge base content in Clanker Support's project settings, and pointing your team to the Clanker Support inbox. Conversation history and customer data from Intercom can be exported but won't carry over automatically. Teams that depend on Intercom's CRM, campaigns, or product tours will need separate tools for those use cases — Clanker Support doesn't cover them.",
+	"faqs": [
+		{
+			"question": "Is Clanker Support cheaper than Intercom?",
+			"answer": "For support-only use at smaller team sizes, usually yes. Intercom starts around $29/seat/month (annual) plus $0.99 per Fin resolution and scales with seats; Clanker Support is usage-based with no seats to buy. At enterprise scale where you use Intercom's full platform, the comparison narrows."
+		},
+		{
+			"question": "What does Intercom do that Clanker Support doesn't?",
+			"answer": "Intercom is a full platform: a built-in CRM, outbound email and in-app campaigns, product tours, and enterprise features like SSO, audit logs, and SLA tiers — backed by a large integration marketplace. Clanker Support is purpose-built for support and doesn't cover sales or marketing."
+		},
+		{
+			"question": "Can I self-host Clanker Support instead of Intercom?",
+			"answer": "Yes. Intercom is SaaS-only, while Clanker Support is self-hostable on Cloudflare infrastructure (D1, KV, workerd) — useful when data residency or infrastructure ownership is a requirement. You can also let Clanker Support host it for you on the usage-based plan."
+		},
+		{
+			"question": "Should I choose Clanker Support or Intercom?",
+			"answer": "Choose Clanker Support if support is your only use case, you want model flexibility or self-hosting, or Intercom's per-seat floor is too high. Choose Intercom if you're consolidating support, sales, and marketing into one platform or need its enterprise ecosystem."
+		}
+	]
 }

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSitemap, pageMeta } from "./seo";
+import {
+	breadcrumbLd,
+	buildSitemap,
+	faqPageLd,
+	howToLd,
+	pageMeta,
+} from "./seo";
 
 const NOW = new Date("2026-06-20T00:00:00.000Z");
 const BASE = "https://clankersupport.com";
@@ -23,6 +29,7 @@ describe("buildSitemap", () => {
 		expect(urls).toEqual(
 			expect.arrayContaining([
 				`${BASE}/`,
+				`${BASE}/pricing`,
 				`${BASE}/compare`,
 				`${BASE}/docs`,
 				`${BASE}/blog`,
@@ -56,8 +63,82 @@ describe("buildSitemap", () => {
 		expect(post?.lastModified).toEqual(new Date("2026-05-01"));
 	});
 
-	it("counts = 6 static + posts + competitors + migrations + features", () => {
-		expect(entries).toHaveLength(6 + 2 + 2 + 1 + 2);
+	it("counts = 7 static + posts + competitors + migrations + features", () => {
+		expect(entries).toHaveLength(7 + 2 + 2 + 1 + 2);
+	});
+});
+
+describe("faqPageLd", () => {
+	it("builds a FAQPage with a Question/Answer per entry", () => {
+		const ld = faqPageLd([
+			{ question: "Is it self-hostable?", answer: "Yes." },
+			{ question: "Which models?", answer: "Any via LLM Gateway." },
+		]);
+		expect(ld["@type"]).toBe("FAQPage");
+		expect(ld.mainEntity).toEqual([
+			{
+				"@type": "Question",
+				name: "Is it self-hostable?",
+				acceptedAnswer: { "@type": "Answer", text: "Yes." },
+			},
+			{
+				"@type": "Question",
+				name: "Which models?",
+				acceptedAnswer: { "@type": "Answer", text: "Any via LLM Gateway." },
+			},
+		]);
+	});
+});
+
+describe("breadcrumbLd", () => {
+	it("numbers positions from 1 and absolutises paths", () => {
+		const ld = breadcrumbLd(BASE, [
+			{ name: "Compare", path: "/compare" },
+			{ name: "Intercom", path: "/vs/intercom" },
+		]);
+		expect(ld["@type"]).toBe("BreadcrumbList");
+		expect(ld.itemListElement).toEqual([
+			{
+				"@type": "ListItem",
+				position: 1,
+				name: "Compare",
+				item: `${BASE}/compare`,
+			},
+			{
+				"@type": "ListItem",
+				position: 2,
+				name: "Intercom",
+				item: `${BASE}/vs/intercom`,
+			},
+		]);
+	});
+});
+
+describe("howToLd", () => {
+	it("builds a HowTo with positioned steps", () => {
+		const ld = howToLd({
+			name: "Install",
+			description: "Add the widget.",
+			steps: [
+				{ name: "Create a project", text: "Grab your public key." },
+				{ name: "Paste the snippet", text: "Drop the script tag." },
+			],
+		});
+		expect(ld["@type"]).toBe("HowTo");
+		expect(ld.step).toEqual([
+			{
+				"@type": "HowToStep",
+				position: 1,
+				name: "Create a project",
+				text: "Grab your public key.",
+			},
+			{
+				"@type": "HowToStep",
+				position: 2,
+				name: "Paste the snippet",
+				text: "Drop the script tag.",
+			},
+		]);
 	});
 });
 

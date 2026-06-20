@@ -25,6 +25,8 @@ export type Feature = {
 	points: { heading: string; body: string }[];
 	/** "What it means in practice" use-case bullets. */
 	inPractice: string[];
+	/** Query-shaped FAQs — render as a visible block + `FAQPage` schema. */
+	faqs: { question: string; answer: string }[];
 };
 
 export const FEATURES: Feature[] = [
@@ -61,6 +63,23 @@ export const FEATURES: Feature[] = [
 			"Set your brand color in the dashboard and the widget matches automatically.",
 			"Nothing to maintain — the widget updates server-side without you touching the tag.",
 		],
+		faqs: [
+			{
+				question: "How do I add the Clanker Support widget to my site?",
+				answer:
+					"Paste one script tag before the closing </body> tag. It works the same on Webflow, WordPress, Next.js, or plain HTML — no build step, no npm package, and no SDK to wire up. Most teams are live in about five minutes.",
+			},
+			{
+				question: "Will the widget conflict with my site's styles?",
+				answer:
+					"No. The widget mounts in an isolated shadow DOM, so its styles can't leak into your page and your styles can't leak into it. It inherits your brand color automatically and otherwise stays out of the way — no layout shifts or specificity wars.",
+			},
+			{
+				question: "Does the widget slow down my page?",
+				answer:
+					"It's built to stay light. The bundle is small and isn't weighed down with client-side analytics, so it won't drag your page speed. The widget also updates server-side, so you never have to ship a new tag to stay current.",
+			},
+		],
 	},
 	{
 		slug: "answers-from-your-docs",
@@ -94,6 +113,23 @@ export const FEATURES: Feature[] = [
 			"Update your knowledge base in the dashboard and answers change immediately — no retraining.",
 			"Tune tone and boundaries with a plain-language system prompt, per project.",
 			"Pair it with the escalation threshold so uncertain answers become human hand-offs.",
+		],
+		faqs: [
+			{
+				question: "How does the bot know about my product?",
+				answer:
+					"You give it the knowledge. Paste your knowledge base or write a system prompt in project settings, and the bot answers from that source of truth — not the open internet. Update the content in the dashboard and answers change immediately, with no retraining.",
+			},
+			{
+				question: "What happens when the bot doesn't know an answer?",
+				answer:
+					"It admits the limit instead of inventing one. When your docs don't cover a question, the bot says so and escalates to a human rather than producing a confident wrong answer — so customers aren't misled and your team isn't cleaning up after it.",
+			},
+			{
+				question: "Can I control the bot's tone and boundaries?",
+				answer:
+					"Yes. A plain-language system prompt sets the bot's tone and what it should and shouldn't talk about, per project. It keeps replies on-brand and on-topic, and politely declines to wander into unrelated territory.",
+			},
 		],
 	},
 	{
@@ -129,6 +165,23 @@ export const FEATURES: Feature[] = [
 			"Reply from the inbox and the customer gets it by email (see Email threading).",
 			"Adjust the escalation threshold any time as you learn what the bot should handle.",
 		],
+		faqs: [
+			{
+				question: "When does Clanker Support escalate to a human?",
+				answer:
+					"When a conversation needs a person. You set a per-project threshold for how readily the bot hands off, so it handles the routine questions and routes the ones that matter to your team — matching escalations to your capacity and risk tolerance.",
+			},
+			{
+				question: "Does my team see the full conversation when it's escalated?",
+				answer:
+					"Yes. The complete thread moves to your inbox — every message, not a summary — so your team can pick up mid-conversation without asking the customer to repeat themselves. Every hand-off is captured and tracked, so nothing falls into a black hole.",
+			},
+			{
+				question: "Where do escalated conversations go?",
+				answer:
+					"Into a single shared team inbox rather than scattered across tools. Your team replies from there, and the customer gets that reply by email through email threading — keeping one conversation intact from first chat to resolution.",
+			},
+		],
 	},
 	{
 		slug: "email-threading",
@@ -162,6 +215,23 @@ export const FEATURES: Feature[] = [
 			"Works hand-in-hand with escalation: hand off in-app, continue over email.",
 			"Customers reply from their own inbox; your team works from yours.",
 			"Each conversation gets its own reply address, so threading just works.",
+		],
+		faqs: [
+			{
+				question: "How does email threading work?",
+				answer:
+					"A team reply leaves your inbox as a normal email. When the customer responds, it routes straight back into the original conversation through a per-conversation reply address — no new ticket and no broken context. The threading is automatic and invisible to the customer.",
+			},
+			{
+				question: "Do customers have to stay in the chat widget?",
+				answer:
+					"No. After a hand-off, customers reply from their own email inbox and your team works from yours. The conversation continues over email while staying linked to the original chat — so nobody has to sit in a chat window waiting.",
+			},
+			{
+				question: "Will replies create duplicate tickets?",
+				answer:
+					"No. There's no manual matching and no duplicate threads. Each conversation keeps its own reply address, so customer responses always land back in the same thread — the conversation stays whole from the first message to resolution.",
+			},
 		],
 	},
 	{
@@ -197,6 +267,23 @@ export const FEATURES: Feature[] = [
 			"Match model cost to each project's complexity.",
 			"Avoid lock-in — your support layer outlives any single provider.",
 		],
+		faqs: [
+			{
+				question: "Which AI models can I use with Clanker Support?",
+				answer:
+					"Any model available through LLM Gateway — GPT, Claude, or a custom model. The model behind your bot is a setting you control, not a dependency baked into your code, so you're never tied to one provider's roadmap.",
+			},
+			{
+				question: "How do I switch models?",
+				answer:
+					"Change a setting in the dashboard. Swapping models is a config update — no redeploy, no code change, and no migration. You can upgrade to a better model the moment it ships instead of re-architecting your support stack.",
+			},
+			{
+				question: "Can different projects run different models?",
+				answer:
+					"Yes. Each project picks its own model, so you can run a frontier model for a complex product and a cheaper one for simple FAQs — giving every project the right cost-to-quality trade-off.",
+			},
+		],
 	},
 	{
 		slug: "self-hostable",
@@ -230,6 +317,23 @@ export const FEATURES: Feature[] = [
 			"Keep customer conversations on infrastructure you control.",
 			"Scale with usage on serverless edge — pay for what you use.",
 			"Audit and extend the stack, because the architecture is open.",
+		],
+		faqs: [
+			{
+				question: "Can I self-host Clanker Support?",
+				answer:
+					"Yes. The architecture is open and runs on serverless edge infrastructure, so instead of renting a black box you can deploy the whole stack on your own account. You bring your own keys and a database, and get the full feature set.",
+			},
+			{
+				question: "Where does my data live when I self-host?",
+				answer:
+					"On infrastructure you own. Customer conversations stay in your own database, on your own account, rather than in a vendor's cloud — which is what makes Clanker Support a fit for teams with data-residency requirements.",
+			},
+			{
+				question: "Is there any vendor lock-in?",
+				answer:
+					"No. The open architecture means no hidden dependencies and no surprise vendors you only discover at renewal. You can audit and extend the stack, run it where you choose, and keep both your data and your bill under your control.",
+			},
 		],
 	},
 ];

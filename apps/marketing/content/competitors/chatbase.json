@@ -167,5 +167,23 @@
 			"bottomLine": "Choose Clanker Support if data residency or infrastructure ownership is a requirement. Choose Chatbase if managed SaaS with compliance certifications is sufficient."
 		}
 	],
-	"migrationNote": "Switching from Chatbase to Clanker Support primarily involves re-pasting your knowledge base content into your Clanker Support project and replacing the Chatbase embed code with the Clanker Support script tag. Conversation history stored in Chatbase can be exported but won't automatically transfer to Clanker Support's inbox. For teams on multiple channels, note that Clanker Support is web-only — you'd need a separate solution for WhatsApp or Slack."
+	"migrationNote": "Switching from Chatbase to Clanker Support primarily involves re-pasting your knowledge base content into your Clanker Support project and replacing the Chatbase embed code with the Clanker Support script tag. Conversation history stored in Chatbase can be exported but won't automatically transfer to Clanker Support's inbox. For teams on multiple channels, note that Clanker Support is web-only — you'd need a separate solution for WhatsApp or Slack.",
+	"faqs": [
+		{
+			"question": "Clanker Support vs. Chatbase — which should I choose?",
+			"answer": "Choose Clanker Support if you want a single script tag, model flexibility, and the option to self-host. Choose Chatbase if you need WhatsApp, Slack, or Messenger support today, or want AI workflow automation backed by SOC 2 Type II certification."
+		},
+		{
+			"question": "Does Chatbase support more channels than Clanker Support?",
+			"answer": "Yes, today. Chatbase covers web chat plus WhatsApp, Slack, and Messenger out of the box. Clanker Support is web-only, with replies that thread back through email — so if multi-channel is a current requirement, Chatbase has the edge."
+		},
+		{
+			"question": "Can I use a custom or self-hosted model with Chatbase?",
+			"answer": "No. Chatbase lets you pick from its supported models, with the more capable ones gated behind higher-priced plans. Clanker Support runs on LLM Gateway, so you can run any provider — including custom or self-hosted endpoints — on every plan."
+		},
+		{
+			"question": "Is Clanker Support faster to set up than Chatbase?",
+			"answer": "Usually. Clanker Support is one script tag that mounts in an isolated shadow DOM and goes live in under five minutes. Chatbase is a platform you onboard into — create an account, configure agents, and integrate the SDK — which typically takes longer."
+		}
+	]
 }

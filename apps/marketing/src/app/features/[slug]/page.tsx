@@ -5,8 +5,9 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
 import { JsonLd } from "@/components/JsonLd";
+import { FaqSection } from "@/components/FaqSection";
 import { FEATURES, getFeature } from "@/lib/features";
-import { pageMeta } from "@/lib/seo";
+import { breadcrumbLd, faqPageLd, pageMeta } from "@/lib/seo";
 import { CANONICAL_SHOWCASE_URL, CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
@@ -54,6 +55,14 @@ export default async function FeaturePage({
 	return (
 		<>
 			<JsonLd data={jsonLd} />
+			<JsonLd data={faqPageLd(feature.faqs)} />
+			<JsonLd
+				data={breadcrumbLd(CANONICAL_SITE_URL, [
+					{ name: "Home", path: "/" },
+					{ name: "Features", path: "/#features" },
+					{ name: feature.name, path: `/features/${feature.slug}` },
+				])}
+			/>
 			<SiteHeader active="features" />
 
 			<main className="mx-auto max-w-5xl px-6">
@@ -193,6 +202,9 @@ export default async function FeaturePage({
 						))}
 					</div>
 				</section>
+
+				{/* ── FAQ ──────────────────────────────────────────────── */}
+				<FaqSection faqs={feature.faqs} />
 
 				{/* ── Closing CTA ──────────────────────────────────────── */}
 				<section className="my-24">

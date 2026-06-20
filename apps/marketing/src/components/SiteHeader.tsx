@@ -5,7 +5,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { CANONICAL_SHOWCASE_URL } from "@/lib/site-urls";
 
-type NavKey = "features" | "resources" | "compare";
+type NavKey = "features" | "resources" | "compare" | "pricing";
 
 const navLink =
 	"text-sm font-medium text-muted transition-colors hover:text-ink";
@@ -87,6 +87,13 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 						className={`hidden sm:block ${active === "compare" ? navLinkActive : navLink}`}
 					>
 						Compare
+					</Link>
+
+					<Link
+						href="/pricing"
+						className={`hidden sm:block ${active === "pricing" ? navLinkActive : navLink}`}
+					>
+						Pricing
 					</Link>
 
 					<a
