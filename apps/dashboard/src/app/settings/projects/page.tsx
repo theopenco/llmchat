@@ -15,6 +15,7 @@ import {
 	EmptyTitle,
 } from "@/components/ui/empty";
 import { api, describeApiError } from "@/lib/api";
+import { dropById, mapById, useOptimisticMutation } from "@/lib/optimistic";
 import { useWorkspace } from "@/lib/workspace";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { RoleGate } from "@/components/role-gate";
@@ -71,15 +72,17 @@ export default function ProjectsPage() {
 			toast.error(describeApiError(e, "Failed to create project")),
 	});
 
-	const remove = useMutation({
-		mutationFn: (id: string) =>
+	// Optimistic delete: the card leaves the grid immediately; a failure rolls it
+	// back and toasts. The confirm dialog closes at the call site (handler below).
+	const remove = useOptimisticMutation<string>({
+		queryKey: ["projects", workspaceId],
+		apply: (prev, id) => dropById(prev, "projects", id),
+		mutationFn: (id) =>
 			api(`/api/projects/${id}`, {
 				method: "DELETE",
 				workspaceId: workspaceId!,
 			}),
 		onSuccess: (_res, id) => {
-			qc.invalidateQueries({ queryKey: ["projects"] });
-			setDeleteId(null);
 			track(ANALYTICS_EVENTS.projectDeleted, { project_id: id });
 			toast.success("Project deleted");
 		},
@@ -87,8 +90,19 @@ export default function ProjectsPage() {
 			toast.error(describeApiError(e, "Failed to delete project")),
 	});
 
-	const toggle = useMutation({
-		mutationFn: (input: { id: string; favorite?: boolean; pinned?: boolean }) =>
+	// Optimistic pin/favorite toggle — the reference call site, now on the shared
+	// helper instead of a hand-rolled onMutate/onError/onSettled.
+	const toggle = useOptimisticMutation<
+		{ id: string; favorite?: boolean; pinned?: boolean },
+		{ project: ProjectListItem }
+	>({
+		queryKey: ["projects", workspaceId],
+		apply: (prev, input) =>
+			mapById<ProjectListItem>(prev, "projects", input.id, (p) => ({
+				...p,
+				...input,
+			})),
+		mutationFn: (input) =>
 			api<{ project: ProjectListItem }>(`/api/projects/${input.id}`, {
 				method: "PATCH",
 				body:
@@ -97,29 +111,6 @@ export default function ProjectsPage() {
 						: { pinned: input.pinned },
 				workspaceId: workspaceId!,
 			}),
-		onMutate: async (input) => {
-			await qc.cancelQueries({ queryKey: ["projects", workspaceId] });
-			const prev = qc.getQueryData<{ projects: ProjectListItem[] }>([
-				"projects",
-				workspaceId,
-			]);
-			qc.setQueryData<{ projects: ProjectListItem[] }>(
-				["projects", workspaceId],
-				(old) =>
-					old && {
-						projects: old.projects.map((p) =>
-							p.id === input.id ? { ...p, ...input } : p,
-						),
-					},
-			);
-			return { prev };
-		},
-		onError: (_e, _v, ctx) => {
-			if (ctx?.prev) qc.setQueryData(["projects", workspaceId], ctx.prev);
-		},
-		onSettled: () => {
-			qc.invalidateQueries({ queryKey: ["projects", workspaceId] });
-		},
 	});
 
 	const list = projects.data?.projects ?? NO_PROJECTS;
@@ -172,7 +163,13 @@ export default function ProjectsPage() {
 			<DeleteProjectDialog
 				open={deleteId !== null}
 				onOpenChange={(open) => !open && setDeleteId(null)}
-				onConfirm={() => deleteId && remove.mutate(deleteId)}
+				onConfirm={() => {
+					if (!deleteId) return;
+					const id = deleteId;
+					// Close the dialog as the card optimistically leaves the grid.
+					setDeleteId(null);
+					remove.mutate(id);
+				}}
 				pending={remove.isPending}
 			/>
 

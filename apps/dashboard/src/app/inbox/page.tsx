@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { api, describeApiError } from "@/lib/api";
 import { resolveOnboardingState } from "@/lib/onboarding";
+import { dropById, useOptimisticMutation } from "@/lib/optimistic";
 import { resolveSelectedId } from "@/lib/selection";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ import { InboxSkeleton } from "./_components/InboxSkeleton";
 import { InboxStats } from "./_components/InboxStats";
 import { InboxToolbar } from "./_components/InboxToolbar";
 import { MessageThread } from "./_components/MessageThread";
+import { appendOptimisticReply } from "./_components/optimistic-updaters";
 import { ProjectSwitcher } from "./_components/ProjectSwitcher";
 import { ReplyComposer } from "./_components/ReplyComposer";
 import type { Conversation, Message } from "./_components/types";
@@ -43,9 +45,6 @@ export default function InboxPage() {
 	const [showArchived, setShowArchived] = useState(false);
 	// Contact-details sheet (mobile/tablet); on desktop details are a permanent aside.
 	const [detailsOpen, setDetailsOpen] = useState(false);
-	const [sending, setSending] = useState(false);
-	const [archiving, setArchiving] = useState(false);
-	const [deleting, setDeleting] = useState(false);
 
 	const projects = useQuery({
 		queryKey: ["projects", workspaceId],
@@ -163,65 +162,93 @@ export default function InboxPage() {
 		if (onboardingState === "needs-onboarding") router.replace("/onboarding");
 	}, [onboardingState, router]);
 
-	async function handleReply() {
-		if (!reply.trim() || !projectId || !selectedId || !workspaceId) return;
-		setSending(true);
-		try {
-			await api(
-				`/api/projects/${projectId}/conversations/${selectedId}/reply`,
-				{ method: "POST", body: { content: reply.trim() }, workspaceId },
-			);
+	// Optimistic reply: the agent's message appears in the thread the instant they
+	// hit send (a temp admin bubble that stick-to-bottom follows), then the real
+	// row replaces it on reconcile. A failed send rolls the bubble back and keeps
+	// the typed text so it can be retried.
+	const replyMut = useOptimisticMutation<{
+		tempId: string;
+		content: string;
+		createdAt: string;
+	}>({
+		queryKey: ["thread", projectId, selectedId],
+		apply: (prev, vars) => appendOptimisticReply(prev, vars),
+		mutationFn: (vars) =>
+			api(`/api/projects/${projectId}/conversations/${selectedId}/reply`, {
+				method: "POST",
+				body: { content: vars.content },
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: () => {
 			setReply("");
 			toast.success("Reply sent");
-			await thread.refetch();
-			await conversations.refetch();
-		} catch (e) {
-			toast.error(describeApiError(e, "Failed to send reply"));
-		} finally {
-			setSending(false);
-		}
-	}
+			// The reply bumps updatedAt + the preview, so refresh the list order too.
+			void qc.invalidateQueries({ queryKey: ["conversations", projectId] });
+		},
+		onError: (e) => toast.error(describeApiError(e, "Failed to send reply")),
+	});
 
-	async function handleArchive() {
-		if (!projectId || !detailConv || !workspaceId) return;
-		const nextArchived = !detailConv.archivedAt;
-		setArchiving(true);
-		try {
-			await api(`/api/projects/${projectId}/conversations/${detailConv.id}`, {
+	// Optimistic archive/restore + delete: the row leaves the current list the
+	// instant the action fires; a failure re-inserts it (and toasts).
+	const archiveMut = useOptimisticMutation<{
+		id: string;
+		nextArchived: boolean;
+	}>({
+		queryKey: ["conversations", projectId],
+		apply: (prev, vars) => dropById(prev, "conversations", vars.id),
+		mutationFn: (vars) =>
+			api(`/api/projects/${projectId}/conversations/${vars.id}`, {
 				method: "PATCH",
-				body: { archived: nextArchived },
-				workspaceId,
-			});
+				body: { archived: vars.nextArchived },
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: (_data, vars) =>
 			toast.success(
-				nextArchived ? "Conversation archived" : "Conversation restored",
-			);
-			setSelectedId(null);
-			setDetailsOpen(false);
-			await conversations.refetch();
-		} catch (e) {
-			toast.error(describeApiError(e, "Failed to update conversation"));
-		} finally {
-			setArchiving(false);
-		}
+				vars.nextArchived ? "Conversation archived" : "Conversation restored",
+			),
+		onError: (e) =>
+			toast.error(describeApiError(e, "Failed to update conversation")),
+	});
+
+	const deleteMut = useOptimisticMutation<string>({
+		queryKey: ["conversations", projectId],
+		apply: (prev, id) => dropById(prev, "conversations", id),
+		mutationFn: (id) =>
+			api(`/api/projects/${projectId}/conversations/${id}`, {
+				method: "DELETE",
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: () => toast.success("Conversation deleted"),
+		onError: (e) =>
+			toast.error(describeApiError(e, "Failed to delete conversation")),
+	});
+
+	function handleReply() {
+		const content = reply.trim();
+		if (!content || !projectId || !selectedId || !workspaceId) return;
+		replyMut.mutate({
+			tempId: `temp-${crypto.randomUUID()}`,
+			content,
+			createdAt: new Date().toISOString(),
+		});
 	}
 
-	async function handleDelete() {
+	function handleArchive() {
 		if (!projectId || !detailConv || !workspaceId) return;
-		setDeleting(true);
-		try {
-			await api(`/api/projects/${projectId}/conversations/${detailConv.id}`, {
-				method: "DELETE",
-				workspaceId,
-			});
-			toast.success("Conversation deleted");
-			setSelectedId(null);
-			setDetailsOpen(false);
-			await conversations.refetch();
-		} catch (e) {
-			toast.error(describeApiError(e, "Failed to delete conversation"));
-		} finally {
-			setDeleting(false);
-		}
+		const { id } = detailConv;
+		const nextArchived = !detailConv.archivedAt;
+		// Close the pane optimistically alongside the row removal.
+		setSelectedId(null);
+		setDetailsOpen(false);
+		archiveMut.mutate({ id, nextArchived });
+	}
+
+	function handleDelete() {
+		if (!projectId || !detailConv || !workspaceId) return;
+		const { id } = detailConv;
+		setSelectedId(null);
+		setDetailsOpen(false);
+		deleteMut.mutate(id);
 	}
 
 	// Loading, or redirecting a brand-new account to onboarding.
@@ -333,7 +360,7 @@ export default function InboxPage() {
 							value={reply}
 							onChange={setReply}
 							onSend={handleReply}
-							pending={sending}
+							pending={replyMut.isPending}
 							placeholder={
 								detailConv.email
 									? "Reply (also sent via email)"
@@ -348,8 +375,8 @@ export default function InboxPage() {
 							conversation={detailConv}
 							onArchive={handleArchive}
 							onDelete={handleDelete}
-							archiving={archiving}
-							deleting={deleting}
+							archiving={archiveMut.isPending}
+							deleting={deleteMut.isPending}
 						/>
 					) : null
 				}

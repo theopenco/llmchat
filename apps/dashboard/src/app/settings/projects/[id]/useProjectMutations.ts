@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { api, describeApiError } from "@/lib/api";
+import { dropById, useOptimisticMutation } from "@/lib/optimistic";
 
 import type { Project, Source } from "./types";
 
@@ -71,16 +72,17 @@ export function useProjectMutations(id: string, workspaceId: string | null) {
 			toast.error(describeApiError(e, "Could not refresh source")),
 	});
 
-	const deleteSource = useMutation({
-		mutationFn: (sourceId: string) =>
+	// Optimistic delete: the source leaves the list immediately; a failure rolls
+	// it back and toasts.
+	const deleteSource = useOptimisticMutation<string>({
+		queryKey: ["sources", id],
+		apply: (prev, sourceId) => dropById(prev, "sources", sourceId),
+		mutationFn: (sourceId) =>
 			api(`/api/projects/${id}/sources/${sourceId}`, {
 				method: "DELETE",
 				workspaceId: workspaceId!,
 			}),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["sources", id] });
-			toast.success("Source removed");
-		},
+		onSuccess: () => toast.success("Source removed"),
 		onError: (e) => toast.error(describeApiError(e, "Could not remove source")),
 	});
 
