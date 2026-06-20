@@ -1,5 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MessageThread } from "./MessageThread";
 
@@ -227,5 +227,121 @@ describe("MessageThread auto-scroll (useStickToBottom)", () => {
 		expect(
 			container.querySelector('[aria-label="Scroll to latest message"]'),
 		).toBeInTheDocument();
+	});
+});
+
+describe("MessageThread search highlighting", () => {
+	// jsdom has no layout and doesn't implement scrollIntoView; install a spy so
+	// the scroll-to-first-hit effect runs (and is assertable) like in a browser.
+	let scrollSpy: ReturnType<typeof vi.fn>;
+	beforeEach(() => {
+		scrollSpy = vi.fn();
+		Element.prototype.scrollIntoView = scrollSpy;
+	});
+	afterEach(() => {
+		delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+	});
+
+	function lowerMarks(container: HTMLElement): string[] {
+		return [...container.querySelectorAll("mark")].map((m) =>
+			(m.textContent ?? "").toLowerCase(),
+		);
+	}
+
+	it("highlights the term across visitor and bot messages (case-insensitive)", () => {
+		const { container } = render(
+			<MessageThread
+				messages={[
+					msg({ role: "user", content: "I want a Refund please", sequence: 1 }),
+					msg({
+						role: "assistant",
+						content: "Your refund is on the way",
+						sequence: 2,
+					}),
+				]}
+				search="refund"
+			/>,
+		);
+		const marks = lowerMarks(container);
+		expect(marks).toHaveLength(2);
+		expect(marks.every((t) => t === "refund")).toBe(true);
+	});
+
+	it("marks every occurrence within a single message", () => {
+		const { container } = render(
+			<MessageThread
+				messages={[msg({ content: "refund then refund again", sequence: 1 })]}
+				search="refund"
+			/>,
+		);
+		expect(container.querySelectorAll("mark")).toHaveLength(2);
+	});
+
+	it("escapes HTML in a message — highlighting can't inject", () => {
+		const { container } = render(
+			<MessageThread
+				messages={[
+					msg({
+						content: 'evil <img src=x onerror="alert(1)"> refund',
+						sequence: 1,
+					}),
+				]}
+				search="refund"
+			/>,
+		);
+		// The tag is inert text, not a real element…
+		expect(container.querySelector("img")).toBeNull();
+		expect(container.textContent).toContain("<img src=x onerror=");
+		// …and the term is still highlighted.
+		expect(lowerMarks(container)).toEqual(["refund"]);
+	});
+
+	it("renders no marks when the search term is empty (highlights clear)", () => {
+		const { container, rerender } = render(
+			<MessageThread
+				messages={[msg({ content: "a refund here", sequence: 1 })]}
+				search="refund"
+			/>,
+		);
+		expect(container.querySelectorAll("mark")).toHaveLength(1);
+
+		rerender(
+			<MessageThread
+				messages={[msg({ content: "a refund here", sequence: 1 })]}
+				search=""
+			/>,
+		);
+		expect(container.querySelectorAll("mark")).toHaveLength(0);
+	});
+
+	it("scrolls the first matching message into view on open", () => {
+		const { container } = render(
+			<MessageThread
+				messages={[
+					msg({ role: "user", content: "hello there", sequence: 1 }),
+					msg({
+						role: "assistant",
+						content: "about your refund policy",
+						sequence: 2,
+					}),
+					msg({ role: "user", content: "the refund again", sequence: 3 }),
+				]}
+				search="refund"
+			/>,
+		);
+		// Exactly one scroll, onto the FIRST matching message's bubble.
+		expect(scrollSpy).toHaveBeenCalledTimes(1);
+		const hit = container.querySelector('[data-search-hit="true"]');
+		expect(hit?.textContent).toContain("about your refund policy");
+		expect(scrollSpy.mock.contexts[0]).toBe(hit);
+	});
+
+	it("does not scroll when there's no active search term", () => {
+		render(
+			<MessageThread
+				messages={[msg({ content: "a refund here", sequence: 1 })]}
+			/>,
+		);
+		expect(scrollSpy).not.toHaveBeenCalled();
 	});
 });
