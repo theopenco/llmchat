@@ -10,16 +10,19 @@ import { isPaidPlan } from "@llmchat/shared";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useSession } from "@/lib/auth-client";
 import { api, isWorkspaceAuthError } from "@/lib/api";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { fetchUsage } from "@/lib/billing";
 import { defaultSystemPrompt } from "@/lib/onboarding";
 import { useOnboardingState } from "@/lib/use-onboarding";
+import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace";
 
 import { initialDraft, type BotDraft } from "./_components/bot-form";
 import { LivePreview } from "./_components/LivePreview";
+import { panelVisibility, type MobileView } from "./_components/mobile-view";
 import { OnboardingForm } from "./_components/OnboardingForm";
 import { OnboardingPaywall } from "./_components/OnboardingPaywall";
 import { OnboardingSkeleton } from "./_components/OnboardingSkeleton";
@@ -50,6 +53,9 @@ function OnboardingFlow() {
 	// effect below then leaves onboarding for that agent's project page.
 	const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
 	const [failed, setFailed] = useState(false);
+	// Mobile (< lg) shows one panel at a time; desktop shows both side-by-side and
+	// ignores this. Both stay mounted, so the preview keeps updating as you type.
+	const [mobileView, setMobileView] = useState<MobileView>("form");
 
 	// Send unauthenticated visitors to sign-in.
 	useEffect(() => {
@@ -226,33 +232,68 @@ function OnboardingFlow() {
 							</p>
 						</header>
 
-						<div className="grid items-start gap-8 lg:grid-cols-2">
-							<OnboardingForm
-								draft={draft}
-								onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
-								onSubmit={handleComplete}
-								busy={busy}
-								primaryLabel={newBot ? "Create this agent" : "Create my agent"}
-							/>
+						<div className="flex flex-col gap-4">
+							{/* Mobile/tablet: flip between the form and the live preview (both
+							    stay mounted, so the preview keeps updating). Hidden on
+							    desktop, where the two panels sit side-by-side. */}
+							<ToggleGroup
+								type="single"
+								value={mobileView}
+								onValueChange={(v) => v && setMobileView(v as MobileView)}
+								variant="outline"
+								aria-label="Switch between the setup form and the live preview"
+								className="w-full lg:hidden"
+							>
+								<ToggleGroupItem value="form" className="flex-1">
+									Setup
+								</ToggleGroupItem>
+								<ToggleGroupItem value="preview" className="flex-1">
+									Live preview
+								</ToggleGroupItem>
+							</ToggleGroup>
 
-							<div className="lg:sticky lg:top-10">
-								<LivePreview
-									name={draft.name}
-									welcomeMessage={draft.welcomeMessage}
-									brandColor={draft.brandColor}
-								/>
-								{failed && (
-									<div className="mt-4 flex flex-col items-center gap-2 text-center">
-										<p className="text-sm text-destructive">
-											Something went wrong creating your agent.
-										</p>
-										<Button variant="outline" onClick={handleComplete}>
-											Try again
-										</Button>
-									</div>
-								)}
+							<div className="grid items-start gap-8 lg:grid-cols-2">
+								<div
+									className={cn("min-w-0", panelVisibility("form", mobileView))}
+								>
+									<OnboardingForm
+										draft={draft}
+										onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+										onSubmit={handleComplete}
+										busy={busy}
+										primaryLabel={
+											newBot ? "Create this agent" : "Create my agent"
+										}
+									/>
+								</div>
+
+								<div
+									className={cn(
+										"min-w-0 lg:sticky lg:top-10",
+										panelVisibility("preview", mobileView),
+									)}
+								>
+									<LivePreview
+										name={draft.name}
+										welcomeMessage={draft.welcomeMessage}
+										brandColor={draft.brandColor}
+									/>
+								</div>
 							</div>
 						</div>
+
+						{/* Retry lives below both panels so it's reachable in either mobile
+						    view (not buried inside the hidden preview column). */}
+						{failed && (
+							<div className="flex flex-col items-center gap-2 text-center">
+								<p className="text-sm text-destructive">
+									Something went wrong creating your agent.
+								</p>
+								<Button variant="outline" onClick={handleComplete}>
+									Try again
+								</Button>
+							</div>
+						)}
 					</>
 				)}
 			</div>

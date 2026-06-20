@@ -168,6 +168,27 @@ describe("OnboardingPage (form redesign)", () => {
 		expect(screen.queryByText(/setup assistant/i)).not.toBeInTheDocument();
 	});
 
+	it("offers a mobile Setup/Live-preview toggle that switches panels without losing form state", async () => {
+		const u = user();
+		renderPage();
+		const nameField = await screen.findByLabelText(/agent name/i);
+		await u.type(nameField, "Acme Tools");
+
+		// The mobile-only toggle is present (desktop shows both panels, so it's
+		// hidden there via CSS — but always rendered). Exact text so it doesn't
+		// match the form's "Set up your agent" title or the preview's caption.
+		const previewTab = screen.getByText("Live preview");
+		const setupTab = screen.getByText("Setup");
+		expect(previewTab).toBeInTheDocument();
+		expect(setupTab).toBeInTheDocument();
+
+		// Flipping to the preview and back must NOT unmount the form: the typed
+		// name survives, proving both panels stay mounted (live binding intact).
+		await u.click(previewTab);
+		await u.click(setupTab);
+		expect(screen.getByLabelText(/agent name/i)).toHaveValue("Acme Tools");
+	});
+
 	it("requires a name before it will provision", async () => {
 		const u = user();
 		renderPage();
