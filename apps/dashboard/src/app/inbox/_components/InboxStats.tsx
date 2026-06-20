@@ -4,7 +4,7 @@ import { Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-import type { Conversation } from "./types";
+import type { ConversationStats } from "./types";
 
 function StatCard({
 	value,
@@ -34,32 +34,25 @@ function StatCard({
 }
 
 /**
- * Header stat cards derived from the loaded conversation set. "Resolved" is
- * backed by the archived count — archiving is this app's only "closed" state;
- * there is no separate resolved status. The avg rating is the mean CSAT across
- * rated conversations only, shown as "—" when none are rated (never NaN or a
- * fabricated number).
+ * Header stat cards from a TRUE server-side aggregate over the whole project —
+ * not the loaded page (which paginates, so loaded-page counts would read as
+ * "so far" and mislead). "Resolved" is backed by the archived count — archiving
+ * is this app's only "closed" state. The avg rating is the mean CSAT across
+ * rated conversations only, shown as "—" when none are rated (never NaN). While
+ * the aggregate is loading, values render as "—".
  */
-export function InboxStats({
-	conversations,
-}: {
-	conversations: Conversation[];
-}) {
-	const total = conversations.length;
-	const escalated = conversations.filter((c) => c.escalatedAt).length;
-	const resolved = conversations.filter((c) => c.archivedAt).length;
-
-	const rated = conversations.filter((c) => c.csatRating != null);
-	const avgRating =
-		rated.length > 0
-			? rated.reduce((sum, c) => sum + (c.csatRating ?? 0), 0) / rated.length
-			: null;
+export function InboxStats({ stats }: { stats?: ConversationStats }) {
+	const avgRating = stats?.avgRating ?? null;
 
 	return (
 		<div className="flex flex-wrap items-stretch gap-2">
-			<StatCard value={total} label="Conversations" />
-			<StatCard value={escalated} label="Escalated" tone="amber" />
-			<StatCard value={resolved} label="Resolved" />
+			<StatCard value={stats?.total ?? "—"} label="Conversations" />
+			<StatCard
+				value={stats?.escalated ?? "—"}
+				label="Escalated"
+				tone="amber"
+			/>
+			<StatCard value={stats?.resolved ?? "—"} label="Resolved" />
 			<StatCard
 				value={avgRating != null ? avgRating.toFixed(1) : "—"}
 				label="Avg rating"

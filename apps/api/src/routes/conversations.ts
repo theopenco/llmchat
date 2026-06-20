@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
+import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { db } from "@/lib/db";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
 import {
@@ -20,6 +21,7 @@ import {
 	and,
 	asc,
 	conversation,
+	count,
 	desc,
 	eq,
 	inArray,
@@ -28,6 +30,7 @@ import {
 	message as messageTable,
 	or,
 	readStatus,
+	sql,
 } from "@llmchat/db";
 
 import type { AppContext } from "@/env";
@@ -45,13 +48,15 @@ export const conversations = new Hono<AppContext>()
 			z.object({
 				search: z.string().optional(),
 				archived: z.enum(["true", "false"]).optional(),
-				limit: z.coerce.number().int().min(1).max(100).default(50),
-				offset: z.coerce.number().int().min(0).default(0),
+				limit: z.coerce.number().int().min(1).max(100).default(30),
+				// Opaque keyset cursor (see lib/cursor). A garbage value decodes to
+				// null below and just serves the first page — never a 400.
+				cursor: z.string().optional(),
 			}),
 		),
 		async (c) => {
 			const { projectId } = c.req.param();
-			const { search, archived, limit, offset } = c.req.valid("query");
+			const { search, archived, limit, cursor } = c.req.valid("query");
 			const workspaceId = c.get("workspaceId");
 			const userId = c.get("userId");
 
@@ -108,13 +113,37 @@ export const conversations = new Hono<AppContext>()
 				conditions.push(or(...orParts)!);
 			}
 
-			const rows = await db(c.env)
+			// Keyset pagination on (updatedAt DESC, id DESC): resume strictly after
+			// the cursor row. Raw SQL compares against the stored unix-seconds integer
+			// directly, sidestepping the timestamp custom-type's driver mapping. ANDed
+			// alongside the project scope, archived filter, and search OR-group — so it
+			// composes with all of them. A garbage cursor decoded to null = page 1.
+			const cur = decodeCursor(cursor);
+			if (cur) {
+				conditions.push(
+					sql`(${conversation.updatedAt} < ${cur.updatedAt} OR (${conversation.updatedAt} = ${cur.updatedAt} AND ${conversation.id} < ${cur.id}))`,
+				);
+			}
+
+			// Fetch one extra row to know whether another page exists without a
+			// second COUNT query.
+			const page = await db(c.env)
 				.select()
 				.from(conversation)
 				.where(and(...conditions))
-				.orderBy(desc(conversation.updatedAt))
-				.limit(limit)
-				.offset(offset);
+				.orderBy(desc(conversation.updatedAt), desc(conversation.id))
+				.limit(limit + 1);
+
+			const hasMore = page.length > limit;
+			const rows = hasMore ? page.slice(0, limit) : page;
+			const last = rows.at(-1);
+			const nextCursor =
+				hasMore && last
+					? encodeCursor({
+							updatedAt: Math.floor(last.updatedAt.getTime() / 1000),
+							id: last.id,
+						})
+					: null;
 
 			// Attach the first visitor message (sequence 1) as a list preview —
 			// one bounded query keyed on the page of conversations we're returning.
@@ -212,9 +241,44 @@ export const conversations = new Hono<AppContext>()
 					unread: (readByConv.get(r.id) ?? 0) < r.messageCount,
 					match: matchFor(r),
 				})),
+				nextCursor,
 			});
 		},
 	)
+	.get("/projects/:projectId/conversations/stats", async (c) => {
+		// True project-wide totals for the inbox header — independent of the
+		// search term and the active/archived toggle, so the header is honest
+		// even though the list itself paginates (loaded-page counts would read
+		// as "so far"). One aggregate row, same ownership chain as the list.
+		const { projectId } = c.req.param();
+		const workspaceId = c.get("workspaceId");
+		const proj = await db(c.env).query.project.findFirst({
+			where: (pt, { and: a, eq: e }) =>
+				a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+		});
+		if (!proj) {
+			return c.json({ error: "not found" }, 404);
+		}
+
+		const [agg] = await db(c.env)
+			.select({
+				total: count(),
+				escalated: sql<number>`sum(case when ${conversation.escalatedAt} is not null then 1 else 0 end)`,
+				// "Resolved" == archived (the app's only closed state).
+				resolved: sql<number>`sum(case when ${conversation.archivedAt} is not null then 1 else 0 end)`,
+				// avg() ignores NULL csat, and is NULL when nothing is rated.
+				avgRating: sql<number | null>`avg(${conversation.csatRating})`,
+			})
+			.from(conversation)
+			.where(eq(conversation.projectId, projectId));
+
+		return c.json({
+			total: agg?.total ?? 0,
+			escalated: Number(agg?.escalated ?? 0),
+			resolved: Number(agg?.resolved ?? 0),
+			avgRating: agg?.avgRating ?? null,
+		});
+	})
 	.get("/projects/:projectId/conversations/:id", async (c) => {
 		const { projectId, id } = c.req.param();
 		const workspaceId = c.get("workspaceId");

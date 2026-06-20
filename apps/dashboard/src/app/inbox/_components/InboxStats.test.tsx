@@ -3,67 +3,53 @@ import { describe, expect, it } from "vitest";
 
 import { InboxStats } from "./InboxStats";
 
-import type { Conversation } from "./types";
+import type { ConversationStats } from "./types";
 
-function conv(overrides: Partial<Conversation> = {}): Conversation {
-	return {
-		id: crypto.randomUUID(),
-		clientId: "c",
-		name: null,
-		email: null,
-		ipAddress: null,
-		userAgent: null,
-		messageCount: 2,
-		escalatedAt: null,
-		archivedAt: null,
-		createdAt: "2026-06-16T05:00:00.000Z",
-		updatedAt: "2026-06-16T05:00:00.000Z",
-		csatRating: null,
-		...overrides,
-	};
+function stats(overrides: Partial<ConversationStats> = {}): ConversationStats {
+	return { total: 0, escalated: 0, resolved: 0, avgRating: null, ...overrides };
 }
 
-/** The avg rating card is the only stat labelled "Avg rating". */
-function avgValue(): string | null {
-	const label = screen.getByText("Avg rating");
-	// StatCard renders [value][label] as sibling divs; value is the previous one.
-	return label.previousElementSibling?.textContent ?? null;
+/** Read the value rendered above a given stat label. StatCard renders
+ * [value][label] as sibling divs. */
+function valueFor(label: string): string | null {
+	return screen.getByText(label).previousElementSibling?.textContent ?? null;
 }
 
-describe("InboxStats avg rating", () => {
-	it("averages only the rated conversations", () => {
+describe("InboxStats (server aggregate)", () => {
+	it("renders the true server totals verbatim — not loaded-page counts", () => {
 		render(
 			<InboxStats
-				conversations={[
-					conv({ csatRating: 5 }),
-					conv({ csatRating: 3 }),
-					conv({ csatRating: null }), // unrated: excluded from the average
-				]}
+				stats={stats({
+					total: 4210,
+					escalated: 37,
+					resolved: 1200,
+					avgRating: 4.3,
+				})}
 			/>,
 		);
-		expect(avgValue()).toBe("4.0");
+		// These exceed any single loaded page (30) — proving they come from the
+		// aggregate, not the rendered rows.
+		expect(valueFor("Conversations")).toBe("4210");
+		expect(valueFor("Escalated")).toBe("37");
+		expect(valueFor("Resolved")).toBe("1200");
+		expect(valueFor("Avg rating")).toBe("4.3");
 	});
 
-	it("shows a dash (no NaN) when nothing is rated", () => {
-		render(<InboxStats conversations={[conv({ csatRating: null }), conv()]} />);
-		expect(avgValue()).toBe("—");
+	it("shows a dash for avg rating (no NaN) when nothing is rated", () => {
+		render(<InboxStats stats={stats({ total: 5, avgRating: null })} />);
+		expect(valueFor("Avg rating")).toBe("—");
 	});
 
-	it("is safe with an empty conversation set", () => {
-		render(<InboxStats conversations={[]} />);
-		expect(avgValue()).toBe("—");
+	it("renders all dashes while the aggregate is still loading (undefined)", () => {
+		render(<InboxStats stats={undefined} />);
+		expect(valueFor("Conversations")).toBe("—");
+		expect(valueFor("Escalated")).toBe("—");
+		expect(valueFor("Resolved")).toBe("—");
+		expect(valueFor("Avg rating")).toBe("—");
 	});
 
 	it("rounds the average to one decimal", () => {
-		render(
-			<InboxStats
-				conversations={[
-					conv({ csatRating: 5 }),
-					conv({ csatRating: 4 }),
-					conv({ csatRating: 4 }),
-				]}
-			/>,
-		);
-		expect(avgValue()).toBe("4.3");
+		render(<InboxStats stats={stats({ total: 3, avgRating: 4.333333 })} />);
+		expect(valueFor("Avg rating")).toBe("4.3");
 	});
 });

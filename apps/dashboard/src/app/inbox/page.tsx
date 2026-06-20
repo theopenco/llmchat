@@ -1,6 +1,10 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	useInfiniteQuery,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -8,7 +12,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { api, describeApiError } from "@/lib/api";
 import { resolveOnboardingState } from "@/lib/onboarding";
-import { dropById, useOptimisticMutation } from "@/lib/optimistic";
+import { useOptimisticMutation } from "@/lib/optimistic";
 import { resolveSelectedId } from "@/lib/selection";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { cn } from "@/lib/utils";
@@ -17,18 +21,32 @@ import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 
 import { ConversationList } from "./_components/ConversationList";
 import { ConversationListSkeleton } from "./_components/ConversationListSkeleton";
+import {
+	dropConversationFromCache,
+	flattenPages,
+	mergeConversationPages,
+	setConversationRead,
+	type ConversationPage,
+} from "./_components/conversation-list";
 import { DetailPanel } from "./_components/DetailPanel";
 import { initials, parseDevice, pluralize } from "./_components/format";
 import { InboxPanes } from "./_components/InboxPanes";
 import { InboxSkeleton } from "./_components/InboxSkeleton";
 import { InboxStats } from "./_components/InboxStats";
 import { InboxToolbar } from "./_components/InboxToolbar";
+import { LoadMore } from "./_components/LoadMore";
 import { MessageThread } from "./_components/MessageThread";
 import { appendOptimisticReply } from "./_components/optimistic-updaters";
 import { ProjectSwitcher } from "./_components/ProjectSwitcher";
 import { ReplyComposer } from "./_components/ReplyComposer";
-import type { Conversation, Message } from "./_components/types";
+import type {
+	Conversation,
+	ConversationStats,
+	Message,
+} from "./_components/types";
 import type { ProjectOption } from "./_components/ProjectSwitcher";
+
+const PAGE_SIZE = 30;
 
 export default function InboxPage() {
 	const {
@@ -75,19 +93,71 @@ export default function InboxPage() {
 	// and drives the conversation list + the per-row match snippets.
 	const debouncedSearch = useDebouncedValue(search.trim(), 250);
 
-	const conversations = useQuery({
-		queryKey: ["conversations", projectId, debouncedSearch, showArchived],
-		enabled: !!projectId && !!workspaceId,
-		refetchInterval: 5_000,
-		queryFn: () => {
-			const params = new URLSearchParams({ limit: "100" });
+	// Build the list query string for a given cursor. Search + archived go to the
+	// server (pre-resolved before LIMIT), so they compose with keyset paging.
+	const listParams = useCallback(
+		(cursor?: string) => {
+			const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
 			if (debouncedSearch) params.set("search", debouncedSearch);
 			if (showArchived) params.set("archived", "true");
-			return api<{ conversations: Conversation[] }>(
-				`/api/projects/${projectId}/conversations?${params.toString()}`,
-				{ workspaceId: workspaceId! },
-			);
+			if (cursor) params.set("cursor", cursor);
+			return params.toString();
 		},
+		[debouncedSearch, showArchived],
+	);
+
+	// The paginated list: keyset cursor, NO polling (a background refetch of an
+	// infinite query re-pulls every loaded page). It only fetches on mount and on
+	// fetchNextPage.
+	const listQuery = useInfiniteQuery({
+		queryKey: [
+			"conversations",
+			projectId,
+			"list",
+			debouncedSearch,
+			showArchived,
+		],
+		enabled: !!projectId && !!workspaceId,
+		initialPageParam: undefined as string | undefined,
+		queryFn: ({ pageParam }) =>
+			api<ConversationPage>(
+				`/api/projects/${projectId}/conversations?${listParams(pageParam)}`,
+				{ workspaceId: workspaceId! },
+			),
+		getNextPageParam: (last) => last.nextCursor ?? undefined,
+	});
+
+	// The poll lives on a separate HEAD query — just the newest page, every 5s.
+	// One O(1) request regardless of how many pages are loaded, so paging never
+	// multiplies poll traffic. Merged with the loaded pages at render time.
+	const headQuery = useQuery({
+		queryKey: [
+			"conversations",
+			projectId,
+			"head",
+			debouncedSearch,
+			showArchived,
+		],
+		enabled: !!projectId && !!workspaceId,
+		refetchInterval: 5_000,
+		queryFn: () =>
+			api<ConversationPage>(
+				`/api/projects/${projectId}/conversations?${listParams()}`,
+				{ workspaceId: workspaceId! },
+			),
+	});
+
+	// True project-wide totals for the header — a server aggregate, independent of
+	// the loaded pages / search / archived filter, so the stats never read as
+	// "loaded so far".
+	const statsQuery = useQuery({
+		queryKey: ["conversation-stats", projectId],
+		enabled: !!projectId && !!workspaceId,
+		refetchInterval: 10_000,
+		queryFn: () =>
+			api<ConversationStats>(`/api/projects/${projectId}/conversations/stats`, {
+				workspaceId: workspaceId!,
+			}),
 	});
 
 	const thread = useQuery({
@@ -101,30 +171,38 @@ export default function InboxPage() {
 			),
 	});
 
-	// Both filters are server-side now: text search (name/email/message body) and
-	// the active-vs-archived split. The returned rows are exactly what the list
-	// should show, so there's no client-side filtering left to do.
+	// Render set = the polled head merged with the loaded pages, deduped by id
+	// (head wins → freshest copy) and re-sorted by (updatedAt desc, id desc). New
+	// or bumped conversations arrive via the head poll and slot in correctly
+	// without the infinite query refetching, and without duplicate rows.
 	const allConversations = useMemo(
-		() => conversations.data?.conversations ?? [],
-		[conversations.data],
+		() =>
+			mergeConversationPages([
+				headQuery.data?.conversations,
+				flattenPages(listQuery.data),
+			]),
+		[headQuery.data, listQuery.data],
 	);
 
 	const selectedConv = allConversations.find((c) => c.id === selectedId);
 	const detailConv = thread.data?.conversation ?? selectedConv ?? null;
 
-	// Mark a conversation read for this user (existing readStatus PATCH), then
-	// refresh the list so its unread dot clears. Best-effort: a failure just
-	// leaves the dot.
+	// Mark a conversation read for this user. Optimistically clears the unread dot
+	// in-cache across the head + loaded pages (so a row deep in a loaded page
+	// clears instantly without any refetch), then PATCHes. Best-effort: on failure
+	// the next head poll restores the true unread state.
 	const markRead = useCallback(
 		async (id: string) => {
 			if (!projectId || !workspaceId) return;
+			qc.setQueriesData({ queryKey: ["conversations", projectId] }, (prev) =>
+				setConversationRead(prev, id),
+			);
 			try {
 				await api(`/api/projects/${projectId}/conversations/${id}`, {
 					method: "PATCH",
 					body: { read: true },
 					workspaceId,
 				});
-				await qc.invalidateQueries({ queryKey: ["conversations", projectId] });
 			} catch {
 				/* non-critical */
 			}
@@ -182,8 +260,12 @@ export default function InboxPage() {
 		onSuccess: () => {
 			setReply("");
 			toast.success("Reply sent");
-			// The reply bumps updatedAt + the preview, so refresh the list order too.
-			void qc.invalidateQueries({ queryKey: ["conversations", projectId] });
+			// The reply bumps updatedAt + the preview. Revalidate the HEAD only (not
+			// the whole paginated list): the conversation jumps to the newest page,
+			// and the render merge re-sorts it to the top from there.
+			void qc.invalidateQueries({
+				queryKey: ["conversations", projectId, "head"],
+			});
 		},
 		onError: (e) => toast.error(describeApiError(e, "Failed to send reply")),
 	});
@@ -194,8 +276,12 @@ export default function InboxPage() {
 		id: string;
 		nextArchived: boolean;
 	}>({
+		// Optimistically drop the row from BOTH the head and every loaded page
+		// (wide key), but only revalidate the head on settle — never an all-pages
+		// refetch of the infinite list.
 		queryKey: ["conversations", projectId],
-		apply: (prev, vars) => dropById(prev, "conversations", vars.id),
+		invalidateKey: ["conversations", projectId, "head"],
+		apply: (prev, vars) => dropConversationFromCache(prev, vars.id),
 		mutationFn: (vars) =>
 			api(`/api/projects/${projectId}/conversations/${vars.id}`, {
 				method: "PATCH",
@@ -212,7 +298,8 @@ export default function InboxPage() {
 
 	const deleteMut = useOptimisticMutation<string>({
 		queryKey: ["conversations", projectId],
-		apply: (prev, id) => dropById(prev, "conversations", id),
+		invalidateKey: ["conversations", projectId, "head"],
+		apply: (prev, id) => dropConversationFromCache(prev, id),
 		mutationFn: (id) =>
 			api(`/api/projects/${projectId}/conversations/${id}`, {
 				method: "DELETE",
@@ -280,7 +367,7 @@ export default function InboxPage() {
 							All visitor conversations in one inbox.
 						</p>
 					</div>
-					<InboxStats conversations={allConversations} />
+					<InboxStats stats={statsQuery.data} />
 				</header>
 
 				<InboxToolbar
@@ -306,16 +393,24 @@ export default function InboxPage() {
 							value={projectId}
 							onChange={handleProjectChange}
 						/>
-						{conversations.isLoading ? (
+						{listQuery.isLoading ? (
 							<ConversationListSkeleton />
 						) : (
-							<ConversationList
-								conversations={allConversations}
-								selectedId={selectedId}
-								onSelect={handleSelect}
-								search={debouncedSearch}
-								showArchived={showArchived}
-							/>
+							<>
+								<ConversationList
+									conversations={allConversations}
+									selectedId={selectedId}
+									onSelect={handleSelect}
+									search={debouncedSearch}
+									showArchived={showArchived}
+								/>
+								{listQuery.hasNextPage && (
+									<LoadMore
+										onLoadMore={() => void listQuery.fetchNextPage()}
+										loading={listQuery.isFetchingNextPage}
+									/>
+								)}
+							</>
 						)}
 					</>
 				}
