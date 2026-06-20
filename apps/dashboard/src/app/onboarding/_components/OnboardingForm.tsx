@@ -104,7 +104,7 @@ export function OnboardingForm({
 							onValueChange={(value) =>
 								value && onChange({ brandColor: value })
 							}
-							className="justify-start gap-2"
+							className="flex-wrap justify-start gap-2"
 						>
 							{BRAND_CHOICES.map((c) => (
 								<ToggleGroupItem
