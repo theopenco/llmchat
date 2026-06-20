@@ -10,6 +10,7 @@ import { api, describeApiError } from "@/lib/api";
 import { resolveOnboardingState } from "@/lib/onboarding";
 import { resolveSelectedId } from "@/lib/selection";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
+import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 
@@ -17,6 +18,7 @@ import { ConversationList } from "./_components/ConversationList";
 import { ConversationListSkeleton } from "./_components/ConversationListSkeleton";
 import { DetailPanel } from "./_components/DetailPanel";
 import { initials, parseDevice, pluralize } from "./_components/format";
+import { InboxPanes } from "./_components/InboxPanes";
 import { InboxSkeleton } from "./_components/InboxSkeleton";
 import { InboxStats } from "./_components/InboxStats";
 import { InboxToolbar } from "./_components/InboxToolbar";
@@ -39,6 +41,8 @@ export default function InboxPage() {
 	const [reply, setReply] = useState("");
 	const [search, setSearch] = useState("");
 	const [showArchived, setShowArchived] = useState(false);
+	// Contact-details sheet (mobile/tablet); on desktop details are a permanent aside.
+	const [detailsOpen, setDetailsOpen] = useState(false);
 	const [sending, setSending] = useState(false);
 	const [archiving, setArchiving] = useState(false);
 	const [deleting, setDeleting] = useState(false);
@@ -192,6 +196,7 @@ export default function InboxPage() {
 				nextArchived ? "Conversation archived" : "Conversation restored",
 			);
 			setSelectedId(null);
+			setDetailsOpen(false);
 			await conversations.refetch();
 		} catch (e) {
 			toast.error(describeApiError(e, "Failed to update conversation"));
@@ -210,6 +215,7 @@ export default function InboxPage() {
 			});
 			toast.success("Conversation deleted");
 			setSelectedId(null);
+			setDetailsOpen(false);
 			await conversations.refetch();
 		} catch (e) {
 			toast.error(describeApiError(e, "Failed to delete conversation"));
@@ -229,104 +235,115 @@ export default function InboxPage() {
 			.join(" · ") ||
 		(detailConv ? pluralize(detailConv.messageCount, "message") : "");
 
+	// A conversation is open. Drives one-pane-at-a-time on mobile: while open, the
+	// list-scoped header/toolbar give way to the full-screen thread.
+	const threadOpen = Boolean(selectedId && detailConv);
+
 	return (
-		<div className="flex h-[calc(100vh-3.5rem)] flex-col">
-			{/* Header band — title + at-a-glance stats */}
-			<header className="flex flex-wrap items-start justify-between gap-4 border-b px-6 py-4">
-				<div>
-					<h1 className="font-display text-2xl font-semibold tracking-tight-display">
-						Conversations
-					</h1>
-					<p className="mt-0.5 text-sm text-muted-foreground">
-						All visitor conversations in one inbox.
-					</p>
-				</div>
-				<InboxStats conversations={allConversations} />
-			</header>
+		<div className="flex h-[calc(100dvh-3rem)] flex-col md:h-[calc(100vh-3.5rem)]">
+			{/* Header band + toolbar are list-scoped: hidden on mobile while a thread
+			    is open (the thread takes the full screen), always shown from md. */}
+			<div className={cn(threadOpen && "hidden md:block")}>
+				<header className="flex flex-wrap items-start justify-between gap-4 border-b px-6 py-4">
+					<div>
+						<h1 className="font-display text-2xl font-semibold tracking-tight-display">
+							Conversations
+						</h1>
+						<p className="mt-0.5 text-sm text-muted-foreground">
+							All visitor conversations in one inbox.
+						</p>
+					</div>
+					<InboxStats conversations={allConversations} />
+				</header>
 
-			<InboxToolbar
-				search={search}
-				onSearch={setSearch}
-				showArchived={showArchived}
-				onShowArchivedChange={(archived) => {
-					setShowArchived(archived);
-					setSelectedId(null);
-				}}
-			/>
+				<InboxToolbar
+					search={search}
+					onSearch={setSearch}
+					showArchived={showArchived}
+					onShowArchivedChange={(archived) => {
+						setShowArchived(archived);
+						setSelectedId(null);
+					}}
+				/>
+			</div>
 
-			<div className="flex min-h-0 flex-1">
-				{/* Left — list */}
-				<div className="flex w-80 shrink-0 flex-col border-r">
-					<ProjectSwitcher
-						projects={projects.data?.projects ?? []}
-						value={projectId}
-						onChange={handleProjectChange}
-					/>
-					{conversations.isLoading ? (
-						<ConversationListSkeleton />
-					) : (
-						<ConversationList
-							conversations={allConversations}
-							selectedId={selectedId}
-							onSelect={handleSelect}
-							search={debouncedSearch}
-							showArchived={showArchived}
+			<InboxPanes
+				hasSelection={threadOpen}
+				onBack={() => setSelectedId(null)}
+				detailsOpen={detailsOpen}
+				onDetailsOpenChange={setDetailsOpen}
+				list={
+					<>
+						<ProjectSwitcher
+							projects={projects.data?.projects ?? []}
+							value={projectId}
+							onChange={handleProjectChange}
 						/>
-					)}
-				</div>
-
-				{/* Center — thread */}
-				<section className="flex min-w-0 flex-1 flex-col">
-					{selectedId && detailConv ? (
-						<>
-							<div className="flex items-center gap-3 border-b px-6 py-3">
-								<span className="flex size-9 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
-									{initials(detailConv.name)}
-								</span>
-								<div className="min-w-0 flex-1">
-									<p className="truncate text-sm font-semibold">
-										{detailConv.name ?? "Anonymous"}
-									</p>
-									<p className="truncate text-xs text-muted-foreground">
-										{threadSubtitle}
-									</p>
-								</div>
-								{detailConv.escalatedAt && (
-									<Badge variant="warning">Escalated</Badge>
-								)}
-							</div>
-							{thread.data ? (
-								<MessageThread
-									messages={thread.data.messages}
-									search={debouncedSearch}
-								/>
-							) : (
-								<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-									Loading…
-								</div>
-							)}
-							<ReplyComposer
-								value={reply}
-								onChange={setReply}
-								onSend={handleReply}
-								pending={sending}
-								placeholder={
-									detailConv.email
-										? "Reply (also sent via email)"
-										: "Reply (no email — shows in the widget on next visit)"
-								}
+						{conversations.isLoading ? (
+							<ConversationListSkeleton />
+						) : (
+							<ConversationList
+								conversations={allConversations}
+								selectedId={selectedId}
+								onSelect={handleSelect}
+								search={debouncedSearch}
+								showArchived={showArchived}
 							/>
+						)}
+					</>
+				}
+				threadHeader={
+					detailConv && (
+						<>
+							<span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+								{initials(detailConv.name)}
+							</span>
+							<div className="min-w-0 flex-1">
+								<p className="truncate text-sm font-semibold">
+									{detailConv.name ?? "Anonymous"}
+								</p>
+								<p className="truncate text-xs text-muted-foreground">
+									{threadSubtitle}
+								</p>
+							</div>
+							{detailConv.escalatedAt && (
+								<Badge variant="warning" className="shrink-0">
+									Escalated
+								</Badge>
+							)}
 						</>
+					)
+				}
+				threadBody={
+					detailConv &&
+					(thread.data ? (
+						<MessageThread
+							messages={thread.data.messages}
+							search={debouncedSearch}
+						/>
 					) : (
 						<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-							Select a conversation
+							Loading…
 						</div>
-					)}
-				</section>
-
-				{/* Right — detail */}
-				<aside className="hidden w-72 shrink-0 border-l xl:flex xl:flex-col">
-					{detailConv ? (
+					))
+				}
+				composer={
+					detailConv && (
+						<ReplyComposer
+							value={reply}
+							onChange={setReply}
+							onSend={handleReply}
+							pending={sending}
+							placeholder={
+								detailConv.email
+									? "Reply (also sent via email)"
+									: "Reply (no email — shows in the widget on next visit)"
+							}
+						/>
+					)
+				}
+				details={
+					detailConv ? (
 						<DetailPanel
 							conversation={detailConv}
 							onArchive={handleArchive}
@@ -334,15 +351,21 @@ export default function InboxPage() {
 							archiving={archiving}
 							deleting={deleting}
 						/>
-					) : (
-						<div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
-							<p className="text-xs">
-								Select a conversation to see visitor details
-							</p>
-						</div>
-					)}
-				</aside>
-			</div>
+					) : null
+				}
+				emptyState={
+					<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+						Select a conversation
+					</div>
+				}
+				detailsEmptyState={
+					<div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
+						<p className="text-xs">
+							Select a conversation to see visitor details
+						</p>
+					</div>
+				}
+			/>
 		</div>
 	);
 }
