@@ -1,6 +1,13 @@
 import { useStickToBottom } from "../hooks/useStickToBottom";
 import type { Rating } from "../rating";
+import { Markdown } from "./Markdown";
 import { ThumbDownIcon, ThumbUpIcon } from "./icons";
+
+/** Render the message body: visitor ("user") text stays literal; assistant and
+ * agent ("admin") replies are Markdown so links and formatting render. */
+function MessageBody({ role, content }: { role: string; content: string }) {
+	return role === "user" ? <>{content}</> : <Markdown content={content} />;
+}
 
 /** Down-arrow for the "scroll to latest" affordance. */
 function ArrowDownIcon() {
@@ -92,20 +99,21 @@ export function MessageList({
 	return (
 		<div className="llmchat-messages" ref={containerRef}>
 			{messages.length === 0 && (
-				<div className="llmchat-msg llmchat-msg-assistant">{greeting}</div>
+				<div className="llmchat-msg llmchat-msg-assistant">
+					<Markdown content={greeting} />
+				</div>
 			)}
 			{messages.map((m) => {
 				if (!m.content) {
 					return null;
 				}
-				const bubble = (
-					<div className={`llmchat-msg llmchat-msg-${m.role}`}>{m.content}</div>
-				);
 				if (m.role === "assistant" && m.rateable && onRate) {
 					const rating = m.rating ?? null;
 					return (
 						<div key={m.id} className="llmchat-msg-group">
-							{bubble}
+							<div className={`llmchat-msg llmchat-msg-${m.role}`}>
+								<MessageBody role={m.role} content={m.content} />
+							</div>
 							<RateButtons
 								rating={rating}
 								onRate={(intent) => onRate(m.id, rating, intent)}
@@ -115,7 +123,7 @@ export function MessageList({
 				}
 				return (
 					<div key={m.id} className={`llmchat-msg llmchat-msg-${m.role}`}>
-						{m.content}
+						<MessageBody role={m.role} content={m.content} />
 					</div>
 				);
 			})}

@@ -374,6 +374,127 @@ export const widgetStyles = `
 	padding: 0.25rem 0.75rem;
 }
 
+/* ── Markdown bodies (assistant/agent replies, rendered by Streamdown) ──
+   Streamdown emits Tailwind class names we don't ship, so the rendered
+   elements are styled here by tag, scoped to the bubble. */
+.llmchat-md {
+	white-space: normal;
+}
+.llmchat-md > :first-child {
+	margin-top: 0;
+}
+.llmchat-md > :last-child {
+	margin-bottom: 0;
+}
+.llmchat-md p {
+	margin: 0 0 0.5rem;
+}
+/* Streamdown can emit an empty trailing paragraph while streaming; don't let it
+   add a blank line. */
+.llmchat-md p:empty {
+	display: none;
+}
+.llmchat-md a {
+	color: var(--brand);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	word-break: break-word;
+}
+.llmchat-md a:hover {
+	text-decoration: none;
+}
+.llmchat-md ul,
+.llmchat-md ol {
+	margin: 0 0 0.5rem;
+	padding-left: 1.25rem;
+}
+.llmchat-md li {
+	margin: 0.15rem 0;
+}
+.llmchat-md li::marker {
+	color: #9ca3af;
+}
+.llmchat-md strong {
+	font-weight: 600;
+}
+.llmchat-md em {
+	font-style: italic;
+}
+.llmchat-md h1,
+.llmchat-md h2,
+.llmchat-md h3,
+.llmchat-md h4 {
+	margin: 0.6rem 0 0.35rem;
+	font-weight: 600;
+	line-height: 1.25;
+}
+.llmchat-md h1 {
+	font-size: 1.1rem;
+}
+.llmchat-md h2 {
+	font-size: 1.05rem;
+}
+.llmchat-md h3 {
+	font-size: 1rem;
+}
+.llmchat-md h4 {
+	font-size: 0.95rem;
+}
+.llmchat-md code {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 0.85em;
+	background: rgba(0, 0, 0, 0.06);
+	padding: 0.1em 0.32em;
+	border-radius: 0.3rem;
+}
+.llmchat-md pre {
+	margin: 0 0 0.5rem;
+	padding: 0.6rem 0.7rem;
+	background: rgba(0, 0, 0, 0.05);
+	border-radius: 0.5rem;
+	overflow-x: auto;
+	font-size: 0.85em;
+	line-height: 1.4;
+}
+.llmchat-md pre code {
+	background: none;
+	padding: 0;
+	font-size: inherit;
+	border-radius: 0;
+}
+.llmchat-md blockquote {
+	margin: 0 0 0.5rem;
+	padding-left: 0.7rem;
+	border-left: 3px solid rgba(0, 0, 0, 0.12);
+	opacity: 0.85;
+}
+.llmchat-md hr {
+	border: none;
+	border-top: 1px solid rgba(0, 0, 0, 0.1);
+	margin: 0.6rem 0;
+}
+.llmchat-md table {
+	border-collapse: collapse;
+	width: 100%;
+	margin: 0 0 0.5rem;
+	font-size: 0.85em;
+}
+.llmchat-md th,
+.llmchat-md td {
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	padding: 0.3rem 0.45rem;
+	text-align: left;
+}
+.llmchat-md th {
+	font-weight: 600;
+	background: rgba(0, 0, 0, 0.04);
+}
+.llmchat-md img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 0.4rem;
+}
+
 /* ── Per-message rating (assistant thumbs) ─────────────────────────── */
 /* Group an assistant bubble with its rating controls so they read as one
    left-aligned unit. */
