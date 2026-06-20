@@ -1,6 +1,16 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import { Github } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+	fetchOAuthProviders,
+	startSocialSignIn,
+	type SocialProvider,
+} from "@/lib/oauth";
 
 /** Google "G" — lucide has no brand glyph, so a tiny inline mark. */
 function GoogleMark() {
@@ -26,12 +36,76 @@ function GoogleMark() {
 	);
 }
 
+function ProviderButton({
+	icon,
+	label,
+	enabled,
+	loading,
+	pending,
+	onClick,
+}: {
+	icon: React.ReactNode;
+	label: string;
+	/** The provider is configured server-side. */
+	enabled: boolean;
+	/** Still resolving which providers are configured. */
+	loading: boolean;
+	/** A sign-in for this provider is in flight (redirecting). */
+	pending: boolean;
+	onClick: () => void;
+}) {
+	// "Soon" only once we KNOW it's unconfigured — never flash it while loading.
+	const showSoon = !loading && !enabled;
+	return (
+		<Button
+			type="button"
+			variant="outline"
+			className="w-full justify-center gap-2"
+			disabled={!enabled || pending}
+			title={enabled ? undefined : "Social sign-in is coming soon"}
+			onClick={onClick}
+		>
+			{icon}
+			{pending ? "Connecting…" : `Continue with ${label}`}
+			{showSoon && (
+				<span className="ml-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+					Soon
+				</span>
+			)}
+		</Button>
+	);
+}
+
 /**
- * Social sign-in is not wired yet (no OAuth providers configured), so these
- * render per the mockup but stay disabled with a "Soon" marker — no dead action,
- * no fabricated flow.
+ * Social sign-in buttons. Each provider is enabled only when the API reports its
+ * credentials are configured (/api/oauth-providers); otherwise it stays disabled
+ * with a "Soon" marker — no dead action. Clicking starts Better Auth's hosted
+ * OAuth flow, which lands the user in /onboarding like an email sign-up.
  */
 export function OAuthButtons() {
+	const { data, isLoading } = useQuery({
+		queryKey: ["oauth-providers"],
+		queryFn: fetchOAuthProviders,
+		staleTime: 5 * 60_000,
+	});
+	const [pending, setPending] = useState<SocialProvider | null>(null);
+
+	async function handle(provider: SocialProvider) {
+		setPending(provider);
+		try {
+			const res = await startSocialSignIn(provider);
+			// On success the client redirects to the provider, so this only runs on
+			// an error response — re-enable and surface it.
+			if (res?.error) {
+				toast.error(res.error.message ?? "Couldn't start sign-in");
+				setPending(null);
+			}
+		} catch {
+			toast.error("Couldn't start sign-in. Please try again.");
+			setPending(null);
+		}
+	}
+
 	return (
 		<div className="mt-6">
 			<div className="flex items-center gap-3">
@@ -40,32 +114,22 @@ export function OAuthButtons() {
 				<span className="h-px flex-1 bg-border" />
 			</div>
 			<div className="mt-6 flex flex-col gap-3">
-				<Button
-					type="button"
-					variant="outline"
-					className="w-full justify-center gap-2"
-					disabled
-					title="Social sign-in is coming soon"
-				>
-					<GoogleMark />
-					Continue with Google
-					<span className="ml-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-						Soon
-					</span>
-				</Button>
-				<Button
-					type="button"
-					variant="outline"
-					className="w-full justify-center gap-2"
-					disabled
-					title="Social sign-in is coming soon"
-				>
-					<Github className="size-4" />
-					Continue with GitHub
-					<span className="ml-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-						Soon
-					</span>
-				</Button>
+				<ProviderButton
+					icon={<GoogleMark />}
+					label="Google"
+					enabled={!!data?.google}
+					loading={isLoading}
+					pending={pending === "google"}
+					onClick={() => handle("google")}
+				/>
+				<ProviderButton
+					icon={<Github className="size-4" />}
+					label="GitHub"
+					enabled={!!data?.github}
+					loading={isLoading}
+					pending={pending === "github"}
+					onClick={() => handle("github")}
+				/>
 			</div>
 		</div>
 	);

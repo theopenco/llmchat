@@ -25,6 +25,10 @@ declare module "@meetploy/nextjs" {
 			RESEND_API_KEY: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;
+			GOOGLE_CLIENT_ID?: string;
+			GOOGLE_CLIENT_SECRET?: string;
+			GITHUB_CLIENT_ID?: string;
+			GITHUB_CLIENT_SECRET?: string;
 		};
 		DB: Database;
 		STATE: StateBinding;
@@ -55,6 +59,10 @@ declare global {
 			RESEND_API_KEY: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;
+			GOOGLE_CLIENT_ID?: string;
+			GOOGLE_CLIENT_SECRET?: string;
+			GITHUB_CLIENT_ID?: string;
+			GITHUB_CLIENT_SECRET?: string;
 		};
 		DB: Database;
 		STATE: StateBinding;
