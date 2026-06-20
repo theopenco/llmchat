@@ -108,6 +108,34 @@ describe("ConversationList", () => {
 		expect(badges).toHaveLength(1);
 	});
 
+	it("shows the match snippet with the term highlighted when searching", () => {
+		setup({
+			search: "refund",
+			conversations: [
+				conv({
+					id: "m",
+					match: { field: "body", snippet: "our refund policy is 30 days" },
+				}),
+			],
+		});
+		// The snippet replaces the default preview, with the term in a <mark>.
+		const mark = screen.getByText("refund");
+		expect(mark.tagName).toBe("MARK");
+		expect(
+			screen.queryByText("How do I reset my device?"),
+		).not.toBeInTheDocument();
+	});
+
+	it("labels a name/email match so the agent sees why it surfaced", () => {
+		setup({
+			search: "ada",
+			conversations: [
+				conv({ id: "m", match: { field: "name", snippet: "Ada Lovelace" } }),
+			],
+		});
+		expect(screen.getByText("Name")).toBeInTheDocument();
+	});
+
 	it("falls back to email then a placeholder when there's no first message", () => {
 		setup({
 			conversations: [conv({ id: "x", firstMessage: null, name: "No Msg" })],

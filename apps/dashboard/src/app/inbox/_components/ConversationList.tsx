@@ -6,15 +6,27 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 import { initials, pluralize, timeAgo } from "./format";
-import type { Conversation } from "./types";
+import { Highlighted } from "./highlight";
+import type { Conversation, SearchMatch } from "./types";
+
+/** Short label shown before a name/email match so the agent knows where the term
+ * was found; a body match needs no label (the excerpt speaks for itself). */
+const MATCH_LABEL: Record<SearchMatch["field"], string | null> = {
+	body: null,
+	name: "Name",
+	email: "Email",
+};
 
 function ConversationRow({
 	conversation,
 	selected,
+	search,
 	onSelect,
 }: {
 	conversation: Conversation;
 	selected: boolean;
+	/** Active (debounced) search term — drives the match snippet + highlight. */
+	search: string;
 	onSelect: () => void;
 }) {
 	const escalated = Boolean(conversation.escalatedAt);
@@ -65,18 +77,29 @@ function ConversationRow({
 						{timeAgo(conversation.updatedAt)}
 					</span>
 				</div>
-				<p
-					className={cn(
-						"truncate text-xs",
-						unread && !selected
-							? "font-medium text-foreground"
-							: "text-muted-foreground",
-					)}
-				>
-					{conversation.firstMessage?.trim() ||
-						conversation.email ||
-						"No messages yet"}
-				</p>
+				{conversation.match && search ? (
+					<p className="truncate text-xs text-muted-foreground">
+						{MATCH_LABEL[conversation.match.field] && (
+							<span className="mr-1 font-medium uppercase tracking-wide text-[10px] text-muted-foreground/70">
+								{MATCH_LABEL[conversation.match.field]}
+							</span>
+						)}
+						<Highlighted text={conversation.match.snippet} query={search} />
+					</p>
+				) : (
+					<p
+						className={cn(
+							"truncate text-xs",
+							unread && !selected
+								? "font-medium text-foreground"
+								: "text-muted-foreground",
+						)}
+					>
+						{conversation.firstMessage?.trim() ||
+							conversation.email ||
+							"No messages yet"}
+					</p>
+				)}
 				<div className="mt-0.5 flex items-center gap-1.5">
 					{escalated && (
 						<Badge variant="warning" className="h-4 px-1.5 text-[10px]">
@@ -129,6 +152,7 @@ export function ConversationList({
 								<ConversationRow
 									conversation={c}
 									selected={selectedId === c.id}
+									search={search}
 									onSelect={() => onSelect(c.id)}
 								/>
 							</li>
