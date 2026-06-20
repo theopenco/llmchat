@@ -296,7 +296,10 @@ export default function InboxPage() {
 								)}
 							</div>
 							{thread.data ? (
-								<MessageThread messages={thread.data.messages} />
+								<MessageThread
+									messages={thread.data.messages}
+									search={debouncedSearch}
+								/>
 							) : (
 								<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
 									Loading…
