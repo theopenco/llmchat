@@ -2,8 +2,9 @@ import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MessageThread } from "./MessageThread";
+import { appendOptimisticReply } from "./optimistic-updaters";
 
-import type { Message } from "./types";
+import type { Conversation, Message } from "./types";
 
 function msg(overrides: Partial<Message>): Message {
 	return {
@@ -213,6 +214,30 @@ describe("MessageThread auto-scroll (useStickToBottom)", () => {
 				]}
 			/>,
 		);
+		expect(s.top).toBe(1000);
+	});
+
+	it("follows an optimistic reply (built by appendOptimisticReply) even when scrolled up", () => {
+		const base = [
+			msg({ content: "hi", sequence: 1 }),
+			msg({ role: "assistant", content: "hello", sequence: 2 }),
+		];
+		const { el, rerender } = renderThread(base);
+		const s = mockScroll(el, { scrollHeight: 1000, clientHeight: 400 });
+		s.setTop(0); // agent reading history, scrolled up
+
+		// The exact array the inbox's optimistic reply writes into the thread cache.
+		const next = appendOptimisticReply(
+			{ conversation: { id: "c1" } as Conversation, messages: base },
+			{
+				tempId: "temp-1",
+				content: "on it!",
+				createdAt: "2026-06-16T05:00:00.000Z",
+			},
+		) as { messages: Message[] };
+
+		rerender(<MessageThread messages={next.messages} />);
+		// Role "admin" => stick-to-bottom treats it as the agent's own send.
 		expect(s.top).toBe(1000);
 	});
 
