@@ -135,6 +135,61 @@ function renderList(messages: DisplayMessage[], typing = false) {
 	return { ...utils, el };
 }
 
+describe("MessageList markdown", () => {
+	it("renders assistant markdown links as real anchors", () => {
+		render(
+			<MessageList
+				greeting="hi"
+				messages={[
+					msg("a1", "assistant", "See [our docs](https://example.com/docs)."),
+				]}
+				typing={false}
+				error={null}
+			/>,
+		);
+		const link = screen.getByRole("link", { name: /our docs/i });
+		expect(link).toHaveAttribute("href", "https://example.com/docs");
+		expect(link).toHaveAttribute("target", "_blank");
+		expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+	});
+
+	it("renders agent (admin) markdown links too", () => {
+		render(
+			<MessageList
+				greeting="hi"
+				messages={[
+					msg(
+						"ad1",
+						"admin",
+						"[status page](https://status.example.com/incidents)",
+					),
+				]}
+				typing={false}
+				error={null}
+			/>,
+		);
+		expect(screen.getByRole("link", { name: /status page/i })).toHaveAttribute(
+			"href",
+			"https://status.example.com/incidents",
+		);
+	});
+
+	it("leaves visitor (user) text literal — no markdown parsing", () => {
+		render(
+			<MessageList
+				greeting="hi"
+				messages={[msg("u1", "user", "send me [a link](https://x.example)")]}
+				typing={false}
+				error={null}
+			/>,
+		);
+		expect(
+			screen.getByText("send me [a link](https://x.example)"),
+		).toBeInTheDocument();
+		expect(screen.queryByRole("link")).not.toBeInTheDocument();
+	});
+});
+
 describe("MessageList auto-scroll (useStickToBottom)", () => {
 	it("stays pinned to the bottom as a reply streams when near the bottom", () => {
 		const user = msg("u1", "user", "hello there");
