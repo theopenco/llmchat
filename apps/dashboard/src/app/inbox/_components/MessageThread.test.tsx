@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MessageThread } from "./MessageThread";
@@ -252,6 +252,87 @@ describe("MessageThread auto-scroll (useStickToBottom)", () => {
 		expect(
 			container.querySelector('[aria-label="Scroll to latest message"]'),
 		).toBeInTheDocument();
+	});
+});
+
+describe("MessageThread pagination (load older)", () => {
+	function olderThenNewer() {
+		return {
+			base: [
+				msg({ id: "n1", content: "newer 1", sequence: 51 }),
+				msg({ id: "n2", content: "newer 2", sequence: 52 }),
+			],
+			prepended: [
+				// Older history paged in ABOVE — the last (newest) message is unchanged.
+				msg({ id: "o1", content: "older 1", sequence: 49 }),
+				msg({ id: "o2", content: "older 2", sequence: 50 }),
+				msg({ id: "n1", content: "newer 1", sequence: 51 }),
+				msg({ id: "n2", content: "newer 2", sequence: 52 }),
+			],
+		};
+	}
+
+	it("does NOT yank to the bottom when older history is prepended", () => {
+		const { base, prepended } = olderThenNewer();
+		const { el, rerender } = renderThread(base);
+		const s = mockScroll(el, { scrollHeight: 1000, clientHeight: 400 });
+		s.setTop(0); // reading the top of the loaded window
+
+		rerender(<MessageThread messages={prepended} />);
+		// The newest-message id is unchanged, so stick-to-bottom never fires.
+		expect(s.top).not.toBe(1000);
+		expect(s.top).toBe(0);
+	});
+
+	it("anchors the viewport: scrollTop shifts down by the prepended height", () => {
+		const { base, prepended } = olderThenNewer();
+		const { el, rerender } = renderThread(base);
+
+		// Dynamic scrollHeight: prepending older content grows the scroll area.
+		let height = 1000;
+		let top = 0;
+		Object.defineProperty(el, "scrollHeight", {
+			configurable: true,
+			get: () => height,
+		});
+		Object.defineProperty(el, "clientHeight", {
+			configurable: true,
+			get: () => 400,
+		});
+		Object.defineProperty(el, "scrollTop", {
+			configurable: true,
+			get: () => top,
+			set: (v: number) => {
+				top = v;
+			},
+		});
+		act(() => el.dispatchEvent(new Event("scroll"))); // commit initial metrics
+
+		height = 1300; // 300px of older messages added on top
+		rerender(<MessageThread messages={prepended} />);
+		// Anchored: the message the user was viewing stays put, pushed down by 300.
+		expect(top).toBe(300);
+	});
+
+	it("shows a Load-older control only when hasOlder, and fires onLoadOlder", () => {
+		const onLoadOlder = vi.fn();
+		const { rerender } = render(
+			<MessageThread messages={[msg({ content: "hi", sequence: 1 })]} />,
+		);
+		expect(
+			screen.queryByRole("button", { name: /load older/i }),
+		).not.toBeInTheDocument();
+
+		rerender(
+			<MessageThread
+				messages={[msg({ content: "hi", sequence: 1 })]}
+				hasOlder
+				onLoadOlder={onLoadOlder}
+			/>,
+		);
+		const btn = screen.getByRole("button", { name: /load older/i });
+		fireEvent.click(btn);
+		expect(onLoadOlder).toHaveBeenCalledTimes(1);
 	});
 });
 

@@ -39,11 +39,8 @@ import { MessageThread } from "./_components/MessageThread";
 import { appendOptimisticReply } from "./_components/optimistic-updaters";
 import { ProjectSwitcher } from "./_components/ProjectSwitcher";
 import { ReplyComposer } from "./_components/ReplyComposer";
-import type {
-	Conversation,
-	ConversationStats,
-	Message,
-} from "./_components/types";
+import { useThreadMessages } from "./_components/useThreadMessages";
+import type { ConversationStats } from "./_components/types";
 import type { ProjectOption } from "./_components/ProjectSwitcher";
 
 const PAGE_SIZE = 30;
@@ -160,15 +157,14 @@ export default function InboxPage() {
 			}),
 	});
 
-	const thread = useQuery({
-		queryKey: ["thread", projectId, selectedId],
-		enabled: !!projectId && !!selectedId && !!workspaceId,
-		refetchInterval: 3_000,
-		queryFn: () =>
-			api<{ conversation: Conversation; messages: Message[] }>(
-				`/api/projects/${projectId}/conversations/${selectedId}`,
-				{ workspaceId: workspaceId! },
-			),
+	// Windowed thread: latest page first, page older on scroll-up, poll newest
+	// only. Stays in the ["thread", projectId, selectedId] cache so the optimistic
+	// reply below keeps working unchanged.
+	const thread = useThreadMessages({
+		projectId,
+		conversationId: selectedId,
+		workspaceId,
+		search: debouncedSearch,
 	});
 
 	// Render set = the polled head merged with the loaded pages, deduped by id
@@ -185,7 +181,7 @@ export default function InboxPage() {
 	);
 
 	const selectedConv = allConversations.find((c) => c.id === selectedId);
-	const detailConv = thread.data?.conversation ?? selectedConv ?? null;
+	const detailConv = thread.conversation ?? selectedConv ?? null;
 
 	// Mark a conversation read for this user. Optimistically clears the unread dot
 	// in-cache across the head + loaded pages (so a row deep in a loaded page
@@ -222,7 +218,7 @@ export default function InboxPage() {
 
 	// Keep it read as new messages stream in while the thread is open. Keyed on
 	// the loaded message count so it fires on new messages, not every poll.
-	const loadedMessageCount = thread.data?.messages.length;
+	const loadedMessageCount = thread.messages.length;
 	useEffect(() => {
 		if (selectedId && loadedMessageCount !== undefined) {
 			void markRead(selectedId);
@@ -438,15 +434,18 @@ export default function InboxPage() {
 				}
 				threadBody={
 					detailConv &&
-					(thread.data ? (
-						<MessageThread
-							messages={thread.data.messages}
-							search={debouncedSearch}
-						/>
-					) : (
+					(thread.isLoading && thread.messages.length === 0 ? (
 						<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
 							Loading…
 						</div>
+					) : (
+						<MessageThread
+							messages={thread.messages}
+							search={debouncedSearch}
+							hasOlder={thread.hasOlder}
+							onLoadOlder={thread.loadOlder}
+							loadingOlder={thread.loadingOlder}
+						/>
 					))
 				}
 				composer={
