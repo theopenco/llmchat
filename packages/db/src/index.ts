@@ -20,5 +20,7 @@ export {
 	like,
 	count,
 	inArray,
+	isNull,
+	isNotNull,
 	gte,
 } from "drizzle-orm";

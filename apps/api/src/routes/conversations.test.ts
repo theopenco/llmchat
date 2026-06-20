@@ -1,3 +1,4 @@
+import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
@@ -5,6 +6,15 @@ import { db } from "@/lib/db";
 import { conversation, message, readStatus } from "@llmchat/db";
 
 import { conversations } from "./conversations";
+
+// Render a captured drizzle WHERE to SQL text so tests can assert on the actual
+// generated predicate (active vs archived, project scoping) rather than trusting
+// the fake db to evaluate it.
+const dialect = new SQLiteSyncDialect({ casing: "snake_case" });
+function whereSql(): string {
+	if (!lastConversationWhere) return "";
+	return dialect.sqlToQuery(lastConversationWhere).sql.toLowerCase();
+}
 
 // Header-driven fake session (same pattern as projects.test): `x-test-user`
 // present ⇒ signed in; `query.member.findFirst` decides workspace membership.
@@ -45,9 +55,12 @@ interface State {
 /** Records the shape of every message-table query so tests can assert the
  * content-search queries are scoped via a conversation join. */
 let messageQueries: { distinct: boolean; joined: boolean }[];
+/** The WHERE passed to the main conversation list query, for SQL inspection. */
+let lastConversationWhere: Parameters<typeof dialect.sqlToQuery>[0] | null;
 
 function mockDb(state: State) {
 	messageQueries = [];
+	lastConversationWhere = null;
 
 	function builder(distinct: boolean) {
 		const q = { table: null as unknown, joined: false };
@@ -74,7 +87,12 @@ function mockDb(state: State) {
 				q.joined = true;
 				return chain;
 			},
-			where() {
+			where(cond: unknown) {
+				if (q.table === conversation) {
+					lastConversationWhere = cond as Parameters<
+						typeof dialect.sqlToQuery
+					>[0];
+				}
 				return chain;
 			},
 			orderBy() {
@@ -265,5 +283,56 @@ describe("inbox search — matching", () => {
 		};
 		expect(body.conversations[0]!.match).toBeNull();
 		expect(body.conversations[0]!.firstMessage).toBe("hello there");
+	});
+});
+
+describe("inbox archived filter", () => {
+	it("defaults to the active view — WHERE keeps only non-archived rows, scoped to the project", async () => {
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		const res = await get("/projects/p1/conversations", MEMBER);
+		expect(res.status).toBe(200);
+		const sql = whereSql();
+		expect(sql).toContain('"archived_at" is null');
+		expect(sql).not.toContain("is not null");
+		// Always project-scoped (no cross-workspace leak).
+		expect(sql).toContain('"project_id"');
+	});
+
+	it("archived=true returns only archived rows (archived_at is not null)", async () => {
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		const res = await get("/projects/p1/conversations?archived=true", MEMBER);
+		expect(res.status).toBe(200);
+		const sql = whereSql();
+		expect(sql).toContain('"archived_at" is not null');
+	});
+
+	it("archived=false is treated as the active view", async () => {
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		await get("/projects/p1/conversations?archived=false", MEMBER);
+		const sql = whereSql();
+		expect(sql).toContain('"archived_at" is null');
+		expect(sql).not.toContain("is not null");
+	});
+
+	it("composes with search — archived view AND a text match in the same WHERE", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conversationRows: [],
+			bodyMatchIds: ["cZ"],
+		});
+		await get("/projects/p1/conversations?archived=true&search=refund", MEMBER);
+		const sql = whereSql();
+		// The archived predicate and the search OR-group coexist, project-scoped.
+		expect(sql).toContain('"archived_at" is not null');
+		expect(sql).toContain("like");
+		expect(sql).toContain('"project_id"');
+	});
+
+	it("is role-gated: a non-member can't list archived (403, no query)", async () => {
+		mockDb({}); // not a member
+		const res = await get("/projects/p1/conversations?archived=true", MEMBER);
+		expect(res.status).toBe(403);
+		expect(lastConversationWhere).toBeNull();
 	});
 });
