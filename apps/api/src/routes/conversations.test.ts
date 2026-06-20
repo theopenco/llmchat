@@ -1,6 +1,7 @@
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { db } from "@/lib/db";
 
 import { conversation, message, readStatus } from "@llmchat/db";
@@ -334,5 +335,139 @@ describe("inbox archived filter", () => {
 		const res = await get("/projects/p1/conversations?archived=true", MEMBER);
 		expect(res.status).toBe(403);
 		expect(lastConversationWhere).toBeNull();
+	});
+});
+
+describe("inbox keyset pagination", () => {
+	// A conversation row shaped for the list query: the route reads updatedAt as a
+	// Date to mint the next cursor, plus id/messageCount for the row payload.
+	function row(id: string, updatedAtSec: number): Record<string, unknown> {
+		return {
+			id,
+			name: null,
+			email: null,
+			messageCount: 1,
+			updatedAt: new Date(updatedAtSec * 1000),
+		};
+	}
+
+	it("returns nextCursor only when another page exists (limit+1 overflow)", async () => {
+		// limit=2 but 3 rows come back ⇒ there IS a next page.
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conversationRows: [row("cA", 300), row("cB", 200), row("cC", 100)],
+		});
+		const res = await get("/projects/p1/conversations?limit=2", MEMBER);
+		const body = (await res.json()) as {
+			conversations: { id: string }[];
+			nextCursor: string | null;
+		};
+		// Only `limit` rows are returned; the sentinel row is dropped.
+		expect(body.conversations.map((c) => c.id)).toEqual(["cA", "cB"]);
+		// The cursor points at the LAST returned row (cB), so the next page resumes
+		// after it.
+		expect(decodeCursor(body.nextCursor ?? undefined)).toEqual({
+			updatedAt: 200,
+			id: "cB",
+		});
+	});
+
+	it("returns nextCursor null on the last page (no overflow)", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conversationRows: [row("cA", 300), row("cB", 200)],
+		});
+		const res = await get("/projects/p1/conversations?limit=2", MEMBER);
+		const body = (await res.json()) as { nextCursor: string | null };
+		expect(body.nextCursor).toBeNull();
+	});
+
+	it("a cursor adds the keyset predicate, still project-scoped", async () => {
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		const cursor = encodeCursor({ updatedAt: 250, id: "cMid" });
+		await get(`/projects/p1/conversations?cursor=${cursor}`, MEMBER);
+		const sql = whereSql();
+		// Keyset on (updatedAt desc, id desc): resume strictly after the cursor.
+		expect(sql).toContain('"updated_at" <');
+		expect(sql).toContain('"id" <');
+		// Never drops the project scope.
+		expect(sql).toContain('"project_id"');
+	});
+
+	it("search spans pages: the search OR-group AND the keyset predicate coexist", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conversationRows: [],
+			bodyMatchIds: ["cZ"],
+		});
+		const cursor = encodeCursor({ updatedAt: 250, id: "cMid" });
+		await get(
+			`/projects/p1/conversations?search=refund&cursor=${cursor}`,
+			MEMBER,
+		);
+		const sql = whereSql();
+		// The matched set is pre-resolved (LIKE) AND paging continues within it.
+		expect(sql).toContain("like");
+		expect(sql).toContain('"updated_at" <');
+		expect(sql).toContain('"project_id"');
+	});
+
+	it("archived filter composes with the cursor", async () => {
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		const cursor = encodeCursor({ updatedAt: 250, id: "cMid" });
+		await get(
+			`/projects/p1/conversations?archived=true&cursor=${cursor}`,
+			MEMBER,
+		);
+		const sql = whereSql();
+		expect(sql).toContain('"archived_at" is not null');
+		expect(sql).toContain('"updated_at" <');
+	});
+
+	it("a garbage cursor is ignored (serves page 1, no keyset predicate, no error)", async () => {
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		const res = await get(
+			"/projects/p1/conversations?cursor=!!!garbage!!!",
+			MEMBER,
+		);
+		expect(res.status).toBe(200);
+		expect(whereSql()).not.toContain('"updated_at" <');
+	});
+});
+
+describe("inbox stats aggregate", () => {
+	it("returns true project-wide totals (not loaded-page counts)", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			// The fake select() returns this verbatim as the single aggregate row.
+			conversationRows: [
+				{ total: 4210, escalated: 37, resolved: 1200, avgRating: 4.3 },
+			],
+		});
+		const res = await get("/projects/p1/conversations/stats", MEMBER);
+		expect(res.status).toBe(200);
+		const body = await res.json();
+		expect(body).toEqual({
+			total: 4210,
+			escalated: 37,
+			resolved: 1200,
+			avgRating: 4.3,
+		});
+	});
+
+	it("404s when the project isn't in the caller's workspace", async () => {
+		mockDb({ role: "owner", project: undefined });
+		const res = await get("/projects/pX/conversations/stats", MEMBER);
+		expect(res.status).toBe(404);
+	});
+
+	it("403s a non-member", async () => {
+		mockDb({});
+		const res = await get("/projects/p1/conversations/stats", MEMBER);
+		expect(res.status).toBe(403);
 	});
 });

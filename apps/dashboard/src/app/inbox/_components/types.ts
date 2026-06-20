@@ -29,6 +29,15 @@ export interface SearchMatch {
 	snippet: string;
 }
 
+/** True project-wide totals for the inbox header (server aggregate, not
+ * loaded-page counts). `avgRating` is null when no conversation is rated. */
+export interface ConversationStats {
+	total: number;
+	escalated: number;
+	resolved: number;
+	avgRating: number | null;
+}
+
 export interface Message {
 	id: string;
 	role: "user" | "assistant" | "admin" | "system";

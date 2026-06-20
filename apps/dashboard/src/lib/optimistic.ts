@@ -30,6 +30,14 @@ export interface OptimisticMutationOptions<TVars, TData> {
 	apply: (prev: unknown, vars: TVars) => unknown;
 	onSuccess?: (data: TData, vars: TVars) => void;
 	onError?: (error: unknown, vars: TVars) => void;
+	/**
+	 * Key to invalidate on settle, when it must be NARROWER than `queryKey`.
+	 * Defaults to `queryKey`. The conversation list uses this to optimistically
+	 * update both the head + paginated caches (the wide `queryKey`) while only
+	 * revalidating the head — so a mutation never triggers an all-pages refetch
+	 * of the infinite query.
+	 */
+	invalidateKey?: QueryKey;
 }
 
 interface RollbackContext {
@@ -42,6 +50,7 @@ export function useOptimisticMutation<TVars, TData = unknown>({
 	apply,
 	onSuccess,
 	onError,
+	invalidateKey,
 }: OptimisticMutationOptions<TVars, TData>) {
 	const qc = useQueryClient();
 	return useMutation<TData, unknown, TVars, RollbackContext>({
@@ -65,7 +74,7 @@ export function useOptimisticMutation<TVars, TData = unknown>({
 		},
 		onSuccess,
 		onSettled: () => {
-			void qc.invalidateQueries({ queryKey });
+			void qc.invalidateQueries({ queryKey: invalidateKey ?? queryKey });
 		},
 	});
 }

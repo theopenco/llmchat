@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { dropById, mapById, useOptimisticMutation } from "./optimistic";
 
@@ -135,6 +135,35 @@ describe("useOptimisticMutation", () => {
 		await waitFor(() => expect(result.current.isError).toBe(true));
 		// Cache is byte-for-byte back to the pre-mutation snapshot.
 		expect(client.getQueryData(tc.key)).toEqual(tc.seed);
+	});
+
+	it("invalidates only invalidateKey when narrower than queryKey", async () => {
+		// The conversation list optimistically updates the wide key (head + every
+		// loaded page) but must revalidate ONLY the head — never refetch all pages.
+		const client = makeClient();
+		const spy = vi.spyOn(client, "invalidateQueries");
+		client.setQueryData(["conversations", "p1", "head"], {
+			conversations: [{ id: "a" }],
+		});
+
+		const { result } = renderHook(
+			() =>
+				useOptimisticMutation<string>({
+					queryKey: ["conversations", "p1"],
+					invalidateKey: ["conversations", "p1", "head"],
+					apply: (prev, id) => dropById(prev, "conversations", id),
+					mutationFn: () => Promise.resolve({ ok: true }),
+				}),
+			{ wrapper: wrapperFor(client) },
+		);
+
+		act(() => result.current.mutate("a"));
+		await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+		const invalidatedKeys = spy.mock.calls.map((c) => c[0]?.queryKey);
+		expect(invalidatedKeys).toContainEqual(["conversations", "p1", "head"]);
+		// The wide key (which would refetch the paginated "list") is never invalidated.
+		expect(invalidatedKeys).not.toContainEqual(["conversations", "p1"]);
 	});
 
 	it("rolls back every cached variant of a partial key", async () => {
