@@ -1,14 +1,43 @@
+import { BILLING_TIERS, PAID_PLANS } from "@llmchat/shared";
+
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
-// Static, machine-readable pricing for AI agents evaluating the product. Honest
-// about the in-flight pricing: self-host is free, hosted is moving to
-// usage-based (per message) with the exact price still to be announced. No
-// invented numbers.
+// Static, machine-readable pricing for AI agents evaluating the product. Prices
+// and limits are generated from the shared BILLING_TIERS table (the same source
+// the dashboard and Stripe use), so this endpoint can never drift from the real
+// plans. Self-host is free; hosted is paid-only with three flat monthly tiers.
 export const dynamic = "force-static";
+
+const fmt = (n: number) => n.toLocaleString("en-US");
+
+const TIER_NAME: Record<(typeof PAID_PLANS)[number], string> = {
+	starter: "Starter",
+	growth: "Growth",
+	scale: "Scale",
+};
+
+function tierBlock(plan: (typeof PAID_PLANS)[number]): string {
+	const t = BILLING_TIERS[plan];
+	const overage = t.allowOverage
+		? `${fmt(t.maxResponsesPerMonth)} bot responses/month included, then billed per additional response`
+		: `${fmt(t.maxResponsesPerMonth)} bot responses/month (hard cap, no overage)`;
+	const branding =
+		t.branding === "custom"
+			? "Custom branding (white-label)"
+			: t.branding === "off"
+				? 'No "Powered by" badge'
+				: '"Powered by" badge';
+	return [
+		`### ${TIER_NAME[plan]} — $${t.priceUsdMonthly}/month`,
+		`- ${overage}`,
+		`- ${t.maxProjects} projects, ${t.maxMembers} team members (no per-seat fees)`,
+		`- ${t.modelAccess === "all" ? "All models" : "Basic models"}; ${branding}`,
+	].join("\n");
+}
 
 const PRICING = `# Pricing — Clanker Support
 
-Clanker Support is an AI-powered support agent. It is open and self-hostable.
+Clanker Support is an AI-powered support agent. It is open and self-hostable, with paid hosted plans.
 
 ## Self-hosted
 - Price: Free
@@ -16,12 +45,12 @@ Clanker Support is an AI-powered support agent. It is open and self-hostable.
 - Full feature set; no usage limits imposed by us.
 
 ## Hosted (clankersupport.com)
-- Model: Usage-based — billed per message, where one message = one agent response.
-- Free tier: none.
-- Exact per-message price and any trial: to be announced.
-- Interim: a flat Pro plan ($29 / month, via Stripe) is available while usage-based pricing is finalized.
+- Paid-only — there is no free hosted tier.
+- Flat monthly plans billed via Stripe; no per-seat fees (seats are included per plan).
 
-More: ${CANONICAL_SITE_URL}/docs
+${PAID_PLANS.map(tierBlock).join("\n\n")}
+
+More: ${CANONICAL_SITE_URL}/pricing
 `;
 
 export function GET() {

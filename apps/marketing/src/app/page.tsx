@@ -73,7 +73,7 @@ const faqs: Faq[] = [
 	{
 		question: "Is Clanker Support self-hostable?",
 		answer:
-			"Yes. Clanker Support is open and self-hostable — bring your own keys and run it on your own infrastructure for free. If you'd rather not operate it, the hosted version is usage-based, billed per message.",
+			"Yes. Clanker Support is open and self-hostable — bring your own keys and run it on your own infrastructure for free. If you'd rather not operate it, the hosted version has flat monthly plans starting at $19, with no per-seat fees.",
 	},
 ];
 
@@ -139,7 +139,7 @@ export default function Home() {
 						</div>
 
 						<p className="animate-rise-in mt-5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint [animation-delay:260ms]">
-							Transparent usage-based pricing · Live in 5 minutes
+							Simple monthly plans · Live in 5 minutes
 						</p>
 					</div>
 				</section>

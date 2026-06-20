@@ -187,11 +187,11 @@
 					"intercom": "no",
 					"chatwoot": "yes",
 					"crisp": "partial",
-					"note": "Chatwoot is free self-hosted (community) plus a limited free cloud 'Hacker' plan (live chat only, no AI). Crisp has a permanent free plan (2 seats) but no AI. Chatbase's free plan is 1 agent on basic models. Clanker Support has no free tier — pricing is usage-based and publicly listed, so you only pay for what you use."
+					"note": "Chatwoot is free self-hosted (community) plus a limited free cloud 'Hacker' plan (live chat only, no AI). Crisp has a permanent free plan (2 seats) but no AI. Chatbase's free plan is 1 agent on basic models. Clanker Support has no free hosted tier — paid plans are flat monthly (from $19/mo) and publicly listed, with no per-seat fees; self-hosting is free."
 				},
 				{
 					"label": "Pricing model",
-					"llmchat": "Usage-based",
+					"llmchat": "Flat monthly",
 					"chatbase": "Sub + credits",
 					"fin": "$0.99/outcome",
 					"intercom": "Per seat",

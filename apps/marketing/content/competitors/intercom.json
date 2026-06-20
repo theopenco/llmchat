@@ -16,7 +16,7 @@
 		"No per-seat fees"
 	],
 	"tableSummary": {
-		"llmchat": "Support widget — usage-based, no seats",
+		"llmchat": "Support widget — flat monthly plans, no per-seat fees",
 		"competitor": "Full platform — from $29/seat/mo + usage"
 	},
 	"vsCategories": [
@@ -70,12 +70,12 @@
 				},
 				{
 					"label": "Starting price",
-					"llmchat": "Pay-as-you-go",
+					"llmchat": "From $19/mo (flat)",
 					"competitor": "$29/seat/mo + $0.99/outcome"
 				},
 				{
 					"label": "Pricing model",
-					"llmchat": "LLM usage-based",
+					"llmchat": "Flat monthly plans",
 					"competitor": "Per seat"
 				}
 			]
@@ -104,7 +104,7 @@
 	"tldr": "Intercom is a full customer communication platform — support, sales, and marketing in one. If you need all three, it's a powerful investment. If you only need a support widget, you're paying for a lot you won't use. Clanker Support is purpose-built for support and costs significantly less.",
 	"llmchatWins": [
 		"Purpose-built for support — no unused platform surface",
-		"Usage-based pricing with no seats to buy vs. Intercom's per-seat model",
+		"Flat monthly plans with no per-seat fees vs. Intercom's per-seat model",
 		"Model-agnostic — swap underlying LLMs without code changes",
 		"Self-hostable on your own infrastructure",
 		"One script tag setup vs. full platform onboarding",
@@ -141,7 +141,7 @@
 		},
 		{
 			"heading": "Pricing",
-			"llmchat": "Usage-based pricing. Costs scale with actual LLM consumption. A team with modest volume can run for well under $50/month. No seats to buy, no minimum commitments.",
+			"llmchat": "Flat monthly plans — Starter at $19/mo, Growth at $89, Scale at $299 — with no per-seat fees. Each tier includes a monthly response quota and your whole team; Growth and Scale add per-response overage. Prefer to run it yourself? Self-hosting is free.",
 			"competitor": "Starts around $29/seat/month (annual) and scales with seat count, usage, and add-ons — plus $0.99 per Fin resolution. The per-seat model means costs grow with your team size, and enterprise plans require a sales conversation.",
 			"bottomLine": "The cost difference is most meaningful at smaller team sizes. At enterprise scale, the calculus changes — Intercom's platform breadth often justifies the investment when you're using more of it."
 		},
@@ -162,7 +162,7 @@
 	"faqs": [
 		{
 			"question": "Is Clanker Support cheaper than Intercom?",
-			"answer": "For support-only use at smaller team sizes, usually yes. Intercom starts around $29/seat/month (annual) plus $0.99 per Fin resolution and scales with seats; Clanker Support is usage-based with no seats to buy. At enterprise scale where you use Intercom's full platform, the comparison narrows."
+			"answer": "For support-only use at smaller team sizes, usually yes. Intercom starts around $29/seat/month (annual) plus $0.99 per Fin resolution and scales with seats; Clanker Support is a flat monthly plan from $19/mo with no per-seat fees. At enterprise scale where you use Intercom's full platform, the comparison narrows."
 		},
 		{
 			"question": "What does Intercom do that Clanker Support doesn't?",
@@ -170,7 +170,7 @@
 		},
 		{
 			"question": "Can I self-host Clanker Support instead of Intercom?",
-			"answer": "Yes. Intercom is SaaS-only, while Clanker Support is self-hostable on Cloudflare infrastructure (D1, KV, workerd) — useful when data residency or infrastructure ownership is a requirement. You can also let Clanker Support host it for you on the usage-based plan."
+			"answer": "Yes. Intercom is SaaS-only, while Clanker Support is self-hostable on Cloudflare infrastructure (D1, KV, workerd) — useful when data residency or infrastructure ownership is a requirement. You can also let Clanker Support host it for you on a flat monthly plan."
 		},
 		{
 			"question": "Should I choose Clanker Support or Intercom?",

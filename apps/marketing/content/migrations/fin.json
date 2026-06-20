@@ -4,7 +4,7 @@
 	"name": "Fin",
 	"tagline": "From Fin (inside Intercom) to a standalone Clanker Support widget",
 	"estimatedTime": "~30 minutes",
-	"intro": "Fin runs inside Intercom or your existing helpdesk, so moving to Clanker Support means adopting a standalone widget and inbox rather than swapping just the AI layer. The upside: predictable usage-based pricing with no per-outcome minimums, and a model you control.",
+	"intro": "Fin runs inside Intercom or your existing helpdesk, so moving to Clanker Support means adopting a standalone widget and inbox rather than swapping just the AI layer. The upside: predictable flat monthly pricing with no per-outcome fees, and a model you control.",
 	"quickSummary": "Stand up an Clanker Support project, recreate your answer content, and replace the Intercom/Fin messenger embed with the Clanker Support script tag. Your existing helpdesk data stays where it is.",
 	"oldEmbedLabel": "Remove the Intercom / Fin messenger",
 	"oldEmbed": "<script>\n  window.intercomSettings = {\n    api_base: \"https://api-iam.intercom.io\",\n    app_id: \"XXXXXXXX\",\n  };\n</script>\n<script>\n  // Intercom messenger loader (Fin runs inside this)\n  (function(){ /* … intercom snippet … */ })();\n</script>",
@@ -48,7 +48,7 @@
 		},
 		{
 			"from": "Per-outcome billing ($0.99 + minimum)",
-			"to": "Usage-based — pay for tokens, no minimum"
+			"to": "Flat monthly plans — from $19/mo, no per-outcome fees"
 		},
 		{
 			"from": "Intercom Inbox",

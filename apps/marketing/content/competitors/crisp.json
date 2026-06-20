@@ -13,10 +13,10 @@
 		"Model-agnostic",
 		"Self-hostable",
 		"Open architecture",
-		"Usage-based pricing"
+		"Flat monthly plans"
 	],
 	"tableSummary": {
-		"llmchat": "Focused widget — usage-based, any AI model",
+		"llmchat": "Focused widget — flat plans from $19/mo, any AI model",
 		"competitor": "All-in-one — free plan (no AI); AI from ~€45/mo"
 	},
 	"vsCategories": [
@@ -90,12 +90,12 @@
 				},
 				{
 					"label": "Pricing model",
-					"llmchat": "LLM usage-based",
+					"llmchat": "Flat monthly plans",
 					"competitor": "Flat rate monthly"
 				},
 				{
 					"label": "Starting price",
-					"llmchat": "Usage-based",
+					"llmchat": "From $19/mo",
 					"competitor": "Free; AI from ~€45/mo (Mini)"
 				}
 			]
@@ -108,13 +108,13 @@
 		"Self-hostable on your own Cloudflare infrastructure",
 		"Shadow DOM widget with zero style interference",
 		"Open architecture — fully auditable stack",
-		"Transparent usage-based pricing — pay only for what you use"
+		"Transparent flat monthly plans — from $19/mo, no per-seat fees"
 	],
 	"competitorWins": [
 		"All-in-one: chat, email, CRM, knowledge base, and push notifications",
 		"Omnichannel inbox: WhatsApp, Messenger, Instagram, email",
 		"European hosting and infrastructure — strong GDPR posture",
-		"Flat-rate pricing — easy to budget at high volume",
+		"Flat-rate pricing bundling support, CRM, and channels",
 		"10,000+ customers including enterprise brands",
 		"Hugo AI agent with no-code workflow builder"
 	],
@@ -128,7 +128,7 @@
 	"competitorBestFor": [
 		"Small to mid-sized teams wanting support, CRM, and email in one place",
 		"European businesses with strict GDPR or EU data residency requirements",
-		"Teams who prefer flat-rate pricing for predictable budgeting",
+		"Teams wanting support, CRM, and channels in one subscription",
 		"Teams needing WhatsApp, Messenger, or Instagram support channels",
 		"Non-technical teams who want a no-code AI workflow builder"
 	],
@@ -141,9 +141,9 @@
 		},
 		{
 			"heading": "Pricing model",
-			"llmchat": "Usage-based — you pay for actual LLM token consumption. Costs scale down when things are quiet. Better for low-to-medium volume teams or those with variable traffic.",
-			"competitor": "Flat-rate monthly pricing with a permanent free plan, though AI features start on the Mini plan (~€45/mo). Predictable and easy to budget. Better for high-volume teams where a fixed cost is lower than per-usage costs.",
-			"bottomLine": "Choose Crisp for flat-rate predictability at consistent volume. Choose Clanker Support for usage-based costs that scale down when things are quiet."
+			"llmchat": "Flat monthly plans — Starter $19/mo, Growth $89, Scale $299 — with no per-seat fees and a monthly response quota per tier. Or self-host for free with your own keys.",
+			"competitor": "Flat-rate monthly pricing with a permanent free plan, though AI features start on the Mini plan (~€45/mo). A broader all-in-one platform, so you're also paying for CRM and extra channels.",
+			"bottomLine": "Both bill as flat monthly plans; Clanker Support starts lower at $19/mo and adds model choice and self-hosting, while Crisp bundles a CRM and more channels."
 		},
 		{
 			"heading": "AI model flexibility",

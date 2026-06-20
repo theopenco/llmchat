@@ -10,7 +10,7 @@ export interface LlmsTxtInput {
 }
 
 const SUMMARY =
-	"An AI-powered support agent you embed with one script tag — it answers from your docs and sources, then escalates to your team. Open and self-hostable (bring your own keys); the hosted version is usage-based, billed per message.";
+	"An AI-powered support agent you embed with one script tag — it answers from your docs and sources, then escalates to your team. Open and self-hostable (bring your own keys); the hosted version has flat monthly plans from $19/mo with no per-seat fees.";
 
 export function buildLlmsTxt(siteUrl: string, input: LlmsTxtInput): string {
 	const lines: string[] = [
@@ -22,7 +22,7 @@ export function buildLlmsTxt(siteUrl: string, input: LlmsTxtInput): string {
 		`- [Overview](${siteUrl}/): What Clanker Support is and how the drop-in agent works.`,
 		`- [Docs](${siteUrl}/docs): Quickstart, training on your docs, escalation, and migration.`,
 		`- [Compare](${siteUrl}/compare): How Clanker Support compares to other AI support tools.`,
-		`- [Pricing](${siteUrl}/pricing.md): Self-host (free) and hosted usage-based pricing.`,
+		`- [Pricing](${siteUrl}/pricing.md): Self-host (free) and hosted plans — Starter, Growth, and Scale.`,
 	];
 
 	if (input.competitors.length) {

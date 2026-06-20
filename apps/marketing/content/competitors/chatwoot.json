@@ -12,11 +12,11 @@
 	"heroBadges": [
 		"Serverless self-hosting",
 		"Model-agnostic",
-		"Usage-based pricing",
+		"Flat monthly plans",
 		"Shadow DOM widget"
 	],
 	"tableSummary": {
-		"llmchat": "Serverless edge — usage-based managed cloud",
+		"llmchat": "Serverless edge — flat monthly cloud plans",
 		"competitor": "Rails + PostgreSQL — $0 self-hosted / ~$19/mo cloud"
 	},
 	"vsCategories": [
@@ -90,12 +90,12 @@
 				},
 				{
 					"label": "Cloud starting price",
-					"llmchat": "Usage-based",
+					"llmchat": "From $19/mo (flat)",
 					"competitor": "~$19/month"
 				},
 				{
 					"label": "Pricing model",
-					"llmchat": "LLM usage-based",
+					"llmchat": "Flat monthly plans",
 					"competitor": "Per seat / agent"
 				}
 			]
@@ -107,7 +107,7 @@
 		"Model-agnostic AI — swap LLMs per project without code changes",
 		"One script tag setup vs. full platform deployment",
 		"Shadow DOM widget with no style bleed",
-		"Transparent usage-based pricing — pay only for what you use"
+		"Flat monthly plans, not per-agent — from $19/mo"
 	],
 	"competitorWins": [
 		"Fully open-source (MIT license) — read, fork, and contribute",

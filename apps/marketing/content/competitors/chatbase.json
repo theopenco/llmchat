@@ -13,10 +13,10 @@
 		"One script tag",
 		"Model-agnostic",
 		"Self-hostable",
-		"Usage-based pricing"
+		"Flat monthly plans"
 	],
 	"tableSummary": {
-		"llmchat": "Open & self-hostable — usage-based",
+		"llmchat": "Open & self-hostable — flat monthly plans",
 		"competitor": "Managed SaaS — from $40/mo, credit-based"
 	},
 	"vsCategories": [
@@ -90,12 +90,12 @@
 			"rows": [
 				{
 					"label": "Free tier",
-					"llmchat": "No — usage-based",
+					"llmchat": "No — paid plans from $19/mo",
 					"competitor": "Free plan — 1 agent, basic models, deleted when idle"
 				},
 				{
 					"label": "Pricing model",
-					"llmchat": "Pay for LLM usage only",
+					"llmchat": "Flat monthly plans, no per-seat fees",
 					"competitor": "Subscription + message credits (premium models cost more credits)"
 				},
 				{
@@ -118,7 +118,7 @@
 		"Model-agnostic — swap GPT-4o, Claude, or a custom model per project",
 		"Self-hostable on your own Cloudflare infrastructure",
 		"Open architecture — no black-box AI stack",
-		"Transparent usage-based pricing — pay only for what you use"
+		"Transparent, publicly listed flat monthly plans — from $19/mo"
 	],
 	"competitorWins": [
 		"Multi-channel: web, WhatsApp, Slack, and Messenger",
@@ -133,7 +133,7 @@
 		"Teams with data residency or self-hosting requirements",
 		"Teams who want model flexibility across different projects",
 		"Early-stage products that want support live fast",
-		"Teams who want transparent, usage-based pricing"
+		"Teams who want transparent, publicly listed flat pricing"
 	],
 	"competitorBestFor": [
 		"Teams whose customers need support across WhatsApp, Slack, or Messenger",

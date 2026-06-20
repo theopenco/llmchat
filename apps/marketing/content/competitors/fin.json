@@ -8,15 +8,15 @@
 	"bestFor": "Enterprise teams who want outcome-based pricing and already use Zendesk or Salesforce.",
 	"notFor": "Small teams or those wanting predictable flat-rate pricing.",
 	"pricing": "$0.99 per resolved outcome (usage-based)",
-	"heroSubtext": "Fin charges $0.99 per resolved outcome and runs on its own proprietary model (Fin Apex) — you can't choose the model. Clanker Support uses LLM usage-based pricing and lets you run any model you choose.",
+	"heroSubtext": "Fin charges $0.99 per resolved outcome and runs on its own proprietary model (Fin Apex) — you can't choose the model. Clanker Support uses flat monthly plans (from $19/mo) and lets you run any model you choose.",
 	"heroBadges": [
 		"No per-outcome fees",
 		"Model-agnostic",
 		"Self-hostable",
-		"Usage-based pricing"
+		"Flat monthly plans"
 	],
 	"tableSummary": {
-		"llmchat": "Usage-based — no seats, no minimums",
+		"llmchat": "Flat monthly plans — no per-seat fees",
 		"competitor": "$0.99 per resolved outcome — proprietary model"
 	},
 	"vsCategories": [
@@ -25,12 +25,12 @@
 			"rows": [
 				{
 					"label": "Pricing model",
-					"llmchat": "LLM usage-based — pay for tokens consumed",
+					"llmchat": "Flat monthly plans — from $19/mo",
 					"competitor": "$0.99 per resolved outcome"
 				},
 				{
-					"label": "Monthly minimum",
-					"llmchat": "None",
+					"label": "Monthly cost",
+					"llmchat": "From $19/mo (flat)",
 					"competitor": "Pay-as-you-go per resolution"
 				},
 				{
@@ -106,9 +106,9 @@
 			]
 		}
 	],
-	"tldr": "Fin charges per resolved outcome and runs on proprietary AI models with deep enterprise integrations. Clanker Support uses usage-based pricing, is model-agnostic, and is self-hostable. Choose Fin if you have high resolution volume and need deep helpdesk integrations. Choose Clanker Support if you want predictable pricing and model flexibility.",
+	"tldr": "Fin charges per resolved outcome and runs on proprietary AI models with deep enterprise integrations. Clanker Support uses flat monthly pricing, is model-agnostic, and is self-hostable. Choose Fin if you have high resolution volume and need deep helpdesk integrations. Choose Clanker Support if you want predictable pricing and model flexibility.",
 	"llmchatWins": [
-		"Predictable usage-based pricing — no per-outcome minimums",
+		"Predictable flat monthly plans — from $19/mo, no per-outcome fees",
 		"Model-agnostic — not tied to any single AI vendor",
 		"Self-hostable on your own infrastructure",
 		"Transparent, publicly listed pricing — no sales call required",
@@ -124,7 +124,7 @@
 		"Enterprise compliance — ISO, GDPR/CCPA certified"
 	],
 	"llmchatBestFor": [
-		"Teams wanting predictable pricing that scales with actual LLM usage",
+		"Teams wanting predictable flat monthly pricing",
 		"Teams who want to choose and swap AI models without vendor lock-in",
 		"Developer teams who want a lightweight, self-hostable setup",
 		"Teams without existing Zendesk/Salesforce infrastructure",
@@ -140,9 +140,9 @@
 	"keyDifferences": [
 		{
 			"heading": "Pricing model and predictability",
-			"llmchat": "Usage-based pricing tied to LLM token consumption. Costs scale linearly with actual usage, with no seats and no minimums. You know what you're spending before the month ends.",
-			"competitor": "$0.99 per resolved outcome, billed only when Fin resolves a conversation. Powerful if your AI resolves thousands of tickets — you pay for success, not seats. The trade-off is that per-outcome costs can be harder to forecast than usage-based or flat pricing.",
-			"bottomLine": "Choose Fin if you have high, consistent resolution volume and want to pay per success. Choose Clanker Support if predictable flat costs or low-volume usage matters more."
+			"llmchat": "Flat monthly plans — Starter $19/mo, Growth $89, Scale $299 — with no per-seat fees and a monthly response quota per tier. You know your bill before the month starts; Growth and Scale meter only the overage.",
+			"competitor": "$0.99 per resolved outcome, billed only when Fin resolves a conversation. Powerful if your AI resolves thousands of tickets — you pay for success, not seats. The trade-off is that per-outcome costs can be harder to forecast than flat monthly pricing.",
+			"bottomLine": "Choose Fin if you have high, consistent resolution volume and want to pay per success. Choose Clanker Support if predictable flat monthly costs matter more."
 		},
 		{
 			"heading": "AI model approach",
@@ -163,11 +163,11 @@
 			"bottomLine": "If your operation includes voice or phone support, Fin is the clear choice. If web chat with email escalation covers your use case, Clanker Support works."
 		}
 	],
-	"migrationNote": "Fin runs inside Intercom or your existing helpdesk — switching to Clanker Support means adopting a separate widget and inbox rather than replacing just the AI layer. Your conversation history stays in your existing helpdesk. Re-configure your knowledge base in Clanker Support, replace the chat embed on your site, and you're live. Teams moving off outcome-based pricing typically find usage-based costs predictable by comparison once volume is consistent.",
+	"migrationNote": "Fin runs inside Intercom or your existing helpdesk — switching to Clanker Support means adopting a separate widget and inbox rather than replacing just the AI layer. Your conversation history stays in your existing helpdesk. Re-configure your knowledge base in Clanker Support, replace the chat embed on your site, and you're live. Teams moving off outcome-based pricing typically find a flat monthly bill easier to forecast.",
 	"faqs": [
 		{
 			"question": "How does Clanker Support pricing compare to Fin?",
-			"answer": "Fin charges $0.99 per resolved outcome on its proprietary model. Clanker Support is usage-based, billed per message, and runs on any model you choose. Teams moving off outcome-based pricing often find per-message costs more predictable once volume is consistent."
+			"answer": "Fin charges $0.99 per resolved outcome on its proprietary model. Clanker Support uses flat monthly plans (from $19/mo, no per-seat fees) and runs on any model you choose. Teams moving off outcome-based pricing often find a flat monthly bill easier to forecast."
 		},
 		{
 			"question": "Can I choose the AI model with Fin?",
@@ -179,7 +179,7 @@
 		},
 		{
 			"question": "Should I choose Clanker Support or Fin?",
-			"answer": "Choose Clanker Support if you want predictable usage-based pricing, model choice, and a standalone widget plus inbox. Choose Fin if you need voice support, deep Zendesk or Salesforce workflows, or prefer paying per resolved outcome."
+			"answer": "Choose Clanker Support if you want predictable flat monthly pricing, model choice, and a standalone widget plus inbox. Choose Fin if you need voice support, deep Zendesk or Salesforce workflows, or prefer paying per resolved outcome."
 		}
 	]
 }
