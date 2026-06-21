@@ -12,7 +12,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { WorkspaceProvider } from "@/lib/workspace";
+import { WorkspaceProvider, useWorkspace } from "@/lib/workspace";
 import type { Plan, WorkspaceRole } from "@/lib/workspace-utils";
 
 import WorkspacesSettingsPage from "./page";
@@ -83,7 +83,7 @@ function renderPage(current = "ws1") {
 	const client = new QueryClient({
 		defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
 	});
-	render(
+	return render(
 		<QueryClientProvider client={client}>
 			<WorkspaceProvider>
 				<WorkspacesSettingsPage />
@@ -223,5 +223,112 @@ describe("WorkspacesSettingsPage", () => {
 			within(dialog).queryByRole("button", { name: /delete workspace/i }),
 		).not.toBeInTheDocument();
 		expect(callsFor("DELETE").length).toBe(0);
+	});
+});
+
+// ─── refresh after deleting the current workspace ─────────────────────────────
+// The concern: after deleting the workspace you're in, a page refresh must NOT
+// re-activate the deleted workspace (which would 400/403 every per-workspace
+// request). Two independent guarantees protect this — (1) delete-current
+// persists the new selection to localStorage, and (2) even a stale persisted id
+// self-heals via resolveWorkspaceId. These tests prove BOTH survive an actual
+// remount (a fresh QueryClient = a real page refresh, with the deleted workspace
+// gone from the server's list).
+
+/** Surfaces the provider's resolved active workspace so a refresh can be asserted. */
+function ActiveWorkspaceProbe() {
+	const { workspaceId, isLoading } = useWorkspace();
+	return (
+		<div data-testid="active-ws">
+			{isLoading ? "loading" : (workspaceId ?? "none")}
+		</div>
+	);
+}
+
+/** GET /api/workspaces returns whatever `getList()` yields at call time, so the
+ * post-delete refresh can serve a list with the deleted workspace removed. */
+function stubFetchDynamic(getList: () => WS[]) {
+	fetchMock = vi.fn((url: string, init: { method?: string } = {}) => {
+		const method = init.method ?? "GET";
+		if (url.includes("/api/workspaces") && method === "DELETE") {
+			return new Promise((res) => {
+				resolveDelete = () => res(jsonRes({ ok: true }));
+			});
+		}
+		return Promise.resolve(
+			jsonRes({
+				workspaces: getList().map((w) => ({
+					workspace: { id: w.id, name: w.name, plan: w.plan },
+					role: w.role,
+				})),
+			}),
+		);
+	});
+	vi.stubGlobal("fetch", fetchMock);
+}
+
+/** Mount just the provider + probe with a fresh cache — i.e. a page refresh. */
+function refresh() {
+	const client = new QueryClient({
+		defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+	});
+	return render(
+		<QueryClientProvider client={client}>
+			<WorkspaceProvider>
+				<ActiveWorkspaceProbe />
+			</WorkspaceProvider>
+		</QueryClientProvider>,
+	);
+}
+
+describe("refresh after deleting the current workspace", () => {
+	it("persists the new selection — a refresh loads the surviving workspace, never the deleted one", async () => {
+		const user = userEvent.setup();
+		let list: WS[] = [...TWO]; // ws1 (current) + ws2
+		stubFetchDynamic(() => list);
+
+		const first = renderPage("ws1");
+		await screen.findByText("Acme");
+
+		// Delete the current workspace (ws1).
+		const acmeRow = screen.getByText("Acme").closest("li")!;
+		await user.click(within(acmeRow).getByRole("button", { name: "Delete" }));
+		const dialog = await screen.findByRole("alertdialog");
+		await user.type(
+			within(dialog).getByLabelText("Confirm workspace name"),
+			"Acme",
+		);
+		await user.click(
+			within(dialog).getByRole("button", { name: /delete workspace/i }),
+		);
+		await waitFor(() => expect(callsFor("DELETE").length).toBe(1));
+		resolveDelete(undefined);
+		await waitFor(() => expect(localStorage.getItem(KEY)).toBe("ws2"));
+
+		// The server no longer has ws1; refresh the app.
+		list = [TWO[1]!]; // only ws2 survives
+		first.unmount();
+		refresh();
+
+		// The provider activates the surviving workspace, never the deleted ws1.
+		await waitFor(() =>
+			expect(screen.getByTestId("active-ws")).toHaveTextContent("ws2"),
+		);
+		expect(screen.getByTestId("active-ws")).not.toHaveTextContent("ws1");
+	});
+
+	it("self-heals a stale persisted id — even if localStorage still points at the deleted workspace, a refresh resolves a valid one", async () => {
+		// Belt-and-suspenders: simulate the persisted selection somehow still being
+		// the deleted id on refresh (the resolveWorkspaceId backstop, unit-tested in
+		// workspace-utils.test.ts at the integration level here).
+		localStorage.setItem(KEY, "ws1"); // the now-deleted workspace
+		stubFetchDynamic(() => [TWO[1]!]); // server only returns ws2
+
+		refresh();
+
+		await waitFor(() =>
+			expect(screen.getByTestId("active-ws")).toHaveTextContent("ws2"),
+		);
+		expect(screen.getByTestId("active-ws")).not.toHaveTextContent("ws1");
 	});
 });
