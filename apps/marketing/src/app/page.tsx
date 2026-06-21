@@ -6,6 +6,7 @@ import { TrackedLink } from "@/components/TrackedLink";
 import { JsonLd } from "@/components/JsonLd";
 import { FaqSection } from "@/components/FaqSection";
 import { FEATURES } from "@/lib/features";
+import { USE_CASES } from "@/lib/use-cases";
 import { faqPageLd, type Faq } from "@/lib/seo";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
@@ -220,9 +221,42 @@ export default function Home() {
 					</div>
 				</section>
 
-				{/* ── Resources teaser ─────────────────────────────────── */}
+				{/* ── Use cases + resources ────────────────────────────── */}
 				<section className="mx-auto max-w-6xl px-6 py-24">
-					<div className="grid gap-6 lg:grid-cols-3">
+					<div className="flex flex-col rounded-3xl border border-rule bg-paper-card/50 p-8">
+						<div>
+							<p className="kicker">Use cases</p>
+							<h3 className="font-display mt-3 text-2xl font-semibold tracking-tight-display text-ink">
+								Built for your kind of business
+							</h3>
+							<p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
+								Clanker Support answers from your own docs and escalates to your
+								team, so it fits almost any business — from e-commerce and SaaS
+								to car rental, real estate, and hotels.
+							</p>
+						</div>
+
+						<div className="mt-6 flex flex-wrap gap-2.5">
+							{USE_CASES.map((u) => (
+								<Link
+									key={u.slug}
+									href={`/use-cases/${u.slug}`}
+									className="rounded-full border border-rule px-3.5 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-accent/40 hover:text-ink"
+								>
+									{u.name}
+								</Link>
+							))}
+						</div>
+
+						<Link
+							href="/use-cases"
+							className="mt-6 text-sm font-medium text-accent-soft transition-colors hover:text-accent"
+						>
+							Browse all use cases →
+						</Link>
+					</div>
+
+					<div className="mt-6 grid gap-6 lg:grid-cols-3">
 						<Link
 							href="/compare"
 							className="group flex flex-col justify-between rounded-3xl border border-rule bg-paper-card/50 p-8 transition-colors hover:border-accent/40 lg:col-span-2"
