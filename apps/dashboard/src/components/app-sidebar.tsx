@@ -18,8 +18,7 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
-import { signOut } from "@/lib/auth-client";
-import { track, resetAnalytics, ANALYTICS_EVENTS } from "@/lib/analytics";
+import { useSignOut } from "@/lib/use-sign-out";
 import { useWorkspace } from "@/lib/workspace";
 import { BrandLogo } from "@/components/brand-logo";
 import { RoleGate } from "@/components/role-gate";
@@ -106,6 +105,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 	const pathname = usePathname();
 	const router = useRouter();
 	const { workspaces, workspaceId, setWorkspaceId, role } = useWorkspace();
+	const handleSignOut = useSignOut();
 	const initials = userEmail.slice(0, 2).toUpperCase();
 	const roleLabel = role ? role[0].toUpperCase() + role.slice(1) : "Member";
 
@@ -371,15 +371,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 									</>
 								)}
 								<DropdownMenuSeparator />
-								<DropdownMenuItem
-									onClick={() => {
-										track(ANALYTICS_EVENTS.signedOut);
-										signOut().then(() => {
-											resetAnalytics();
-											router.replace("/sign-in");
-										});
-									}}
-								>
+								<DropdownMenuItem onClick={handleSignOut}>
 									<LogOut />
 									Sign out
 								</DropdownMenuItem>
