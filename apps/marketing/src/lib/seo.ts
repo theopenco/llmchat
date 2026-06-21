@@ -110,6 +110,7 @@ export interface SitemapInput {
 	competitors: { id: string }[];
 	migrations: { slug: string }[];
 	features: { slug: string }[];
+	useCases: { slug: string }[];
 }
 
 /**
@@ -156,6 +157,12 @@ export function buildSitemap(
 			priority: 0.7,
 		},
 		{
+			url: url("/use-cases"),
+			lastModified: now,
+			changeFrequency: "monthly",
+			priority: 0.7,
+		},
+		{
 			url: url("/privacy-policy"),
 			lastModified: now,
 			changeFrequency: "yearly",
@@ -197,5 +204,19 @@ export function buildSitemap(
 		priority: 0.7,
 	}));
 
-	return [...staticEntries, ...posts, ...vs, ...migrate, ...features];
+	const useCases: MetadataRoute.Sitemap = input.useCases.map((u) => ({
+		url: url(`/use-cases/${u.slug}`),
+		lastModified: now,
+		changeFrequency: "monthly",
+		priority: 0.7,
+	}));
+
+	return [
+		...staticEntries,
+		...posts,
+		...vs,
+		...migrate,
+		...features,
+		...useCases,
+	];
 }

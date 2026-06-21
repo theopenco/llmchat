@@ -11,6 +11,7 @@ type NavKey = "features" | "resources" | "compare" | "pricing";
 const links: { label: string; href: string; active?: NavKey }[] = [
 	{ label: "Features", href: "/#features", active: "features" },
 	{ label: "Docs", href: "/docs", active: "resources" },
+	{ label: "Use cases", href: "/use-cases", active: "resources" },
 	{ label: "Blog", href: "/blog", active: "resources" },
 	{ label: "Compare", href: "/compare", active: "compare" },
 	{ label: "Pricing", href: "/pricing", active: "pricing" },

@@ -56,6 +56,11 @@ export function SiteFooter() {
 								</Link>
 							</li>
 							<li>
+								<Link href="/use-cases" className={colLink}>
+									Use cases
+								</Link>
+							</li>
+							<li>
 								<Link href="/compare" className={colLink}>
 									Compare
 								</Link>
