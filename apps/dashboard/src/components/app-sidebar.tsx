@@ -14,8 +14,11 @@ import {
 	LogOut,
 	MessagesSquare,
 	Plus,
+	Settings2,
 	UserCog,
 } from "lucide-react";
+
+import { CreateWorkspaceDialog } from "@/app/settings/workspaces/_components/CreateWorkspaceDialog";
 
 import { api } from "@/lib/api";
 import { useSignOut } from "@/lib/use-sign-out";
@@ -106,6 +109,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 	const router = useRouter();
 	const { workspaces, workspaceId, setWorkspaceId, role } = useWorkspace();
 	const handleSignOut = useSignOut();
+	const [createWorkspaceOpen, setCreateWorkspaceOpen] = useState(false);
 	const initials = userEmail.slice(0, 2).toUpperCase();
 	const roleLabel = role ? role[0].toUpperCase() + role.slice(1) : "Member";
 
@@ -349,27 +353,37 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 										Account
 									</Link>
 								</DropdownMenuItem>
+								<DropdownMenuSeparator />
+								<DropdownMenuLabel className="text-xs text-muted-foreground">
+									Workspaces
+								</DropdownMenuLabel>
 								{workspaces.length > 1 && (
-									<>
-										<DropdownMenuSeparator />
-										<DropdownMenuLabel className="text-xs text-muted-foreground">
-											Workspaces
-										</DropdownMenuLabel>
-										<DropdownMenuGroup>
-											{workspaces.map((w) => (
-												<DropdownMenuItem
-													key={w.id}
-													onClick={() => setWorkspaceId(w.id)}
-												>
-													<span className="truncate">{w.name}</span>
-													{w.id === workspaceId && (
-														<Check className="ml-auto" />
-													)}
-												</DropdownMenuItem>
-											))}
-										</DropdownMenuGroup>
-									</>
+									<DropdownMenuGroup>
+										{workspaces.map((w) => (
+											<DropdownMenuItem
+												key={w.id}
+												onClick={() => setWorkspaceId(w.id)}
+											>
+												<span className="truncate">{w.name}</span>
+												{w.id === workspaceId && <Check className="ml-auto" />}
+											</DropdownMenuItem>
+										))}
+									</DropdownMenuGroup>
 								)}
+								<DropdownMenuGroup>
+									<DropdownMenuItem
+										onClick={() => setCreateWorkspaceOpen(true)}
+									>
+										<Plus />
+										Create workspace
+									</DropdownMenuItem>
+									<DropdownMenuItem asChild>
+										<Link href="/settings/workspaces">
+											<Settings2 />
+											Manage workspaces
+										</Link>
+									</DropdownMenuItem>
+								</DropdownMenuGroup>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem onClick={handleSignOut}>
 									<LogOut />
@@ -383,6 +397,11 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 					</SidebarMenuItem>
 				</SidebarMenu>
 			</SidebarFooter>
+
+			<CreateWorkspaceDialog
+				open={createWorkspaceOpen}
+				onOpenChange={setCreateWorkspaceOpen}
+			/>
 		</Sidebar>
 	);
 }

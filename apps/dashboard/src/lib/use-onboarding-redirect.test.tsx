@@ -70,6 +70,28 @@ describe("useOnboardingRedirect", () => {
 		expect(replace).not.toHaveBeenCalled();
 	});
 
+	it("does NOT bounce a no-plan user off /settings/workspaces (the new escape route)", async () => {
+		pathname = "/settings/workspaces";
+		renderHook(() => useOnboardingRedirect(true), { wrapper });
+		await new Promise((r) => setTimeout(r, 20));
+		expect(replace).not.toHaveBeenCalled();
+	});
+
+	// Paywall not bypassed: the workspaces escape entry must not also open the
+	// product routes. /settings/projects is NOT a prefix of any escape route, so a
+	// no-plan (⇒ no-project) user is still redirected to onboarding.
+	it("STILL redirects a no-plan user away from /settings/projects", async () => {
+		pathname = "/settings/projects";
+		renderHook(() => useOnboardingRedirect(true), { wrapper });
+		await waitFor(() => expect(replace).toHaveBeenCalledWith("/onboarding"));
+	});
+
+	it("STILL redirects a no-plan user away from a project detail route", async () => {
+		pathname = "/settings/projects/p1";
+		renderHook(() => useOnboardingRedirect(true), { wrapper });
+		await waitFor(() => expect(replace).toHaveBeenCalledWith("/onboarding"));
+	});
+
 	it("does not redirect even a brand-new user away from the escape routes", async () => {
 		workspaceState = { workspaces: [], workspaceId: null, isLoading: false };
 		pathname = "/settings/account";
