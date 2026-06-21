@@ -188,13 +188,13 @@ describe("InboxPage — deleting a filtered tag reconciles the filter", () => {
 				);
 		await waitFor(() => {
 			const post = postList();
-			expect(post.length).toBeGreaterThan(0);
-			// A corrected refetch (no tagIds) happened…
+			// A corrected refetch (no tagIds) happened on the new key.
 			expect(post.some((c) => !c.path.includes("tagIds"))).toBe(true);
-			// …and the LATEST list request carries no tag filter (it settled corrected,
-			// never leaving the deleted id dangling on the server query).
-			expect(post.at(-1)!.path.includes("tagIds=t1")).toBe(false);
 		});
+		// No transient stale request: NO post-delete list call carries the deleted
+		// tag id (the redundant conversations invalidation was dropped, so the stale
+		// key is never refetched).
+		expect(postList().every((c) => !c.path.includes("tagIds=t1"))).toBe(true);
 
 		// 2) No dangling filter id in the UI either: close the (modal) manage dialog
 		//    and the toolbar filter no longer shows an active selection.

@@ -313,8 +313,12 @@ export default function InboxPage() {
 
 	// Delete: remove the tag from the tags query, strip its chips from every
 	// cached conversation, and reconcile the active filter — dropping the id (which
-	// changes the list/head query keys and refetches) so no dangling filter id
-	// remains. Then invalidate to settle against the server's cascade.
+	// changes the list/head query keys, so the list refetches on the corrected
+	// filter) so no dangling filter id remains. The conversations caches are NOT
+	// invalidated: the server cascade already removed the associations, the direct
+	// removeTagFromAllConversations patch reflects that, and invalidating would
+	// force a transient refetch on the stale (still-mounted) key — re-issuing a
+	// request with the just-deleted tagId before the key change lands.
 	const deleteTagMut = useMutation({
 		mutationFn: (tag: Tag) =>
 			api(`/api/tags/${tag.id}`, {
@@ -331,7 +335,6 @@ export default function InboxPage() {
 				removeTagFromAllConversations(prev, tag.id),
 			);
 			void qc.invalidateQueries({ queryKey: ["tags", workspaceId] });
-			void qc.invalidateQueries({ queryKey: ["conversations", projectId] });
 		},
 		onError: (e) => toast.error(describeApiError(e, "Couldn't delete the tag")),
 	});
