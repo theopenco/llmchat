@@ -14,6 +14,7 @@ import {
 	LogOut,
 	MessagesSquare,
 	Plus,
+	UserCog,
 } from "lucide-react";
 
 import { api } from "@/lib/api";
@@ -341,6 +342,13 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 								<DropdownMenuLabel className="truncate text-xs text-muted-foreground">
 									{userEmail}
 								</DropdownMenuLabel>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem asChild>
+									<Link href="/settings/account">
+										<UserCog />
+										Account
+									</Link>
+								</DropdownMenuItem>
 								{workspaces.length > 1 && (
 									<>
 										<DropdownMenuSeparator />

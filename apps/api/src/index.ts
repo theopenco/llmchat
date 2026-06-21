@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 
 import { createAuth } from "@/auth";
 import { isAllowedOrigin } from "@/lib/origins";
+import { account } from "@/routes/account";
 import { billing } from "@/routes/billing";
 import { chat } from "@/routes/chat";
 import { conversations } from "@/routes/conversations";
@@ -84,6 +85,7 @@ app.route("/v1", widgetMessages);
 app.route("/v1", widgetRating);
 app.route("/v1", widgetCsat);
 app.route("/api", oauthProviders);
+app.route("/api", account);
 app.route("/api", workspaces);
 app.route("/api", projects);
 app.route("/api", systemPrompts);
