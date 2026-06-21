@@ -1,16 +1,22 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { planEntitlements } from "@llmchat/shared";
 
 import { api, ApiError } from "@/lib/api";
-import { useSession } from "@/lib/auth-client";
+import { signOut, useSession } from "@/lib/auth-client";
 import { fetchUsage } from "@/lib/billing";
 import { useOnboardingState } from "@/lib/use-onboarding";
 
 import OnboardingPage from "./page";
+
+beforeAll(() => {
+	// Radix DropdownMenu (the account menu) needs these in jsdom.
+	Element.prototype.scrollIntoView = vi.fn();
+	Element.prototype.hasPointerCapture ??= () => false;
+});
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -19,7 +25,10 @@ vi.mock("next/navigation", () => ({
 	useRouter: () => ({ push, replace }),
 	useSearchParams: () => searchParams,
 }));
-vi.mock("@/lib/auth-client", () => ({ useSession: vi.fn() }));
+vi.mock("@/lib/auth-client", () => ({
+	useSession: vi.fn(),
+	signOut: vi.fn(() => Promise.resolve()),
+}));
 vi.mock("@/lib/use-onboarding", () => ({ useOnboardingState: vi.fn() }));
 vi.mock("sonner", () => ({
 	toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() },
@@ -130,6 +139,55 @@ describe("OnboardingPage (form redesign)", () => {
 		).toBeInTheDocument();
 		// The build form must not be reachable while unpaid.
 		expect(screen.queryByLabelText(/agent name/i)).not.toBeInTheDocument();
+	});
+
+	it("offers an escape hatch on the paywall: account menu with account link + sign out", async () => {
+		const u = user();
+		vi.mocked(fetchUsage).mockResolvedValue({
+			plan: "none",
+			exempt: false,
+			entitlements: planEntitlements("none"),
+			usage: { projects: 0, members: 1, responsesThisMonth: 0 },
+			availablePlans: ["starter", "growth", "scale"],
+			monthStartUnix: 0,
+		});
+		renderPage();
+		await screen.findByRole("heading", {
+			name: /choose a plan to launch your agent/i,
+		});
+
+		// The account control is present on the paywall (not stranded).
+		await u.click(screen.getByRole("button", { name: /account menu/i }));
+
+		// Account settings → the page a no-plan user can actually reach.
+		const accountLink = screen.getByRole("menuitem", {
+			name: /account settings/i,
+		});
+		expect(accountLink).toHaveAttribute("href", "/settings/account");
+
+		// Sign out — the guaranteed escape: ends the session + lands on sign-in.
+		await u.click(screen.getByRole("menuitem", { name: /sign out/i }));
+		await waitFor(() => expect(signOut).toHaveBeenCalled());
+		await waitFor(() => expect(replace).toHaveBeenCalledWith("/sign-in"));
+	});
+
+	it("keeps the account menu trigger visible on mobile (no responsive hide)", async () => {
+		vi.mocked(fetchUsage).mockResolvedValue({
+			plan: "none",
+			exempt: false,
+			entitlements: planEntitlements("none"),
+			usage: { projects: 0, members: 1, responsesThisMonth: 0 },
+			availablePlans: ["starter", "growth", "scale"],
+			monthStartUnix: 0,
+		});
+		renderPage();
+		await screen.findByRole("heading", {
+			name: /choose a plan to launch your agent/i,
+		});
+		// Only the email label inside collapses on small screens; the trigger itself
+		// carries no `hidden` class, so it stays tappable on mobile.
+		const trigger = screen.getByRole("button", { name: /account menu/i });
+		expect(trigger.className).not.toMatch(/(^|\s)hidden(\s|$)/);
 	});
 
 	it("lets an exempt internal workspace skip the paywall and build", async () => {

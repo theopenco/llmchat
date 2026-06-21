@@ -22,6 +22,7 @@ import { useWorkspace } from "@/lib/workspace";
 
 import { initialDraft, type BotDraft } from "./_components/bot-form";
 import { LivePreview } from "./_components/LivePreview";
+import { OnboardingAccountMenu } from "./_components/OnboardingAccountMenu";
 import { panelVisibility, type MobileView } from "./_components/mobile-view";
 import { OnboardingForm } from "./_components/OnboardingForm";
 import { OnboardingPaywall } from "./_components/OnboardingPaywall";
@@ -209,6 +210,12 @@ function OnboardingFlow() {
 			<div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
 				<div className="absolute left-1/2 top-[-8rem] h-[36rem] w-[60rem] -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl dark:bg-indigo-500/20" />
 				<div className="absolute right-[-6rem] top-1/3 h-[28rem] w-[28rem] rounded-full bg-violet-600/10 blur-3xl dark:bg-violet-600/15" />
+			</div>
+
+			{/* Escape hatch: a no-plan user stranded on the paywall can still reach
+			    their account or sign out. Shown on every onboarding screen. */}
+			<div className="absolute right-3 top-3 z-20 sm:right-5 sm:top-5">
+				<OnboardingAccountMenu email={session.user.email} />
 			</div>
 
 			<div className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-10 px-4 py-10 sm:px-6">
