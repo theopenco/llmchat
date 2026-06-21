@@ -193,6 +193,47 @@ export const conversation = sqliteTable(
 	],
 );
 
+// Workspace-scoped labels an agent can attach to conversations. Name uniqueness
+// is case-insensitive PER WORKSPACE — enforced by a COLLATE NOCASE unique index
+// in the hand-authored migration (drizzle can't emit the collation here, so this
+// uniqueIndex decl is cosmetic; the DB index + an app-level lower() dedupe are
+// the real guarantees).
+export const tag = sqliteTable(
+	"tag",
+	{
+		id: id(),
+		workspaceId: text()
+			.notNull()
+			.references(() => workspace.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		// Nullable: a tag created without a color is auto-assigned one server-side.
+		color: text(),
+		createdAt: createdAt(),
+	},
+	(t) => [uniqueIndex("tag_workspace_name").on(t.workspaceId, t.name)],
+);
+
+// Many-to-many join: which tags are attached to which conversation. Mirrors
+// read_status (surrogate id + a unique pair index). Both FKs cascade, so
+// deleting a conversation OR a tag removes the associations (no orphan rows).
+export const conversationTag = sqliteTable(
+	"conversation_tag",
+	{
+		id: id(),
+		conversationId: text()
+			.notNull()
+			.references(() => conversation.id, { onDelete: "cascade" }),
+		tagId: text()
+			.notNull()
+			.references(() => tag.id, { onDelete: "cascade" }),
+		createdAt: createdAt(),
+	},
+	(t) => [
+		uniqueIndex("conversation_tag_unique").on(t.conversationId, t.tagId),
+		index("conversation_tag_tag").on(t.tagId),
+	],
+);
+
 export const systemPrompt = sqliteTable(
 	"system_prompt",
 	{

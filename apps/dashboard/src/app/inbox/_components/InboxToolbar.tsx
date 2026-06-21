@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import {
@@ -11,25 +11,36 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 
+import { TagFilter } from "./TagFilter";
+import type { Tag } from "./types";
+
 export interface InboxToolbarProps {
 	search: string;
 	onSearch: (value: string) => void;
 	/** Active vs archived view — the only real conversation filter we have. */
 	showArchived: boolean;
 	onShowArchivedChange: (archived: boolean) => void;
+	/** Workspace tags for the toolbar tag filter. */
+	tags: Tag[];
+	/** Selected tag ids (OR filter). */
+	tagIds: string[];
+	onTagIdsChange: (ids: string[]) => void;
 }
 
 /**
- * Top toolbar spanning the inbox panes: status filter + search are real and
- * drive the list. "Filters" and "Sort" are clearly-disabled placeholders — there
- * is no filter/sort backend yet, and the list is always ordered latest-first
- * (so the "Latest" label is truthful, not a fabricated control).
+ * Top toolbar spanning the inbox panes: status filter + search + a real tag
+ * filter (in the slot the disabled "Filters" placeholder used to occupy). The
+ * list is always ordered latest-first, so the "Latest" label is truthful. PR2
+ * will unify all of these into one filter surface.
  */
 export function InboxToolbar({
 	search,
 	onSearch,
 	showArchived,
 	onShowArchivedChange,
+	tags,
+	tagIds,
+	onTagIdsChange,
 }: InboxToolbarProps) {
 	return (
 		<div className="flex items-center gap-2 border-b px-4 py-2.5">
@@ -60,17 +71,7 @@ export function InboxToolbar({
 				/>
 			</div>
 
-			{/* Placeholders: no filter/sort backend yet. Disabled so they read as
-			    not-yet-available rather than fabricating behavior. */}
-			<button
-				type="button"
-				disabled
-				title="Advanced filters aren't available yet"
-				className="inline-flex h-9 shrink-0 cursor-not-allowed items-center gap-1.5 rounded-md border px-3 text-sm text-muted-foreground opacity-60"
-			>
-				<SlidersHorizontal className="size-4" />
-				Filters
-			</button>
+			<TagFilter tags={tags} selectedIds={tagIds} onChange={onTagIdsChange} />
 			<span className="hidden shrink-0 px-1 text-sm text-muted-foreground sm:inline">
 				Sort: <span className="font-medium text-foreground">Latest</span>
 			</span>

@@ -1,3 +1,11 @@
+/** A workspace label. `count` is present only on the /tags list aggregate. */
+export interface Tag {
+	id: string;
+	name: string;
+	color: string | null;
+	count?: number;
+}
+
 export interface Conversation {
 	id: string;
 	clientId: string;
@@ -10,6 +18,8 @@ export interface Conversation {
 	archivedAt: string | null;
 	createdAt: string;
 	updatedAt: string;
+	/** Tags attached to this conversation (added by the list API; [] when none). */
+	tags?: Tag[];
 	/** End-of-conversation CSAT (1–5 stars); null when the visitor didn't rate.
 	 * Distinct from per-message thumbs (Message.rating). */
 	csatRating: number | null;

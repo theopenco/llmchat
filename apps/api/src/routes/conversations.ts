@@ -11,6 +11,7 @@ import {
 	includesCI,
 	likeContains,
 } from "@/lib/search";
+import { TAG_NAME_MAX, findOrCreateTag } from "@/lib/tags";
 import {
 	requireRole,
 	requireSession,
@@ -21,6 +22,7 @@ import {
 	and,
 	asc,
 	conversation,
+	conversationTag,
 	count,
 	desc,
 	eq,
@@ -31,9 +33,13 @@ import {
 	or,
 	readStatus,
 	sql,
+	tag as tagTable,
 } from "@llmchat/db";
 
 import type { AppContext } from "@/env";
+
+/** A tag as attached to a conversation in list responses. */
+type ConversationTagView = { id: string; name: string; color: string | null };
 
 /** Why a conversation surfaced in a search: an excerpt of the hit and which
  * field it came from, so the agent sees the reason in the list. */
@@ -52,11 +58,14 @@ export const conversations = new Hono<AppContext>()
 				// Opaque keyset cursor (see lib/cursor). A garbage value decodes to
 				// null below and just serves the first page — never a 400.
 				cursor: z.string().optional(),
+				// Comma-separated tag ids. OR semantics (a conversation matches if it
+				// has ANY of them). Empty/absent ⇒ no tag filtering.
+				tagIds: z.string().optional(),
 			}),
 		),
 		async (c) => {
 			const { projectId } = c.req.param();
-			const { search, archived, limit, cursor } = c.req.valid("query");
+			const { search, archived, limit, cursor, tagIds } = c.req.valid("query");
 			const workspaceId = c.get("workspaceId");
 			const userId = c.get("userId");
 
@@ -122,6 +131,29 @@ export const conversations = new Hono<AppContext>()
 			if (cur) {
 				conditions.push(
 					sql`(${conversation.updatedAt} < ${cur.updatedAt} OR (${conversation.updatedAt} = ${cur.updatedAt} AND ${conversation.id} < ${cur.id}))`,
+				);
+			}
+
+			// Tag filter (OR semantics): keep conversations that carry ANY of the
+			// given tags, via a scoped subquery on the join table. ANDed into the
+			// same conditions as project scope / archived / search / cursor, so it
+			// composes with keyset pagination and never widens beyond this project.
+			// A foreign tag id simply matches nothing here — no leak.
+			const tagIdList =
+				tagIds
+					?.split(",")
+					.map((t) => t.trim())
+					.filter(Boolean) ?? [];
+			if (tagIdList.length) {
+				// EXISTS-style subquery in raw SQL (like the keyset predicate above):
+				// one round-trip, no giant IN list, and it stays a single ANDed
+				// predicate so pagination + search + archived all still compose.
+				const ids = sql.join(
+					tagIdList.map((t) => sql`${t}`),
+					sql`, `,
+				);
+				conditions.push(
+					sql`${conversation.id} IN (SELECT ${conversationTag.conversationId} FROM ${conversationTag} WHERE ${conversationTag.tagId} IN (${ids}))`,
 				);
 			}
 
@@ -234,12 +266,35 @@ export const conversations = new Hono<AppContext>()
 				reads.map((r) => [r.conversationId, r.lastReadMessageCount]),
 			);
 
+			// Tags for the whole page in ONE query (no N+1): join the page's
+			// conversation ids to their tags, grouped client-side into a map.
+			const tagsByConv = new Map<string, ConversationTagView[]>();
+			if (ids.length) {
+				const tagRows = await db(c.env)
+					.select({
+						conversationId: conversationTag.conversationId,
+						id: tagTable.id,
+						name: tagTable.name,
+						color: tagTable.color,
+					})
+					.from(conversationTag)
+					.innerJoin(tagTable, eq(tagTable.id, conversationTag.tagId))
+					.where(inArray(conversationTag.conversationId, ids))
+					.orderBy(sql`lower(${tagTable.name})`);
+				for (const t of tagRows) {
+					const list = tagsByConv.get(t.conversationId) ?? [];
+					list.push({ id: t.id, name: t.name, color: t.color });
+					tagsByConv.set(t.conversationId, list);
+				}
+			}
+
 			return c.json({
 				conversations: rows.map((r) => ({
 					...r,
 					firstMessage: firstByConv.get(r.id) ?? null,
 					unread: (readByConv.get(r.id) ?? 0) < r.messageCount,
 					match: matchFor(r),
+					tags: tagsByConv.get(r.id) ?? [],
 				})),
 				nextCursor,
 			});
@@ -481,6 +536,98 @@ export const conversations = new Hono<AppContext>()
 			return c.json({ ok: true });
 		},
 	)
+	// Attach a tag to a conversation. `tagId` attaches an existing workspace tag;
+	// `name` creates-and-attaches (dedupe case-insensitively). Any workspace
+	// member. Idempotent: re-attaching the same tag is a no-op.
+	.post(
+		"/projects/:projectId/conversations/:id/tags",
+		zValidator(
+			"json",
+			z
+				.object({
+					tagId: z.string().optional(),
+					name: z.string().trim().min(1).max(TAG_NAME_MAX).optional(),
+					color: z.string().max(32).optional(),
+				})
+				.refine((d) => d.tagId || d.name, {
+					message: "tagId or name required",
+				}),
+		),
+		async (c) => {
+			const { projectId, id } = c.req.param();
+			const { tagId, name, color } = c.req.valid("json");
+			const workspaceId = c.get("workspaceId");
+
+			// Tenant chain: project ∈ workspace, conversation ∈ project.
+			const proj = await db(c.env).query.project.findFirst({
+				where: (pt, { and: a, eq: e }) =>
+					a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+			});
+			if (!proj) return c.json({ error: "not found" }, 404);
+			const conv = await db(c.env).query.conversation.findFirst({
+				where: (ct, { and: a, eq: e }) =>
+					a(e(ct.id, id), e(ct.projectId, projectId)),
+			});
+			if (!conv) return c.json({ error: "not found" }, 404);
+
+			// Resolve the tag. By id: it MUST belong to this workspace (else 404 — no
+			// cross-workspace attach, no existence leak). By name: find-or-create.
+			let resolved: ConversationTagView;
+			if (tagId) {
+				const t = await db(c.env).query.tag.findFirst({
+					where: (tt, { and: a, eq: e }) =>
+						a(e(tt.id, tagId), e(tt.workspaceId, workspaceId)),
+				});
+				if (!t) return c.json({ error: "not found" }, 404);
+				resolved = { id: t.id, name: t.name, color: t.color };
+			} else {
+				const { tag: t } = await findOrCreateTag(
+					c.env,
+					workspaceId,
+					name!,
+					color,
+				);
+				resolved = { id: t.id, name: t.name, color: t.color };
+			}
+
+			// Idempotent attach: skip if the association already exists.
+			const already = await db(c.env).query.conversationTag.findFirst({
+				where: (xt, { and: a, eq: e }) =>
+					a(e(xt.conversationId, id), e(xt.tagId, resolved.id)),
+			});
+			if (!already) {
+				await db(c.env)
+					.insert(conversationTag)
+					.values({ conversationId: id, tagId: resolved.id });
+			}
+			return c.json({ tag: resolved });
+		},
+	)
+	// Detach a tag. No-op-safe when the association doesn't exist. Any member.
+	.delete("/projects/:projectId/conversations/:id/tags/:tagId", async (c) => {
+		const { projectId, id, tagId } = c.req.param();
+		const workspaceId = c.get("workspaceId");
+		const proj = await db(c.env).query.project.findFirst({
+			where: (pt, { and: a, eq: e }) =>
+				a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+		});
+		if (!proj) return c.json({ error: "not found" }, 404);
+		const conv = await db(c.env).query.conversation.findFirst({
+			where: (ct, { and: a, eq: e }) =>
+				a(e(ct.id, id), e(ct.projectId, projectId)),
+		});
+		if (!conv) return c.json({ error: "not found" }, 404);
+
+		await db(c.env)
+			.delete(conversationTag)
+			.where(
+				and(
+					eq(conversationTag.conversationId, id),
+					eq(conversationTag.tagId, tagId),
+				),
+			);
+		return c.json({ ok: true });
+	})
 	.delete(
 		"/projects/:projectId/conversations/:id",
 		requireRole("admin"),

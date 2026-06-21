@@ -13,16 +13,20 @@ beforeAll(() => {
 function setup(props: Partial<React.ComponentProps<typeof InboxToolbar>> = {}) {
 	const onSearch = vi.fn();
 	const onShowArchivedChange = vi.fn();
+	const onTagIdsChange = vi.fn();
 	render(
 		<InboxToolbar
 			search=""
 			onSearch={onSearch}
 			showArchived={false}
 			onShowArchivedChange={onShowArchivedChange}
+			tags={[]}
+			tagIds={[]}
+			onTagIdsChange={onTagIdsChange}
 			{...props}
 		/>,
 	);
-	return { onSearch, onShowArchivedChange };
+	return { onSearch, onShowArchivedChange, onTagIdsChange };
 }
 
 describe("InboxToolbar", () => {
@@ -34,24 +38,20 @@ describe("InboxToolbar", () => {
 	});
 
 	it("reflects the active status in the filter control", () => {
+		const base = {
+			search: "",
+			onSearch: vi.fn(),
+			onShowArchivedChange: vi.fn(),
+			tags: [],
+			tagIds: [],
+			onTagIdsChange: vi.fn(),
+		};
 		const { rerender } = render(
-			<InboxToolbar
-				search=""
-				onSearch={vi.fn()}
-				showArchived={false}
-				onShowArchivedChange={vi.fn()}
-			/>,
+			<InboxToolbar {...base} showArchived={false} />,
 		);
 		expect(screen.getByText("All conversations")).toBeInTheDocument();
 
-		rerender(
-			<InboxToolbar
-				search=""
-				onSearch={vi.fn()}
-				showArchived
-				onShowArchivedChange={vi.fn()}
-			/>,
-		);
+		rerender(<InboxToolbar {...base} showArchived />);
 		expect(screen.getByText("Archived")).toBeInTheDocument();
 	});
 
@@ -63,8 +63,20 @@ describe("InboxToolbar", () => {
 		expect(onShowArchivedChange).toHaveBeenCalledWith(true);
 	});
 
-	it("marks the not-yet-available Filters control as disabled", () => {
-		setup();
-		expect(screen.getByRole("button", { name: /filters/i })).toBeDisabled();
+	it("disables the Tags filter when the workspace has no tags", () => {
+		setup({ tags: [] });
+		expect(screen.getByRole("button", { name: /tags/i })).toBeDisabled();
+	});
+
+	it("opens the tag filter and reports a toggled tag id upward", async () => {
+		const user = userEvent.setup();
+		const { onTagIdsChange } = setup({
+			tags: [{ id: "t1", name: "Billing", color: "#6366f1", count: 3 }],
+		});
+		const btn = screen.getByRole("button", { name: /tags/i });
+		expect(btn).not.toBeDisabled();
+		await user.click(btn);
+		await user.click(screen.getByRole("option", { name: /Billing/ }));
+		expect(onTagIdsChange).toHaveBeenCalledWith(["t1"]);
 	});
 });

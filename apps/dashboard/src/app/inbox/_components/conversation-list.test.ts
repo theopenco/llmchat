@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	addTagToConversation,
 	dropConversationFromCache,
 	flattenPages,
 	mergeConversationPages,
+	removeTagFromConversation,
 	setConversationRead,
 	type ConversationPage,
 } from "./conversation-list";
 
-import type { Conversation } from "./types";
+import type { Conversation, Tag } from "./types";
+
+const TAG: Tag = { id: "t1", name: "Billing", color: "#6366f1" };
 
 function conv(overrides: Partial<Conversation> & { id: string }): Conversation {
 	return {
@@ -129,6 +133,41 @@ describe("setConversationRead (shape-aware)", () => {
 		expect(nextInf.pages[0].conversations[0]).toMatchObject({
 			id: "a",
 			unread: false,
+		});
+	});
+});
+
+describe("addTagToConversation / removeTagFromConversation (shape-aware)", () => {
+	it("attaches a tag to the right conversation across both cache shapes", () => {
+		const head = page([conv({ id: "a" }), conv({ id: "b" })]);
+		const nextHead = addTagToConversation(head, "a", TAG) as ConversationPage;
+		expect(nextHead.conversations[0]!.tags).toEqual([TAG]);
+		expect(nextHead.conversations[1]!.tags ?? []).toEqual([]);
+
+		const inf = infinite([page([conv({ id: "a" })])]);
+		const nextInf = addTagToConversation(inf, "a", TAG) as ReturnType<
+			typeof infinite
+		>;
+		expect(nextInf.pages[0].conversations[0]!.tags).toEqual([TAG]);
+	});
+
+	it("is idempotent — attaching an already-present tag is a no-op", () => {
+		const head = page([conv({ id: "a", tags: [TAG] })]);
+		const next = addTagToConversation(head, "a", TAG) as ConversationPage;
+		expect(next.conversations[0]!.tags).toEqual([TAG]);
+	});
+
+	it("removes a tag by id, leaving the others", () => {
+		const other: Tag = { id: "t2", name: "VIP", color: null };
+		const head = page([conv({ id: "a", tags: [TAG, other] })]);
+		const next = removeTagFromConversation(head, "a", "t1") as ConversationPage;
+		expect(next.conversations[0]!.tags).toEqual([other]);
+	});
+
+	it("passes unknown shapes / undefined through unchanged", () => {
+		expect(addTagToConversation(undefined, "a", TAG)).toBeUndefined();
+		expect(removeTagFromConversation({ nope: 1 }, "a", "t1")).toEqual({
+			nope: 1,
 		});
 	});
 });
