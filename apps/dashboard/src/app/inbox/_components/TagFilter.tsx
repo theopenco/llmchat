@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, SlidersHorizontal } from "lucide-react";
+import { Check, Settings2, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ export interface TagFilterProps {
 	/** Currently-selected tag ids (OR filter). */
 	selectedIds: string[];
 	onChange: (ids: string[]) => void;
+	/** When provided (admin/owner), shows a "Manage tags" link in the footer. */
+	onManage?: () => void;
 }
 
 /**
@@ -33,7 +35,12 @@ export interface TagFilterProps {
  * with ANY selected tag). Lives where the disabled "Filters" placeholder was;
  * PR2 will unify all inbox filters, so this stays intentionally lightweight.
  */
-export function TagFilter({ tags, selectedIds, onChange }: TagFilterProps) {
+export function TagFilter({
+	tags,
+	selectedIds,
+	onChange,
+	onManage,
+}: TagFilterProps) {
 	const [open, setOpen] = useState(false);
 	const selected = new Set(selectedIds);
 	const count = selectedIds.length;
@@ -102,17 +109,36 @@ export function TagFilter({ tags, selectedIds, onChange }: TagFilterProps) {
 						</CommandGroup>
 					</CommandList>
 				</Command>
-				{count > 0 && (
-					<div className="border-t p-1">
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							className="w-full justify-center text-xs text-muted-foreground"
-							onClick={() => onChange([])}
-						>
-							Clear {count} filter{count > 1 ? "s" : ""}
-						</Button>
+				{(count > 0 || onManage) && (
+					<div className="flex items-center justify-between gap-1 border-t p-1">
+						{onManage ? (
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								className="gap-1.5 text-xs text-muted-foreground"
+								onClick={() => {
+									setOpen(false);
+									onManage();
+								}}
+							>
+								<Settings2 className="size-3.5" />
+								Manage tags
+							</Button>
+						) : (
+							<span />
+						)}
+						{count > 0 && (
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								className="text-xs text-muted-foreground"
+								onClick={() => onChange([])}
+							>
+								Clear {count}
+							</Button>
+						)}
 					</div>
 				)}
 			</PopoverContent>

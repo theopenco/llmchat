@@ -25,6 +25,8 @@ export interface InboxToolbarProps {
 	/** Selected tag ids (OR filter). */
 	tagIds: string[];
 	onTagIdsChange: (ids: string[]) => void;
+	/** Opens the manage-tags dialog (admin/owner only; omit to hide the link). */
+	onManageTags?: () => void;
 }
 
 /**
@@ -41,6 +43,7 @@ export function InboxToolbar({
 	tags,
 	tagIds,
 	onTagIdsChange,
+	onManageTags,
 }: InboxToolbarProps) {
 	return (
 		<div className="flex items-center gap-2 border-b px-4 py-2.5">
@@ -71,7 +74,12 @@ export function InboxToolbar({
 				/>
 			</div>
 
-			<TagFilter tags={tags} selectedIds={tagIds} onChange={onTagIdsChange} />
+			<TagFilter
+				tags={tags}
+				selectedIds={tagIds}
+				onChange={onTagIdsChange}
+				onManage={onManageTags}
+			/>
 			<span className="hidden shrink-0 px-1 text-sm text-muted-foreground sm:inline">
 				Sort: <span className="font-medium text-foreground">Latest</span>
 			</span>

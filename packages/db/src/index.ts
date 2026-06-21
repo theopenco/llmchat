@@ -12,6 +12,7 @@ export { schema };
 export * from "./schema";
 export {
 	eq,
+	ne,
 	and,
 	or,
 	desc,

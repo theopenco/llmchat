@@ -4,7 +4,7 @@
 import { db } from "@/lib/db";
 import { colorForName, isHexColor } from "@/lib/tag-colors";
 
-import { and, eq, sql, tag } from "@llmchat/db";
+import { and, eq, ne, sql, tag } from "@llmchat/db";
 
 import type { AppContext } from "@/env";
 
@@ -34,6 +34,29 @@ export async function findTagByName(
 		.where(
 			and(
 				eq(tag.workspaceId, workspaceId),
+				sql`lower(${tag.name}) = ${name.toLowerCase()}`,
+			),
+		)
+		.limit(1);
+	return row;
+}
+
+/** Case-insensitive name lookup within a workspace, EXCLUDING one tag id — used
+ * on rename to detect a collision with a DIFFERENT tag (renaming a tag to its own
+ * current name/casing is not a collision). */
+export async function findTagByNameExcluding(
+	env: Env,
+	workspaceId: string,
+	name: string,
+	excludeId: string,
+): Promise<TagRow | undefined> {
+	const [row] = await db(env)
+		.select()
+		.from(tag)
+		.where(
+			and(
+				eq(tag.workspaceId, workspaceId),
+				ne(tag.id, excludeId),
 				sql`lower(${tag.name}) = ${name.toLowerCase()}`,
 			),
 		)

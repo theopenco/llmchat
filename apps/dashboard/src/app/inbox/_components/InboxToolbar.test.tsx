@@ -14,7 +14,7 @@ function setup(props: Partial<React.ComponentProps<typeof InboxToolbar>> = {}) {
 	const onSearch = vi.fn();
 	const onShowArchivedChange = vi.fn();
 	const onTagIdsChange = vi.fn();
-	render(
+	const { unmount } = render(
 		<InboxToolbar
 			search=""
 			onSearch={onSearch}
@@ -26,7 +26,7 @@ function setup(props: Partial<React.ComponentProps<typeof InboxToolbar>> = {}) {
 			{...props}
 		/>,
 	);
-	return { onSearch, onShowArchivedChange, onTagIdsChange };
+	return { onSearch, onShowArchivedChange, onTagIdsChange, unmount };
 }
 
 describe("InboxToolbar", () => {
@@ -78,5 +78,25 @@ describe("InboxToolbar", () => {
 		await user.click(btn);
 		await user.click(screen.getByRole("option", { name: /Billing/ }));
 		expect(onTagIdsChange).toHaveBeenCalledWith(["t1"]);
+	});
+
+	it("shows the 'Manage tags' link only when onManageTags is provided (admin/owner)", async () => {
+		const user = userEvent.setup();
+		const tags = [{ id: "t1", name: "Billing", color: "#6366f1", count: 3 }];
+
+		// No onManageTags (agent): the link is absent from the filter popover.
+		const { unmount } = setup({ tags });
+		await user.click(screen.getByRole("button", { name: /tags/i }));
+		expect(
+			screen.queryByRole("button", { name: /manage tags/i }),
+		).not.toBeInTheDocument();
+		unmount();
+
+		// With onManageTags (admin/owner): the link shows and fires.
+		const onManageTags = vi.fn();
+		setup({ tags, onManageTags });
+		await user.click(screen.getByRole("button", { name: /tags/i }));
+		await user.click(screen.getByRole("button", { name: /manage tags/i }));
+		expect(onManageTags).toHaveBeenCalled();
 	});
 });
