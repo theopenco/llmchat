@@ -9,6 +9,7 @@ export {
 	setStoredConsent,
 } from "./consent";
 export { resolveSiblingUrl } from "./preview-url";
+export { TAG_PALETTE, type TagColor, isPaletteColor } from "./tag-colors";
 export {
 	DEFAULT_MODEL,
 	effectiveModel,

@@ -127,3 +127,19 @@ export function removeTagFromConversation(
 		),
 	);
 }
+
+/** Updater for a tag DELETE: strip the tag's chip from EVERY cached conversation
+ * across head + infinite caches, so a deleted tag vanishes from all rows at once
+ * without waiting for a refetch. */
+export function removeTagFromAllConversations(
+	prev: unknown,
+	tagId: string,
+): unknown {
+	return mapConversationsInCache(prev, (list) =>
+		list.map((c) =>
+			(c.tags ?? []).some((t) => t.id === tagId)
+				? { ...c, tags: (c.tags ?? []).filter((t) => t.id !== tagId) }
+				: c,
+		),
+	);
+}

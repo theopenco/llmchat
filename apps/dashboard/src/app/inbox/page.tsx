@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
-import { api, describeApiError } from "@/lib/api";
+import { ApiError, api, describeApiError } from "@/lib/api";
 import { resolveOnboardingState } from "@/lib/onboarding";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { resolveSelectedId } from "@/lib/selection";
@@ -27,10 +27,12 @@ import {
 	dropConversationFromCache,
 	flattenPages,
 	mergeConversationPages,
+	removeTagFromAllConversations,
 	removeTagFromConversation,
 	setConversationRead,
 	type ConversationPage,
 } from "./_components/conversation-list";
+import { ManageTagsDialog } from "./_components/ManageTagsDialog";
 import { DetailPanel } from "./_components/DetailPanel";
 import { initials, parseDevice, pluralize } from "./_components/format";
 import { InboxPanes } from "./_components/InboxPanes";
@@ -54,6 +56,7 @@ export default function InboxPage() {
 	const {
 		workspaces,
 		workspaceId,
+		canManage,
 		isLoading: workspacesLoading,
 	} = useWorkspace();
 	const qc = useQueryClient();
@@ -64,6 +67,7 @@ export default function InboxPage() {
 	const [search, setSearch] = useState("");
 	const [showArchived, setShowArchived] = useState(false);
 	const [tagIds, setTagIds] = useState<string[]>([]);
+	const [manageTagsOpen, setManageTagsOpen] = useState(false);
 	// Contact-details sheet (mobile/tablet); on desktop details are a permanent aside.
 	const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -283,6 +287,64 @@ export default function InboxPage() {
 		createTagMut.mutate({ id: selectedId, name });
 	}
 
+	// ── Global tag management (admin/owner) ──────────────────────────────────
+	// Rename/recolor: tag ids are stable, so after the write we just invalidate
+	// the tags query (picker/filter) AND the conversations prefix (head + every
+	// list variant) so the denormalized chips re-render with the new name/color.
+	const patchTagMut = useMutation({
+		mutationFn: (vars: { tag: Tag; name?: string; color?: string }) =>
+			api<{ tag: Tag }>(`/api/tags/${vars.tag.id}`, {
+				method: "PATCH",
+				body: { name: vars.name, color: vars.color },
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: () => {
+			toast.success("Tag updated");
+			void qc.invalidateQueries({ queryKey: ["tags", workspaceId] });
+			void qc.invalidateQueries({ queryKey: ["conversations", projectId] });
+		},
+		onError: (e) =>
+			toast.error(
+				e instanceof ApiError && e.status === 409
+					? "A tag with that name already exists."
+					: describeApiError(e, "Couldn't update the tag"),
+			),
+	});
+
+	// Delete: remove the tag from the tags query, strip its chips from every
+	// cached conversation, and reconcile the active filter — dropping the id (which
+	// changes the list/head query keys, so the list refetches on the corrected
+	// filter) so no dangling filter id remains. The conversations caches are NOT
+	// invalidated: the server cascade already removed the associations, the direct
+	// removeTagFromAllConversations patch reflects that, and invalidating would
+	// force a transient refetch on the stale (still-mounted) key — re-issuing a
+	// request with the just-deleted tagId before the key change lands.
+	const deleteTagMut = useMutation({
+		mutationFn: (tag: Tag) =>
+			api(`/api/tags/${tag.id}`, {
+				method: "DELETE",
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: (_data, tag) => {
+			toast.success(`Deleted “${tag.name}”`);
+			setTagIds((prev) => prev.filter((id) => id !== tag.id));
+			qc.setQueryData<{ tags: Tag[] }>(["tags", workspaceId], (prev) =>
+				prev ? { tags: prev.tags.filter((t) => t.id !== tag.id) } : prev,
+			);
+			qc.setQueriesData({ queryKey: ["conversations", projectId] }, (prev) =>
+				removeTagFromAllConversations(prev, tag.id),
+			);
+			void qc.invalidateQueries({ queryKey: ["tags", workspaceId] });
+		},
+		onError: (e) => toast.error(describeApiError(e, "Couldn't delete the tag")),
+	});
+
+	const tagBusyId = patchTagMut.isPending
+		? (patchTagMut.variables?.tag.id ?? null)
+		: deleteTagMut.isPending
+			? (deleteTagMut.variables?.id ?? null)
+			: null;
+
 	// Mark a conversation read for this user. Optimistically clears the unread dot
 	// in-cache across the head + loaded pages (so a row deep in a loaded page
 	// clears instantly without any refetch), then PATCHes. Best-effort: on failure
@@ -477,6 +539,7 @@ export default function InboxPage() {
 					tags={allTags}
 					tagIds={tagIds}
 					onTagIdsChange={setTagIds}
+					onManageTags={canManage ? () => setManageTagsOpen(true) : undefined}
 				/>
 			</div>
 
@@ -611,6 +674,18 @@ export default function InboxPage() {
 					</div>
 				}
 			/>
+
+			{canManage && (
+				<ManageTagsDialog
+					open={manageTagsOpen}
+					onOpenChange={setManageTagsOpen}
+					tags={allTags}
+					busyId={tagBusyId}
+					onRename={(tag, name) => patchTagMut.mutate({ tag, name })}
+					onRecolor={(tag, color) => patchTagMut.mutate({ tag, color })}
+					onDelete={(tag) => deleteTagMut.mutate(tag)}
+				/>
+			)}
 		</div>
 	);
 }

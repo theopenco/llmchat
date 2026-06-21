@@ -5,6 +5,7 @@ import {
 	dropConversationFromCache,
 	flattenPages,
 	mergeConversationPages,
+	removeTagFromAllConversations,
 	removeTagFromConversation,
 	setConversationRead,
 	type ConversationPage,
@@ -167,6 +168,35 @@ describe("addTagToConversation / removeTagFromConversation (shape-aware)", () =>
 	it("passes unknown shapes / undefined through unchanged", () => {
 		expect(addTagToConversation(undefined, "a", TAG)).toBeUndefined();
 		expect(removeTagFromConversation({ nope: 1 }, "a", "t1")).toEqual({
+			nope: 1,
+		});
+	});
+});
+
+describe("removeTagFromAllConversations (tag delete)", () => {
+	const other: Tag = { id: "t2", name: "VIP", color: null };
+
+	it("strips the deleted tag from EVERY conversation across both cache shapes", () => {
+		const head = page([
+			conv({ id: "a", tags: [TAG, other] }),
+			conv({ id: "b", tags: [TAG] }),
+			conv({ id: "c", tags: [other] }),
+		]);
+		const next = removeTagFromAllConversations(head, "t1") as ConversationPage;
+		expect(next.conversations[0]!.tags).toEqual([other]); // TAG gone, VIP kept
+		expect(next.conversations[1]!.tags).toEqual([]); // TAG gone
+		expect(next.conversations[2]!.tags).toEqual([other]); // untouched
+
+		const inf = infinite([page([conv({ id: "a", tags: [TAG] })])]);
+		const nextInf = removeTagFromAllConversations(inf, "t1") as ReturnType<
+			typeof infinite
+		>;
+		expect(nextInf.pages[0].conversations[0]!.tags).toEqual([]);
+	});
+
+	it("passes unknown shapes / undefined through unchanged", () => {
+		expect(removeTagFromAllConversations(undefined, "t1")).toBeUndefined();
+		expect(removeTagFromAllConversations({ nope: 1 }, "t1")).toEqual({
 			nope: 1,
 		});
 	});
