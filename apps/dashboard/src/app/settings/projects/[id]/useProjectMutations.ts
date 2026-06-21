@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { api, describeApiError } from "@/lib/api";
-import { dropById, useOptimisticMutation } from "@/lib/optimistic";
+import { dropById, mapById, useOptimisticMutation } from "@/lib/optimistic";
 
 import type { Project, Source } from "./types";
 
@@ -15,17 +15,21 @@ export function useProjectMutations(id: string, workspaceId: string | null) {
 	const qc = useQueryClient();
 	const router = useRouter();
 
-	const save = useMutation({
-		mutationFn: (input: Partial<Project>) =>
+	// Optimistic save: merge the edited fields into the cached project so the
+	// detail page (which reads this list via `select`) and the projects grid both
+	// reflect the change — and clear the dirty state — instantly; a failure rolls
+	// back. Settle invalidates to reconcile with the server's truth.
+	const save = useOptimisticMutation<Partial<Project>>({
+		queryKey: ["projects", workspaceId],
+		apply: (prev, input) =>
+			mapById<Project>(prev, "projects", id, (p) => ({ ...p, ...input })),
+		mutationFn: (input) =>
 			api(`/api/projects/${id}`, {
 				method: "PATCH",
 				body: input,
 				workspaceId: workspaceId!,
 			}),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["projects"] });
-			toast.success("Project updated successfully");
-		},
+		onSuccess: () => toast.success("Project updated successfully"),
 		onError: (e) => toast.error(describeApiError(e, "Could not save project")),
 	});
 

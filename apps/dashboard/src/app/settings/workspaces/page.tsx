@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Check, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -16,6 +16,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useOptimisticMutation } from "@/lib/optimistic";
 import { useWorkspace } from "@/lib/workspace";
 import { WORKSPACES_KEY, type WorkspaceSummary } from "@/lib/workspace-utils";
 import { deleteWorkspace, deleteWorkspaceErrorMessage } from "@/lib/workspaces";
@@ -38,9 +39,23 @@ export default function WorkspacesSettingsPage() {
 	const [createOpen, setCreateOpen] = useState(false);
 	const [deleting, setDeleting] = useState<WorkspaceSummary | null>(null);
 
-	const remove = useMutation({
-		mutationFn: (id: string) => deleteWorkspace(id),
-		onSuccess: async (_data, id) => {
+	// Optimistic delete: the workspace row leaves the list the instant the action
+	// fires; a failure re-inserts it (and toasts). The cache shape is the API's
+	// join rows ({ workspace, role }), so the drop filters on `workspace.id`.
+	// Settle invalidates WORKSPACES_KEY to reconcile with the server.
+	const remove = useOptimisticMutation<string>({
+		queryKey: WORKSPACES_KEY,
+		apply: (prev, id) => {
+			if (!prev || typeof prev !== "object") return prev;
+			const rec = prev as { workspaces?: { workspace: { id: string } }[] };
+			if (!Array.isArray(rec.workspaces)) return prev;
+			return {
+				...rec,
+				workspaces: rec.workspaces.filter((w) => w.workspace.id !== id),
+			};
+		},
+		mutationFn: (id) => deleteWorkspace(id),
+		onSuccess: (_data, id) => {
 			setDeleting(null);
 			toast.success("Workspace deleted");
 			// If they deleted the workspace they were in, switch into another one they
@@ -53,7 +68,6 @@ export default function WorkspacesSettingsPage() {
 				qc.removeQueries({ queryKey: ["billing-usage"] });
 				if (next) setWorkspaceId(next.id);
 			}
-			await qc.invalidateQueries({ queryKey: WORKSPACES_KEY });
 		},
 		onError: (e) => toast.error(deleteWorkspaceErrorMessage(e)),
 	});
