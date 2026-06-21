@@ -16,9 +16,17 @@ export interface Project {
 export interface Source {
 	id: string;
 	projectId: string;
-	url: string;
+	/** "url" — fetched web page; "text" — manual text; "qa" — promoted reply. */
+	kind: "url" | "text" | "qa";
+	/** Null for text/qa sources (only url sources have a URL). */
+	url: string | null;
 	title: string;
 	content: string;
+	/** For qa sources: the question/answer kept apart from the rendered content. */
+	question: string | null;
+	answer: string | null;
+	/** The inbox message a qa source was promoted from (provenance/dedupe). */
+	sourceMessageId: string | null;
 	active: boolean;
 	lastFetchedAt: string | null;
 	lastError: string | null;

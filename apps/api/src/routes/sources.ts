@@ -26,6 +26,25 @@ const updateInput = z.object({
 	active: z.boolean().optional(),
 });
 
+// Length caps for a promoted Q&A. Answers can be a real support reply, so the
+// budget is generous; questions are a single visitor turn, so tighter. Both are
+// also defensively re-clamped server-side for the DERIVED defaults (an absent
+// override isn't validated by the schema).
+const QUESTION_MAX = 2_000;
+const ANSWER_MAX = 8_000;
+const TITLE_LEN = 60;
+
+// Promote-a-reply input. A purpose-built CREATE schema with the required key
+// (`messageId`) — NOT a `.partial()` of some other schema, and with NO
+// `.default()` anywhere (the Zod-v4 footgun where a default fires on an absent
+// key under `.partial()` and clobbers siblings). `question`/`answer` are honest
+// optionals: absent ⇒ derive the default server-side; present ⇒ override.
+const promoteInput = z.object({
+	messageId: z.string().min(1),
+	question: z.string().max(QUESTION_MAX).optional(),
+	answer: z.string().max(ANSWER_MAX).optional(),
+});
+
 async function ensureProject(
 	env: AppContext["Bindings"],
 	projectId: string,
@@ -50,6 +69,99 @@ export const sources = new Hono<AppContext>()
 		});
 		return c.json({ sources: rows });
 	})
+	// Promote an inbox reply into a Q&A knowledge source the agent learns from.
+	// Minimum role `agent` (any workspace member): handling conversations is an
+	// agent's job, so turning a good reply into knowledge is too — deliberately
+	// looser than the admin-only URL-source mutations above.
+	.post(
+		"/projects/:projectId/sources/promote",
+		requireRole("agent"),
+		zValidator("json", promoteInput),
+		async (c) => {
+			const { projectId } = c.req.param();
+			const workspaceId = c.get("workspaceId");
+			const { messageId, question, answer } = c.req.valid("json");
+
+			// Tenant isolation (deliberate, step by step — we've shipped a
+			// cross-tenant bug before): the project must belong to the caller's
+			// workspace, the message must exist, and its conversation must belong to
+			// THIS project. Any miss ⇒ 404 (never reveal another tenant's data, and
+			// never let a foreign messageId be promoted into this project).
+			const proj = await ensureProject(c.env, projectId, workspaceId);
+			if (!proj) return c.json({ error: "not found" }, 404);
+
+			const msg = await db(c.env).query.message.findFirst({
+				where: (mt, { eq: e }) => e(mt.id, messageId),
+			});
+			if (!msg) return c.json({ error: "not found" }, 404);
+
+			const conv = await db(c.env).query.conversation.findFirst({
+				where: (ct, { eq: e }) => e(ct.id, msg.conversationId),
+			});
+			if (!conv || conv.projectId !== projectId) {
+				return c.json({ error: "not found" }, 404);
+			}
+
+			// Dedupe on provenance: re-promoting the same reply is a no-op (return the
+			// existing source) rather than a duplicate Q&A in the knowledge base.
+			const existing = await db(c.env).query.source.findFirst({
+				where: (s, { and: a, eq: e }) =>
+					a(e(s.projectId, projectId), e(s.sourceMessageId, messageId)),
+			});
+			if (existing) {
+				return c.json({ source: existing, deduped: true });
+			}
+
+			// Answer: the override (if any), else the message body. Required non-empty
+			// — a blank answer carries no knowledge. Clamp the derived default too
+			// (an absent override skips the schema's max).
+			const finalAnswer = (answer ?? msg.content).trim().slice(0, ANSWER_MAX);
+			if (!finalAnswer) {
+				return c.json({ error: "answer required" }, 400);
+			}
+
+			// Question: the override if the field was sent at all (empty allowed),
+			// else the nearest preceding visitor message in this conversation. A
+			// conversation that opens with the bot (no earlier visitor turn) yields an
+			// empty question — that's fine, the answer still teaches.
+			let finalQuestion: string;
+			if (question !== undefined) {
+				finalQuestion = question.trim().slice(0, QUESTION_MAX);
+			} else {
+				const prev = await db(c.env).query.message.findFirst({
+					where: (mt, { and: a, eq: e, lt }) =>
+						a(
+							e(mt.conversationId, msg.conversationId),
+							e(mt.role, "user"),
+							lt(mt.sequence, msg.sequence),
+						),
+					orderBy: (mt, { desc: d }) => d(mt.sequence),
+				});
+				finalQuestion = (prev?.content ?? "").trim().slice(0, QUESTION_MAX);
+			}
+
+			const content = `Q: ${finalQuestion}\nA: ${finalAnswer}`;
+			// Title from the question (the human-readable handle); fall back to the
+			// answer when there's no question, so a qa row is never blank-titled.
+			const title = (finalQuestion || finalAnswer).slice(0, TITLE_LEN);
+
+			const [created] = await db(c.env)
+				.insert(source)
+				.values({
+					projectId,
+					kind: "qa",
+					url: null,
+					title,
+					content,
+					question: finalQuestion,
+					answer: finalAnswer,
+					sourceMessageId: messageId,
+					active: true,
+				})
+				.returning();
+			return c.json({ source: created });
+		},
+	)
 	.post(
 		"/projects/:projectId/sources",
 		requireRole("admin"),
@@ -152,6 +264,10 @@ export const sources = new Hono<AppContext>()
 					a(e(s.id, id), e(s.projectId, projectId)),
 			});
 			if (!existing) return c.json({ error: "not found" }, 404);
+			// Only URL sources can be recrawled; qa/text sources have no url to fetch.
+			if (!existing.url) {
+				return c.json({ error: "source has no url to refresh" }, 400);
+			}
 
 			const fetched = await tryFetch(existing.url);
 			const [updated] = await db(c.env)

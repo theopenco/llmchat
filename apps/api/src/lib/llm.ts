@@ -39,11 +39,16 @@ export function buildSystem(
 					s.content.length > perSource
 						? `${s.content.slice(0, perSource)}…`
 						: s.content;
-				return `## Source ${i + 1}: ${s.title}\nURL: ${s.url}\n\n${body}`;
+				// URL-less sources (manual text, promoted Q&A) omit the URL line
+				// rather than printing "URL: " — the title is their handle.
+				const head = s.url
+					? `## Source ${i + 1}: ${s.title}\nURL: ${s.url}`
+					: `## Source ${i + 1}: ${s.title}`;
+				return `${head}\n\n${body}`;
 			})
 			.join("\n\n");
 		parts.push(
-			`# Reference sources\n\nThe following content was fetched from URLs the operator marked as active sources. Cite the source title or URL when you use information from them.\n\n${rendered}`,
+			`# Reference sources\n\nThe following content comes from sources the operator marked active — fetched web pages and Q&A the team promoted from past conversations. Cite the source title or URL when you use information from them.\n\n${rendered}`,
 		);
 	}
 	return parts.join("\n\n");
