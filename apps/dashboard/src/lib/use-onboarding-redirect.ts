@@ -15,7 +15,11 @@ const DISMISSED_KEY = "Clanker Support:onboarding:dismissed";
  * or leave the account, or pay). They still can't USE the product (inbox /
  * projects) without a plan, so the paywall isn't bypassed.
  */
-const ESCAPE_PREFIXES = ["/settings/account", "/settings/billing"];
+const ESCAPE_PREFIXES = [
+	"/settings/account",
+	"/settings/billing",
+	"/settings/workspaces",
+];
 
 /** Marks onboarding as dismissed so the redirect below stops firing. */
 export function dismissOnboarding() {
