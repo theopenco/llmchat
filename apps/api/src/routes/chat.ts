@@ -230,8 +230,10 @@ export const chat = new Hono<AppContext>()
 				systemPrompt: activePromptContent,
 				knowledgeText: project.knowledgeText,
 				sources: activeSources.map((s) => ({
-					title: s.title || s.url,
-					url: s.url,
+					// qa/text sources have no url; fall back to the title for the label
+					// and pass "" for the (now-optional) url so buildSystem omits it.
+					title: s.title || s.url || "",
+					url: s.url ?? "",
 					content: s.content,
 				})),
 				messages: messages as UIMessage[],

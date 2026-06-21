@@ -218,9 +218,25 @@ export const source = sqliteTable(
 		projectId: text()
 			.notNull()
 			.references(() => project.id, { onDelete: "cascade" }),
-		url: text().notNull(),
+		// How this source was created / what it holds:
+		//   "url"  — a fetched web page (the original v1 source; keeps a non-null url)
+		//   "text" — manually-entered free text (no url)
+		//   "qa"   — a Q&A pair promoted from an inbox reply (no url; see question/answer)
+		// Default "url" so every pre-existing row backfills to the original kind.
+		kind: text({ enum: ["url", "text", "qa"] })
+			.notNull()
+			.default("url"),
+		// Nullable now: only "url" sources have a URL. text/qa sources have none.
+		url: text(),
 		title: text().notNull().default(""),
 		content: text().notNull().default(""),
+		// For "qa" sources: the question/answer kept separately from `content` so the
+		// pair can be displayed/edited later without re-parsing the "Q:/A:" blob.
+		question: text(),
+		answer: text(),
+		// Provenance + dedupe for promoted Q&A: the message this was promoted from.
+		// Lets a repeated promote of the same reply no-op instead of duplicating.
+		sourceMessageId: text(),
 		active: integer({ mode: "boolean" }).notNull().default(true),
 		lastFetchedAt: timestamp(),
 		lastError: text(),

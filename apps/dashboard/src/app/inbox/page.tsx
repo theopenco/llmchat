@@ -183,6 +183,16 @@ export default function InboxPage() {
 	const selectedConv = allConversations.find((c) => c.id === selectedId);
 	const detailConv = thread.conversation ?? selectedConv ?? null;
 
+	// Context for the "Add to knowledge" action on admin replies — only once a
+	// project + workspace are resolved.
+	const projectName =
+		projects.data?.projects.find((p) => p.id === projectId)?.name ??
+		"this agent";
+	const knowledge =
+		projectId && workspaceId
+			? { projectId, projectName, workspaceId }
+			: undefined;
+
 	// Mark a conversation read for this user. Optimistically clears the unread dot
 	// in-cache across the head + loaded pages (so a row deep in a loaded page
 	// clears instantly without any refetch), then PATCHes. Best-effort: on failure
@@ -445,6 +455,7 @@ export default function InboxPage() {
 							hasOlder={thread.hasOlder}
 							onLoadOlder={thread.loadOlder}
 							loadingOlder={thread.loadingOlder}
+							knowledge={knowledge}
 						/>
 					))
 				}

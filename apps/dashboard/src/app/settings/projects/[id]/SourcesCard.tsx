@@ -43,6 +43,15 @@ function sourceStatus(s: Source): {
 			className: "border-border bg-muted text-muted-foreground",
 		};
 	}
+	// Non-URL sources (Q&A promoted from a reply, or manual text) aren't crawled,
+	// so the fetch-based states below don't apply — show what they are instead.
+	if (s.kind !== "url") {
+		return {
+			label: s.kind === "qa" ? "Q&A" : "Text",
+			className:
+				"border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+		};
+	}
 	if (!s.lastFetchedAt) {
 		return {
 			label: "Pending",
@@ -167,10 +176,12 @@ export function SourcesCard({
 									<Globe className="size-4" />
 								</span>
 								<div className="min-w-0 flex-1">
+									{/* url sources lead with the URL (title as subline); url-less
+									    qa/text sources have no URL, so the title leads. */}
 									<p className="truncate text-sm font-medium text-foreground">
-										{s.url}
+										{s.url ?? s.title}
 									</p>
-									{s.title && (
+									{s.url && s.title && (
 										<p className="truncate text-xs text-muted-foreground">
 											{s.title}
 										</p>
@@ -188,25 +199,28 @@ export function SourcesCard({
 									</span>
 								)}
 								<div className="flex shrink-0 items-center gap-1">
-									<Button
-										type="button"
-										variant="ghost"
-										size="icon"
-										className="size-8 text-muted-foreground hover:text-foreground"
-										onClick={() => onRefresh(s.id)}
-										disabled={refreshing}
-										aria-label={`Recrawl ${s.url}`}
-										title="Recrawl"
-									>
-										<RefreshCw className={cn(refreshing && "animate-spin")} />
-									</Button>
+									{/* Only URL sources can be recrawled; qa/text have no URL. */}
+									{s.url && (
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											className="size-8 text-muted-foreground hover:text-foreground"
+											onClick={() => onRefresh(s.id)}
+											disabled={refreshing}
+											aria-label={`Recrawl ${s.url}`}
+											title="Recrawl"
+										>
+											<RefreshCw className={cn(refreshing && "animate-spin")} />
+										</Button>
+									)}
 									<Button
 										type="button"
 										variant="ghost"
 										size="icon"
 										className="size-8 text-muted-foreground hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
 										onClick={() => onDelete(s.id)}
-										aria-label={`Delete ${s.url}`}
+										aria-label={`Delete ${s.url ?? s.title}`}
 										title="Delete"
 									>
 										<Trash2 />

@@ -9,7 +9,16 @@ import { cn } from "@/lib/utils";
 
 import { formatMessageTime } from "./format";
 import { Highlighted } from "./highlight";
+import { PromoteToKnowledge } from "./PromoteToKnowledge";
 import type { Message } from "./types";
+
+/** Context for the "Add to knowledge" action on admin replies. Absent (e.g. in
+ * tests, or before a project/workspace resolves) ⇒ the action isn't rendered. */
+export interface KnowledgeContext {
+	projectId: string;
+	projectName: string;
+	workspaceId: string;
+}
 
 /** Case-insensitive "does this message contain the term" — used to find the
  * first hit to scroll to. Mirrors the (case-insensitive) highlight matching. */
@@ -59,12 +68,18 @@ function MessageBubble({
 	message,
 	search,
 	firstHit,
+	knowledge,
+	knowledgeQuestion,
 }: {
 	message: Message;
 	/** Active search term; occurrences are highlighted via the shared component. */
 	search: string;
 	/** True for the first message in the thread that matches — the scroll target. */
 	firstHit: boolean;
+	/** When set (and this is an admin reply), shows the "Add to knowledge" action. */
+	knowledge?: KnowledgeContext;
+	/** Nearest preceding visitor message — the default question for this reply. */
+	knowledgeQuestion: string;
 }) {
 	const { side, label, labelClass } =
 		ROLE[message.role as keyof typeof ROLE] ?? ROLE.user;
@@ -97,6 +112,16 @@ function MessageBubble({
 			</span>
 			{message.role === "assistant" && (
 				<RatingIndicator rating={message.rating} />
+			)}
+			{message.role === "admin" && knowledge && (
+				<PromoteToKnowledge
+					projectId={knowledge.projectId}
+					projectName={knowledge.projectName}
+					workspaceId={knowledge.workspaceId}
+					messageId={message.id}
+					defaultQuestion={knowledgeQuestion}
+					defaultAnswer={message.content}
+				/>
 			)}
 		</div>
 	);
@@ -148,6 +173,7 @@ export function MessageThread({
 	hasOlder = false,
 	onLoadOlder,
 	loadingOlder = false,
+	knowledge,
 }: {
 	messages: Message[];
 	/** Active inbox search term. When set, every occurrence is highlighted in the
@@ -159,6 +185,8 @@ export function MessageThread({
 	onLoadOlder?: () => void;
 	/** True while an older page is being fetched. */
 	loadingOlder?: boolean;
+	/** Enables the "Add to knowledge" action on admin replies. */
+	knowledge?: KnowledgeContext;
 }) {
 	const { containerRef, atBottom, scrollToBottom } =
 		useStickToBottom<HTMLDivElement>({
@@ -188,6 +216,20 @@ export function MessageThread({
 		prevFirstId.current = firstId;
 		prevScrollHeight.current = el.scrollHeight;
 	});
+
+	// For each admin reply, the nearest preceding visitor message in the loaded
+	// window — the default question when promoting it to knowledge. (The server
+	// independently derives this from the DB when the field is left blank, so a
+	// reply whose question is in an unloaded older page is still handled.)
+	const questionByAdminId = useMemo(() => {
+		const map = new Map<string, string>();
+		let lastVisitor = "";
+		for (const m of messages) {
+			if (m.role === "user") lastVisitor = m.content;
+			else if (m.role === "admin") map.set(m.id, lastVisitor);
+		}
+		return map;
+	}, [messages]);
 
 	// The first message (in order) containing the term — the scroll target. A
 	// stable id, so the scroll effect below fires once per open/term-change, not
@@ -243,6 +285,8 @@ export function MessageThread({
 						message={m}
 						search={search}
 						firstHit={m.id === firstHitId}
+						knowledge={knowledge}
+						knowledgeQuestion={questionByAdminId.get(m.id) ?? ""}
 					/>
 				),
 			)}
