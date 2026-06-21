@@ -1,3 +1,5 @@
+import { DatabaseSync } from "node:sqlite";
+
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -669,6 +671,47 @@ describe("inbox tag filter (tagIds)", () => {
 		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
 		await get("/projects/p1/conversations?tagIds=%20%20", MEMBER);
 		expect(whereSql()).not.toContain("conversation_tag");
+	});
+
+	it("a conversation with 2+ of the filtered tags appears EXACTLY ONCE (IN-subquery, no JOIN dup)", async () => {
+		// Capture the route's ACTUAL generated WHERE, then execute it verbatim
+		// against a real SQLite seeded with one conversation that carries BOTH
+		// filtered tags. A JOIN-style filter would return it twice; the IN-subquery
+		// returns it once. This proves the predicate itself, not the mock.
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		await get("/projects/p1/conversations?tagIds=t1,t2", MEMBER);
+		expect(lastConversationWhere).not.toBeNull();
+		const { sql, params } = dialect.sqlToQuery(lastConversationWhere!);
+
+		const db = new DatabaseSync(":memory:");
+		db.exec(
+			`CREATE TABLE conversation (id text PRIMARY KEY, project_id text, archived_at integer, updated_at integer);`,
+		);
+		db.exec(
+			`CREATE TABLE conversation_tag (id text PRIMARY KEY, conversation_id text, tag_id text);`,
+		);
+		// One conversation, two matching associations (t1 AND t2).
+		db.exec(
+			`INSERT INTO conversation (id, project_id, archived_at, updated_at) VALUES ('c1','p1',NULL,100);`,
+		);
+		db.exec(
+			`INSERT INTO conversation_tag (id, conversation_id, tag_id) VALUES ('a1','c1','t1'),('a2','c1','t2');`,
+		);
+		// A control conversation with a non-matching tag must NOT appear.
+		db.exec(
+			`INSERT INTO conversation (id, project_id, archived_at, updated_at) VALUES ('c2','p1',NULL,90);`,
+		);
+		db.exec(
+			`INSERT INTO conversation_tag (id, conversation_id, tag_id) VALUES ('a3','c2','tX');`,
+		);
+
+		const rows = db
+			.prepare(
+				`SELECT id FROM conversation WHERE ${sql} ORDER BY updated_at DESC`,
+			)
+			.all(...(params as (string | number)[]));
+		// Exactly one row, no duplication despite two matching tags.
+		expect(rows.map((r) => (r as { id: string }).id)).toEqual(["c1"]);
 	});
 });
 
