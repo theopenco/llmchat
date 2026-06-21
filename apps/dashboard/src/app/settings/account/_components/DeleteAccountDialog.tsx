@@ -4,7 +4,6 @@ import { useState } from "react";
 
 import {
 	AlertDialog,
-	AlertDialogAction,
 	AlertDialogCancel,
 	AlertDialogContent,
 	AlertDialogDescription,
@@ -12,6 +11,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -23,6 +23,8 @@ export interface DeleteAccountDialogProps {
 	/** When true, the user has a password and must re-enter it to confirm. */
 	requirePassword: boolean;
 	pending: boolean;
+	/** A failure message to surface inline (so deletion never fails silently). */
+	error?: string | null;
 	onConfirm: (input: { confirmEmail: string; password?: string }) => void;
 }
 
@@ -39,6 +41,7 @@ export function DeleteAccountDialog({
 	email,
 	requirePassword,
 	pending,
+	error,
 	onConfirm,
 }: DeleteAccountDialogProps) {
 	const [confirmEmail, setConfirmEmail] = useState("");
@@ -110,15 +113,27 @@ export function DeleteAccountDialog({
 						</div>
 					)}
 
+					{/* Surface any failure inline so deletion never fails silently. */}
+					{error && (
+						<p role="alert" className="text-sm text-destructive">
+							{error}
+						</p>
+					)}
+
 					<AlertDialogFooter>
 						<AlertDialogCancel type="button">Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							type="submit"
-							disabled={!armed}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-						>
+						{/*
+						 * A plain submit Button — NOT AlertDialogAction. AlertDialogAction
+						 * auto-closes the dialog on click (onOpenChange(false)); under React
+						 * 18 that flush unmounts this <form> before the browser dispatches
+						 * the native `submit`, so onSubmit/onConfirm never ran and no DELETE
+						 * was issued (the original dead-button bug). This button submits the
+						 * form without closing — the dialog stays mounted through the async
+						 * delete (showing "Deleting…") and closes only on success.
+						 */}
+						<Button type="submit" variant="destructive" disabled={!armed}>
 							{pending ? "Deleting…" : "Delete account"}
-						</AlertDialogAction>
+						</Button>
 					</AlertDialogFooter>
 				</form>
 			</AlertDialogContent>
