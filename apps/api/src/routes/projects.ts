@@ -24,7 +24,9 @@ import {
 
 import type { AppContext } from "@/env";
 
-const projectInput = z.object({
+// CREATE keeps the defaults so a project can be made from just `{ name }` — the
+// unspecified columns get sensible starting values on insert.
+const projectCreateInput = z.object({
 	name: z.string().min(1),
 	systemPrompt: z.string().default(""),
 	activeSystemPromptId: z.string().nullable().optional(),
@@ -33,6 +35,28 @@ const projectInput = z.object({
 	brandColor: z.string().default("#000000"),
 	welcomeMessage: z.string().default("Hi! How can I help you today?"),
 	escalationThreshold: z.number().int().min(1).default(3),
+	notifyEmail: z.email().nullable().optional(),
+	slackWebhookUrl: z.url().nullable().optional(),
+	favorite: z.boolean().optional(),
+	pinned: z.boolean().optional(),
+});
+
+// UPDATE must carry NO defaults: in Zod v4 a `.default()` still fires on an
+// absent key even under `.partial()`, so reusing the create schema would
+// re-materialize every defaulted field on a single-field PATCH and clobber the
+// untouched columns (system prompt, model, brand color, …) — and the favorite/
+// pin toggle, which sends one key, was wiping the whole config. With no
+// defaults, an omitted field stays omitted and `db.update().set()` only writes
+// the keys actually provided.
+const projectUpdateInput = z.object({
+	name: z.string().min(1).optional(),
+	systemPrompt: z.string().optional(),
+	activeSystemPromptId: z.string().nullable().optional(),
+	knowledgeText: z.string().optional(),
+	model: z.string().optional(),
+	brandColor: z.string().optional(),
+	welcomeMessage: z.string().optional(),
+	escalationThreshold: z.number().int().min(1).optional(),
 	notifyEmail: z.email().nullable().optional(),
 	slackWebhookUrl: z.url().nullable().optional(),
 	favorite: z.boolean().optional(),
@@ -63,7 +87,7 @@ export const projects = new Hono<AppContext>()
 	.post(
 		"/projects",
 		requireRole("admin"),
-		zValidator("json", projectInput),
+		zValidator("json", projectCreateInput),
 		async (c) => {
 			const workspaceId = c.get("workspaceId");
 			const data = c.req.valid("json");
@@ -99,7 +123,7 @@ export const projects = new Hono<AppContext>()
 	.patch(
 		"/projects/:id",
 		requireRole("admin"),
-		zValidator("json", projectInput.partial()),
+		zValidator("json", projectUpdateInput),
 		async (c) => {
 			const { id } = c.req.param();
 			const workspaceId = c.get("workspaceId");

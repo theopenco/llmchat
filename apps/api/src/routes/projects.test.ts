@@ -36,12 +36,25 @@ interface State {
 
 let insertSpy: ReturnType<typeof vi.fn>;
 let deleteSpy: ReturnType<typeof vi.fn>;
+let updateSpy: ReturnType<typeof vi.fn>;
+/** The exact object handed to `.update().set(...)` on the last PATCH — lets a
+ * test assert ONLY the provided fields are written (no defaulted siblings). */
+let lastSetData: Record<string, unknown> | null;
 
 function mockDb(state: State) {
 	insertSpy = vi.fn(() => ({
 		values: () => ({ returning: async () => [{ id: "p_new", name: "New" }] }),
 	}));
 	deleteSpy = vi.fn(() => ({ where: async () => [] }));
+	lastSetData = null;
+	updateSpy = vi.fn(() => ({
+		set: (data: Record<string, unknown>) => {
+			lastSetData = data;
+			return {
+				where: () => ({ returning: async () => [{ id: "p1", ...data }] }),
+			};
+		},
+	}));
 	const fake = {
 		query: {
 			member: {
@@ -61,6 +74,7 @@ function mockDb(state: State) {
 		}),
 		insert: insertSpy,
 		delete: deleteSpy,
+		update: updateSpy,
 	};
 	vi.mocked(db).mockReturnValue(fake as unknown as ReturnType<typeof db>);
 	return state;
@@ -214,5 +228,80 @@ describe("RBAC — read & delete", () => {
 		});
 		expect(res.status).toBe(200);
 		expect(deleteSpy).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("PATCH /projects/:id — partial update never clobbers siblings", () => {
+	const hdr = { "x-test-user": "u1", "x-workspace-id": "ws_1", ...json };
+
+	function patch(body: Record<string, unknown>) {
+		return req("/projects/p1", {
+			method: "PATCH",
+			headers: hdr,
+			body: JSON.stringify(body),
+		});
+	}
+
+	// The core regression: editing ONE field must write ONLY that column. Before
+	// the schema split, the create schema's defaults re-materialized every
+	// defaulted field on a partial PATCH and wiped the untouched columns.
+	it.each([
+		["brandColor", "#abcabc"],
+		["systemPrompt", "You are a helpful assistant."],
+		["welcomeMessage", "Hey there!"],
+		["knowledgeText", "some knowledge"],
+		["model", "gpt-5.4-mini"],
+		["escalationThreshold", 5],
+		["name", "Renamed bot"],
+	])("PATCH { %s } writes only that field to .set()", async (field, value) => {
+		mockDb({ role: "admin", existingProject: { id: "p1" }, plan: "scale" });
+		const res = await patch({ [field]: value });
+		expect(res.status).toBe(200);
+		// Exactly one column written — no defaulted siblings.
+		expect(lastSetData).toEqual({ [field]: value });
+	});
+
+	it("favorite toggle writes ONLY favorite (the worst clobber path)", async () => {
+		mockDb({ role: "admin", existingProject: { id: "p1" } });
+		const res = await patch({ favorite: true });
+		expect(res.status).toBe(200);
+		expect(lastSetData).toEqual({ favorite: true });
+	});
+
+	it("pin toggle writes ONLY pinned", async () => {
+		mockDb({ role: "admin", existingProject: { id: "p1" } });
+		const res = await patch({ pinned: true });
+		expect(res.status).toBe(200);
+		expect(lastSetData).toEqual({ pinned: true });
+	});
+
+	it("the model gate runs ONLY when model is in the request", async () => {
+		// Starter disallows premium models. Editing brand color (no model key) must
+		// NOT trip the gate — and must not write a model column.
+		mockDb({ role: "admin", existingProject: { id: "p1" }, plan: "starter" });
+		const ok = await patch({ brandColor: "#123123" });
+		expect(ok.status).toBe(200);
+		expect(lastSetData).toEqual({ brandColor: "#123123" });
+
+		// Actually changing model to a premium one on starter is still gated.
+		mockDb({ role: "admin", existingProject: { id: "p1" }, plan: "starter" });
+		const blocked = await patch({ model: "claude-opus-4-8" });
+		expect(blocked.status).toBe(402);
+		expect(await blocked.json()).toMatchObject({ error: "model_not_allowed" });
+		expect(updateSpy).not.toHaveBeenCalled();
+	});
+
+	it("403s an agent and never updates", async () => {
+		mockDb({ role: "agent", existingProject: { id: "p1" } });
+		const res = await patch({ brandColor: "#000000" });
+		expect(res.status).toBe(403);
+		expect(updateSpy).not.toHaveBeenCalled();
+	});
+
+	it("404s a project outside the caller's workspace, never updates", async () => {
+		mockDb({ role: "admin", existingProject: undefined });
+		const res = await patch({ brandColor: "#000000" });
+		expect(res.status).toBe(404);
+		expect(updateSpy).not.toHaveBeenCalled();
 	});
 });
