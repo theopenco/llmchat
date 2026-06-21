@@ -73,6 +73,46 @@ async function stripePost<T>(
 	return JSON.parse(text) as T;
 }
 
+async function stripeGet<T>(secretKey: string, path: string): Promise<T> {
+	const res = await fetch(`${STRIPE_API}${path}`, {
+		headers: { Authorization: `Bearer ${secretKey}` },
+	});
+	const text = await res.text();
+	if (!res.ok) {
+		let message = "request failed";
+		try {
+			message =
+				(JSON.parse(text) as { error?: { message?: string } })?.error
+					?.message ?? message;
+		} catch {
+			// Non-JSON error body — keep the default; raw text is on .body.
+		}
+		throw new StripeError(res.status, text, message);
+	}
+	return JSON.parse(text) as T;
+}
+
+/** A Stripe subscription — only the status we gate on. The full Stripe status
+ * set: active, trialing, past_due, unpaid, paused, canceled, incomplete,
+ * incomplete_expired. */
+export interface StripeSubscription {
+	id: string;
+	status: string;
+}
+
+/** Fetch a subscription by id. Throws StripeError on a non-2xx (e.g. the sub
+ * was deleted ⇒ 404) — the account-deletion gate treats any throw as
+ * "can't verify" and fails closed. */
+export function retrieveSubscription(
+	secretKey: string,
+	id: string,
+): Promise<StripeSubscription> {
+	return stripeGet<StripeSubscription>(
+		secretKey,
+		`/subscriptions/${encodeURIComponent(id)}`,
+	);
+}
+
 export interface StripeCustomer {
 	id: string;
 }
