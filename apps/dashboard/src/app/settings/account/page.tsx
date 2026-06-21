@@ -253,6 +253,7 @@ export default function AccountSettingsPage() {
 					email={acct.email}
 					requirePassword={acct.hasPassword}
 					pending={remove.isPending}
+					error={remove.isError ? deleteErrorMessage(remove.error) : null}
 					onConfirm={(body) => remove.mutate(body)}
 				/>
 			)}
