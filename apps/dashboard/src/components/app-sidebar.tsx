@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -20,6 +20,7 @@ import {
 
 import { CreateWorkspaceDialog } from "@/app/settings/workspaces/_components/CreateWorkspaceDialog";
 
+import { ACCOUNT_KEY, fetchAccount } from "@/lib/account";
 import { api } from "@/lib/api";
 import { useSignOut } from "@/lib/use-sign-out";
 import { useWorkspace } from "@/lib/workspace";
@@ -109,7 +110,13 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 	const router = useRouter();
 	const { workspaces, workspaceId, setWorkspaceId, role } = useWorkspace();
 	const handleSignOut = useSignOut();
+	const qc = useQueryClient();
 	const [createWorkspaceOpen, setCreateWorkspaceOpen] = useState(false);
+
+	// Warm the account page's React Query cache as soon as the user menu opens,
+	// so the page renders with data instead of a skeleton after navigating.
+	const prefetchAccount = () =>
+		qc.prefetchQuery({ queryKey: ACCOUNT_KEY, queryFn: fetchAccount });
 	const initials = userEmail.slice(0, 2).toUpperCase();
 	const roleLabel = role ? role[0].toUpperCase() + role.slice(1) : "Member";
 
@@ -318,7 +325,11 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 			<SidebarFooter>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<DropdownMenu>
+						<DropdownMenu
+							onOpenChange={(open) => {
+								if (open) prefetchAccount();
+							}}
+						>
 							<DropdownMenuTrigger asChild>
 								<SidebarMenuButton
 									size="lg"
@@ -348,7 +359,12 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 								</DropdownMenuLabel>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem asChild>
-									<Link href="/settings/account">
+									<Link
+										href="/settings/account"
+										prefetch
+										onMouseEnter={prefetchAccount}
+										onFocus={prefetchAccount}
+									>
 										<UserCog />
 										Account
 									</Link>
