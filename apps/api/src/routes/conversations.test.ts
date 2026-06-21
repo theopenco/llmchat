@@ -1,10 +1,18 @@
+import { DatabaseSync } from "node:sqlite";
+
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { db } from "@/lib/db";
 
-import { conversation, message, readStatus } from "@llmchat/db";
+import {
+	conversation,
+	conversationTag,
+	message,
+	readStatus,
+	tag as tagTable,
+} from "@llmchat/db";
 
 import { conversations } from "./conversations";
 
@@ -55,7 +63,26 @@ interface State {
 	conv?: Row;
 	/** Rows the thread message window query returns (relational findMany). */
 	threadMessages?: Row[];
+	/** Batched per-page tag rows (conversation_tag ⨝ tag) for the list response. */
+	tagRows?: {
+		conversationId: string;
+		id: string;
+		name: string;
+		color: string | null;
+	}[];
+	/** A tag resolved by id on attach (undefined ⇒ 404, e.g. foreign workspace). */
+	tag?: Row;
+	/** Existing (conversation,tag) association for the idempotency check. */
+	existingAssoc?: Row;
+	/** Tag lookup result for findOrCreateTag's dedupe select (attach-by-name). */
+	tagLookup?: Row[];
 }
+
+/** How many times the batched per-page tag query (conversation_tag) ran — used
+ * to assert the list attaches tags in ONE query (no N+1). */
+let conversationTagSelects: number;
+let insertSpy: ReturnType<typeof vi.fn>;
+let deleteSpy: ReturnType<typeof vi.fn>;
 
 /** Records the shape of every message-table query so tests can assert the
  * content-search queries are scoped via a conversation join. */
@@ -66,6 +93,17 @@ let lastConversationWhere: Parameters<typeof dialect.sqlToQuery>[0] | null;
 function mockDb(state: State) {
 	messageQueries = [];
 	lastConversationWhere = null;
+	conversationTagSelects = 0;
+	insertSpy = vi.fn(() => ({
+		values: (data: Record<string, unknown>) => {
+			const result = [{ id: "row_new", ...data }];
+			const ret = { returning: async () => result };
+			// `.values()` is awaited directly for join inserts and `.returning()`ed
+			// for tag inserts, so it must be both thenable and expose returning.
+			return Object.assign(Promise.resolve(result), ret);
+		},
+	}));
+	deleteSpy = vi.fn(() => ({ where: async () => [] }));
 
 	function builder(distinct: boolean) {
 		const q = { table: null as unknown, joined: false };
@@ -80,6 +118,12 @@ function mockDb(state: State) {
 				return state.firstMessages ?? [];
 			}
 			if (q.table === conversation) return state.conversationRows ?? [];
+			if (q.table === conversationTag) {
+				// The batched per-page tag join (list response).
+				conversationTagSelects += 1;
+				return state.tagRows ?? [];
+			}
+			if (q.table === tagTable) return state.tagLookup ?? [];
 			if (q.table === readStatus) return [];
 			return [];
 		};
@@ -133,9 +177,17 @@ function mockDb(state: State) {
 			message: {
 				findMany: async () => state.threadMessages ?? [],
 			},
+			tag: {
+				findFirst: async () => state.tag,
+			},
+			conversationTag: {
+				findFirst: async () => state.existingAssoc,
+			},
 		},
 		select: () => builder(false),
 		selectDistinct: () => builder(true),
+		insert: insertSpy,
+		delete: deleteSpy,
 	};
 	vi.mocked(db).mockReturnValue(fake as unknown as ReturnType<typeof db>);
 }
@@ -565,5 +617,265 @@ describe("thread pagination (GET conversations/:id)", () => {
 		mockDb({});
 		const res = await get("/projects/p1/conversations/cThread", MEMBER);
 		expect(res.status).toBe(403);
+	});
+});
+
+const JSONH = { "content-type": "application/json" };
+function send(
+	path: string,
+	method: string,
+	body?: unknown,
+	headers: Record<string, string> = MEMBER,
+) {
+	return conversations.request(
+		path,
+		{
+			method,
+			headers: body ? { ...headers, ...JSONH } : headers,
+			body: body ? JSON.stringify(body) : undefined,
+		},
+		ENV,
+	);
+}
+
+describe("inbox tag filter (tagIds)", () => {
+	it("adds an OR subquery on conversation_tag, still project-scoped", async () => {
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		await get("/projects/p1/conversations?tagIds=t1,t2", MEMBER);
+		const sql = whereSql();
+		expect(sql).toContain("conversation_tag");
+		expect(sql).toContain("in (select");
+		expect(sql).toContain('"project_id"');
+	});
+
+	it("composes with archived + search + cursor in one WHERE", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conversationRows: [],
+			bodyMatchIds: ["cZ"],
+		});
+		const cursor = encodeCursor({ updatedAt: 250, id: "cMid" });
+		await get(
+			`/projects/p1/conversations?tagIds=t1&archived=true&search=refund&cursor=${cursor}`,
+			MEMBER,
+		);
+		const sql = whereSql();
+		expect(sql).toContain("conversation_tag"); // tag filter
+		expect(sql).toContain('"archived_at" is not null'); // archived
+		expect(sql).toContain("like"); // search
+		expect(sql).toContain('"updated_at" <'); // keyset cursor
+	});
+
+	it("empty/whitespace tagIds adds NO tag predicate", async () => {
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		await get("/projects/p1/conversations?tagIds=%20%20", MEMBER);
+		expect(whereSql()).not.toContain("conversation_tag");
+	});
+
+	it("a conversation with 2+ of the filtered tags appears EXACTLY ONCE (IN-subquery, no JOIN dup)", async () => {
+		// Capture the route's ACTUAL generated WHERE, then execute it verbatim
+		// against a real SQLite seeded with one conversation that carries BOTH
+		// filtered tags. A JOIN-style filter would return it twice; the IN-subquery
+		// returns it once. This proves the predicate itself, not the mock.
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		await get("/projects/p1/conversations?tagIds=t1,t2", MEMBER);
+		expect(lastConversationWhere).not.toBeNull();
+		const { sql, params } = dialect.sqlToQuery(lastConversationWhere!);
+
+		const db = new DatabaseSync(":memory:");
+		db.exec(
+			`CREATE TABLE conversation (id text PRIMARY KEY, project_id text, archived_at integer, updated_at integer);`,
+		);
+		db.exec(
+			`CREATE TABLE conversation_tag (id text PRIMARY KEY, conversation_id text, tag_id text);`,
+		);
+		// One conversation, two matching associations (t1 AND t2).
+		db.exec(
+			`INSERT INTO conversation (id, project_id, archived_at, updated_at) VALUES ('c1','p1',NULL,100);`,
+		);
+		db.exec(
+			`INSERT INTO conversation_tag (id, conversation_id, tag_id) VALUES ('a1','c1','t1'),('a2','c1','t2');`,
+		);
+		// A control conversation with a non-matching tag must NOT appear.
+		db.exec(
+			`INSERT INTO conversation (id, project_id, archived_at, updated_at) VALUES ('c2','p1',NULL,90);`,
+		);
+		db.exec(
+			`INSERT INTO conversation_tag (id, conversation_id, tag_id) VALUES ('a3','c2','tX');`,
+		);
+
+		const rows = db
+			.prepare(
+				`SELECT id FROM conversation WHERE ${sql} ORDER BY updated_at DESC`,
+			)
+			.all(...(params as (string | number)[]));
+		// Exactly one row, no duplication despite two matching tags.
+		expect(rows.map((r) => (r as { id: string }).id)).toEqual(["c1"]);
+	});
+});
+
+describe("inbox list — tags attached per page (no N+1)", () => {
+	it("attaches each conversation's tags in ONE batched query", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conversationRows: [
+				{ id: "cA", name: "Bob", email: null, messageCount: 1 },
+				{ id: "cB", name: "Ada", email: null, messageCount: 1 },
+			],
+			tagRows: [
+				{ conversationId: "cA", id: "t1", name: "Billing", color: "#6366f1" },
+				{ conversationId: "cA", id: "t2", name: "VIP", color: "#ef4444" },
+				{ conversationId: "cB", id: "t1", name: "Billing", color: "#6366f1" },
+			],
+		});
+		const res = await get("/projects/p1/conversations", MEMBER);
+		const body = (await res.json()) as {
+			conversations: { id: string; tags: { id: string; name: string }[] }[];
+		};
+		expect(body.conversations[0]!.tags.map((t) => t.id)).toEqual(["t1", "t2"]);
+		expect(body.conversations[1]!.tags.map((t) => t.name)).toEqual(["Billing"]);
+		// Exactly one conversation_tag query for the whole page — not one per row.
+		expect(conversationTagSelects).toBe(1);
+	});
+
+	it("returns an empty tags array when a conversation has none", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conversationRows: [
+				{ id: "cA", name: "Bob", email: null, messageCount: 1 },
+			],
+			tagRows: [],
+		});
+		const res = await get("/projects/p1/conversations", MEMBER);
+		const body = (await res.json()) as { conversations: { tags: unknown[] }[] };
+		expect(body.conversations[0]!.tags).toEqual([]);
+	});
+});
+
+describe("attach tag — POST conversations/:id/tags", () => {
+	const CONV = { id: "c1", projectId: "p1" };
+
+	it("attaches an existing workspace tag by id (idempotent: inserts once)", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: CONV,
+			tag: { id: "t1", name: "Billing", color: "#6366f1", workspaceId: "ws_1" },
+			existingAssoc: undefined,
+		});
+		const res = await send("/projects/p1/conversations/c1/tags", "POST", {
+			tagId: "t1",
+		});
+		expect(res.status).toBe(200);
+		expect((await res.json()) as unknown).toMatchObject({
+			tag: { id: "t1", name: "Billing" },
+		});
+		expect(insertSpy).toHaveBeenCalledTimes(1);
+	});
+
+	it("is idempotent: an existing association is not re-inserted", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: CONV,
+			tag: { id: "t1", name: "Billing", color: null, workspaceId: "ws_1" },
+			existingAssoc: { id: "a1", conversationId: "c1", tagId: "t1" },
+		});
+		const res = await send("/projects/p1/conversations/c1/tags", "POST", {
+			tagId: "t1",
+		});
+		expect(res.status).toBe(200);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("404s a tag from another workspace; never inserts (no cross-workspace attach)", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: CONV,
+			tag: undefined, // the workspace-scoped tag lookup finds nothing
+		});
+		const res = await send("/projects/p1/conversations/c1/tags", "POST", {
+			tagId: "foreign",
+		});
+		expect(res.status).toBe(404);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("404s when the project isn't in the caller's workspace", async () => {
+		mockDb({ role: "owner", project: undefined });
+		const res = await send("/projects/pX/conversations/c1/tags", "POST", {
+			tagId: "t1",
+		});
+		expect(res.status).toBe(404);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("404s when the conversation isn't in the project", async () => {
+		mockDb({ role: "agent", project: PROJECT, conv: undefined });
+		const res = await send("/projects/p1/conversations/nope/tags", "POST", {
+			tagId: "t1",
+		});
+		expect(res.status).toBe(404);
+	});
+
+	it("create-and-attach by name (no existing tag) mints the tag then associates", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: CONV,
+			tagLookup: [], // findOrCreateTag finds no existing → creates
+			existingAssoc: undefined,
+		});
+		const res = await send("/projects/p1/conversations/c1/tags", "POST", {
+			name: "Refunds",
+		});
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as { tag: { name: string } };
+		expect(body.tag.name).toBe("Refunds");
+		// One insert for the tag + one for the association.
+		expect(insertSpy).toHaveBeenCalledTimes(2);
+	});
+
+	it("400s when neither tagId nor name is provided", async () => {
+		mockDb({ role: "agent", project: PROJECT, conv: CONV });
+		const res = await send("/projects/p1/conversations/c1/tags", "POST", {});
+		expect(res.status).toBe(400);
+	});
+
+	it("403s a non-member", async () => {
+		mockDb({});
+		const res = await send("/projects/p1/conversations/c1/tags", "POST", {
+			tagId: "t1",
+		});
+		expect(res.status).toBe(403);
+	});
+});
+
+describe("detach tag — DELETE conversations/:id/tags/:tagId", () => {
+	const CONV = { id: "c1", projectId: "p1" };
+
+	it("detaches and is no-op-safe when not attached", async () => {
+		mockDb({ role: "agent", project: PROJECT, conv: CONV });
+		const res = await send("/projects/p1/conversations/c1/tags/t1", "DELETE");
+		expect(res.status).toBe(200);
+		expect(deleteSpy).toHaveBeenCalledTimes(1);
+	});
+
+	it("404s when the project isn't in the caller's workspace; never deletes", async () => {
+		mockDb({ role: "owner", project: undefined });
+		const res = await send("/projects/pX/conversations/c1/tags/t1", "DELETE");
+		expect(res.status).toBe(404);
+		expect(deleteSpy).not.toHaveBeenCalled();
+	});
+
+	it("403s a non-member; never deletes", async () => {
+		mockDb({});
+		const res = await send("/projects/p1/conversations/c1/tags/t1", "DELETE");
+		expect(res.status).toBe(403);
+		expect(deleteSpy).not.toHaveBeenCalled();
 	});
 });

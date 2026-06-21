@@ -12,6 +12,7 @@ import { oauthProviders } from "@/routes/oauth-providers";
 import { projects } from "@/routes/projects";
 import { sources } from "@/routes/sources";
 import { systemPrompts } from "@/routes/system-prompts";
+import { tags } from "@/routes/tags";
 import { widgetAsset } from "@/routes/widget-asset";
 import { widgetConfig } from "@/routes/widget-config";
 import { widgetCsat } from "@/routes/widget-csat";
@@ -87,6 +88,7 @@ app.route("/api", workspaces);
 app.route("/api", projects);
 app.route("/api", systemPrompts);
 app.route("/api", sources);
+app.route("/api", tags);
 app.route("/api", conversations);
 app.route("/", inboundEmail);
 // Billing mounts at root so the webhook is reachable at /billing/webhook

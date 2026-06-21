@@ -2,6 +2,7 @@
 
 import {
 	useInfiniteQuery,
+	useMutation,
 	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
@@ -22,9 +23,11 @@ import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { ConversationList } from "./_components/ConversationList";
 import { ConversationListSkeleton } from "./_components/ConversationListSkeleton";
 import {
+	addTagToConversation,
 	dropConversationFromCache,
 	flattenPages,
 	mergeConversationPages,
+	removeTagFromConversation,
 	setConversationRead,
 	type ConversationPage,
 } from "./_components/conversation-list";
@@ -39,8 +42,10 @@ import { MessageThread } from "./_components/MessageThread";
 import { appendOptimisticReply } from "./_components/optimistic-updaters";
 import { ProjectSwitcher } from "./_components/ProjectSwitcher";
 import { ReplyComposer } from "./_components/ReplyComposer";
+import { TagChip } from "./_components/TagChip";
+import { TagPicker } from "./_components/TagPicker";
 import { useThreadMessages } from "./_components/useThreadMessages";
-import type { ConversationStats } from "./_components/types";
+import type { ConversationStats, Tag } from "./_components/types";
 import type { ProjectOption } from "./_components/ProjectSwitcher";
 
 const PAGE_SIZE = 30;
@@ -58,6 +63,7 @@ export default function InboxPage() {
 	const [reply, setReply] = useState("");
 	const [search, setSearch] = useState("");
 	const [showArchived, setShowArchived] = useState(false);
+	const [tagIds, setTagIds] = useState<string[]>([]);
 	// Contact-details sheet (mobile/tablet); on desktop details are a permanent aside.
 	const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -69,6 +75,15 @@ export default function InboxPage() {
 				workspaceId: workspaceId!,
 			}),
 	});
+
+	// Workspace tags drive the toolbar filter + the per-conversation picker.
+	const tagsQuery = useQuery({
+		queryKey: ["tags", workspaceId],
+		enabled: !!workspaceId,
+		queryFn: () =>
+			api<{ tags: Tag[] }>("/api/tags", { workspaceId: workspaceId! }),
+	});
+	const allTags = tagsQuery.data?.tags ?? [];
 
 	// Keep the selected project valid for the current workspace; a stale id
 	// (e.g. after a workspace switch) falls back to the first project.
@@ -92,15 +107,18 @@ export default function InboxPage() {
 
 	// Build the list query string for a given cursor. Search + archived go to the
 	// server (pre-resolved before LIMIT), so they compose with keyset paging.
+	// Stable joined key for the tag filter so it slots into query keys + params.
+	const tagFilterKey = tagIds.join(",");
 	const listParams = useCallback(
 		(cursor?: string) => {
 			const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
 			if (debouncedSearch) params.set("search", debouncedSearch);
 			if (showArchived) params.set("archived", "true");
+			if (tagFilterKey) params.set("tagIds", tagFilterKey);
 			if (cursor) params.set("cursor", cursor);
 			return params.toString();
 		},
-		[debouncedSearch, showArchived],
+		[debouncedSearch, showArchived, tagFilterKey],
 	);
 
 	// The paginated list: keyset cursor, NO polling (a background refetch of an
@@ -113,6 +131,7 @@ export default function InboxPage() {
 			"list",
 			debouncedSearch,
 			showArchived,
+			tagFilterKey,
 		],
 		enabled: !!projectId && !!workspaceId,
 		initialPageParam: undefined as string | undefined,
@@ -134,6 +153,7 @@ export default function InboxPage() {
 			"head",
 			debouncedSearch,
 			showArchived,
+			tagFilterKey,
 		],
 		enabled: !!projectId && !!workspaceId,
 		refetchInterval: 5_000,
@@ -192,6 +212,76 @@ export default function InboxPage() {
 		projectId && workspaceId
 			? { projectId, projectName, workspaceId }
 			: undefined;
+
+	// Tags for the open conversation come from the LIST cache row (the thread
+	// endpoint doesn't carry tags), so one optimistic write updates both the row
+	// chips and the thread picker.
+	const selectedTags = selectedConv?.tags ?? [];
+
+	// Attach/detach EXISTING tags optimistically — same prefix-key pattern as
+	// archive/delete: the chip appears/disappears across every list cache variant
+	// instantly, rolls back on failure, and only the head is revalidated.
+	const attachTagMut = useOptimisticMutation<{ id: string; tag: Tag }>({
+		queryKey: ["conversations", projectId],
+		invalidateKey: ["conversations", projectId, "head"],
+		apply: (prev, vars) => addTagToConversation(prev, vars.id, vars.tag),
+		mutationFn: (vars) =>
+			api(`/api/projects/${projectId}/conversations/${vars.id}/tags`, {
+				method: "POST",
+				body: { tagId: vars.tag.id },
+				workspaceId: workspaceId!,
+			}),
+		onError: (e) => toast.error(describeApiError(e, "Failed to add tag")),
+	});
+
+	const detachTagMut = useOptimisticMutation<{ id: string; tagId: string }>({
+		queryKey: ["conversations", projectId],
+		invalidateKey: ["conversations", projectId, "head"],
+		apply: (prev, vars) => removeTagFromConversation(prev, vars.id, vars.tagId),
+		mutationFn: (vars) =>
+			api(
+				`/api/projects/${projectId}/conversations/${vars.id}/tags/${vars.tagId}`,
+				{ method: "DELETE", workspaceId: workspaceId! },
+			),
+		onError: (e) => toast.error(describeApiError(e, "Failed to remove tag")),
+	});
+
+	// Create-and-attach a NEW tag: a normal awaited mutation (the server must mint
+	// the id + color first), then graft the returned tag into the cache and
+	// refresh the tag list so the new tag shows in the picker/filter.
+	const createTagMut = useMutation({
+		mutationFn: (vars: { id: string; name: string }) =>
+			api<{ tag: Tag }>(
+				`/api/projects/${projectId}/conversations/${vars.id}/tags`,
+				{
+					method: "POST",
+					body: { name: vars.name },
+					workspaceId: workspaceId!,
+				},
+			),
+		onSuccess: ({ tag }, vars) => {
+			qc.setQueriesData({ queryKey: ["conversations", projectId] }, (prev) =>
+				addTagToConversation(prev, vars.id, tag),
+			);
+			void qc.invalidateQueries({ queryKey: ["tags", workspaceId] });
+			void qc.invalidateQueries({
+				queryKey: ["conversations", projectId, "head"],
+			});
+		},
+		onError: (e) => toast.error(describeApiError(e, "Failed to create tag")),
+	});
+
+	function handleToggleTag(tag: Tag) {
+		if (!selectedId) return;
+		const on = selectedTags.some((t) => t.id === tag.id);
+		if (on) detachTagMut.mutate({ id: selectedId, tagId: tag.id });
+		else attachTagMut.mutate({ id: selectedId, tag });
+	}
+
+	function handleCreateTag(name: string) {
+		if (!selectedId) return;
+		createTagMut.mutate({ id: selectedId, name });
+	}
 
 	// Mark a conversation read for this user. Optimistically clears the unread dot
 	// in-cache across the head + loaded pages (so a row deep in a loaded page
@@ -384,6 +474,9 @@ export default function InboxPage() {
 						setShowArchived(archived);
 						setSelectedId(null);
 					}}
+					tags={allTags}
+					tagIds={tagIds}
+					onTagIdsChange={setTagIds}
 				/>
 			</div>
 
@@ -438,6 +531,26 @@ export default function InboxPage() {
 								<Badge variant="warning" className="shrink-0">
 									Escalated
 								</Badge>
+							)}
+							{selectedId && (
+								<div className="flex flex-wrap items-center justify-end gap-1">
+									{selectedTags.map((t) => (
+										<TagChip
+											key={t.id}
+											tag={t}
+											onRemove={(tagId) =>
+												detachTagMut.mutate({ id: selectedId, tagId })
+											}
+										/>
+									))}
+									<TagPicker
+										tags={allTags}
+										attachedIds={selectedTags.map((t) => t.id)}
+										onToggle={handleToggleTag}
+										onCreate={handleCreateTag}
+										creating={createTagMut.isPending}
+									/>
+								</div>
 							)}
 						</>
 					)

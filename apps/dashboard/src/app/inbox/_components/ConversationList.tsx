@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 import { initials, pluralize, timeAgo } from "./format";
 import { Highlighted } from "./highlight";
+import { TagChip } from "./TagChip";
 import type { Conversation, SearchMatch } from "./types";
 
 /** Short label shown before a name/email match so the agent knows where the term
@@ -100,12 +101,15 @@ function ConversationRow({
 							"No messages yet"}
 					</p>
 				)}
-				<div className="mt-0.5 flex items-center gap-1.5">
+				<div className="mt-0.5 flex flex-wrap items-center gap-1.5">
 					{escalated && (
 						<Badge variant="warning" className="h-4 px-1.5 text-[10px]">
 							Escalated
 						</Badge>
 					)}
+					{conversation.tags?.map((t) => (
+						<TagChip key={t.id} tag={t} />
+					))}
 					<span className="text-[11px] text-muted-foreground/70">
 						{pluralize(conversation.messageCount, "message")}
 					</span>

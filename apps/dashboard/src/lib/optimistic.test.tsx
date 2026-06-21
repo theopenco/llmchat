@@ -3,6 +3,8 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { addTagToConversation } from "@/app/inbox/_components/conversation-list";
+
 import { dropById, mapById, useOptimisticMutation } from "./optimistic";
 
 function makeClient() {
@@ -114,6 +116,20 @@ describe("useOptimisticMutation", () => {
 					"a",
 					(p) => ({ ...p, pinned: true }),
 				),
+		},
+		{
+			// Tag attach: the chip is added optimistically, then a failed POST must
+			// restore the conversation's original (tag-less) state.
+			name: "conversation tag attach",
+			key: ["conversations", "p1", "", false],
+			partial: ["conversations", "p1"],
+			seed: { conversations: [{ id: "a" }] },
+			apply: (prev: unknown) =>
+				addTagToConversation(prev, "a", {
+					id: "t1",
+					name: "Billing",
+					color: "#6366f1",
+				}),
 		},
 	];
 

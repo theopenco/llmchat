@@ -1,4 +1,4 @@
-import type { Conversation } from "./types";
+import type { Conversation, Tag } from "./types";
 
 /** A single list page from the API. */
 export interface ConversationPage {
@@ -93,5 +93,37 @@ export function dropConversationFromCache(prev: unknown, id: string): unknown {
 export function setConversationRead(prev: unknown, id: string): unknown {
 	return mapConversationsInCache(prev, (list) =>
 		list.map((c) => (c.id === id ? { ...c, unread: false } : c)),
+	);
+}
+
+/** Optimistic updater: attach a tag to a conversation across head + infinite
+ * caches. Idempotent (skips if already present) and immutable. */
+export function addTagToConversation(
+	prev: unknown,
+	id: string,
+	tag: Tag,
+): unknown {
+	return mapConversationsInCache(prev, (list) =>
+		list.map((c) => {
+			if (c.id !== id) return c;
+			const tags = c.tags ?? [];
+			if (tags.some((t) => t.id === tag.id)) return c;
+			return { ...c, tags: [...tags, tag] };
+		}),
+	);
+}
+
+/** Optimistic updater: detach a tag from a conversation across both caches. */
+export function removeTagFromConversation(
+	prev: unknown,
+	id: string,
+	tagId: string,
+): unknown {
+	return mapConversationsInCache(prev, (list) =>
+		list.map((c) =>
+			c.id === id
+				? { ...c, tags: (c.tags ?? []).filter((t) => t.id !== tagId) }
+				: c,
+		),
 	);
 }
