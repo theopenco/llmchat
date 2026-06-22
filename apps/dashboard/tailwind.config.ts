@@ -22,6 +22,32 @@ const config: Config = {
 				border: "hsl(var(--border))",
 				input: "hsl(var(--input))",
 				ring: "hsl(var(--ring))",
+				// Clanker restyle palette (additive, namespaced `ck`). Backed by the
+				// `--ck-*` CSS vars in globals.css; consumed by components/ds + the
+				// restyled surfaces. Hex-valued (not HSL channels), so use solid
+				// utilities (bg-ck-card, text-ck-muted) rather than /opacity.
+				ck: {
+					board: "var(--ck-board)",
+					app: "var(--ck-app)",
+					sidebar: "var(--ck-sidebar)",
+					topbar: "var(--ck-topbar)",
+					border: "var(--ck-border)",
+					text: "var(--ck-text)",
+					muted: "var(--ck-muted)",
+					faint: "var(--ck-faint)",
+					disabled: "var(--ck-disabled)",
+					navhover: "var(--ck-navhover)",
+					card: "var(--ck-card)",
+					track: "var(--ck-track)",
+					chip: "var(--ck-chip)",
+					accent: {
+						DEFAULT: "var(--ck-accent)",
+						hover: "var(--ck-accent-hover)",
+						soft: "var(--ck-accent-soft)",
+						border: "var(--ck-accent-border)",
+					},
+					warn: "var(--ck-warn)",
+				},
 				background: "hsl(var(--background))",
 				foreground: "hsl(var(--foreground))",
 				primary: {

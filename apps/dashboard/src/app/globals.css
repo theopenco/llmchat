@@ -83,6 +83,57 @@
 		--sidebar-ring: 239 84% 67%;
 	}
 
+	/*
+	 * Clanker restyle design tokens ("Command Bar" visual language, from the
+	 * approved Claude Design spec). Additive + namespaced `--ck-*` so they never
+	 * override the existing shadcn tokens above — the current shell and every
+	 * un-restyled page keep their look. New surfaces (Billing first, then the
+	 * shell) consume these via the `ck` Tailwind color scale + the components/ds
+	 * primitives. The `.dark` class (set by next-themes) swaps the whole set, so
+	 * the existing Light/Dark/System switcher drives these for free.
+	 */
+	:root {
+		--ck-board: #e7e5df;
+		--ck-app: #f6f6f7;
+		--ck-sidebar: #fbfbfc;
+		--ck-topbar: #ffffff;
+		--ck-border: #ececef;
+		--ck-text: #18181b;
+		--ck-muted: #5b5b64;
+		--ck-faint: #9a9aa3;
+		--ck-disabled: #b6b6bf;
+		--ck-navhover: #f0f0f3;
+		--ck-card: #ffffff;
+		--ck-track: #ebebf0;
+		--ck-chip: #f0f0f3;
+		--ck-accent: #4f46e5; /* indigo-600 — light-mode accent */
+		--ck-accent-hover: #4338ca;
+		--ck-accent-soft: rgba(79, 70, 229, 0.08);
+		--ck-accent-border: rgba(79, 70, 229, 0.35);
+		--ck-warn: #b45309; /* amber — overage/reference only, never a fake limit */
+	}
+
+	.dark {
+		--ck-board: #0a0b0d;
+		--ck-app: #0f1116;
+		--ck-sidebar: #14161b;
+		--ck-topbar: #101218;
+		--ck-border: #23262e;
+		--ck-text: #e9eaec;
+		--ck-muted: #9a9da4;
+		--ck-faint: #62646c;
+		--ck-disabled: #4d5159;
+		--ck-navhover: #1b1e25;
+		--ck-card: #14161b;
+		--ck-track: #252832;
+		--ck-chip: #1b1e25;
+		--ck-accent: #6366f1; /* indigo-500 — dark-mode accent */
+		--ck-accent-hover: #7679f2;
+		--ck-accent-soft: rgba(99, 102, 241, 0.13);
+		--ck-accent-border: rgba(99, 102, 241, 0.34);
+		--ck-warn: #e0a13f;
+	}
+
 	/* Every border/divider resolves to the token. Without this, Tailwind v3
 	   preflight falls back to gray-200 — near-white lines that slash the dark
 	   panes. This is the global fix for the dark-mode "white lines". */

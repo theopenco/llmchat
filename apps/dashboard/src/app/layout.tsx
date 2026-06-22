@@ -21,7 +21,9 @@ const display = Bricolage_Grotesque({
 });
 const sans = Hanken_Grotesk({
 	subsets: ["latin"],
-	weight: ["400", "500", "600", "700"],
+	// 800 added for the restyle's extrabold headings (still self-hosted by
+	// next/font — no CDN, no layout shift).
+	weight: ["400", "500", "600", "700", "800"],
 	variable: "--font-sans",
 	display: "swap",
 });

@@ -19,10 +19,10 @@ import type { PaidPlan } from "@llmchat/shared";
 
 import { BillingNotice } from "./_components/BillingNotice";
 import { BillingSkeleton } from "./_components/BillingSkeleton";
-import { CurrentPlanCard } from "./_components/CurrentPlanCard";
+import { TIERS } from "./_components/billing-plans";
+import { PlanTiers } from "./_components/PlanTiers";
+import { PlanUsageCard } from "./_components/PlanUsageCard";
 import { StatusBanner } from "./_components/StatusBanner";
-import { TierGrid } from "./_components/TierGrid";
-import { UsageCard } from "./_components/UsageCard";
 
 const redirect = (url: string) => {
 	window.location.href = url;
@@ -45,6 +45,7 @@ function BillingContent() {
 
 	const plan = workspaces.find((w) => w.id === workspaceId)?.plan ?? "none";
 	const isOwner = role === "owner";
+	const priceUsdMonthly = TIERS.find((t) => t.plan === plan)?.priceUsdMonthly;
 
 	// Real usage-this-month (plan, entitlements, counts) for the meters.
 	const usageQ = useQuery({
@@ -82,13 +83,13 @@ function BillingContent() {
 	const selecting = checkout.isPending ? (checkout.variables ?? null) : null;
 
 	return (
-		<div className="mx-auto w-full max-w-[1100px] space-y-6 p-6">
+		<div className="mx-auto w-full max-w-[1040px] space-y-6 p-6">
 			<header className="space-y-1">
-				<h1 className="font-display text-2xl font-semibold tracking-tight-display">
-					Billing
+				<h1 className="text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
+					Billing &amp; usage
 				</h1>
-				<p className="text-sm text-muted-foreground">
-					Manage your workspace plan and subscription.
+				<p className="text-sm text-ck-muted">
+					One metered unit = one agent response. Metering is approximate today.
 				</p>
 			</header>
 
@@ -96,40 +97,41 @@ function BillingContent() {
 			{error && <BillingNotice message={error} />}
 
 			{exempt && (
-				<div className="rounded-lg border border-primary/40 bg-primary/5 p-4 text-sm">
-					<p className="font-medium text-foreground">
+				<div className="rounded-[10px] border border-ck-accent-border bg-ck-accent-soft p-4 text-sm">
+					<p className="font-semibold text-ck-text">
 						Internal account — full access, no billing.
 					</p>
-					<p className="mt-1 text-muted-foreground">
-						This workspace is exempt from plan limits and isn’t charged.
+					<p className="mt-1 text-ck-muted">
+						This workspace is exempt from plan limits and isn&apos;t charged.
 					</p>
 				</div>
 			)}
 
-			<div className="grid gap-4 md:grid-cols-2">
-				{!exempt && (
-					<CurrentPlanCard
+			{usageQ.data && (
+				<div className="max-w-xl">
+					<PlanUsageCard
 						plan={plan}
-						pending={portal.isPending}
-						disabled={!isOwner}
-						onManage={() => portal.mutate()}
-					/>
-				)}
-				{usageQ.data && (
-					<UsageCard
+						priceUsdMonthly={priceUsdMonthly}
+						exempt={exempt}
 						usage={usageQ.data.usage}
 						entitlements={usageQ.data.entitlements}
+						monthStartUnix={usageQ.data.monthStartUnix}
+						isOwner={isOwner}
+						managing={portal.isPending}
+						onManage={() => portal.mutate()}
 					/>
-				)}
-			</div>
+				</div>
+			)}
 
 			{!exempt && (
 				<>
 					<div className="space-y-3">
-						<h2 className="font-display text-lg font-semibold tracking-tight-display">
-							Plans
-						</h2>
-						<TierGrid
+						<div className="flex items-center gap-2">
+							<span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-ck-faint">
+								Plans
+							</span>
+						</div>
+						<PlanTiers
 							currentPlan={plan}
 							availablePlans={usageQ.data?.availablePlans}
 							selecting={selecting}
@@ -138,14 +140,14 @@ function BillingContent() {
 						/>
 					</div>
 
-					<div className="flex items-start gap-2.5 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+					<div className="flex items-start gap-2.5 rounded-[10px] border border-ck-border bg-ck-chip p-4 text-sm text-ck-muted">
 						<CreditCard className="mt-0.5 size-4 shrink-0" />
 						<p>
-							<span className="font-medium text-foreground">
+							<span className="font-semibold text-ck-text">
 								A card is required to start.
 							</span>{" "}
 							Every plan is paid — pick a tier and add a card to put your agent
-							live. You’re billed monthly and can change or cancel anytime.
+							live. You&apos;re billed monthly and can change or cancel anytime.
 							{!isOwner && " Only a workspace owner can manage billing."}
 						</p>
 					</div>

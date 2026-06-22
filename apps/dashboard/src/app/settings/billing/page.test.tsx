@@ -99,7 +99,8 @@ describe("BillingPage", () => {
 		vi.mocked(startCheckout).mockResolvedValue(session);
 		renderPage();
 
-		expect(screen.getByText("No subscription")).toBeInTheDocument();
+		// The plan card resolves with usage; the tier CTAs render immediately.
+		expect(await screen.findByText("No subscription")).toBeInTheDocument();
 		await clickButton(userEvent.setup(), /choose starter/i);
 		expect(startCheckout).toHaveBeenCalledWith("ws_1", "starter");
 		await waitFor(() =>
@@ -142,11 +143,15 @@ describe("BillingPage", () => {
 		vi.mocked(openPortal).mockResolvedValue("https://billing.stripe.com/x");
 		renderPage();
 
-		// Growth tier shows as current; the others remain selectable.
+		// Growth tier shows as current; the others remain selectable. Manage lives
+		// in the plan card, which resolves with usage.
+		const manage = await screen.findByRole("button", {
+			name: /manage in stripe/i,
+		});
 		expect(
 			screen.getByRole("button", { name: /current plan/i }),
 		).toBeInTheDocument();
-		await clickButton(userEvent.setup(), /manage billing/i);
+		await userEvent.setup().click(manage);
 		expect(openPortal).toHaveBeenCalledWith("ws_1");
 		expect(startCheckout).not.toHaveBeenCalled();
 	});
@@ -155,10 +160,36 @@ describe("BillingPage", () => {
 		setWorkspace("growth");
 		vi.mocked(fetchUsage).mockResolvedValue(usageFor("growth"));
 		renderPage();
-		// 42 responses / 8,000 included (Growth's real quota).
+		// The real response count (42) and the real included quota (8,000) — both
+		// straight from /billing/usage, nothing hardcoded.
+		await waitFor(() => expect(screen.getByText("42")).toBeInTheDocument());
+		expect(screen.getByText(/toward 8,000 plan limit/i)).toBeInTheDocument();
+	});
+
+	// The plan-limit bar is the ONLY designed-not-enforced element; it must carry
+	// the honest caption so it never reads as a hard cap.
+	it("labels the plan-limit bar as not enforced (reference only)", async () => {
+		setWorkspace("growth");
+		vi.mocked(fetchUsage).mockResolvedValue(usageFor("growth"));
+		renderPage();
 		await waitFor(() =>
-			expect(screen.getByText(/42 \/ 8,000/)).toBeInTheDocument(),
+			expect(screen.getByText(/shown for reference/i)).toBeInTheDocument(),
 		);
+		expect(screen.getByText(/aren.t enforced yet/i)).toBeInTheDocument();
+	});
+
+	// Data honesty: no endpoint exposes the card, so the page must never invent
+	// one. "Manage in Stripe" is the only payment-method affordance.
+	it("never fabricates payment-method details (no card on file shown)", async () => {
+		setWorkspace("growth");
+		vi.mocked(fetchUsage).mockResolvedValue(usageFor("growth"));
+		renderPage();
+		await waitFor(() =>
+			expect(
+				screen.getByRole("button", { name: /manage in stripe/i }),
+			).toBeInTheDocument(),
+		);
+		expect(screen.queryByText(/4242|visa|·{2,}|payment method/i)).toBeNull();
 	});
 
 	it("renders unconfigured tiers as 'Coming soon' (no fake checkout)", async () => {
