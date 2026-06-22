@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -113,7 +114,7 @@ export default function AccountSettingsPage() {
 	);
 
 	return (
-		<div className="mx-auto w-full max-w-[800px] space-y-6 p-6">
+		<PageContainer className="space-y-6">
 			<header>
 				<h1 className="font-display text-2xl font-semibold tracking-tight-display">
 					Account
@@ -257,6 +258,6 @@ export default function AccountSettingsPage() {
 					onConfirm={(body) => remove.mutate(body)}
 				/>
 			)}
-		</div>
+		</PageContainer>
 	);
 }
