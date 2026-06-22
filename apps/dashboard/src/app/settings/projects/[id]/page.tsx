@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ds";
+import { PageContainer } from "@/components/page-container";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ACCOUNT_KEY, fetchAccount } from "@/lib/account";
 import { api } from "@/lib/api";
@@ -91,13 +92,13 @@ export default function ProjectSettingsPage() {
 
 	if (!project || !draft) {
 		return (
-			<div className="mx-auto max-w-[1000px] px-6 py-8">
+			<PageContainer>
 				<Skeleton className="h-8 w-64" />
 				<div className="mt-6 flex gap-6">
 					<Skeleton className="h-40 w-44 shrink-0 rounded-2xl" />
 					<Skeleton className="h-80 flex-1 rounded-2xl" />
 				</div>
-			</div>
+			</PageContainer>
 		);
 	}
 
@@ -121,7 +122,7 @@ export default function ProjectSettingsPage() {
 	}
 
 	return (
-		<div className="mx-auto max-w-[1000px] px-6 py-8">
+		<PageContainer>
 			<header className="mb-6">
 				<h1 className="truncate text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
 					{project.name}
@@ -171,7 +172,8 @@ export default function ProjectSettingsPage() {
 			{/* One save bar for all tabs — saves only the dirty fields (PATCH partial). */}
 			{dirty && (
 				<div className="fixed inset-x-0 bottom-0 z-20 border-t border-ck-border bg-ck-topbar/95 backdrop-blur md:left-60">
-					<div className="mx-auto flex max-w-[1000px] items-center justify-between gap-3 px-6 py-3">
+					{/* Inner width matches PageContainer so the bar lines up with content. */}
+					<div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-6 py-3 sm:px-8">
 						<span className="text-[12.5px] text-ck-muted">Unsaved changes</span>
 						<div className="flex items-center gap-2">
 							<Button
@@ -196,6 +198,6 @@ export default function ProjectSettingsPage() {
 				onConfirm={() => remove.mutate()}
 				pending={remove.isPending}
 			/>
-		</div>
+		</PageContainer>
 	);
 }

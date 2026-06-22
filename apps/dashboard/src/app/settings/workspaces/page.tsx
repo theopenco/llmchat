@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { PageContainer } from "@/components/page-container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,7 +80,7 @@ export default function WorkspacesSettingsPage() {
 				: null;
 
 	return (
-		<div className="mx-auto w-full max-w-[800px] space-y-6 p-6">
+		<PageContainer className="space-y-6">
 			<header className="flex items-start justify-between gap-4">
 				<div>
 					<h1 className="font-display text-2xl font-semibold tracking-tight-display">
@@ -181,6 +182,6 @@ export default function WorkspacesSettingsPage() {
 					onConfirm={() => remove.mutate(deleting.id)}
 				/>
 			)}
-		</div>
+		</PageContainer>
 	);
 }

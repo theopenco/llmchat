@@ -5,6 +5,7 @@ import { CreditCard } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import { PageContainer } from "@/components/page-container";
 import {
 	fetchUsage,
 	isBillingNotConfigured,
@@ -83,7 +84,7 @@ function BillingContent() {
 	const selecting = checkout.isPending ? (checkout.variables ?? null) : null;
 
 	return (
-		<div className="mx-auto w-full max-w-[1040px] space-y-6 p-6">
+		<PageContainer className="space-y-6">
 			<header className="space-y-1">
 				<h1 className="text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
 					Billing &amp; usage
@@ -153,7 +154,7 @@ function BillingContent() {
 					</div>
 				</>
 			)}
-		</div>
+		</PageContainer>
 	);
 }
 

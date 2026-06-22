@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ds";
+import { PageContainer } from "@/components/page-container";
 import {
 	Empty,
 	EmptyContent,
@@ -139,7 +140,7 @@ export default function ProjectsPage() {
 	const { pinned, rest } = partitionPinned(filtered);
 
 	return (
-		<div className="mx-auto max-w-5xl px-6 py-10">
+		<PageContainer>
 			<div className="mb-8 flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
@@ -282,7 +283,7 @@ export default function ProjectsPage() {
 					)}
 				</div>
 			)}
-		</div>
+		</PageContainer>
 	);
 }
 

@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { useParams } from "next/navigation";
 
 import { Button } from "@/components/ds";
+import { PageContainer } from "@/components/page-container";
 import { api } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 
@@ -47,7 +48,7 @@ export default function SourcesPage() {
 		useSourceMutations(id, workspaceId);
 
 	return (
-		<div className="mx-auto max-w-3xl px-6 py-8">
+		<PageContainer>
 			<header className="mb-6 flex items-start justify-between gap-4">
 				<div>
 					<div className="flex items-center gap-2.5">
@@ -92,6 +93,6 @@ export default function SourcesPage() {
 				addQaPending={addQa.isPending}
 				refreshingId={refreshSource.isPending ? refreshSource.variables : null}
 			/>
-		</div>
+		</PageContainer>
 	);
 }
