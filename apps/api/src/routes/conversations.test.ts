@@ -83,6 +83,7 @@ interface State {
 let conversationTagSelects: number;
 let insertSpy: ReturnType<typeof vi.fn>;
 let deleteSpy: ReturnType<typeof vi.fn>;
+let updateSpy: ReturnType<typeof vi.fn>;
 
 /** Records the shape of every message-table query so tests can assert the
  * content-search queries are scoped via a conversation join. */
@@ -104,6 +105,7 @@ function mockDb(state: State) {
 		},
 	}));
 	deleteSpy = vi.fn(() => ({ where: async () => [] }));
+	updateSpy = vi.fn(() => ({ set: () => ({ where: async () => [] }) }));
 
 	function builder(distinct: boolean) {
 		const q = { table: null as unknown, joined: false };
@@ -188,6 +190,7 @@ function mockDb(state: State) {
 		selectDistinct: () => builder(true),
 		insert: insertSpy,
 		delete: deleteSpy,
+		update: updateSpy,
 	};
 	vi.mocked(db).mockReturnValue(fake as unknown as ReturnType<typeof db>);
 }
@@ -895,5 +898,60 @@ describe("detach tag — DELETE conversations/:id/tags/:tagId", () => {
 		const res = await send("/projects/p1/conversations/c1/tags/t1", "DELETE");
 		expect(res.status).toBe(403);
 		expect(deleteSpy).not.toHaveBeenCalled();
+	});
+});
+
+// Tenant-scoping sweep: the conversation mutations must scope by (id AND
+// projectId), never a bare global id. `conv: undefined` models the scoped
+// findFirst returning nothing for a cross-tenant target → 404, no mutation.
+describe("conversation IDOR — tenant scoping on mutations", () => {
+	it("DELETE 404s a conversation id from another tenant's project — never deletes", async () => {
+		mockDb({ role: "admin", project: PROJECT, conv: undefined });
+		const res = await send("/projects/p1/conversations/conv_from_B", "DELETE");
+		expect(res.status).toBe(404);
+		expect(deleteSpy).not.toHaveBeenCalled();
+	});
+
+	it("DELETE removes a same-tenant conversation (200)", async () => {
+		mockDb({
+			role: "admin",
+			project: PROJECT,
+			conv: { id: "c1", projectId: "p1" },
+		});
+		const res = await send("/projects/p1/conversations/c1", "DELETE");
+		expect(res.status).toBe(200);
+		expect(deleteSpy).toHaveBeenCalledTimes(1);
+	});
+
+	it("PATCH archive 404s a cross-tenant conversation id — never updates", async () => {
+		mockDb({ role: "agent", project: PROJECT, conv: undefined });
+		const res = await send("/projects/p1/conversations/conv_from_B", "PATCH", {
+			archived: true,
+		});
+		expect(res.status).toBe(404);
+		expect(updateSpy).not.toHaveBeenCalled();
+	});
+
+	it("PATCH archives a same-tenant conversation (200)", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: { id: "c1", projectId: "p1", messageCount: 2 },
+		});
+		const res = await send("/projects/p1/conversations/c1", "PATCH", {
+			archived: true,
+		});
+		expect(res.status).toBe(200);
+		expect(updateSpy).toHaveBeenCalled();
+	});
+
+	it("PATCH read 404s a cross-tenant conversation id — never writes a read receipt", async () => {
+		mockDb({ role: "agent", project: PROJECT, conv: undefined });
+		const res = await send("/projects/p1/conversations/conv_from_B", "PATCH", {
+			read: true,
+		});
+		expect(res.status).toBe(404);
+		expect(insertSpy).not.toHaveBeenCalled();
+		expect(updateSpy).not.toHaveBeenCalled();
 	});
 });

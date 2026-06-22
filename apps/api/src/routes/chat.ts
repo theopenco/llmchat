@@ -36,12 +36,35 @@ const optionalEmail = z
 	.optional()
 	.transform((v) => v || undefined);
 
+// Per-message content cap — bounds the attacker-controlled text pushed into the
+// model on the SHARED operator key (mirrors escalate's 8k content cap, adapted
+// to the UIMessage {role, parts:[{type,text}]} shape). Array length stays at
+// 200; each message's text parts cap at 8k, with a sane parts-count ceiling.
+const MAX_MESSAGE_TEXT = 8_000;
+const MAX_MESSAGE_PARTS = 100;
+
 const chatBody = z.object({
 	projectKey: z.string().max(128),
 	clientId: z.string().max(128),
 	name: z.string().max(200).optional(),
 	email: optionalEmail,
-	messages: z.array(z.any()).max(200),
+	messages: z
+		.array(z.any())
+		.max(200)
+		.refine(
+			(msgs) =>
+				msgs.every((m) => {
+					const parts = (m as { parts?: unknown })?.parts;
+					if (parts === undefined) return true;
+					if (!Array.isArray(parts) || parts.length > MAX_MESSAGE_PARTS)
+						return false;
+					return parts.every((p) => {
+						const text = (p as { text?: unknown })?.text;
+						return typeof text !== "string" || text.length <= MAX_MESSAGE_TEXT;
+					});
+				}),
+			{ message: "message content exceeds the size limit" },
+		),
 });
 
 const escalateBody = z.object({

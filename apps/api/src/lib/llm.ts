@@ -21,6 +21,11 @@ export interface LlmCallInput {
 // for knowledge base + conversation history.
 const MAX_SOURCES_CHARS = 80_000;
 
+// Hard ceiling on a single support reply's completion — bounds per-response cost
+// on the shared operator key. A support answer fits comfortably; the summary
+// path caps far tighter (60).
+const MAX_CHAT_OUTPUT_TOKENS = 2_000;
+
 export function buildSystem(
 	systemPrompt: string,
 	knowledgeText: string,
@@ -70,6 +75,9 @@ export async function streamChat(env: Env, input: LlmCallInput) {
 		model: gateway(input.model as any),
 		system: buildSystem(input.systemPrompt, input.knowledgeText, input.sources),
 		messages: await convertToModelMessages(input.messages),
+		// Cap a support reply's length — bounds per-response spend on the shared
+		// operator key regardless of prompt-injection ("write 5000 words…").
+		maxOutputTokens: MAX_CHAT_OUTPUT_TOKENS,
 	});
 }
 
