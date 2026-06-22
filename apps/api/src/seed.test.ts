@@ -44,6 +44,30 @@ describe("production migrations", () => {
 		db.close();
 	});
 
+	it("add the nullable conversation.summary + summary_message_count columns (0014)", () => {
+		// Phase 1 of the conversation-summary feature: the columns must exist in a
+		// freshly-migrated DB, both nullable (NULL = not summarized → snippet
+		// fallback). schema.ts deliberately doesn't declare them yet, so this is the
+		// ground-truth check that the migration applies cleanly.
+		const db = migratedDb();
+		const cols = db.prepare("PRAGMA table_info('conversation')").all() as {
+			name: string;
+			type: string;
+			notnull: number;
+		}[];
+		const byName = Object.fromEntries(cols.map((c) => [c.name, c]));
+		expect(byName.summary, "summary column").toBeTruthy();
+		expect(byName.summary.type.toUpperCase()).toContain("TEXT");
+		expect(byName.summary.notnull, "summary nullable").toBe(0);
+		expect(
+			byName.summary_message_count,
+			"summary_message_count column",
+		).toBeTruthy();
+		expect(byName.summary_message_count.type.toUpperCase()).toContain("INT");
+		expect(byName.summary_message_count.notnull, "marker nullable").toBe(0);
+		db.close();
+	});
+
 	it("contain no seed file (the dev seed lives outside migrations/)", () => {
 		const offending = readdirSync(MIGRATIONS_DIR)
 			.filter((f) => f.endsWith(".sql"))
