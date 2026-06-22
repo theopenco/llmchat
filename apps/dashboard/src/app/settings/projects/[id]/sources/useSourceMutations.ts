@@ -33,6 +33,37 @@ export function useSourceMutations(id: string, workspaceId: string | null) {
 		onError: (e) => toast.error(describeApiError(e, "Could not add source")),
 	});
 
+	// Manual text snippet — hits the dedicated /sources/text create route.
+	const addText = useMutation({
+		mutationFn: (input: { title?: string; content: string }) =>
+			api<{ source: Source }>(`/api/projects/${id}/sources/text`, {
+				method: "POST",
+				body: input,
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["sources", id] });
+			toast.success("Source added");
+		},
+		onError: (e) => toast.error(describeApiError(e, "Could not add source")),
+	});
+
+	// Hand-written Q&A pair — /sources/qa (sibling of promote-a-reply, no
+	// message provenance).
+	const addQa = useMutation({
+		mutationFn: (input: { question: string; answer: string }) =>
+			api<{ source: Source }>(`/api/projects/${id}/sources/qa`, {
+				method: "POST",
+				body: input,
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["sources", id] });
+			toast.success("Source added");
+		},
+		onError: (e) => toast.error(describeApiError(e, "Could not add source")),
+	});
+
 	const refreshSource = useMutation({
 		mutationFn: (sourceId: string) =>
 			api(`/api/projects/${id}/sources/${sourceId}/refresh`, {
@@ -59,5 +90,5 @@ export function useSourceMutations(id: string, workspaceId: string | null) {
 		onError: (e) => toast.error(describeApiError(e, "Could not remove source")),
 	});
 
-	return { addSource, refreshSource, deleteSource };
+	return { addSource, addText, addQa, refreshSource, deleteSource };
 }

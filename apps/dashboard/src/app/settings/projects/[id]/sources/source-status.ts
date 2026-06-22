@@ -29,6 +29,27 @@ export function sourceStatus(
 	return "ready";
 }
 
+/** Per-type source counts for the typed-source rollup cards — real data only. */
+export function countByType(
+	sources: Pick<Source, "kind">[],
+): Record<SourceType, number> {
+	const counts: Record<SourceType, number> = { URL: 0, "Q&A": 0, Text: 0 };
+	for (const s of sources) counts[sourceType(s)] += 1;
+	return counts;
+}
+
+/**
+ * Truthful per-source item count for the Items column. Every source holds
+ * exactly one item today — we fetch one page per URL, store one pair, one
+ * snippet — so this reads "1 page" / "1 pair" / "1 snippet". It's the honest
+ * base for the deep-crawl depth that will later let one URL source span many
+ * pages; no fabricated "142 pages".
+ */
+export function sourceItemLabel(s: Pick<Source, "kind">): string {
+	const t = sourceType(s);
+	return t === "URL" ? "1 page" : t === "Q&A" ? "1 pair" : "1 snippet";
+}
+
 /** ck-token chip styling per status (label + classes). */
 export const STATUS_STYLE: Record<
 	SourceStatus,

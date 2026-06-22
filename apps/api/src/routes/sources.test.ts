@@ -103,6 +103,29 @@ function promote(body: unknown, headers: Record<string, string> = {}) {
 	);
 }
 
+// Generic authed POST for the manual-source routes (text/qa), mirroring
+// `promote` but path-agnostic. Admin role + selected workspace by default.
+function post(
+	path: string,
+	body: unknown,
+	headers: Record<string, string> = {},
+) {
+	return sources.request(
+		path,
+		{
+			method: "POST",
+			headers: {
+				"x-test-user": "u1",
+				"x-workspace-id": "ws_1",
+				"content-type": "application/json",
+				...headers,
+			},
+			body: JSON.stringify(body),
+		},
+		ENV,
+	);
+}
+
 // A conversation that belongs to project p1 (the happy-path tenant chain).
 const okState: State = {
 	role: "agent",
@@ -299,5 +322,209 @@ describe("POST /sources/promote — dedupe", () => {
 		expect(json.source.id).toBe("src_old");
 		expect(json.deduped).toBe(true);
 		expect(insertSpy).not.toHaveBeenCalled();
+	});
+});
+
+// Admin-only manual authoring of url-less sources. Project ∈ workspace; no
+// tenant chain to a message (these aren't promoted), so the state is minimal.
+const authoringState: State = {
+	role: "admin",
+	project: { id: "p1", workspaceId: "ws_1" },
+};
+
+describe("POST /sources/text — manual text snippet", () => {
+	it("creates a text source (kind=text, url=null, content trimmed, title derived)", async () => {
+		mockDb(authoringState);
+		const res = await post("/projects/p1/sources/text", {
+			content: "  We restock on Mondays.  ",
+		});
+		expect(res.status).toBe(200);
+		const json = (await res.json()) as { source: Record<string, unknown> };
+		expect(json.source).toMatchObject({ kind: "text", url: null });
+		expect(lastInsert).toMatchObject({
+			projectId: "p1",
+			kind: "text",
+			url: null,
+			content: "We restock on Mondays.",
+			active: true,
+		});
+		// Title derives from the snippet body when no override is sent.
+		expect(lastInsert?.title).toBe("We restock on Mondays.");
+	});
+
+	it("honors a title override", async () => {
+		mockDb(authoringState);
+		await post("/projects/p1/sources/text", {
+			title: "Restock cadence",
+			content: "Mondays.",
+		});
+		expect(lastInsert?.title).toBe("Restock cadence");
+	});
+
+	it("400s empty content (schema min); never inserts", async () => {
+		mockDb(authoringState);
+		const res = await post("/projects/p1/sources/text", { content: "" });
+		expect(res.status).toBe(400);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("400s whitespace-only content (trim guard); never inserts", async () => {
+		mockDb(authoringState);
+		const res = await post("/projects/p1/sources/text", { content: "   " });
+		expect(res.status).toBe(400);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("403s an agent (admin-only authoring); never inserts", async () => {
+		mockDb({ ...authoringState, role: "agent" });
+		const res = await post("/projects/p1/sources/text", { content: "x" });
+		expect(res.status).toBe(403);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("404s when the project isn't in the caller's workspace; never inserts", async () => {
+		mockDb({ ...authoringState, project: undefined });
+		const res = await post("/projects/p1/sources/text", { content: "x" });
+		expect(res.status).toBe(404);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+});
+
+describe("POST /sources/qa — manual Q&A pair", () => {
+	it("creates a qa source with no provenance (sourceMessageId=null), trimmed", async () => {
+		mockDb(authoringState);
+		const res = await post("/projects/p1/sources/qa", {
+			question: "  Do you ship internationally?  ",
+			answer: "  Yes, to 40 countries.  ",
+		});
+		expect(res.status).toBe(200);
+		expect(lastInsert).toMatchObject({
+			projectId: "p1",
+			kind: "qa",
+			url: null,
+			question: "Do you ship internationally?",
+			answer: "Yes, to 40 countries.",
+			content: "Q: Do you ship internationally?\nA: Yes, to 40 countries.",
+			sourceMessageId: null,
+			active: true,
+		});
+		expect(lastInsert?.title).toBe("Do you ship internationally?");
+	});
+
+	it("400s a missing answer (schema required); never inserts", async () => {
+		mockDb(authoringState);
+		const res = await post("/projects/p1/sources/qa", { question: "Q?" });
+		expect(res.status).toBe(400);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("400s a whitespace-only question (trim guard); never inserts", async () => {
+		mockDb(authoringState);
+		const res = await post("/projects/p1/sources/qa", {
+			question: "   ",
+			answer: "A",
+		});
+		expect(res.status).toBe(400);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("403s an agent (admin-only); never inserts", async () => {
+		mockDb({ ...authoringState, role: "agent" });
+		const res = await post("/projects/p1/sources/qa", {
+			question: "Q?",
+			answer: "A",
+		});
+		expect(res.status).toBe(403);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+});
+
+// Caps, title truncation, and RBAC/workspace edges for the manual routes —
+// mirrors of the guards the promote suite already pins, so a future schema
+// divergence (widened caps, dropped trim guard) can't slip through untested.
+describe("POST /sources/text + /qa — caps, truncation & RBAC edges", () => {
+	it("text: 400s content over the 50k cap; never inserts", async () => {
+		mockDb(authoringState);
+		const res = await post("/projects/p1/sources/text", {
+			content: "x".repeat(50_001),
+		});
+		expect(res.status).toBe(400);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("qa: 400s an over-length question (2k cap); never inserts", async () => {
+		mockDb(authoringState);
+		const res = await post("/projects/p1/sources/qa", {
+			question: "x".repeat(2_001),
+			answer: "A",
+		});
+		expect(res.status).toBe(400);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("qa: 400s an over-length answer (8k cap); never inserts", async () => {
+		mockDb(authoringState);
+		const res = await post("/projects/p1/sources/qa", {
+			question: "Q?",
+			answer: "x".repeat(8_001),
+		});
+		expect(res.status).toBe(400);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("qa: 400s a whitespace-only answer (trim guard mirrors the question case); never inserts", async () => {
+		mockDb(authoringState);
+		const res = await post("/projects/p1/sources/qa", {
+			question: "Q?",
+			answer: "   ",
+		});
+		expect(res.status).toBe(400);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("text: derives the title from content but truncates it to 60 chars (full content kept)", async () => {
+		mockDb(authoringState);
+		await post("/projects/p1/sources/text", { content: "a".repeat(70) });
+		expect((lastInsert!.title as string).length).toBe(60);
+		expect((lastInsert!.content as string).length).toBe(70);
+	});
+
+	it("text: accepts a long title override (≤200) but stores it truncated to 60", async () => {
+		mockDb(authoringState);
+		await post("/projects/p1/sources/text", {
+			title: "T".repeat(100),
+			content: "body",
+		});
+		expect((lastInsert!.title as string).length).toBe(60);
+	});
+
+	it("qa: title is the question sliced to 60, but the full question is stored", async () => {
+		mockDb(authoringState);
+		const q = "Q".repeat(80);
+		await post("/projects/p1/sources/qa", { question: q, answer: "A" });
+		expect((lastInsert!.title as string).length).toBe(60);
+		expect(lastInsert?.question).toBe(q);
+		expect(lastInsert?.content).toBe(`Q: ${q}\nA: A`);
+	});
+
+	it("text: an owner passes the admin gate (role hierarchy)", async () => {
+		mockDb({ ...authoringState, role: "owner" });
+		const res = await post("/projects/p1/sources/text", { content: "hi" });
+		expect(res.status).toBe(200);
+		expect(insertSpy).toHaveBeenCalledTimes(1);
+	});
+
+	it("qa: 400s when no workspace is selected", async () => {
+		mockDb(authoringState);
+		const res = await sources.request(
+			"/projects/p1/sources/qa",
+			{
+				method: "POST",
+				headers: { "x-test-user": "u1", "content-type": "application/json" },
+				body: JSON.stringify({ question: "Q?", answer: "A" }),
+			},
+			ENV,
+		);
+		expect(res.status).toBe(400);
 	});
 });

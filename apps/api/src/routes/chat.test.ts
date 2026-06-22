@@ -42,7 +42,10 @@ const project = {
 
 /** db whose project is configurable; all writes resolve. resolveAccess is mocked
  * separately, so the workspace row here is unused. */
-function mockDb({ hasProject = true }: { hasProject?: boolean } = {}) {
+function mockDb({
+	hasProject = true,
+	sources = [],
+}: { hasProject?: boolean; sources?: unknown[] } = {}) {
 	const valuesResult = () =>
 		Object.assign(Promise.resolve([]), {
 			returning: async () => [{ id: "ue1" }],
@@ -51,7 +54,7 @@ function mockDb({ hasProject = true }: { hasProject?: boolean } = {}) {
 		query: {
 			project: { findFirst: async () => (hasProject ? project : undefined) },
 			conversation: { findFirst: async () => ({ id: "c1", messageCount: 0 }) },
-			source: { findMany: async () => [] },
+			source: { findMany: async () => sources },
 			systemPrompt: { findFirst: async () => undefined },
 		},
 		insert: () => ({ values: valuesResult }),
@@ -198,5 +201,78 @@ describe("POST /v1/chat — overage metering", () => {
 		await send(validBody, ctx);
 		await settle();
 		expect(reportMeterEvent).not.toHaveBeenCalled();
+	});
+});
+
+describe("POST /v1/chat — retrieval reaches the model input (Text + Q&A)", () => {
+	// Source rows exactly as the DB returns them for the new manual types:
+	// url-less (url:null), active, content set. The failure mode this guards is
+	// silent — a kind/url filter in the load query would drop these and the agent
+	// would never see them despite the UI saving them.
+	const textRow = {
+		id: "s_text",
+		projectId: "p1",
+		kind: "text",
+		url: null,
+		title: "Restock cadence",
+		content: "We restock weekly on Mondays.",
+		question: null,
+		answer: null,
+		sourceMessageId: null,
+		active: true,
+	};
+	const qaRow = {
+		id: "s_qa",
+		projectId: "p1",
+		kind: "qa",
+		url: null,
+		title: "Do you ship internationally?",
+		content:
+			"Q: Do you ship internationally?\nA: Yes — we ship to 40 countries.",
+		question: "Do you ship internationally?",
+		answer: "Yes — we ship to 40 countries.",
+		sourceMessageId: null,
+		active: true,
+	};
+
+	it("loads url-less Text + Q&A sources and renders their content into the system prompt", async () => {
+		mockDb({ sources: [textRow, qaRow] });
+		setAccess({ plan: "starter" });
+		streamOk();
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(200);
+		expect(streamChat).toHaveBeenCalledTimes(1);
+
+		// What chat.ts actually handed the model layer: both url-less sources,
+		// content intact, url normalised to "" (never dropped by a filter).
+		const input = vi.mocked(streamChat).mock.calls[0]![1];
+		expect(input.sources).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					url: "",
+					content: expect.stringContaining("We restock weekly on Mondays"),
+				}),
+				expect.objectContaining({
+					url: "",
+					content: expect.stringContaining("Yes — we ship to 40 countries"),
+				}),
+			]),
+		);
+
+		// Run the REAL buildSystem over those args → the literal `system` string the
+		// gateway receives. This is the model input; assert the source content is in
+		// it, so retrieval is proven repeatably (not just "the rows were loaded").
+		const { buildSystem } =
+			await vi.importActual<typeof import("@/lib/llm")>("@/lib/llm");
+		const system = buildSystem(
+			input.systemPrompt,
+			input.knowledgeText,
+			input.sources,
+		);
+		expect(system).toContain("# Reference sources");
+		expect(system).toContain("We restock weekly on Mondays.");
+		expect(system).toContain("Yes — we ship to 40 countries.");
+		await settle();
 	});
 });
