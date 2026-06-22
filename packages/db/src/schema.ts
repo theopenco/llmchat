@@ -182,6 +182,13 @@ export const conversation = sqliteTable(
 		// unrated. Distinct from per-message thumbs (message.rating). Range is
 		// enforced in the /v1/csat route, not by a DB constraint.
 		csatRating: integer(),
+		// One-line AI triage summary for the inbox (cached). Nullable: NULL = not
+		// generated yet → the inbox falls back to the message snippet, never a
+		// placeholder. `summaryMessageCount` is the messageCount the summary
+		// reflects (staleness marker — regenerate once messageCount advances).
+		// Columns were shipped ahead of this code in migration 0014 (phase 1).
+		summary: text(),
+		summaryMessageCount: integer(),
 		createdAt: createdAt(),
 		updatedAt: timestamp()
 			.notNull()

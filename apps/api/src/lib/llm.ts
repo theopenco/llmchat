@@ -1,5 +1,10 @@
 import { createLLMGateway } from "@llmgateway/ai-sdk-provider";
-import { streamText, convertToModelMessages, type UIMessage } from "ai";
+import {
+	streamText,
+	generateText,
+	convertToModelMessages,
+	type UIMessage,
+} from "ai";
 
 import type { Env } from "@/env";
 
@@ -66,4 +71,45 @@ export async function streamChat(env: Env, input: LlmCallInput) {
 		system: buildSystem(input.systemPrompt, input.knowledgeText, input.sources),
 		messages: await convertToModelMessages(input.messages),
 	});
+}
+
+// Cheapest adequate model for internal one-line triage summaries (gateway
+// pricing ~$0.05/$0.40 per 1M tokens → ~0.009¢/summary). Hardcoded on purpose —
+// NOT routed through effectiveModel()/the web-search guard (that would coerce it
+// to the pricier agent default; summarizing an existing transcript needs no web
+// search). Internal, operator-absorbed cost.
+const SUMMARY_MODEL = "gpt-5-nano";
+
+const SUMMARY_SYSTEM =
+	'You write ONE short line summarizing a customer-support conversation for an agent scanning their inbox. Capture the visitor\'s core intent or issue — e.g. "Refund request for order #1234", "Asking about international shipping". Plain text, no surrounding quotes, no leading label like "Summary:". Max ~12 words.';
+
+/**
+ * One-line triage summary of a conversation transcript. Non-streaming, cheap
+ * model, tight output cap. Returns the trimmed line, or null on ANY failure — so
+ * the caller leaves the cache untouched and the inbox keeps showing the snippet,
+ * never a fabricated or partial summary. Writes nothing itself (no usageEvent).
+ */
+export async function summarizeConversation(
+	env: Env,
+	transcript: string,
+): Promise<string | null> {
+	if (!transcript.trim()) return null;
+	const gateway = createLLMGateway({
+		apiKey: env.vars.LLMGATEWAY_API_KEY,
+		baseURL: env.vars.LLMGATEWAY_BASE_URL,
+	});
+	try {
+		const { text } = await generateText({
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			model: gateway(SUMMARY_MODEL as any),
+			system: SUMMARY_SYSTEM,
+			prompt: transcript,
+			maxOutputTokens: 60,
+		});
+		const line = text.trim().replace(/\s+/g, " ");
+		return line || null;
+	} catch (err) {
+		console.warn("summarizeConversation: generation failed", err);
+		return null;
+	}
 }

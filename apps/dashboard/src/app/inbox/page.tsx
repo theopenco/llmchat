@@ -118,12 +118,15 @@ export default function InboxPage() {
 	// Stable joined key for the tag filter so it slots into query keys + params.
 	const tagFilterKey = tagIds.join(",");
 	const listParams = useCallback(
-		(cursor?: string) => {
+		(cursor?: string, summarize?: boolean) => {
 			const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
 			if (debouncedSearch) params.set("search", debouncedSearch);
 			params.set("status", status);
 			if (tagFilterKey) params.set("tagIds", tagFilterKey);
 			if (cursor) params.set("cursor", cursor);
+			// Trigger lazy summary generation only on genuine loads/scrolls — never
+			// on the 5s head poll, which stays a pure read.
+			if (summarize) params.set("summarize", "1");
 			return params.toString();
 		},
 		[debouncedSearch, status, tagFilterKey],
@@ -145,7 +148,7 @@ export default function InboxPage() {
 		initialPageParam: undefined as string | undefined,
 		queryFn: ({ pageParam }) =>
 			api<ConversationPage>(
-				`/api/projects/${projectId}/conversations?${listParams(pageParam)}`,
+				`/api/projects/${projectId}/conversations?${listParams(pageParam, true)}`,
 				{ workspaceId: workspaceId! },
 			),
 		getNextPageParam: (last) => last.nextCursor ?? undefined,
@@ -601,6 +604,11 @@ export default function InboxPage() {
 								<p className="truncate text-sm font-bold text-ck-text">
 									{detailConv.name ?? "Anonymous"}
 								</p>
+								{detailConv.summary && (
+									<p className="truncate text-xs text-ck-muted">
+										{detailConv.summary}
+									</p>
+								)}
 								<p className="truncate text-xs text-ck-faint">
 									{threadSubtitle}
 								</p>

@@ -143,6 +143,51 @@ describe("ConversationList", () => {
 		expect(screen.getByText("ada@example.com")).toBeInTheDocument();
 	});
 
+	it("prefers the AI summary over the first-message snippet in the preview", () => {
+		setup({
+			conversations: [
+				conv({
+					id: "s",
+					summary: "Refund request for order #1234",
+					firstMessage: "How do I reset my device?",
+				}),
+			],
+		});
+		expect(
+			screen.getByText("Refund request for order #1234"),
+		).toBeInTheDocument();
+		// The summary replaces the raw snippet — no double preview line.
+		expect(
+			screen.queryByText("How do I reset my device?"),
+		).not.toBeInTheDocument();
+	});
+
+	it("falls back to the snippet when no summary exists yet (honest, no placeholder)", () => {
+		setup({
+			conversations: [
+				conv({ id: "s", summary: null, firstMessage: "Where is my order?" }),
+			],
+		});
+		expect(screen.getByText("Where is my order?")).toBeInTheDocument();
+	});
+
+	it("lets a search match still win over the summary while searching", () => {
+		setup({
+			search: "refund",
+			conversations: [
+				conv({
+					id: "s",
+					summary: "Asking about shipping times",
+					match: { field: "body", snippet: "our refund policy is 30 days" },
+				}),
+			],
+		});
+		expect(screen.getByText("refund").tagName).toBe("MARK");
+		expect(
+			screen.queryByText("Asking about shipping times"),
+		).not.toBeInTheDocument();
+	});
+
 	it("reports the selected conversation upward", async () => {
 		const user = userEvent.setup();
 		const { onSelect } = setup();

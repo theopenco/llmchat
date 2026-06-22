@@ -25,6 +25,9 @@ export interface Conversation {
 	csatRating: number | null;
 	/** First visitor message, used as the list preview (added by the list API). */
 	firstMessage?: string | null;
+	/** One-line AI triage summary (added by the list API; null until generated).
+	 * Preferred over firstMessage in the preview; null → snippet fallback. */
+	summary?: string | null;
 	/** True when the current user hasn't seen the latest messages. */
 	unread?: boolean;
 	/** Why this conversation matched the active search: an excerpt + which field
