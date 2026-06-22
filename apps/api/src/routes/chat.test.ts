@@ -134,6 +134,23 @@ describe("POST /v1/chat — paywall (build-first-then-pay)", () => {
 		expect(streamChat).not.toHaveBeenCalled();
 	});
 
+	it("rejects an oversized message text part (8k cap) — never calls the model", async () => {
+		// Unbounded attacker text on the shared operator key was the gap; the
+		// per-message cap rejects it at validation, before any model call.
+		const { ctx } = makeCtx();
+		const res = await send(
+			{
+				...validBody,
+				messages: [
+					{ role: "user", parts: [{ type: "text", text: "x".repeat(8_001) }] },
+				],
+			},
+			ctx,
+		);
+		expect(res.status).toBe(400);
+		expect(streamChat).not.toHaveBeenCalled();
+	});
+
 	it("402 subscription_required for a no-sub (none) workspace — never calls the model", async () => {
 		setAccess({ plan: "none" });
 		const { ctx } = makeCtx();

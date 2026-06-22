@@ -23,6 +23,7 @@ declare module "@meetploy/nextjs" {
 			STRIPE_METER_EVENT?: string;
 			INTERNAL_ACCOUNT_EMAILS?: string;
 			RESEND_API_KEY: string;
+			RESEND_INBOUND_WEBHOOK_SECRET?: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;
 			GOOGLE_CLIENT_ID?: string;
@@ -57,6 +58,7 @@ declare global {
 			STRIPE_METER_EVENT?: string;
 			INTERNAL_ACCOUNT_EMAILS?: string;
 			RESEND_API_KEY: string;
+			RESEND_INBOUND_WEBHOOK_SECRET?: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;
 			GOOGLE_CLIENT_ID?: string;

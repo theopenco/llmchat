@@ -541,36 +541,44 @@ export const conversations = new Hono<AppContext>()
 				return c.json({ error: "not found" }, 404);
 			}
 
+			// Tenant scope: the conversation must belong to THIS project — else 404.
+			// Without this, any workspace member could archive (or mark read) another
+			// tenant's conversation by its global id. Banked rule: and(), never bare eq().
+			const conv = await db(c.env).query.conversation.findFirst({
+				where: (ct, { and: a, eq: e }) =>
+					a(e(ct.id, id), e(ct.projectId, projectId)),
+			});
+			if (!conv) {
+				return c.json({ error: "not found" }, 404);
+			}
+
 			if (archived !== undefined) {
 				await db(c.env)
 					.update(conversation)
 					.set({ archivedAt: archived ? new Date() : null })
-					.where(eq(conversation.id, id));
+					.where(
+						and(eq(conversation.id, id), eq(conversation.projectId, projectId)),
+					);
 			}
 			if (read) {
-				const conv = await db(c.env).query.conversation.findFirst({
-					where: (ct, { eq: e }) => e(ct.id, id),
+				const existing = await db(c.env).query.readStatus.findFirst({
+					where: (rt, { and: a, eq: e }) =>
+						a(e(rt.conversationId, id), e(rt.userId, userId)),
 				});
-				if (conv) {
-					const existing = await db(c.env).query.readStatus.findFirst({
-						where: (rt, { and: a, eq: e }) =>
-							a(e(rt.conversationId, id), e(rt.userId, userId)),
-					});
-					if (existing) {
-						await db(c.env)
-							.update(readStatus)
-							.set({
-								lastReadMessageCount: conv.messageCount,
-								readAt: new Date(),
-							})
-							.where(eq(readStatus.id, existing.id));
-					} else {
-						await db(c.env).insert(readStatus).values({
-							conversationId: id,
-							userId,
+				if (existing) {
+					await db(c.env)
+						.update(readStatus)
+						.set({
 							lastReadMessageCount: conv.messageCount,
-						});
-					}
+							readAt: new Date(),
+						})
+						.where(eq(readStatus.id, existing.id));
+				} else {
+					await db(c.env).insert(readStatus).values({
+						conversationId: id,
+						userId,
+						lastReadMessageCount: conv.messageCount,
+					});
 				}
 			}
 
@@ -682,7 +690,21 @@ export const conversations = new Hono<AppContext>()
 			if (!proj) {
 				return c.json({ error: "not found" }, 404);
 			}
-			await db(c.env).delete(conversation).where(eq(conversation.id, id));
+			// Tenant scope: the conversation must belong to THIS project — else 404.
+			// Banked rule: and(), never bare eq() (a global conversation id alone
+			// would let an admin delete another tenant's conversation).
+			const conv = await db(c.env).query.conversation.findFirst({
+				where: (ct, { and: a, eq: e }) =>
+					a(e(ct.id, id), e(ct.projectId, projectId)),
+			});
+			if (!conv) {
+				return c.json({ error: "not found" }, 404);
+			}
+			await db(c.env)
+				.delete(conversation)
+				.where(
+					and(eq(conversation.id, id), eq(conversation.projectId, projectId)),
+				);
 			return c.json({ ok: true });
 		},
 	);

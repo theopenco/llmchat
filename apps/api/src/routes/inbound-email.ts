@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 
 import { db } from "@/lib/db";
+import { verifySvixSignature } from "@/lib/svix";
 
 import { conversation, eq, message } from "@llmchat/db";
 
@@ -23,7 +24,29 @@ function parseInboundLocal(toAddress: string): string | null {
 export const inboundEmail = new Hono<AppContext>().post(
 	"/webhooks/inbound-email",
 	async (c) => {
-		const payload = (await c.req.json()) as InboundPayload;
+		// This webhook is mounted at the root and is otherwise unauthenticated, so a
+		// forged POST could inject a reply into ANY conversation. Verify Resend's
+		// Svix signature over the RAW body before trusting it. Fails closed:
+		// unsigned/invalid — or no signing secret configured — ⇒ 401, nothing read.
+		const rawBody = await c.req.text();
+		const signed = await verifySvixSignature(
+			rawBody,
+			{
+				id: c.req.header("svix-id") ?? null,
+				timestamp: c.req.header("svix-timestamp") ?? null,
+				signature: c.req.header("svix-signature") ?? null,
+			},
+			c.env.vars.RESEND_INBOUND_WEBHOOK_SECRET,
+		);
+		if (!signed) {
+			return c.json({ error: "invalid signature" }, 401);
+		}
+		let payload: InboundPayload;
+		try {
+			payload = JSON.parse(rawBody) as InboundPayload;
+		} catch {
+			return c.json({ error: "invalid payload" }, 400);
+		}
 		const localPart = payload.to
 			.map(parseInboundLocal)
 			.find((v): v is string => v !== null);
