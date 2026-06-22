@@ -54,11 +54,11 @@ describe("SidebarNav", () => {
 		expect(screen.queryByRole("link", { name: /settings/i })).toBeNull();
 	});
 
-	it("interim PROJECT routing: Settings → the project page, Sources → its #sources section", () => {
+	it("PROJECT routing: Sources → its standalone page, Settings → the config page", () => {
 		setProject("p1");
 		render(<SidebarNav />);
 		expect(screen.getByText("Project")).toBeInTheDocument();
-		expect(hrefFor(/sources/i)).toBe("/settings/projects/p1#sources");
+		expect(hrefFor(/sources/i)).toBe("/settings/projects/p1/sources");
 		expect(hrefFor(/settings/i)).toBe("/settings/projects/p1");
 	});
 });
