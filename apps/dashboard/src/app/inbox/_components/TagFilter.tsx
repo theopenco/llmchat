@@ -61,7 +61,7 @@ export function TagFilter({
 					size="sm"
 					className={cn(
 						"h-9 shrink-0 gap-1.5",
-						count > 0 && "border-primary/40 text-foreground",
+						count > 0 && "border-ck-accent/40 text-ck-text",
 					)}
 					// Disabled only when there are no tags to filter by.
 					disabled={tags.length === 0}
@@ -69,7 +69,7 @@ export function TagFilter({
 					<SlidersHorizontal className="size-4" />
 					Tags
 					{count > 0 && (
-						<span className="ml-0.5 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+						<span className="ml-0.5 grid min-w-4 place-items-center rounded-full bg-ck-accent px-1 text-[10px] font-semibold text-white">
 							{count}
 						</span>
 					)}
@@ -94,7 +94,7 @@ export function TagFilter({
 									/>
 									<span className="flex-1 truncate">{tag.name}</span>
 									{typeof tag.count === "number" && (
-										<span className="text-[10px] tabular-nums text-muted-foreground/70">
+										<span className="text-[10px] tabular-nums text-ck-faint">
 											{tag.count}
 										</span>
 									)}
@@ -110,13 +110,13 @@ export function TagFilter({
 					</CommandList>
 				</Command>
 				{(count > 0 || onManage) && (
-					<div className="flex items-center justify-between gap-1 border-t p-1">
+					<div className="flex items-center justify-between gap-1 border-t border-ck-border p-1">
 						{onManage ? (
 							<Button
 								type="button"
 								variant="ghost"
 								size="sm"
-								className="gap-1.5 text-xs text-muted-foreground"
+								className="gap-1.5 text-xs text-ck-faint"
 								onClick={() => {
 									setOpen(false);
 									onManage();
@@ -133,7 +133,7 @@ export function TagFilter({
 								type="button"
 								variant="ghost"
 								size="sm"
-								className="text-xs text-muted-foreground"
+								className="text-xs text-ck-faint"
 								onClick={() => onChange([])}
 							>
 								Clear {count}

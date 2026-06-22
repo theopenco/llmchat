@@ -1,32 +1,30 @@
 "use client";
 
 import {
-	Archive,
-	ArchiveRestore,
+	Check,
 	Clock,
 	Globe,
 	Mail,
 	MessageCircle,
 	Monitor,
+	RotateCcw,
 	Star,
 	Trash2,
 	TriangleAlert,
 	User,
 } from "lucide-react";
+import { useState } from "react";
 
 import {
 	AlertDialog,
-	AlertDialogAction,
 	AlertDialogCancel,
 	AlertDialogContent,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ds";
 import { cn } from "@/lib/utils";
 
 import { formatFullDate, initials, parseDevice } from "./format";
@@ -40,8 +38,8 @@ function Section({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className="flex flex-col gap-3 border-t px-4 py-4 first:border-t-0">
-			<h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+		<div className="flex flex-col gap-3 border-t border-ck-border px-4 py-4 first:border-t-0">
+			<h3 className="text-[11px] font-semibold uppercase tracking-wider text-ck-faint">
 				{title}
 			</h3>
 			{children}
@@ -62,12 +60,12 @@ function Field({
 }) {
 	return (
 		<div className="flex items-start gap-3">
-			<span className="mt-0.5 text-muted-foreground">{icon}</span>
+			<span className="mt-0.5 text-ck-faint [&_svg]:size-4">{icon}</span>
 			<div className="min-w-0">
-				<p className="text-xs font-medium text-muted-foreground">{label}</p>
+				<p className="text-xs font-medium text-ck-faint">{label}</p>
 				<p
 					className={cn(
-						"break-words text-sm text-foreground",
+						"break-words text-sm text-ck-text",
 						mono && "font-mono text-xs",
 					)}
 				>
@@ -78,34 +76,49 @@ function Field({
 	);
 }
 
+/** Visitor-context fields the widget does NOT capture yet. Shown as an honest
+ * empty block — designed, not wired — never with a guessed value. */
+const ROADMAP_FIELDS = [
+	"Location",
+	"Local time",
+	"First seen",
+	"Current page",
+	"Referrer",
+	"Pages viewed",
+	"Channel",
+] as const;
+
 export function DetailPanel({
 	conversation,
-	onArchive,
+	onResolve,
 	onDelete,
-	archiving,
+	resolving,
 	deleting,
 }: {
 	conversation: Conversation;
-	onArchive: () => void;
+	/** Toggle resolved (over PATCH {archived}); optimistic + reversible. */
+	onResolve: () => void;
+	/** Permanently delete — fired from the confirm dialog (non-optimistic). */
 	onDelete: () => void;
-	archiving: boolean;
+	resolving: boolean;
 	deleting: boolean;
 }) {
-	const archived = Boolean(conversation.archivedAt);
+	const resolved = Boolean(conversation.archivedAt);
 	const device = parseDevice(conversation.userAgent);
+	const [confirmOpen, setConfirmOpen] = useState(false);
 
 	return (
-		<div className="flex min-h-0 flex-col">
-			<div className="flex flex-col items-center gap-3 border-b px-6 py-6">
-				<span className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
+		<div className="flex min-h-0 flex-col bg-ck-sidebar">
+			<div className="flex flex-col items-center gap-3 border-b border-ck-border px-6 py-6">
+				<span className="flex size-16 items-center justify-center rounded-2xl bg-ck-accent text-lg font-bold text-white">
 					{initials(conversation.name)}
 				</span>
 				<div className="text-center">
-					<p className="text-sm font-semibold">
+					<p className="text-sm font-bold text-ck-text">
 						{conversation.name ?? "Anonymous"}
 					</p>
 					{conversation.email && (
-						<p className="mt-0.5 break-all text-xs text-muted-foreground">
+						<p className="mt-0.5 break-all text-xs text-ck-faint">
 							{conversation.email}
 						</p>
 					)}
@@ -114,62 +127,58 @@ export function DetailPanel({
 
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				{conversation.escalatedAt && (
-					<div className="m-4 rounded-lg bg-amber-500/10 p-3">
+					<div className="m-4 rounded-[10px] bg-ck-warn/12 p-3">
 						<div className="flex items-center gap-2">
-							<TriangleAlert className="size-4 text-amber-600 dark:text-amber-400" />
-							<span className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+							<TriangleAlert className="size-4 text-ck-warn" />
+							<span className="text-xs font-semibold text-ck-warn">
 								Escalated to a human
 							</span>
 						</div>
-						<p className="mt-1 text-xs text-amber-700/80 dark:text-amber-500">
+						<p className="mt-1 text-xs text-ck-warn/80">
 							{formatFullDate(conversation.escalatedAt)}
 						</p>
 					</div>
 				)}
 
-				<Section title="Contact details">
+				{/* LIVE — real captured fields only. */}
+				<Section title="Contact">
 					<Field
-						icon={<User className="size-4" />}
+						icon={<User />}
 						label="Name"
 						value={conversation.name ?? "Not provided"}
 					/>
 					<Field
-						icon={<Mail className="size-4" />}
+						icon={<Mail />}
 						label="Email"
 						value={conversation.email ?? "Not provided"}
 					/>
 				</Section>
 
-				<Section title="Session info">
+				<Section title="Session">
 					<Field
-						icon={<Clock className="size-4" />}
+						icon={<Clock />}
 						label="Started"
 						value={formatFullDate(conversation.createdAt)}
 					/>
 					<Field
-						icon={<MessageCircle className="size-4" />}
+						icon={<MessageCircle />}
 						label="Messages"
 						value={conversation.messageCount}
 					/>
-				</Section>
-
-				<Section title="Visitor device">
 					<Field
-						icon={<Monitor className="size-4" />}
+						icon={<Monitor />}
 						label="Device"
 						value={device ?? "Unknown"}
 					/>
 					<Field
-						icon={<Globe className="size-4" />}
+						icon={<Globe />}
 						label="IP address"
 						value={conversation.ipAddress ?? "Unknown"}
 						mono
 					/>
 				</Section>
 
-				<Section title="Rating">
-					{/* Conversation-level CSAT (1–5), prompted on widget close — distinct
-					    from the per-message thumbs shown in the thread. */}
+				<Section title="CSAT rating">
 					{conversation.csatRating != null ? (
 						<div className="flex items-center gap-2">
 							<div className="flex items-center gap-0.5">
@@ -179,8 +188,8 @@ export function DetailPanel({
 										className={cn(
 											"size-4",
 											n <= conversation.csatRating!
-												? "text-amber-500"
-												: "text-muted-foreground/30",
+												? "text-ck-warn"
+												: "text-ck-disabled",
 										)}
 										fill={
 											n <= conversation.csatRating! ? "currentColor" : "none"
@@ -188,50 +197,77 @@ export function DetailPanel({
 									/>
 								))}
 							</div>
-							<span className="text-sm font-medium text-foreground">
+							<span className="text-sm font-medium text-ck-text">
 								{conversation.csatRating} / 5
 							</span>
 						</div>
 					) : (
-						<p className="text-sm text-muted-foreground">Not rated</p>
+						<p className="text-sm text-ck-faint">Not rated</p>
 					)}
 				</Section>
+
+				{/* ROADMAP — honest empty. The widget doesn't capture these yet; show
+				    the intended fields with em-dashes, never a fabricated value. */}
+				<div className="m-4 rounded-[14px] border border-dashed border-ck-border p-4">
+					<h3 className="text-[11px] font-semibold uppercase tracking-wider text-ck-faint">
+						Visitor context
+					</h3>
+					<p className="mt-1 text-[11px] leading-relaxed text-ck-faint">
+						Not captured yet — never show a guessed value.
+					</p>
+					<div className="mt-3 flex flex-col gap-2">
+						{ROADMAP_FIELDS.map((label) => (
+							<div
+								key={label}
+								className="flex items-center justify-between gap-3"
+							>
+								<span className="text-xs text-ck-faint">{label}</span>
+								<span className="text-sm font-medium text-ck-disabled">—</span>
+							</div>
+						))}
+					</div>
+				</div>
 			</div>
 
-			<div className="flex flex-col gap-2 border-t p-4">
+			<div className="flex flex-col gap-2 border-t border-ck-border p-4">
 				<Button
-					type="button"
 					variant="outline"
 					size="sm"
 					className="w-full"
-					disabled={archiving}
-					onClick={onArchive}
+					disabled={resolving}
+					onClick={onResolve}
 				>
-					{archived ? (
+					{resolved ? (
 						<>
-							<ArchiveRestore />
-							Unarchive
+							<RotateCcw className="size-4" />
+							Reopen
 						</>
 					) : (
 						<>
-							<Archive />
-							Archive
+							<Check className="size-4" />
+							Resolve
 						</>
 					)}
 				</Button>
 
-				<AlertDialog>
-					<AlertDialogTrigger asChild>
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-						>
-							<Trash2 />
-							Delete conversation
-						</Button>
-					</AlertDialogTrigger>
+				<Button
+					variant="ghost"
+					size="sm"
+					className="w-full text-ck-warn hover:bg-ck-warn/10 hover:text-ck-warn"
+					onClick={() => setConfirmOpen(true)}
+				>
+					<Trash2 className="size-4" />
+					Delete conversation
+				</Button>
+
+				{/*
+				 * Controlled AlertDialog + a plain submit Button — NOT AlertDialogAction,
+				 * which auto-closes on click and (under React 18) unmounts before the
+				 * handler fires (the dead-button bug). Delete is non-optimistic: the
+				 * dialog stays open showing "Deleting…" until the server confirms, so a
+				 * failed delete surfaces instead of reading as success.
+				 */}
+				<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
 					<AlertDialogContent>
 						<AlertDialogHeader>
 							<AlertDialogTitle>Delete conversation?</AlertDialogTitle>
@@ -241,14 +277,15 @@ export function DetailPanel({
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
-							<AlertDialogCancel>Cancel</AlertDialogCancel>
-							<AlertDialogAction
-								className={cn(buttonVariants({ variant: "destructive" }))}
+							<AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+							<Button
+								variant="primary"
+								className="bg-ck-warn hover:bg-ck-warn/90"
 								disabled={deleting}
 								onClick={onDelete}
 							>
 								{deleting ? "Deleting…" : "Delete"}
-							</AlertDialogAction>
+							</Button>
 						</AlertDialogFooter>
 					</AlertDialogContent>
 				</AlertDialog>

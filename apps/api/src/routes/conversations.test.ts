@@ -361,40 +361,58 @@ describe("inbox archived filter", () => {
 		expect(sql).toContain('"project_id"');
 	});
 
-	it("archived=true returns only archived rows (archived_at is not null)", async () => {
+	it("status=resolved returns only archived rows (archived_at is not null)", async () => {
 		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
-		const res = await get("/projects/p1/conversations?archived=true", MEMBER);
+		const res = await get("/projects/p1/conversations?status=resolved", MEMBER);
 		expect(res.status).toBe(200);
 		const sql = whereSql();
 		expect(sql).toContain('"archived_at" is not null');
 	});
 
-	it("archived=false is treated as the active view", async () => {
+	it("status=open (the default) is the active view (archived_at is null)", async () => {
 		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
-		await get("/projects/p1/conversations?archived=false", MEMBER);
+		await get("/projects/p1/conversations?status=open", MEMBER);
 		const sql = whereSql();
 		expect(sql).toContain('"archived_at" is null');
 		expect(sql).not.toContain("is not null");
 	});
 
-	it("composes with search — archived view AND a text match in the same WHERE", async () => {
+	it("status=escalated filters on escalated_at (a query view, no status column)", async () => {
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		await get("/projects/p1/conversations?status=escalated", MEMBER);
+		const sql = whereSql();
+		expect(sql).toContain('"escalated_at" is not null');
+	});
+
+	it("status=all adds no status predicate (neither archived nor escalated)", async () => {
+		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
+		await get("/projects/p1/conversations?status=all", MEMBER);
+		const sql = whereSql();
+		expect(sql).not.toContain('"archived_at"');
+		expect(sql).not.toContain('"escalated_at"');
+	});
+
+	it("composes with search — status view AND a text match in the same WHERE", async () => {
 		mockDb({
 			role: "agent",
 			project: PROJECT,
 			conversationRows: [],
 			bodyMatchIds: ["cZ"],
 		});
-		await get("/projects/p1/conversations?archived=true&search=refund", MEMBER);
+		await get(
+			"/projects/p1/conversations?status=resolved&search=refund",
+			MEMBER,
+		);
 		const sql = whereSql();
-		// The archived predicate and the search OR-group coexist, project-scoped.
+		// The status predicate and the search OR-group coexist, project-scoped.
 		expect(sql).toContain('"archived_at" is not null');
 		expect(sql).toContain("like");
 		expect(sql).toContain('"project_id"');
 	});
 
-	it("is role-gated: a non-member can't list archived (403, no query)", async () => {
+	it("is role-gated: a non-member can't list (403, no query)", async () => {
 		mockDb({}); // not a member
-		const res = await get("/projects/p1/conversations?archived=true", MEMBER);
+		const res = await get("/projects/p1/conversations?status=resolved", MEMBER);
 		expect(res.status).toBe(403);
 		expect(lastConversationWhere).toBeNull();
 	});
@@ -481,7 +499,7 @@ describe("inbox keyset pagination", () => {
 		mockDb({ role: "agent", project: PROJECT, conversationRows: [] });
 		const cursor = encodeCursor({ updatedAt: 250, id: "cMid" });
 		await get(
-			`/projects/p1/conversations?archived=true&cursor=${cursor}`,
+			`/projects/p1/conversations?status=resolved&cursor=${cursor}`,
 			MEMBER,
 		);
 		const sql = whereSql();
@@ -657,7 +675,7 @@ describe("inbox tag filter (tagIds)", () => {
 		});
 		const cursor = encodeCursor({ updatedAt: 250, id: "cMid" });
 		await get(
-			`/projects/p1/conversations?tagIds=t1&archived=true&search=refund&cursor=${cursor}`,
+			`/projects/p1/conversations?tagIds=t1&status=resolved&search=refund&cursor=${cursor}`,
 			MEMBER,
 		);
 		const sql = whereSql();

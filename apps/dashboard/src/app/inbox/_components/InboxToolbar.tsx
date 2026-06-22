@@ -2,24 +2,18 @@
 
 import { Search } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { Segmented } from "@/components/ds";
 
+import { STATUS_FILTERS, type StatusFilter } from "./status";
 import { TagFilter } from "./TagFilter";
 import type { Tag } from "./types";
 
 export interface InboxToolbarProps {
 	search: string;
 	onSearch: (value: string) => void;
-	/** Active vs archived view — the only real conversation filter we have. */
-	showArchived: boolean;
-	onShowArchivedChange: (archived: boolean) => void;
+	/** Derived status view: Open / Resolved / Escalated / All. */
+	status: StatusFilter;
+	onStatusChange: (status: StatusFilter) => void;
 	/** Workspace tags for the toolbar tag filter. */
 	tags: Tag[];
 	/** Selected tag ids (OR filter). */
@@ -30,47 +24,37 @@ export interface InboxToolbarProps {
 }
 
 /**
- * Top toolbar spanning the inbox panes: status filter + search + a real tag
- * filter (in the slot the disabled "Filters" placeholder used to occupy). The
- * list is always ordered latest-first, so the "Latest" label is truthful. PR2
- * will unify all of these into one filter surface.
+ * Top toolbar spanning the inbox panes: the derived status filter (Open /
+ * Resolved / Escalated / All), search, and the tag filter. Status is query-only
+ * — Resolved == archived, Escalated == escalatedAt — never a fabricated state.
  */
 export function InboxToolbar({
 	search,
 	onSearch,
-	showArchived,
-	onShowArchivedChange,
+	status,
+	onStatusChange,
 	tags,
 	tagIds,
 	onTagIdsChange,
 	onManageTags,
 }: InboxToolbarProps) {
 	return (
-		<div className="flex items-center gap-2 border-b px-4 py-2.5">
-			<Select
-				value={showArchived ? "archived" : "all"}
-				onValueChange={(v) => onShowArchivedChange(v === "archived")}
-			>
-				<SelectTrigger
-					className="h-9 w-[11rem] shrink-0"
-					aria-label="Filter conversations"
-				>
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="all">All conversations</SelectItem>
-					<SelectItem value="archived">Archived</SelectItem>
-				</SelectContent>
-			</Select>
+		<div className="flex flex-wrap items-center gap-2 border-b border-ck-border px-4 py-2.5">
+			<Segmented
+				options={STATUS_FILTERS}
+				value={status}
+				onChange={onStatusChange}
+				aria-label="Filter conversations by status"
+			/>
 
 			<div className="relative min-w-0 flex-1">
-				<Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-				<Input
+				<Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ck-faint" />
+				<input
 					value={search}
 					onChange={(e) => onSearch(e.target.value)}
 					placeholder="Search conversations…"
 					aria-label="Search conversations"
-					className="h-9 pl-9"
+					className="h-9 w-full rounded-[10px] border border-ck-border bg-ck-card pl-9 pr-3 text-sm text-ck-text outline-none placeholder:text-ck-faint focus-visible:border-ck-accent"
 				/>
 			</div>
 
@@ -80,9 +64,6 @@ export function InboxToolbar({
 				onChange={onTagIdsChange}
 				onManage={onManageTags}
 			/>
-			<span className="hidden shrink-0 px-1 text-sm text-muted-foreground sm:inline">
-				Sort: <span className="font-medium text-foreground">Latest</span>
-			</span>
 		</div>
 	);
 }

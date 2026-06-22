@@ -18,17 +18,17 @@ function StatCard({
 	tone?: "amber";
 }) {
 	return (
-		<div className="min-w-[5rem] rounded-lg border bg-card px-4 py-2 text-center">
+		<div className="min-w-[5rem] rounded-[10px] border border-ck-border bg-ck-card px-4 py-2 text-center">
 			<div
 				className={cn(
 					"flex items-center justify-center gap-1 text-xl font-semibold leading-none tabular-nums",
-					tone === "amber" ? "text-amber-500" : "text-foreground",
+					tone === "amber" ? "text-ck-warn" : "text-ck-text",
 				)}
 			>
 				{icon}
 				{value}
 			</div>
-			<div className="mt-1 text-[11px] text-muted-foreground">{label}</div>
+			<div className="mt-1 text-[11px] text-ck-faint">{label}</div>
 		</div>
 	);
 }
@@ -58,7 +58,7 @@ export function InboxStats({ stats }: { stats?: ConversationStats }) {
 				label="Avg rating"
 				icon={
 					<Star
-						className="size-4 text-amber-500"
+						className="size-4 text-ck-warn"
 						fill={avgRating != null ? "currentColor" : "none"}
 					/>
 				}

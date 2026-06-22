@@ -5,28 +5,27 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { InboxToolbar } from "./InboxToolbar";
 
 beforeAll(() => {
-	// Radix Select uses pointer-capture + scrollIntoView, unimplemented in jsdom.
 	Element.prototype.scrollIntoView = vi.fn();
 	Element.prototype.hasPointerCapture ??= () => false;
 });
 
 function setup(props: Partial<React.ComponentProps<typeof InboxToolbar>> = {}) {
 	const onSearch = vi.fn();
-	const onShowArchivedChange = vi.fn();
+	const onStatusChange = vi.fn();
 	const onTagIdsChange = vi.fn();
 	const { unmount } = render(
 		<InboxToolbar
 			search=""
 			onSearch={onSearch}
-			showArchived={false}
-			onShowArchivedChange={onShowArchivedChange}
+			status="open"
+			onStatusChange={onStatusChange}
 			tags={[]}
 			tagIds={[]}
 			onTagIdsChange={onTagIdsChange}
 			{...props}
 		/>,
 	);
-	return { onSearch, onShowArchivedChange, onTagIdsChange, unmount };
+	return { onSearch, onStatusChange, onTagIdsChange, unmount };
 }
 
 describe("InboxToolbar", () => {
@@ -37,30 +36,22 @@ describe("InboxToolbar", () => {
 		expect(onSearch).toHaveBeenCalledWith("x");
 	});
 
-	it("reflects the active status in the filter control", () => {
-		const base = {
-			search: "",
-			onSearch: vi.fn(),
-			onShowArchivedChange: vi.fn(),
-			tags: [],
-			tagIds: [],
-			onTagIdsChange: vi.fn(),
-		};
-		const { rerender } = render(
-			<InboxToolbar {...base} showArchived={false} />,
+	it("offers the four derived status views and marks the active one", () => {
+		setup({ status: "escalated" });
+		for (const label of ["Open", "Resolved", "Escalated", "All"]) {
+			expect(screen.getByRole("radio", { name: label })).toBeInTheDocument();
+		}
+		expect(screen.getByRole("radio", { name: "Escalated" })).toHaveAttribute(
+			"aria-checked",
+			"true",
 		);
-		expect(screen.getByText("All conversations")).toBeInTheDocument();
-
-		rerender(<InboxToolbar {...base} showArchived />);
-		expect(screen.getByText("Archived")).toBeInTheDocument();
 	});
 
-	it("switches to the archived view from the filter dropdown", async () => {
+	it("reports the chosen status upward", async () => {
 		const user = userEvent.setup();
-		const { onShowArchivedChange } = setup();
-		await user.click(screen.getByRole("combobox", { name: /filter/i }));
-		await user.click(screen.getByRole("option", { name: "Archived" }));
-		expect(onShowArchivedChange).toHaveBeenCalledWith(true);
+		const { onStatusChange } = setup();
+		await user.click(screen.getByRole("radio", { name: "Resolved" }));
+		expect(onStatusChange).toHaveBeenCalledWith("resolved");
 	});
 
 	it("disables the Tags filter when the workspace has no tags", () => {
@@ -84,7 +75,6 @@ describe("InboxToolbar", () => {
 		const user = userEvent.setup();
 		const tags = [{ id: "t1", name: "Billing", color: "#6366f1", count: 3 }];
 
-		// No onManageTags (agent): the link is absent from the filter popover.
 		const { unmount } = setup({ tags });
 		await user.click(screen.getByRole("button", { name: /tags/i }));
 		expect(
@@ -92,7 +82,6 @@ describe("InboxToolbar", () => {
 		).not.toBeInTheDocument();
 		unmount();
 
-		// With onManageTags (admin/owner): the link shows and fires.
 		const onManageTags = vi.fn();
 		setup({ tags, onManageTags });
 		await user.click(screen.getByRole("button", { name: /tags/i }));

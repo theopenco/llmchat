@@ -4,7 +4,7 @@ import { useStickToBottom } from "@llmchat/widget/chat";
 import { ArrowDown, Headset, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Bubble, Button } from "@/components/ds";
 import { cn } from "@/lib/utils";
 
 import { formatMessageTime } from "./format";
@@ -54,14 +54,27 @@ function RatingIndicator({ rating }: { rating: Message["rating"] }) {
 	);
 }
 
+// "Agent" (the AI support agent), never "Bot"; "You" for the human teammate's
+// own reply. `tone` maps to the ds Bubble variants.
 const ROLE = {
-	user: { side: "left", label: "Visitor", labelClass: "text-muted-foreground" },
+	user: {
+		side: "left",
+		tone: "visitor",
+		label: "Visitor",
+		labelClass: "text-ck-faint",
+	},
 	assistant: {
 		side: "right",
-		label: "Bot",
-		labelClass: "text-emerald-600 dark:text-emerald-400",
+		tone: "agent",
+		label: "Agent",
+		labelClass: "text-ck-muted",
 	},
-	admin: { side: "right", label: "Admin", labelClass: "text-primary" },
+	admin: {
+		side: "right",
+		tone: "admin",
+		label: "You",
+		labelClass: "text-ck-accent",
+	},
 } as const;
 
 function MessageBubble({
@@ -81,7 +94,7 @@ function MessageBubble({
 	/** Nearest preceding visitor message — the default question for this reply. */
 	knowledgeQuestion: string;
 }) {
-	const { side, label, labelClass } =
+	const { side, tone, label, labelClass } =
 		ROLE[message.role as keyof typeof ROLE] ?? ROLE.user;
 	const right = side === "right";
 	return (
@@ -90,24 +103,13 @@ function MessageBubble({
 			data-search-hit={firstHit ? "true" : undefined}
 			className={cn("flex flex-col gap-1", right ? "items-end" : "items-start")}
 		>
-			<span className={cn("px-1 text-[11px] font-medium", labelClass)}>
+			<span className={cn("px-1 text-[11px] font-semibold", labelClass)}>
 				{label}
 			</span>
-			<div
-				className={cn(
-					"max-w-[75%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
-					message.role === "user" && "rounded-bl-sm bg-muted text-foreground",
-					message.role === "assistant" &&
-						"rounded-br-sm bg-secondary text-secondary-foreground",
-					message.role === "admin" &&
-						"rounded-br-sm bg-primary text-primary-foreground",
-				)}
-			>
-				<p className="whitespace-pre-wrap break-words">
-					<Highlighted text={message.content} query={search} />
-				</p>
-			</div>
-			<span className="px-1 text-[11px] text-muted-foreground">
+			<Bubble side={side} tone={tone}>
+				<Highlighted text={message.content} query={search} />
+			</Bubble>
+			<span className="px-1 text-[11px] text-ck-faint">
 				{formatMessageTime(message.createdAt)}
 			</span>
 			{message.role === "assistant" && (
@@ -269,13 +271,13 @@ export function MessageThread({
 					<div
 						key={m.id}
 						data-search-hit={m.id === firstHitId ? "true" : undefined}
-						className="mx-auto my-1 flex max-w-[80%] items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+						className="mx-auto my-1 flex max-w-[80%] items-center gap-2 rounded-[10px] border border-ck-border bg-ck-chip px-3 py-2 text-xs text-ck-muted"
 					>
-						<Headset className="size-4 shrink-0 text-amber-500" />
+						<Headset className="size-4 shrink-0 text-ck-warn" />
 						<span className="flex-1">
 							<Highlighted text={m.content} query={search} />
 						</span>
-						<span className="shrink-0 tabular-nums text-muted-foreground/70">
+						<span className="shrink-0 tabular-nums text-ck-faint">
 							{formatMessageTime(m.createdAt)}
 						</span>
 					</div>
@@ -291,7 +293,7 @@ export function MessageThread({
 				),
 			)}
 			{messages.length === 0 && (
-				<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+				<div className="flex flex-1 items-center justify-center text-sm text-ck-faint">
 					No messages in this conversation
 				</div>
 			)}
@@ -300,7 +302,7 @@ export function MessageThread({
 					type="button"
 					onClick={scrollToBottom}
 					aria-label="Scroll to latest message"
-					className="sticky bottom-2 ml-auto flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:-translate-y-0.5"
+					className="sticky bottom-2 ml-auto flex size-8 items-center justify-center rounded-full bg-ck-accent text-white shadow-md transition-transform hover:-translate-y-0.5"
 				>
 					<ArrowDown className="size-4" />
 				</button>

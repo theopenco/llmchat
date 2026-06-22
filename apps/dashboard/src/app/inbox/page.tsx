@@ -10,7 +10,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { ApiError, api, describeApiError } from "@/lib/api";
 import { resolveOnboardingState } from "@/lib/onboarding";
 import { useOptimisticMutation } from "@/lib/optimistic";
@@ -44,6 +43,11 @@ import { MessageThread } from "./_components/MessageThread";
 import { appendOptimisticReply } from "./_components/optimistic-updaters";
 import { ProjectSwitcher } from "./_components/ProjectSwitcher";
 import { ReplyComposer } from "./_components/ReplyComposer";
+import {
+	deriveStatus,
+	STATUS_PILL,
+	type StatusFilter,
+} from "./_components/status";
 import { TagChip } from "./_components/TagChip";
 import { TagPicker } from "./_components/TagPicker";
 import { useThreadMessages } from "./_components/useThreadMessages";
@@ -65,7 +69,7 @@ export default function InboxPage() {
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [reply, setReply] = useState("");
 	const [search, setSearch] = useState("");
-	const [showArchived, setShowArchived] = useState(false);
+	const [status, setStatus] = useState<StatusFilter>("open");
 	const [tagIds, setTagIds] = useState<string[]>([]);
 	const [manageTagsOpen, setManageTagsOpen] = useState(false);
 	// Contact-details sheet (mobile/tablet); on desktop details are a permanent aside.
@@ -117,12 +121,12 @@ export default function InboxPage() {
 		(cursor?: string) => {
 			const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
 			if (debouncedSearch) params.set("search", debouncedSearch);
-			if (showArchived) params.set("archived", "true");
+			params.set("status", status);
 			if (tagFilterKey) params.set("tagIds", tagFilterKey);
 			if (cursor) params.set("cursor", cursor);
 			return params.toString();
 		},
-		[debouncedSearch, showArchived, tagFilterKey],
+		[debouncedSearch, status, tagFilterKey],
 	);
 
 	// The paginated list: keyset cursor, NO polling (a background refetch of an
@@ -134,7 +138,7 @@ export default function InboxPage() {
 			projectId,
 			"list",
 			debouncedSearch,
-			showArchived,
+			status,
 			tagFilterKey,
 		],
 		enabled: !!projectId && !!workspaceId,
@@ -156,7 +160,7 @@ export default function InboxPage() {
 			projectId,
 			"head",
 			debouncedSearch,
-			showArchived,
+			status,
 			tagFilterKey,
 		],
 		enabled: !!projectId && !!workspaceId,
@@ -448,22 +452,30 @@ export default function InboxPage() {
 			}),
 		onSuccess: (_data, vars) =>
 			toast.success(
-				vars.nextArchived ? "Conversation archived" : "Conversation restored",
+				vars.nextArchived ? "Conversation resolved" : "Conversation reopened",
 			),
 		onError: (e) =>
 			toast.error(describeApiError(e, "Failed to update conversation")),
 	});
 
-	const deleteMut = useOptimisticMutation<string>({
-		queryKey: ["conversations", projectId],
-		invalidateKey: ["conversations", projectId, "head"],
-		apply: (prev, id) => dropConversationFromCache(prev, id),
-		mutationFn: (id) =>
+	// Delete is NON-optimistic + confirm: the conversation row must not vanish
+	// before the server acknowledges a permanent, irreversible delete (unlike
+	// Resolve above, which is reversible so optimism is correct). The confirm
+	// dialog stays open showing "Deleting…" until onSuccess, which then closes the
+	// pane and reconciles the list — so a failed delete surfaces, never reads as
+	// success.
+	const deleteMut = useMutation({
+		mutationFn: (id: string) =>
 			api(`/api/projects/${projectId}/conversations/${id}`, {
 				method: "DELETE",
 				workspaceId: workspaceId!,
 			}),
-		onSuccess: () => toast.success("Conversation deleted"),
+		onSuccess: () => {
+			toast.success("Conversation deleted");
+			setSelectedId(null);
+			setDetailsOpen(false);
+			void qc.invalidateQueries({ queryKey: ["conversations", projectId] });
+		},
 		onError: (e) =>
 			toast.error(describeApiError(e, "Failed to delete conversation")),
 	});
@@ -478,11 +490,12 @@ export default function InboxPage() {
 		});
 	}
 
-	function handleArchive() {
+	function handleResolve() {
 		if (!projectId || !detailConv || !workspaceId) return;
 		const { id } = detailConv;
 		const nextArchived = !detailConv.archivedAt;
-		// Close the pane optimistically alongside the row removal.
+		// Resolve is optimistic + reversible: close the pane alongside the row
+		// removal (Reopen restores it).
 		setSelectedId(null);
 		setDetailsOpen(false);
 		archiveMut.mutate({ id, nextArchived });
@@ -490,10 +503,9 @@ export default function InboxPage() {
 
 	function handleDelete() {
 		if (!projectId || !detailConv || !workspaceId) return;
-		const { id } = detailConv;
-		setSelectedId(null);
-		setDetailsOpen(false);
-		deleteMut.mutate(id);
+		// Non-optimistic: fire and let the confirm dialog show pending; the pane
+		// closes on success (see deleteMut), never before the server confirms.
+		deleteMut.mutate(detailConv.id);
 	}
 
 	// Loading, or redirecting a brand-new account to onboarding.
@@ -519,13 +531,13 @@ export default function InboxPage() {
 			{/* Header band + toolbar are list-scoped: hidden on mobile while a thread
 			    is open (the thread takes the full screen), always shown from md. */}
 			<div className={cn(threadOpen && "hidden md:block")}>
-				<header className="flex flex-wrap items-start justify-between gap-4 border-b px-6 py-4">
+				<header className="flex flex-wrap items-start justify-between gap-4 border-b border-ck-border px-6 py-4">
 					<div>
-						<h1 className="font-display text-2xl font-semibold tracking-tight-display">
+						<h1 className="text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
 							Conversations
 						</h1>
-						<p className="mt-0.5 text-sm text-muted-foreground">
-							All visitor conversations in one inbox.
+						<p className="mt-0.5 text-sm text-ck-muted">
+							Visitor conversations for this project.
 						</p>
 					</div>
 					<InboxStats stats={statsQuery.data} />
@@ -534,9 +546,9 @@ export default function InboxPage() {
 				<InboxToolbar
 					search={search}
 					onSearch={setSearch}
-					showArchived={showArchived}
-					onShowArchivedChange={(archived) => {
-						setShowArchived(archived);
+					status={status}
+					onStatusChange={(next) => {
+						setStatus(next);
 						setSelectedId(null);
 					}}
 					tags={allTags}
@@ -567,7 +579,7 @@ export default function InboxPage() {
 									selectedId={selectedId}
 									onSelect={handleSelect}
 									search={debouncedSearch}
-									showArchived={showArchived}
+									status={status}
 								/>
 								{listQuery.hasNextPage && (
 									<LoadMore
@@ -582,22 +594,25 @@ export default function InboxPage() {
 				threadHeader={
 					detailConv && (
 						<>
-							<span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+							<span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ck-accent text-xs font-bold text-white">
 								{initials(detailConv.name)}
 							</span>
 							<div className="min-w-0 flex-1">
-								<p className="truncate text-sm font-semibold">
+								<p className="truncate text-sm font-bold text-ck-text">
 									{detailConv.name ?? "Anonymous"}
 								</p>
-								<p className="truncate text-xs text-muted-foreground">
+								<p className="truncate text-xs text-ck-faint">
 									{threadSubtitle}
 								</p>
 							</div>
-							{detailConv.escalatedAt && (
-								<Badge variant="warning" className="shrink-0">
-									Escalated
-								</Badge>
-							)}
+							<span
+								className={cn(
+									"inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+									STATUS_PILL[deriveStatus(detailConv)].className,
+								)}
+							>
+								{STATUS_PILL[deriveStatus(detailConv)].label}
+							</span>
 							{selectedId && (
 								<div className="flex flex-wrap items-center justify-end gap-1">
 									{selectedTags.map((t) => (
@@ -624,7 +639,7 @@ export default function InboxPage() {
 				threadBody={
 					detailConv &&
 					(thread.isLoading && thread.messages.length === 0 ? (
-						<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+						<div className="flex flex-1 items-center justify-center text-sm text-ck-faint">
 							Loading…
 						</div>
 					) : (
@@ -657,20 +672,20 @@ export default function InboxPage() {
 					detailConv ? (
 						<DetailPanel
 							conversation={detailConv}
-							onArchive={handleArchive}
+							onResolve={handleResolve}
 							onDelete={handleDelete}
-							archiving={archiveMut.isPending}
+							resolving={archiveMut.isPending}
 							deleting={deleteMut.isPending}
 						/>
 					) : null
 				}
 				emptyState={
-					<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+					<div className="flex flex-1 items-center justify-center text-sm text-ck-faint">
 						Select a conversation
 					</div>
 				}
 				detailsEmptyState={
-					<div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
+					<div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center text-ck-faint">
 						<p className="text-xs">
 							Select a conversation to see visitor details
 						</p>

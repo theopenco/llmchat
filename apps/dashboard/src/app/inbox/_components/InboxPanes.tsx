@@ -69,7 +69,7 @@ export function InboxPanes({
 			<div
 				data-pane="list"
 				className={cn(
-					"min-h-0 flex-col border-r md:w-80 md:shrink-0",
+					"min-h-0 flex-col border-r border-ck-border md:w-80 md:shrink-0",
 					hasSelection ? "hidden md:flex" : "flex w-full",
 				)}
 			>
@@ -86,7 +86,7 @@ export function InboxPanes({
 			>
 				{hasSelection ? (
 					<>
-						<div className="flex items-center gap-2 border-b px-4 py-3 sm:px-6">
+						<div className="flex items-center gap-2 border-b border-ck-border px-4 py-3 sm:px-6">
 							<Button
 								type="button"
 								variant="ghost"
@@ -124,7 +124,7 @@ export function InboxPanes({
 			{/* Right — details aside (desktop only) */}
 			<aside
 				data-pane="details"
-				className="hidden w-72 shrink-0 border-l lg:flex lg:flex-col"
+				className="hidden w-72 shrink-0 border-l border-ck-border lg:flex lg:flex-col"
 			>
 				{details ?? detailsEmptyState}
 			</aside>

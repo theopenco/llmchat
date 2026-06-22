@@ -35,7 +35,7 @@ function setup(
 			selectedId={null}
 			onSelect={onSelect}
 			search=""
-			showArchived={false}
+			status="open"
 			{...props}
 		/>,
 	);
@@ -62,7 +62,7 @@ describe("ConversationList", () => {
 				selectedId={null}
 				onSelect={vi.fn()}
 				search=""
-				showArchived={false}
+				status="open"
 			/>,
 		);
 		expect(screen.getByLabelText("Unread")).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe("ConversationList", () => {
 				selectedId={null}
 				onSelect={vi.fn()}
 				search=""
-				showArchived={false}
+				status="open"
 			/>,
 		);
 		expect(screen.queryByLabelText("Unread")).not.toBeInTheDocument();
@@ -86,7 +86,7 @@ describe("ConversationList", () => {
 				selectedId="a"
 				onSelect={vi.fn()}
 				search=""
-				showArchived={false}
+				status="open"
 			/>,
 		);
 		expect(screen.queryByLabelText("Unread")).not.toBeInTheDocument();
@@ -158,7 +158,7 @@ describe("ConversationList", () => {
 				selectedId={null}
 				onSelect={vi.fn()}
 				search="zzz"
-				showArchived={false}
+				status="open"
 			/>,
 		);
 		expect(
@@ -171,10 +171,10 @@ describe("ConversationList", () => {
 				selectedId={null}
 				onSelect={vi.fn()}
 				search=""
-				showArchived
+				status="resolved"
 			/>,
 		);
-		expect(screen.getByText(/no archived conversations/i)).toBeInTheDocument();
+		expect(screen.getByText(/no resolved conversations/i)).toBeInTheDocument();
 	});
 
 	it("keeps rows reachable for selection", () => {
