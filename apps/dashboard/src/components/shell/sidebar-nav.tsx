@@ -26,10 +26,9 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
  * Settings}. No Analytics (removed, not stubbed), no Billing (it's in the account
  * menu + usage meter). The PROJECT group is hidden until a project exists.
  *
- * Interim routing (locked): the project-scoped Sources/Settings pages don't exist
- * yet (#92/#93), so both point at the selected project's existing config surface —
- * Settings to the page, Sources to its real `#sources` section. Repoint when the
- * decomposed pages land.
+ * Routing: Sources is its own project-scoped page (#92, /[id]/sources); Settings
+ * still points at the project config page until it decomposes into Settings tabs
+ * (#93). Both are [id]-routed (no global context).
  *
  * Conversations has no unread badge: there's no workspace-level unread aggregate
  * endpoint to feed one honestly (the API only exposes per-conversation unread
@@ -42,6 +41,9 @@ export function SidebarNav() {
 	const projectBase = selectedProjectId
 		? `/settings/projects/${selectedProjectId}`
 		: null;
+	// "Settings" = the project config page (exact); "Sources" = its standalone
+	// sub-route. Keep them mutually exclusive so only one highlights.
+	const onSources = projectBase ? pathname === `${projectBase}/sources` : false;
 	const onProject = projectBase ? pathname === projectBase : false;
 
 	return (
@@ -68,8 +70,13 @@ export function SidebarNav() {
 				{projectBase && (
 					<>
 						<GroupLabel>Project</GroupLabel>
-						<NavItem asChild icon={<Globe />} label="Sources">
-							<Link href={`${projectBase}#sources`} />
+						<NavItem
+							asChild
+							icon={<Globe />}
+							label="Sources"
+							active={onSources}
+						>
+							<Link href={`${projectBase}/sources`} />
 						</NavItem>
 						<NavItem
 							asChild

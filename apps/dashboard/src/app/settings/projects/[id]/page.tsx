@@ -29,7 +29,7 @@ import { DEFAULT_MODEL, useGatewayModels } from "./model-data";
 import { ModelCard } from "./ModelCard";
 import { ProjectHeader } from "./ProjectHeader";
 import { SetupProgressCard } from "./SetupProgressCard";
-import { SourcesCard } from "./SourcesCard";
+import { SourcesSummaryCard } from "./SourcesSummaryCard";
 import { useProjectMutations } from "./useProjectMutations";
 import type { Project, ProjectDraft, Source } from "./types";
 
@@ -93,8 +93,7 @@ export default function ProjectSettingsPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [project?.id]);
 
-	const { save, remove, addSource, refreshSource, deleteSource } =
-		useProjectMutations(id, workspaceId);
+	const { save, remove } = useProjectMutations(id, workspaceId);
 
 	if (!project || !draft) {
 		return (
@@ -163,18 +162,10 @@ export default function ProjectSettingsPage() {
 							value={draft.systemPrompt}
 							onChange={(v) => set("systemPrompt", v)}
 						/>
-						<SourcesCard
-							sources={sources}
+						<SourcesSummaryCard
+							projectId={id}
+							sourceCount={sources.length}
 							isLoading={sourcesQ.isLoading}
-							onAdd={(url) => addSource.mutate(url)}
-							onRefresh={(sid) => refreshSource.mutate(sid)}
-							onDelete={(sid) => deleteSource.mutate(sid)}
-							addPending={addSource.isPending}
-							refreshingId={
-								refreshSource.isPending
-									? (refreshSource.variables as string)
-									: null
-							}
 						/>
 						<EmbedCard
 							publicKey={project.publicKey}

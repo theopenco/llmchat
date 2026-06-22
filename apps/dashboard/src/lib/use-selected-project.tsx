@@ -73,8 +73,12 @@ export function SelectedProjectProvider({
 	const projects = useMemo(() => data?.projects ?? [], [data]);
 
 	// The project id encoded in the current route, if any.
+	// Match the project id on the project route AND its nested sub-routes
+	// (/sources, and later /settings/*), so the URL stays authoritative as the
+	// config page decomposes into project-scoped pages — the PROJECT nav group
+	// resolves the right project on every one of them.
 	const urlProjectId =
-		pathname.match(/^\/settings\/projects\/([^/]+)$/)?.[1] ?? null;
+		pathname.match(/^\/settings\/projects\/([^/]+)(?:\/|$)/)?.[1] ?? null;
 
 	useEffect(() => {
 		if (!workspaceId || !data) return;

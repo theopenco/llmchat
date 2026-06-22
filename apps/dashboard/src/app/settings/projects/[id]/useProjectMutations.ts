@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { api, describeApiError } from "@/lib/api";
-import { dropById, mapById, useOptimisticMutation } from "@/lib/optimistic";
+import { mapById, useOptimisticMutation } from "@/lib/optimistic";
 
-import type { Project, Source } from "./types";
+import type { Project } from "./types";
 
 /** All write operations for the project settings page, with cache
  * invalidation and toasts in one place. */
@@ -48,47 +48,7 @@ export function useProjectMutations(id: string, workspaceId: string | null) {
 			toast.error(describeApiError(e, "Could not delete project")),
 	});
 
-	const addSource = useMutation({
-		mutationFn: (url: string) =>
-			api<{ source: Source }>(`/api/projects/${id}/sources`, {
-				method: "POST",
-				body: { url },
-				workspaceId: workspaceId!,
-			}),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["sources", id] });
-			toast.success("Source added successfully");
-		},
-		onError: (e) => toast.error(describeApiError(e, "Could not add source")),
-	});
-
-	const refreshSource = useMutation({
-		mutationFn: (sourceId: string) =>
-			api(`/api/projects/${id}/sources/${sourceId}/refresh`, {
-				method: "POST",
-				workspaceId: workspaceId!,
-			}),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["sources", id] });
-			toast.success("Source refreshed");
-		},
-		onError: (e) =>
-			toast.error(describeApiError(e, "Could not refresh source")),
-	});
-
-	// Optimistic delete: the source leaves the list immediately; a failure rolls
-	// it back and toasts.
-	const deleteSource = useOptimisticMutation<string>({
-		queryKey: ["sources", id],
-		apply: (prev, sourceId) => dropById(prev, "sources", sourceId),
-		mutationFn: (sourceId) =>
-			api(`/api/projects/${id}/sources/${sourceId}`, {
-				method: "DELETE",
-				workspaceId: workspaceId!,
-			}),
-		onSuccess: () => toast.success("Source removed"),
-		onError: (e) => toast.error(describeApiError(e, "Could not remove source")),
-	});
-
-	return { save, remove, addSource, refreshSource, deleteSource };
+	// Source add/refresh/delete moved to the standalone Sources page's
+	// useSourceMutations (single owner of source writes; see #92).
+	return { save, remove };
 }
