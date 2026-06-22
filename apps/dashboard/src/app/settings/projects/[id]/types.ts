@@ -37,7 +37,14 @@ export interface Source {
 /** The subset of project fields editable on this page. */
 export type ProjectDraft = Pick<
 	Project,
-	"name" | "welcomeMessage" | "brandColor" | "model" | "systemPrompt"
+	| "name"
+	| "welcomeMessage"
+	| "brandColor"
+	| "model"
+	| "systemPrompt"
+	| "escalationThreshold"
+	| "notifyEmail"
+	| "slackWebhookUrl"
 >;
 
 export const INSTRUCTION_TEMPLATES = {
