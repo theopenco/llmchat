@@ -26,62 +26,130 @@ function src(o: Partial<Source>): Source {
 }
 
 function setup(props: Partial<React.ComponentProps<typeof SourcesPanel>> = {}) {
-	const onAdd = vi.fn();
+	const onAddUrl = vi.fn();
+	const onAddText = vi.fn();
+	const onAddQa = vi.fn();
 	const onRefresh = vi.fn();
 	const onDelete = vi.fn();
 	render(
 		<SourcesPanel
 			sources={[]}
 			isLoading={false}
-			onAdd={onAdd}
+			onAddUrl={onAddUrl}
+			onAddText={onAddText}
+			onAddQa={onAddQa}
 			onRefresh={onRefresh}
 			onDelete={onDelete}
-			addPending={false}
+			addUrlPending={false}
+			addTextPending={false}
+			addQaPending={false}
 			refreshingId={null}
 			{...props}
 		/>,
 	);
-	return { onAdd, onRefresh, onDelete };
+	return { onAddUrl, onAddText, onAddQa, onRefresh, onDelete };
 }
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("SourcesPanel", () => {
-	it("adds a valid URL source", async () => {
-		const { onAdd } = setup();
+describe("SourcesPanel — typed add", () => {
+	it("adds a Website source (the default type)", async () => {
+		const { onAddUrl } = setup();
 		const user = userEvent.setup();
 		await user.type(screen.getByLabelText("Source URL"), "https://example.com");
-		await user.click(screen.getByRole("button", { name: /add source/i }));
-		expect(onAdd).toHaveBeenCalledWith("https://example.com");
+		await user.click(screen.getByRole("button", { name: /add website/i }));
+		expect(onAddUrl).toHaveBeenCalledWith("https://example.com");
 	});
 
-	it("renders the real Type + derived Status for a URL source", () => {
+	it("adds a Text snippet (optional title + content)", async () => {
+		const { onAddText } = setup();
+		const user = userEvent.setup();
+		await user.click(screen.getByRole("button", { name: /text snippet/i }));
+		await user.type(screen.getByLabelText("Title"), "Restock cadence");
+		await user.type(screen.getByLabelText("Text"), "We restock on Mondays.");
+		await user.click(screen.getByRole("button", { name: /add text/i }));
+		expect(onAddText).toHaveBeenCalledWith({
+			title: "Restock cadence",
+			content: "We restock on Mondays.",
+		});
+	});
+
+	it("adds a Q&A pair (question + answer)", async () => {
+		const { onAddQa } = setup();
+		const user = userEvent.setup();
+		await user.click(screen.getByRole("button", { name: /q&a pair/i }));
+		await user.type(screen.getByLabelText("Question"), "Do you ship abroad?");
+		await user.type(screen.getByLabelText("Answer"), "Yes, to 40 countries.");
+		await user.click(screen.getByRole("button", { name: /add q&a/i }));
+		expect(onAddQa).toHaveBeenCalledWith({
+			question: "Do you ship abroad?",
+			answer: "Yes, to 40 countries.",
+		});
+	});
+
+	it("renders File upload as a disabled roadmap chip (no fake add)", () => {
+		setup();
+		const file = screen.getByRole("button", { name: /file upload/i });
+		expect(file).toBeDisabled();
+		// No file-input control fakes an upload.
+		expect(screen.queryByLabelText(/upload|choose file/i)).toBeNull();
+	});
+});
+
+describe("SourcesPanel — table + rollups", () => {
+	it("renders the real Type, derived Status, and truthful Items for a URL source", () => {
 		setup({ sources: [src({})] });
 		expect(screen.getByText("https://acme.com/docs")).toBeInTheDocument();
 		expect(screen.getByText("URL")).toBeInTheDocument();
 		expect(screen.getByText("Ready")).toBeInTheDocument();
+		expect(screen.getByText("1 page")).toBeInTheDocument();
 	});
 
-	it("shows 'Promoted from a reply' + Q&A type for a qa source", () => {
+	it("shows 'Promoted from a reply' only for a qa source WITH provenance", () => {
 		setup({
 			sources: [
-				src({ id: "q", kind: "qa", url: null, title: "Refund policy" }),
+				src({
+					id: "q",
+					kind: "qa",
+					url: null,
+					title: "Refund policy",
+					sourceMessageId: "m1",
+				}),
 			],
 		});
 		expect(screen.getByText(/promoted from a reply/i)).toBeInTheDocument();
 		expect(screen.getByText("Q&A")).toBeInTheDocument();
-		expect(screen.getByText("Saved")).toBeInTheDocument();
+		expect(screen.getByText("1 pair")).toBeInTheDocument();
 	});
 
-	it("surfaces the roadmap types as an honest dimmed note (no fake add buttons)", () => {
-		setup();
-		expect(
-			screen.getByText(/more source types — files, q&a import — coming/i),
-		).toBeInTheDocument();
-		// The only add control is the URL one — no PDF/File/Q&A add buttons.
-		expect(
-			screen.queryByRole("button", { name: /add (pdf|file|text)/i }),
-		).toBeNull();
+	it("does NOT label a hand-written qa source as promoted", () => {
+		setup({
+			sources: [
+				src({
+					id: "q",
+					kind: "qa",
+					url: null,
+					title: "Shipping FAQ",
+					sourceMessageId: null,
+				}),
+			],
+		});
+		expect(screen.queryByText(/promoted from a reply/i)).toBeNull();
+		expect(screen.getByText("Shipping FAQ")).toBeInTheDocument();
+	});
+
+	it("renders real per-type rollup counts + a dimmed Files card", () => {
+		setup({
+			sources: [
+				src({ id: "a", kind: "url", url: "https://a.com" }),
+				src({ id: "b", kind: "url", url: "https://b.com" }),
+				src({ id: "c", kind: "qa", url: null, sourceMessageId: "m1" }),
+				src({ id: "d", kind: "text", url: null }),
+			],
+		});
+		expect(screen.getByText("Websites · sources")).toBeInTheDocument();
+		expect(screen.getByText("2")).toBeInTheDocument(); // two websites
+		expect(screen.getByText("Coming soon")).toBeInTheDocument(); // Files roadmap
 	});
 
 	it("recrawls + deletes from the row actions", async () => {

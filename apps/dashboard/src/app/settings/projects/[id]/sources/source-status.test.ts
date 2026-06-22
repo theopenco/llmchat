@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { Source } from "../types";
-import { sourceStatus, sourceType } from "./source-status";
+import {
+	countByType,
+	sourceItemLabel,
+	sourceStatus,
+	sourceType,
+} from "./source-status";
 
 function src(o: Partial<Source>): Source {
 	return {
@@ -51,5 +56,29 @@ describe("sourceStatus (derived from real columns, never fabricated)", () => {
 		expect(
 			sourceStatus(src({ kind: "text", url: null, lastFetchedAt: null })),
 		).toBe("saved");
+	});
+});
+
+describe("countByType (real per-type rollup counts)", () => {
+	it("groups sources by their Type label", () => {
+		expect(
+			countByType([
+				{ kind: "url" },
+				{ kind: "url" },
+				{ kind: "qa" },
+				{ kind: "text" },
+			]),
+		).toEqual({ URL: 2, "Q&A": 1, Text: 1 });
+	});
+	it("returns zeroes for an empty list", () => {
+		expect(countByType([])).toEqual({ URL: 0, "Q&A": 0, Text: 0 });
+	});
+});
+
+describe("sourceItemLabel (truthful one-item-per-source counts)", () => {
+	it("labels each type with its single item, never a fabricated total", () => {
+		expect(sourceItemLabel({ kind: "url" })).toBe("1 page");
+		expect(sourceItemLabel({ kind: "qa" })).toBe("1 pair");
+		expect(sourceItemLabel({ kind: "text" })).toBe("1 snippet");
 	});
 });

@@ -34,6 +34,23 @@ const QUESTION_MAX = 2_000;
 const ANSWER_MAX = 8_000;
 const TITLE_LEN = 60;
 
+// Manual non-URL source inputs (admin authoring, siblings of the URL create).
+// A text snippet gets a generous body; a hand-written Q&A reuses the promote
+// caps so the two Q&A creation paths can't diverge. Titles cap at the
+// URL-source title limit.
+const SNIPPET_MAX = 50_000;
+const INPUT_TITLE_MAX = 200;
+
+const textInput = z.object({
+	title: z.string().max(INPUT_TITLE_MAX).optional(),
+	content: z.string().min(1).max(SNIPPET_MAX),
+});
+
+const qaInput = z.object({
+	question: z.string().min(1).max(QUESTION_MAX),
+	answer: z.string().min(1).max(ANSWER_MAX),
+});
+
 // Promote-a-reply input. A purpose-built CREATE schema with the required key
 // (`messageId`) — NOT a `.partial()` of some other schema, and with NO
 // `.default()` anywhere (the Zod-v4 footgun where a default fires on an absent
@@ -194,6 +211,71 @@ export const sources = new Hono<AppContext>()
 					active: data.active ?? true,
 					lastFetchedAt: new Date(),
 					lastError: fetched.error,
+				})
+				.returning();
+			return c.json({ source: created });
+		},
+	)
+	// Manual non-URL sources — admin authoring siblings of the URL create.
+	// "text" is a free-text snippet; "qa" is a hand-written Q&A pair (the same
+	// content shape promote produces, but with no message provenance). Both have
+	// no url and flow straight into retrieval (chat.ts loads every active source).
+	.post(
+		"/projects/:projectId/sources/text",
+		requireRole("admin"),
+		zValidator("json", textInput),
+		async (c) => {
+			const { projectId } = c.req.param();
+			const workspaceId = c.get("workspaceId");
+			const proj = await ensureProject(c.env, projectId, workspaceId);
+			if (!proj) return c.json({ error: "not found" }, 404);
+			const { title, content } = c.req.valid("json");
+			const finalContent = content.trim();
+			if (!finalContent) return c.json({ error: "content required" }, 400);
+			// Title: the override, else the first chars of the snippet — never blank.
+			const finalTitle = (title?.trim() || finalContent).slice(0, TITLE_LEN);
+			const [created] = await db(c.env)
+				.insert(source)
+				.values({
+					projectId,
+					kind: "text",
+					url: null,
+					title: finalTitle,
+					content: finalContent,
+					active: true,
+				})
+				.returning();
+			return c.json({ source: created });
+		},
+	)
+	.post(
+		"/projects/:projectId/sources/qa",
+		requireRole("admin"),
+		zValidator("json", qaInput),
+		async (c) => {
+			const { projectId } = c.req.param();
+			const workspaceId = c.get("workspaceId");
+			const proj = await ensureProject(c.env, projectId, workspaceId);
+			if (!proj) return c.json({ error: "not found" }, 404);
+			const question = c.req.valid("json").question.trim();
+			const answer = c.req.valid("json").answer.trim();
+			if (!question || !answer) {
+				return c.json({ error: "question and answer required" }, 400);
+			}
+			const content = `Q: ${question}\nA: ${answer}`;
+			const title = question.slice(0, TITLE_LEN);
+			const [created] = await db(c.env)
+				.insert(source)
+				.values({
+					projectId,
+					kind: "qa",
+					url: null,
+					title,
+					content,
+					question,
+					answer,
+					sourceMessageId: null,
+					active: true,
 				})
 				.returning();
 			return c.json({ source: created });
