@@ -154,6 +154,15 @@ describe("WorkspacesSettingsPage", () => {
 			}),
 		).toBeInTheDocument();
 
+		// Regression guard: delete must NOT be optimistic. If the row were dropped
+		// from the workspace cache in onMutate, `workspaces.length` would fall to 1
+		// mid-flight and the dialog would flip to the "this is your only workspace"
+		// blocker — hiding the pending state and lying about a destructive op that
+		// hasn't been confirmed yet. The confirm form (and "Deleting…") must remain.
+		expect(
+			within(screen.getByRole("alertdialog")).queryByText(/only workspace/i),
+		).not.toBeInTheDocument();
+
 		// Resolve the delete → context switches to the remaining workspace (ws2).
 		resolveDelete(undefined);
 		await waitFor(() => expect(localStorage.getItem(KEY)).toBe("ws2"));
