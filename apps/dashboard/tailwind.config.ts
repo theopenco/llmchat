@@ -22,6 +22,30 @@ const config: Config = {
 				border: "hsl(var(--border))",
 				input: "hsl(var(--input))",
 				ring: "hsl(var(--ring))",
+				// Clanker restyle palette (additive, namespaced `ck`). Backed by the
+				// channel-valued `--ck-*` CSS vars in globals.css and wrapped with
+				// `<alpha-value>`, so opacity utilities (bg-ck-accent/10,
+				// border-ck-border/40, text-ck-muted/70, hover alphas) resolve.
+				ck: {
+					board: "rgb(var(--ck-board) / <alpha-value>)",
+					app: "rgb(var(--ck-app) / <alpha-value>)",
+					sidebar: "rgb(var(--ck-sidebar) / <alpha-value>)",
+					topbar: "rgb(var(--ck-topbar) / <alpha-value>)",
+					border: "rgb(var(--ck-border) / <alpha-value>)",
+					text: "rgb(var(--ck-text) / <alpha-value>)",
+					muted: "rgb(var(--ck-muted) / <alpha-value>)",
+					faint: "rgb(var(--ck-faint) / <alpha-value>)",
+					disabled: "rgb(var(--ck-disabled) / <alpha-value>)",
+					navhover: "rgb(var(--ck-navhover) / <alpha-value>)",
+					card: "rgb(var(--ck-card) / <alpha-value>)",
+					track: "rgb(var(--ck-track) / <alpha-value>)",
+					chip: "rgb(var(--ck-chip) / <alpha-value>)",
+					accent: {
+						DEFAULT: "rgb(var(--ck-accent) / <alpha-value>)",
+						hover: "rgb(var(--ck-accent-hover) / <alpha-value>)",
+					},
+					warn: "rgb(var(--ck-warn) / <alpha-value>)",
+				},
 				background: "hsl(var(--background))",
 				foreground: "hsl(var(--foreground))",
 				primary: {

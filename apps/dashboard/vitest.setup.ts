@@ -11,6 +11,23 @@ globalThis.ResizeObserver ??= class {
 	disconnect() {}
 };
 
+// jsdom has no matchMedia; next-themes (the Light/Dark/System switcher) calls it
+// on mount under `enableSystem`. Default to "not dark" so theme tests are stable.
+if (typeof window !== "undefined" && !window.matchMedia) {
+	window.matchMedia = ((query: string) => ({
+		matches: false,
+		media: query,
+		onchange: null,
+		addEventListener() {},
+		removeEventListener() {},
+		addListener() {},
+		removeListener() {},
+		dispatchEvent() {
+			return false;
+		},
+	})) as typeof window.matchMedia;
+}
+
 afterEach(() => {
 	cleanup();
 });
