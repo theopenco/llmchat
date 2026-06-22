@@ -2,8 +2,7 @@
 
 import { Send } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ds";
 
 export interface ReplyComposerProps {
 	value: string;
@@ -31,22 +30,22 @@ export function ReplyComposer({
 	}
 
 	return (
-		<div className="border-t p-3">
-			<div className="rounded-lg border bg-card focus-within:ring-1 focus-within:ring-ring">
-				<Textarea
+		<div className="border-t border-ck-border bg-ck-topbar p-3">
+			<div className="rounded-[12px] border border-ck-border bg-ck-card focus-within:border-ck-accent">
+				<textarea
 					rows={2}
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
 					onKeyDown={handleKeyDown}
 					placeholder={placeholder}
-					className="resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+					className="w-full resize-none border-0 bg-transparent px-3 py-2.5 text-sm text-ck-text outline-none placeholder:text-ck-faint"
 				/>
 				<div className="flex items-center justify-between gap-2 px-3 pb-2">
-					<span className="text-[11px] text-muted-foreground">
+					<span className="text-[11px] text-ck-faint">
 						Enter to send · Shift+Enter for a new line
 					</span>
-					<Button type="button" size="sm" onClick={onSend} disabled={!canSend}>
-						<Send />
+					<Button size="sm" onClick={onSend} disabled={!canSend}>
+						<Send className="size-4" />
 						{pending ? "Sending…" : "Send"}
 					</Button>
 				</div>

@@ -59,8 +59,8 @@ describe("MessageThread", () => {
 		expect(sideOf("On it!")).toBe("right");
 		// Role labels are shown for bubbles.
 		expect(screen.getByText("Visitor")).toBeInTheDocument();
-		expect(screen.getByText("Bot")).toBeInTheDocument();
-		expect(screen.getByText("Admin")).toBeInTheDocument();
+		expect(screen.getByText("Agent")).toBeInTheDocument();
+		expect(screen.getByText("You")).toBeInTheDocument();
 	});
 
 	it("shows an empty state when there are no messages", () => {

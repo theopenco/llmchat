@@ -16,3 +16,9 @@ export {
 	MenuSeparator,
 } from "./menu";
 export { NavItem, type NavItemProps } from "./nav-item";
+export {
+	Segmented,
+	type SegmentedProps,
+	type SegmentedOption,
+} from "./segmented";
+export { Bubble, bubbleVariants, type BubbleProps } from "./bubble";

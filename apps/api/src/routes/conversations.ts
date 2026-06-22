@@ -53,7 +53,17 @@ export const conversations = new Hono<AppContext>()
 			"query",
 			z.object({
 				search: z.string().optional(),
-				archived: z.enum(["true", "false"]).optional(),
+				// Derived status filter (query-only; no status column on the row):
+				//   open      -> archivedAt IS NULL     (the default / active view)
+				//   resolved  -> archivedAt IS NOT NULL (archiving IS resolving)
+				//   escalated -> escalatedAt IS NOT NULL
+				//   all       -> no status predicate
+				// These are FILTER VIEWS, not mutually-exclusive states: an escalated
+				// conversation can also be resolved. Don't "fix" the overlap into an
+				// enum — there is no status column.
+				status: z
+					.enum(["open", "resolved", "escalated", "all"])
+					.default("open"),
 				limit: z.coerce.number().int().min(1).max(100).default(30),
 				// Opaque keyset cursor (see lib/cursor). A garbage value decodes to
 				// null below and just serves the first page — never a 400.
@@ -65,7 +75,7 @@ export const conversations = new Hono<AppContext>()
 		),
 		async (c) => {
 			const { projectId } = c.req.param();
-			const { search, archived, limit, cursor, tagIds } = c.req.valid("query");
+			const { search, status, limit, cursor, tagIds } = c.req.valid("query");
 			const workspaceId = c.get("workspaceId");
 			const userId = c.get("userId");
 
@@ -79,15 +89,21 @@ export const conversations = new Hono<AppContext>()
 
 			const term = search?.trim() ?? "";
 
-			// Active vs archived split, server-side and explicit: archived rows have
-			// a non-null archivedAt. Default (param absent or "false") is the active
-			// view. This goes into the WHERE before LIMIT/OFFSET and composes with
-			// the search OR-group below, so search runs within the chosen view.
+			// Derived status filter, server-side and explicit. Goes into the WHERE
+			// before LIMIT/OFFSET and composes with the search OR-group + keyset
+			// cursor below, so search/paging run within the chosen view. `all` adds
+			// no predicate. See the `status` enum comment above for the mapping.
+			const statusPredicate =
+				status === "resolved"
+					? isNotNull(conversation.archivedAt)
+					: status === "escalated"
+						? isNotNull(conversation.escalatedAt)
+						: status === "open"
+							? isNull(conversation.archivedAt)
+							: undefined; // "all"
 			const conditions = [
 				eq(conversation.projectId, projectId),
-				archived === "true"
-					? isNotNull(conversation.archivedAt)
-					: isNull(conversation.archivedAt),
+				...(statusPredicate ? [statusPredicate] : []),
 			];
 
 			// Content search: a conversation matches on visitor name, email, OR any

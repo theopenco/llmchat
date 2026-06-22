@@ -2,11 +2,11 @@
 
 import { MessageCircle } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 import { initials, pluralize, timeAgo } from "./format";
 import { Highlighted } from "./highlight";
+import type { StatusFilter } from "./status";
 import { TagChip } from "./TagChip";
 import type { Conversation, SearchMatch } from "./types";
 
@@ -16,6 +16,13 @@ const MATCH_LABEL: Record<SearchMatch["field"], string | null> = {
 	body: null,
 	name: "Name",
 	email: "Email",
+};
+
+const EMPTY_COPY: Record<StatusFilter, string> = {
+	open: "No open conversations",
+	resolved: "No resolved conversations",
+	escalated: "No escalated conversations",
+	all: "No conversations yet",
 };
 
 function ConversationRow({
@@ -38,26 +45,24 @@ function ConversationRow({
 			onClick={onSelect}
 			aria-current={selected}
 			className={cn(
-				"flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+				"flex w-full items-start gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors",
 				selected
-					? "bg-primary/10 ring-1 ring-inset ring-primary/20"
-					: "hover:bg-muted/60",
+					? "bg-ck-accent/10 ring-1 ring-inset ring-ck-accent/25"
+					: "hover:bg-ck-navhover",
 			)}
 		>
 			<div className="relative shrink-0">
 				<span
 					className={cn(
-						"flex size-9 items-center justify-center rounded-full text-xs font-semibold",
-						selected
-							? "bg-primary text-primary-foreground"
-							: "bg-muted text-muted-foreground",
+						"flex size-9 items-center justify-center rounded-full text-xs font-bold",
+						selected ? "bg-ck-accent text-white" : "bg-ck-chip text-ck-muted",
 					)}
 				>
 					{initials(conversation.name)}
 				</span>
 				{unread && !selected && (
 					<span
-						className="absolute -left-0.5 -top-0.5 size-2.5 rounded-full bg-primary ring-2 ring-card"
+						className="absolute -left-0.5 -top-0.5 size-2.5 rounded-full bg-ck-accent ring-2 ring-ck-sidebar"
 						aria-label="Unread"
 					/>
 				)}
@@ -68,20 +73,20 @@ function ConversationRow({
 					<span
 						className={cn(
 							"truncate text-sm",
-							unread && !selected ? "font-semibold" : "font-medium",
-							selected ? "text-primary" : "text-foreground",
+							unread && !selected ? "font-bold" : "font-semibold",
+							"text-ck-text",
 						)}
 					>
 						{conversation.name ?? "Anonymous"}
 					</span>
-					<span className="shrink-0 text-[11px] text-muted-foreground">
+					<span className="shrink-0 text-[11px] text-ck-faint">
 						{timeAgo(conversation.updatedAt)}
 					</span>
 				</div>
 				{conversation.match && search ? (
-					<p className="truncate text-xs text-muted-foreground">
+					<p className="truncate text-xs text-ck-muted">
 						{MATCH_LABEL[conversation.match.field] && (
-							<span className="mr-1 font-medium uppercase tracking-wide text-[10px] text-muted-foreground/70">
+							<span className="mr-1 text-[10px] font-medium uppercase tracking-wide text-ck-faint">
 								{MATCH_LABEL[conversation.match.field]}
 							</span>
 						)}
@@ -92,8 +97,8 @@ function ConversationRow({
 						className={cn(
 							"truncate text-xs",
 							unread && !selected
-								? "font-medium text-foreground"
-								: "text-muted-foreground",
+								? "font-medium text-ck-text"
+								: "text-ck-muted",
 						)}
 					>
 						{conversation.firstMessage?.trim() ||
@@ -103,14 +108,14 @@ function ConversationRow({
 				)}
 				<div className="mt-0.5 flex flex-wrap items-center gap-1.5">
 					{escalated && (
-						<Badge variant="warning" className="h-4 px-1.5 text-[10px]">
+						<span className="inline-flex h-4 items-center rounded-full bg-ck-warn/15 px-1.5 text-[10px] font-semibold text-ck-warn">
 							Escalated
-						</Badge>
+						</span>
 					)}
 					{conversation.tags?.map((t) => (
 						<TagChip key={t.id} tag={t} />
 					))}
-					<span className="text-[11px] text-muted-foreground/70">
+					<span className="text-[11px] text-ck-faint">
 						{pluralize(conversation.messageCount, "message")}
 					</span>
 				</div>
@@ -125,7 +130,7 @@ export interface ConversationListProps {
 	onSelect: (id: string) => void;
 	/** Read-only context for the empty-state copy; filtering lives in the toolbar. */
 	search: string;
-	showArchived: boolean;
+	status: StatusFilter;
 }
 
 export function ConversationList({
@@ -133,20 +138,18 @@ export function ConversationList({
 	selectedId,
 	onSelect,
 	search,
-	showArchived,
+	status,
 }: ConversationListProps) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
 			<div className="min-h-0 flex-1 overflow-y-auto p-1.5">
 				{conversations.length === 0 ? (
 					<div className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">
-						<MessageCircle className="size-8 text-muted-foreground/40" />
-						<p className="text-xs text-muted-foreground">
-							{showArchived
-								? "No archived conversations"
-								: search
-									? "No conversations match your search"
-									: "No conversations yet"}
+						<MessageCircle className="size-8 text-ck-disabled" />
+						<p className="text-xs text-ck-faint">
+							{search
+								? "No conversations match your search"
+								: EMPTY_COPY[status]}
 						</p>
 					</div>
 				) : (
@@ -165,10 +168,9 @@ export function ConversationList({
 				)}
 			</div>
 
-			<div className="border-t px-4 py-2">
-				<p className="text-[11px] text-muted-foreground">
+			<div className="border-t border-ck-border px-4 py-2">
+				<p className="text-[11px] text-ck-faint">
 					{pluralize(conversations.length, "conversation")}
-					{showArchived ? " archived" : ""}
 				</p>
 			</div>
 		</div>

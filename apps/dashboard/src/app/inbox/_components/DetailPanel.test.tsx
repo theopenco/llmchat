@@ -30,35 +30,47 @@ beforeAll(() => {
 	Element.prototype.hasPointerCapture ??= () => false;
 });
 
-function setup(overrides: Partial<Conversation> = {}) {
-	const onArchive = vi.fn();
+function setup(
+	overrides: Partial<Conversation> = {},
+	props: { deleting?: boolean } = {},
+) {
+	const onResolve = vi.fn();
 	const onDelete = vi.fn();
 	render(
 		<DetailPanel
 			conversation={conv(overrides)}
-			onArchive={onArchive}
+			onResolve={onResolve}
 			onDelete={onDelete}
-			archiving={false}
-			deleting={false}
+			resolving={false}
+			deleting={props.deleting ?? false}
 		/>,
 	);
-	return { onArchive, onDelete };
+	return { onResolve, onDelete };
 }
 
 describe("DetailPanel", () => {
-	it("renders contact, session, and a friendly device string from the user agent", () => {
+	it("renders only real captured fields (device parsed from the UA, real IP)", () => {
 		setup();
-		// Email shows in both the header and the contact field.
 		expect(screen.getAllByText("ada@example.com").length).toBeGreaterThan(0);
 		expect(screen.getByText("Chrome on macOS")).toBeInTheDocument();
 		expect(screen.getByText("203.0.113.7")).toBeInTheDocument();
 		expect(screen.getByText("4")).toBeInTheDocument(); // message count
 	});
 
-	it("falls back to Unknown when device/IP data is missing (never invents)", () => {
+	it("falls back to a literal placeholder when device/IP are missing (never invents)", () => {
 		setup({ userAgent: null, ipAddress: null });
-		// Device and IP both read "Unknown".
 		expect(screen.getAllByText("Unknown").length).toBeGreaterThanOrEqual(2);
+	});
+
+	it("renders the roadmap visitor-context as an honest empty block — em-dashes, never a value", () => {
+		setup();
+		expect(
+			screen.getByText(/not captured yet — never show a guessed value/i),
+		).toBeInTheDocument();
+		expect(screen.getByText("Location")).toBeInTheDocument();
+		expect(screen.getByText("Referrer")).toBeInTheDocument();
+		// Every roadmap field renders an em-dash, not a fabricated value.
+		expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(7);
 	});
 
 	it("shows the escalated block only when escalated", () => {
@@ -66,25 +78,31 @@ describe("DetailPanel", () => {
 		expect(screen.getByText(/escalated to a human/i)).toBeInTheDocument();
 	});
 
-	it("shows 'Not rated' when the conversation has no CSAT", () => {
-		setup({ csatRating: null });
-		expect(screen.getByText(/not rated/i)).toBeInTheDocument();
-	});
-
-	it("shows the CSAT score when the conversation is rated", () => {
+	it("shows the CSAT score honestly when rated", () => {
 		setup({ csatRating: 4 });
 		expect(screen.getByText(/4 \/ 5/)).toBeInTheDocument();
 		expect(screen.queryByText(/not rated/i)).not.toBeInTheDocument();
 	});
 
-	it("archives directly but confirms before deleting", async () => {
+	it("Resolve fires directly", async () => {
 		const user = userEvent.setup();
-		const { onArchive, onDelete } = setup();
+		const { onResolve } = setup();
+		await user.click(screen.getByRole("button", { name: /^resolve$/i }));
+		expect(onResolve).toHaveBeenCalledTimes(1);
+	});
 
-		await user.click(screen.getByRole("button", { name: /^archive$/i }));
-		expect(onArchive).toHaveBeenCalledTimes(1);
+	it("offers Reopen (not Unarchive) for a resolved conversation", () => {
+		setup({ archivedAt: "2026-06-16T05:02:00.000Z" });
+		expect(screen.getByRole("button", { name: /reopen/i })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /unarchive/i })).toBeNull();
+	});
 
-		// Delete is guarded by a confirm dialog — the trigger alone doesn't delete.
+	// Delete is a plain Button inside a controlled dialog (NOT AlertDialogAction):
+	// the trigger opens the confirm; the confirm's plain Delete button fires.
+	it("confirms before deleting, then the plain Delete button fires onDelete", async () => {
+		const user = userEvent.setup();
+		const { onDelete } = setup();
+
 		await user.click(
 			screen.getByRole("button", { name: /delete conversation/i }),
 		);
@@ -94,10 +112,14 @@ describe("DetailPanel", () => {
 		expect(onDelete).toHaveBeenCalledTimes(1);
 	});
 
-	it("offers Unarchive for an archived conversation", () => {
-		setup({ archivedAt: "2026-06-16T05:02:00.000Z" });
+	it("shows 'Deleting…' while the delete is pending (dialog stays open)", async () => {
+		const user = userEvent.setup();
+		setup({}, { deleting: true });
+		await user.click(
+			screen.getByRole("button", { name: /delete conversation/i }),
+		);
 		expect(
-			screen.getByRole("button", { name: /unarchive/i }),
+			screen.getByRole("button", { name: /deleting/i }),
 		).toBeInTheDocument();
 	});
 });
