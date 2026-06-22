@@ -3,10 +3,7 @@
 import { ExternalLink, Lightbulb } from "lucide-react";
 import { useState } from "react";
 
-import { CopyButton } from "@/components/copy-button";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge, Button, CopyButton } from "@/components/ds";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { apiBaseUrl } from "@/lib/api-base";
 import {
@@ -27,9 +24,8 @@ type EmbedMode = "floating" | "inline";
 
 /**
  * The install-snippet UI: floating-vs-inline chooser, copyable snippet, embed
- * URL, and tip. Presentational and route-agnostic so it's shared by the project
- * settings card and the onboarding finish screen (one source of truth for the
- * embed markup).
+ * URL, and tip. Presentational and route-agnostic. Full install experience —
+ * restyled to ck/ds with ds/CopyButton; copy is "support agent", never "chatbot".
  */
 export function EmbedSnippet({
 	publicKey,
@@ -53,7 +49,7 @@ export function EmbedSnippet({
 				<>
 					Adds a chat button in the bottom-right of every page — best for
 					site-wide support. Paste before{" "}
-					<code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+					<code className="rounded bg-ck-chip px-1 py-0.5 font-mono text-xs">
 						&lt;/body&gt;
 					</code>
 					.
@@ -83,12 +79,7 @@ export function EmbedSnippet({
 					className="flex-1 gap-2"
 				>
 					Floating bubble
-					<Badge
-						variant="secondary"
-						className="border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-					>
-						Recommended
-					</Badge>
+					<Badge tone="accent">Recommended</Badge>
 				</ToggleGroupItem>
 				<ToggleGroupItem value="inline" className="flex-1">
 					Inline embed
@@ -98,14 +89,19 @@ export function EmbedSnippet({
 			<div className="grid min-w-0 gap-6 lg:grid-cols-2">
 				{/* Selected embed snippet */}
 				<div className="flex min-w-0 flex-col gap-3">
-					<p className="text-sm text-muted-foreground">{selected.when}</p>
+					<p className="text-sm text-ck-muted">{selected.when}</p>
 					<CodeBlock code={selected.code} />
 					<div className="flex flex-wrap items-center gap-2">
-						<CopyButton value={selected.code}>{selected.copyLabel}</CopyButton>
-						<Button type="button" variant="outline" size="sm" asChild>
+						<CopyButton
+							value={selected.code}
+							label={selected.copyLabel}
+							variant="primary"
+							size="sm"
+						/>
+						<Button variant="outline" size="sm" asChild>
 							<a href={url} target="_blank" rel="noreferrer">
 								Open preview
-								<ExternalLink />
+								<ExternalLink className="size-4" />
 							</a>
 						</Button>
 					</div>
@@ -114,33 +110,37 @@ export function EmbedSnippet({
 				{/* Embed URL */}
 				<div className="flex min-w-0 flex-col gap-3">
 					<div className="space-y-0.5">
-						<h3 className="text-sm font-medium text-foreground">Embed URL</h3>
-						<p className="text-sm text-muted-foreground">
-							Use this link to preview your chatbot or for advanced
+						<h3 className="text-sm font-semibold text-ck-text">Embed URL</h3>
+						<p className="text-sm text-ck-muted">
+							Use this link to preview your support agent or for advanced
 							integrations.
 						</p>
 					</div>
 					<div className="flex min-w-0 items-center gap-2">
-						<Input
+						<input
 							readOnly
 							value={url}
 							aria-label="Embed URL"
-							className="min-w-0 truncate font-mono text-xs"
 							onFocus={(e) => e.currentTarget.select()}
+							className="h-9 min-w-0 flex-1 truncate rounded-[10px] border border-ck-border bg-ck-card px-3 font-mono text-xs text-ck-text outline-none"
 						/>
-						<CopyButton value={url} size="default" className="shrink-0">
-							Copy URL
-						</CopyButton>
+						<CopyButton
+							value={url}
+							label="Copy URL"
+							variant="outline"
+							size="sm"
+							className="shrink-0"
+						/>
 					</div>
-					<div className="flex items-start gap-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 dark:bg-indigo-500/10">
-						<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+					<div className="flex items-start gap-3 rounded-xl border border-ck-accent/20 bg-ck-accent/5 p-4">
+						<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-ck-accent/10 text-ck-accent">
 							<Lightbulb className="size-4" />
 						</span>
-						<p className="text-sm text-indigo-950/80 dark:text-indigo-200/90">
-							<span className="font-semibold">Tip:</span> The floating bubble is
-							recommended for most sites — one paste adds support to every page.
-							Use the inline embed only when you want the chat fixed in a
-							specific spot.
+						<p className="text-sm text-ck-muted">
+							<span className="font-semibold text-ck-text">Tip:</span> The
+							floating bubble is recommended for most sites — one paste adds
+							support to every page. Use the inline embed only when you want the
+							chat fixed in a specific spot.
 						</p>
 					</div>
 				</div>

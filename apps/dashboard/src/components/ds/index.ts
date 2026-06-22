@@ -23,3 +23,4 @@ export {
 } from "./segmented";
 export { Bubble, bubbleVariants, type BubbleProps } from "./bubble";
 export { CopyButton, type CopyButtonProps } from "./copy-button";
+export { Field, dsInputClass, type FieldProps } from "./field";

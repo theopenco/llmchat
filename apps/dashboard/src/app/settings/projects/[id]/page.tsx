@@ -4,48 +4,34 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ds";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ACCOUNT_KEY, fetchAccount } from "@/lib/account";
 import { api } from "@/lib/api";
+import { fetchUsage } from "@/lib/billing";
+import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace";
-import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 
-import { BotBasicsCard } from "./BotBasicsCard";
-import { ChatPreviewCard } from "./ChatPreviewCard";
-import { ConfigurationSummaryCard } from "./ConfigurationSummaryCard";
-import { DangerZoneCard } from "./DangerZoneCard";
-import { EmbedCard } from "./EmbedCard";
-import { InstructionsCard } from "./InstructionsCard";
-import { DEFAULT_MODEL, useGatewayModels } from "./model-data";
-import { ModelCard } from "./ModelCard";
-import { ProjectHeader } from "./ProjectHeader";
-import { SetupProgressCard } from "./SetupProgressCard";
-import { SourcesSummaryCard } from "./SourcesSummaryCard";
+import { DeleteProjectDialog } from "../_components/DeleteProjectDialog";
+import { BehaviorTab } from "./_tabs/BehaviorTab";
+import { GeneralTab } from "./_tabs/GeneralTab";
+import { MembersTab } from "./_tabs/MembersTab";
+import { WidgetTab } from "./_tabs/WidgetTab";
 import { useProjectMutations } from "./useProjectMutations";
-import type { Project, ProjectDraft, Source } from "./types";
+import type { Project, ProjectDraft } from "./types";
 
+// Every editable column lives in the draft; handleSave PATCHes only the dirty
+// ones (partial), so a single save bar serves all tabs.
 const EDITABLE_KEYS: (keyof ProjectDraft)[] = [
 	"name",
 	"welcomeMessage",
 	"brandColor",
 	"model",
 	"systemPrompt",
+	"escalationThreshold",
+	"notifyEmail",
+	"slackWebhookUrl",
 ];
-
-function handlePreview() {
-	document
-		.getElementById("chat-preview")
-		?.scrollIntoView({ behavior: "smooth", block: "center" });
-}
 
 function toDraft(p: Project): ProjectDraft {
 	return {
@@ -54,13 +40,25 @@ function toDraft(p: Project): ProjectDraft {
 		brandColor: p.brandColor,
 		model: p.model,
 		systemPrompt: p.systemPrompt,
+		escalationThreshold: p.escalationThreshold,
+		notifyEmail: p.notifyEmail,
+		slackWebhookUrl: p.slackWebhookUrl,
 	};
 }
 
+type Tab = "general" | "widget" | "behavior" | "members";
+const TABS: { id: Tab; label: string }[] = [
+	{ id: "general", label: "General" },
+	{ id: "widget", label: "Widget" },
+	{ id: "behavior", label: "Behavior" },
+	{ id: "members", label: "Members" },
+];
+
 export default function ProjectSettingsPage() {
 	const { id } = useParams<{ id: string }>();
-	const { workspaceId } = useWorkspace();
+	const { workspaceId, role } = useWorkspace();
 
+	const [tab, setTab] = useState<Tab>("general");
 	const [draft, setDraft] = useState<ProjectDraft | null>(null);
 	const [showDelete, setShowDelete] = useState(false);
 
@@ -75,19 +73,15 @@ export default function ProjectSettingsPage() {
 	});
 	const project = projectQ.data;
 
-	const sourcesQ = useQuery({
-		queryKey: ["sources", id],
+	// Powered-by state (read-only) + owner email (Members) from already-cached
+	// queries — no new endpoints.
+	const usageQ = useQuery({
+		queryKey: ["billing-usage", workspaceId],
 		enabled: !!workspaceId,
-		queryFn: () =>
-			api<{ sources: Source[] }>(`/api/projects/${id}/sources`, {
-				workspaceId: workspaceId!,
-			}),
+		queryFn: () => fetchUsage(workspaceId!),
 	});
-	const sources = sourcesQ.data?.sources ?? [];
+	const accountQ = useQuery({ queryKey: ACCOUNT_KEY, queryFn: fetchAccount });
 
-	const modelsQ = useGatewayModels();
-
-	// Seed the draft once per project id; preserves edits across background refetches.
 	useEffect(() => {
 		if (project) setDraft(toDraft(project));
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,14 +91,11 @@ export default function ProjectSettingsPage() {
 
 	if (!project || !draft) {
 		return (
-			<div className="min-h-svh">
-				<div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-8 lg:flex-row">
-					<div className="flex flex-1 flex-col gap-6">
-						<Skeleton className="h-20 w-full sm:w-80" />
-						<Skeleton className="h-48 w-full rounded-2xl" />
-						<Skeleton className="h-40 w-full rounded-2xl" />
-					</div>
-					<Skeleton className="h-96 w-full rounded-2xl lg:w-[360px]" />
+			<div className="mx-auto max-w-[1000px] px-6 py-8">
+				<Skeleton className="h-8 w-64" />
+				<div className="mt-6 flex gap-6">
+					<Skeleton className="h-40 w-44 shrink-0 rounded-2xl" />
+					<Skeleton className="h-80 flex-1 rounded-2xl" />
 				</div>
 			</div>
 		);
@@ -114,7 +105,7 @@ export default function ProjectSettingsPage() {
 		setDraft((d) => (d ? { ...d, [key]: value } : d));
 	}
 
-	const dirtyKeys = EDITABLE_KEYS.filter((k) => draft[k] !== project[k]);
+	const dirtyKeys = EDITABLE_KEYS.filter((k) => draft![k] !== project![k]);
 	const dirty = dirtyKeys.length > 0;
 
 	function handleSave() {
@@ -123,109 +114,88 @@ export default function ProjectSettingsPage() {
 		for (const k of dirtyKeys) {
 			(payload as Record<string, unknown>)[k] = draft[k];
 		}
-		// Editing the single Instructions field makes the project's systemPrompt
-		// authoritative, so clear any active library prompt that would override it.
-		if (dirtyKeys.includes("systemPrompt")) {
-			payload.activeSystemPromptId = null;
-		}
+		// Editing Instructions makes systemPrompt authoritative — clear any active
+		// library prompt that would override it.
+		if (dirtyKeys.includes("systemPrompt")) payload.activeSystemPromptId = null;
 		save.mutate(payload);
 	}
 
-	const selectedId = draft.model || DEFAULT_MODEL;
-	const modelName =
-		modelsQ.data?.find((m) => m.id === selectedId)?.name ?? selectedId;
-
 	return (
-		<div className="min-h-svh">
-			<div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-8">
-				<ProjectHeader
-					name={draft.name}
-					modelName={modelName}
-					sourceCount={sources.length}
-					dirty={dirty}
-					saving={save.isPending}
-					onSave={handleSave}
-					onPreview={handlePreview}
-				/>
+		<div className="mx-auto max-w-[1000px] px-6 py-8">
+			<header className="mb-6">
+				<h1 className="truncate text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
+					{project.name}
+				</h1>
+				<p className="mt-1 text-sm text-ck-muted">Project settings</p>
+			</header>
 
-				<div className="flex flex-col gap-6 lg:flex-row">
-					<main className="flex min-w-0 flex-1 flex-col gap-6">
-						<BotBasicsCard draft={draft} set={set} />
-						<ModelCard
-							value={draft.model}
-							onChange={(m) => {
-								set("model", m);
-								track(ANALYTICS_EVENTS.modelChanged, { model: m });
-							}}
-						/>
-						<InstructionsCard
-							value={draft.systemPrompt}
-							onChange={(v) => set("systemPrompt", v)}
-						/>
-						<SourcesSummaryCard
-							projectId={id}
-							sourceCount={sources.length}
-							isLoading={sourcesQ.isLoading}
-						/>
-						<EmbedCard
-							publicKey={project.publicKey}
-							brandColor={draft.brandColor}
-						/>
-					</main>
+			<div className="flex flex-col gap-6 sm:flex-row">
+				{/* Left subnav (the design's General/Widget/Behavior/Members). */}
+				<nav className="flex shrink-0 gap-1 sm:w-44 sm:flex-col">
+					{TABS.map((t) => (
+						<button
+							key={t.id}
+							type="button"
+							onClick={() => setTab(t.id)}
+							className={cn(
+								"rounded-[10px] px-3 py-2 text-left text-[13.5px] font-semibold transition-colors",
+								tab === t.id
+									? "bg-ck-accent text-white"
+									: "text-ck-muted hover:bg-ck-navhover hover:text-ck-text",
+							)}
+						>
+							{t.label}
+						</button>
+					))}
+				</nav>
 
-					<aside className="shrink-0 lg:w-[360px]">
-						<div className="flex flex-col gap-6 lg:sticky lg:top-6">
-							<SetupProgressCard
-								hasProject
-								hasModel={!!draft.model}
-								hasInstructions={draft.systemPrompt.trim().length > 0}
-								hasSources={sources.length > 0}
-								hasEmbedCode={!!project.publicKey}
-							/>
-							<ChatPreviewCard
-								name={draft.name}
-								welcomeMessage={draft.welcomeMessage}
-								brandColor={draft.brandColor}
-							/>
-							<ConfigurationSummaryCard
-								modelName={modelName}
-								brandColor={draft.brandColor}
-								welcomeMessage={draft.welcomeMessage}
-								sourceCount={sources.length}
-								embedPath={`/embed/${project.publicKey}`}
-							/>
-							<DangerZoneCard onDelete={() => setShowDelete(true)} />
-						</div>
-					</aside>
+				<div className="min-w-0 flex-1 pb-20">
+					{tab === "general" && (
+						<GeneralTab
+							draft={draft}
+							set={set}
+							branding={usageQ.data?.entitlements.branding}
+							onRequestDelete={() => setShowDelete(true)}
+						/>
+					)}
+					{tab === "widget" && (
+						<WidgetTab draft={draft} set={set} publicKey={project.publicKey} />
+					)}
+					{tab === "behavior" && <BehaviorTab draft={draft} set={set} />}
+					{tab === "members" && (
+						<MembersTab ownerEmail={accountQ.data?.email ?? null} role={role} />
+					)}
 				</div>
 			</div>
 
-			<AlertDialog open={showDelete} onOpenChange={setShowDelete}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>
-							Delete &ldquo;{project.name}&rdquo;?
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							This will permanently remove the project and all its
-							conversations.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-							onClick={(e) => {
-								e.preventDefault();
-								remove.mutate();
-							}}
-							disabled={remove.isPending}
-						>
-							{remove.isPending ? "Deleting…" : "Delete"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			{/* One save bar for all tabs — saves only the dirty fields (PATCH partial). */}
+			{dirty && (
+				<div className="fixed inset-x-0 bottom-0 z-20 border-t border-ck-border bg-ck-topbar/95 backdrop-blur md:left-60">
+					<div className="mx-auto flex max-w-[1000px] items-center justify-between gap-3 px-6 py-3">
+						<span className="text-[12.5px] text-ck-muted">Unsaved changes</span>
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setDraft(toDraft(project))}
+								disabled={save.isPending}
+							>
+								Cancel
+							</Button>
+							<Button size="sm" onClick={handleSave} disabled={save.isPending}>
+								{save.isPending ? "Saving…" : "Save changes"}
+							</Button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			<DeleteProjectDialog
+				open={showDelete}
+				onOpenChange={setShowDelete}
+				onConfirm={() => remove.mutate()}
+				pending={remove.isPending}
+			/>
 		</div>
 	);
 }
