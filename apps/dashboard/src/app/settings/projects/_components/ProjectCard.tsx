@@ -3,87 +3,112 @@
 import { Pin, Settings, Star, Trash2 } from "lucide-react";
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Badge, Button, Card, CopyButton } from "@/components/ds";
 import { cn } from "@/lib/utils";
+
 import type { ProjectListItem } from "./types";
 
 export interface ProjectCardProps {
 	project: ProjectListItem;
+	/** Responses in the last 30 days (lazy-loaded). `undefined` → still loading,
+	 * render an honest "—", never a fabricated 0. */
+	responses30d?: number;
 	onToggleFavorite: (id: string, next: boolean) => void;
 	onTogglePin: (id: string, next: boolean) => void;
 	onDelete: (id: string) => void;
 }
 
+const initial = (name: string) => name.trim().charAt(0).toUpperCase() || "?";
+
 export function ProjectCard({
 	project,
+	responses30d,
 	onToggleFavorite,
 	onTogglePin,
 	onDelete,
 }: ProjectCardProps) {
+	const brand = project.brandColor || "#6366f1";
 	return (
-		<Card className="group relative flex flex-col p-5 transition-all hover:border-foreground/15 hover:shadow-md">
-			<div className="mb-4 flex items-start justify-between">
-				<div
-					className="h-2 w-10 rounded-full"
-					style={{ backgroundColor: project.brandColor || "#000" }}
-				/>
-				<div className="flex items-center gap-1">
+		<Card className="flex flex-col p-5 transition-colors hover:border-ck-accent/50">
+			<div className="flex items-start gap-3">
+				<span
+					className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-sm font-bold text-white"
+					style={{ backgroundColor: brand }}
+				>
+					{initial(project.name)}
+				</span>
+				<h3 className="min-w-0 flex-1 truncate pt-1.5 text-[15px] font-bold text-ck-text">
+					{project.name}
+				</h3>
+				<div className="flex shrink-0 items-center">
 					<Button
-						type="button"
 						variant="ghost"
 						size="icon"
-						className={cn(
-							"size-8",
-							project.favorite
-								? "text-warning hover:text-warning"
-								: "text-muted-foreground/50",
-						)}
+						className={cn(project.favorite ? "text-ck-warn" : "text-ck-faint")}
 						onClick={() => onToggleFavorite(project.id, !project.favorite)}
-						title={project.favorite ? "Unfavorite" : "Favorite"}
+						aria-label={project.favorite ? "Unfavorite" : "Favorite"}
 					>
-						<Star className={cn(project.favorite && "fill-warning")} />
+						<Star
+							className={cn("size-4", project.favorite && "fill-current")}
+						/>
 					</Button>
 					<Button
-						type="button"
 						variant="ghost"
 						size="icon"
-						className={cn(
-							"size-8",
-							project.pinned ? "text-foreground" : "text-muted-foreground/50",
-						)}
+						className={cn(project.pinned ? "text-ck-text" : "text-ck-faint")}
 						onClick={() => onTogglePin(project.id, !project.pinned)}
-						title={project.pinned ? "Unpin" : "Pin"}
+						aria-label={project.pinned ? "Unpin" : "Pin"}
 					>
-						<Pin className={cn(project.pinned && "fill-current")} />
+						<Pin className={cn("size-4", project.pinned && "fill-current")} />
 					</Button>
 				</div>
 			</div>
-			<h3 className="text-base font-semibold">{project.name}</h3>
-			<p className="mt-1 font-mono text-xs text-muted-foreground">
-				{project.publicKey.slice(0, 20)}…
-			</p>
-			<div className="mt-3 flex items-center gap-2">
-				<Badge variant="secondary">{project.model}</Badge>
+
+			{/* Public key — public + safe to expose; with a real copy affordance. */}
+			<div className="mt-3 flex items-center gap-2 rounded-[10px] border border-ck-border bg-ck-app px-2.5 py-1.5">
+				<span className="text-[10px] font-bold uppercase tracking-wide text-ck-faint">
+					Key
+				</span>
+				<span className="min-w-0 flex-1 truncate font-mono text-xs text-ck-muted">
+					{project.publicKey}
+				</span>
+				<CopyButton
+					value={project.publicKey}
+					aria-label="Copy public key"
+					className="size-7 shrink-0 text-ck-faint hover:text-ck-text"
+				/>
 			</div>
-			<div className="mt-auto flex items-center gap-2 pt-5">
-				<Button asChild variant="outline" className="flex-1">
-					<Link href={`/settings/projects/${project.id}`}>
-						<Settings />
-						Configure
-					</Link>
-				</Button>
-				<Button
-					type="button"
-					variant="outline"
-					size="icon"
-					onClick={() => onDelete(project.id)}
-					className="border-destructive/20 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-					title="Delete project"
-				>
-					<Trash2 />
-				</Button>
+
+			<div className="my-3.5 h-px bg-ck-border" />
+
+			<div className="flex items-center justify-between gap-2">
+				<div>
+					<div className="font-mono text-[15px] font-extrabold text-ck-text tabular-nums">
+						{responses30d === undefined
+							? "—"
+							: responses30d.toLocaleString("en-US")}
+					</div>
+					<div className="text-[10.5px] text-ck-faint">responses · 30d</div>
+				</div>
+				<div className="flex items-center gap-2">
+					<Badge tone="neutral" className="font-mono">
+						{project.model}
+					</Badge>
+					<Button asChild variant="outline" size="icon" aria-label="Configure">
+						<Link href={`/settings/projects/${project.id}`}>
+							<Settings className="size-4" />
+						</Link>
+					</Button>
+					<Button
+						variant="ghost"
+						size="icon"
+						className="text-ck-faint hover:bg-ck-warn/10 hover:text-ck-warn"
+						onClick={() => onDelete(project.id)}
+						aria-label="Delete project"
+					>
+						<Trash2 className="size-4" />
+					</Button>
+				</div>
 			</div>
 		</Card>
 	);

@@ -2,7 +2,6 @@
 
 import {
 	AlertDialog,
-	AlertDialogAction,
 	AlertDialogCancel,
 	AlertDialogContent,
 	AlertDialogDescription,
@@ -10,6 +9,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ds";
 
 export interface DeleteProjectDialogProps {
 	open: boolean;
@@ -18,6 +18,13 @@ export interface DeleteProjectDialogProps {
 	pending: boolean;
 }
 
+/**
+ * Project-delete confirm. A plain submit Button — NOT AlertDialogAction (which
+ * auto-closes on click and, under React 18, can fire before the handler) — and
+ * the parent's mutation is non-optimistic: the dialog stays open showing
+ * "Deleting…" until the server confirms, so a failed delete surfaces instead of
+ * reading as success. Consistent with the workspace + conversation deletes.
+ */
 export function DeleteProjectDialog({
 	open,
 	onOpenChange,
@@ -35,17 +42,15 @@ export function DeleteProjectDialog({
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
-					<AlertDialogAction
-						className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-						onClick={(e) => {
-							e.preventDefault();
-							onConfirm();
-						}}
+					<AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+					<Button
+						variant="primary"
+						className="bg-ck-warn hover:bg-ck-warn/90"
 						disabled={pending}
+						onClick={onConfirm}
 					>
 						{pending ? "Deleting…" : "Delete"}
-					</AlertDialogAction>
+					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>
 		</AlertDialog>
