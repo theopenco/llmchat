@@ -5,7 +5,7 @@ import { FolderOpen, FolderPlus, Pin, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ds";
 import {
 	Empty,
 	EmptyContent,
@@ -15,7 +15,7 @@ import {
 	EmptyTitle,
 } from "@/components/ui/empty";
 import { api, describeApiError } from "@/lib/api";
-import { dropById, mapById, useOptimisticMutation } from "@/lib/optimistic";
+import { mapById, useOptimisticMutation } from "@/lib/optimistic";
 import { useWorkspace } from "@/lib/workspace";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { RoleGate } from "@/components/role-gate";
@@ -51,6 +51,19 @@ export default function ProjectsPage() {
 			}),
 	});
 
+	// Per-project 30-day response counts — a SEPARATE, lazy query (never folded
+	// into the hot ["projects"] query). The grid renders from `projects` first;
+	// cards show an honest "—" until this resolves, then the real count.
+	const usage = useQuery({
+		queryKey: ["projects-usage", workspaceId],
+		enabled: !!workspaceId,
+		queryFn: () =>
+			api<{ usage: Record<string, number> }>("/api/projects/usage", {
+				workspaceId: workspaceId!,
+			}),
+	});
+	const usageMap = usage.data?.usage;
+
 	const create = useMutation({
 		mutationFn: (input: { name: string }) =>
 			api<{ project: ProjectListItem }>("/api/projects", {
@@ -72,12 +85,14 @@ export default function ProjectsPage() {
 			toast.error(describeApiError(e, "Failed to create project")),
 	});
 
-	// Optimistic delete: the card leaves the grid immediately; a failure rolls it
-	// back and toasts. The confirm dialog closes at the call site (handler below).
-	const remove = useOptimisticMutation<string>({
-		queryKey: ["projects", workspaceId],
-		apply: (prev, id) => dropById(prev, "projects", id),
-		mutationFn: (id) =>
+	// Delete is NON-optimistic + confirm: a permanent, irreversible delete must
+	// not pull the card before the server acknowledges it (the bug fixed in
+	// #68/#70). The confirm dialog stays open showing "Deleting…" until onSuccess,
+	// which then closes it and reconciles the grid — so a failed delete surfaces,
+	// never reads as success. (Favorite/pin toggles below stay optimistic: those
+	// are reversible and non-destructive.)
+	const remove = useMutation({
+		mutationFn: (id: string) =>
 			api(`/api/projects/${id}`, {
 				method: "DELETE",
 				workspaceId: workspaceId!,
@@ -85,6 +100,9 @@ export default function ProjectsPage() {
 		onSuccess: (_res, id) => {
 			track(ANALYTICS_EVENTS.projectDeleted, { project_id: id });
 			toast.success("Project deleted");
+			setDeleteId(null);
+			void qc.invalidateQueries({ queryKey: ["projects", workspaceId] });
+			void qc.invalidateQueries({ queryKey: ["projects-usage", workspaceId] });
 		},
 		onError: (e) =>
 			toast.error(describeApiError(e, "Failed to delete project")),
@@ -124,9 +142,11 @@ export default function ProjectsPage() {
 		<div className="mx-auto max-w-5xl px-6 py-10">
 			<div className="mb-8 flex items-center justify-between">
 				<div>
-					<h1 className="text-2xl font-bold tracking-tight">Projects</h1>
-					<p className="mt-1 text-sm text-muted-foreground">
-						Manage your chat projects and their configurations.
+					<h1 className="text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
+						Projects
+					</h1>
+					<p className="mt-1 text-sm text-ck-muted">
+						Your support agents and their configuration.
 					</p>
 				</div>
 				<RoleGate>
@@ -164,11 +184,9 @@ export default function ProjectsPage() {
 				open={deleteId !== null}
 				onOpenChange={(open) => !open && setDeleteId(null)}
 				onConfirm={() => {
-					if (!deleteId) return;
-					const id = deleteId;
-					// Close the dialog as the card optimistically leaves the grid.
-					setDeleteId(null);
-					remove.mutate(id);
+					// Non-optimistic: fire and let the dialog show pending; it closes on
+					// success (see `remove`), never before the server confirms.
+					if (deleteId) remove.mutate(deleteId);
 				}}
 				pending={remove.isPending}
 			/>
@@ -225,12 +243,13 @@ export default function ProjectsPage() {
 				<div className="flex flex-col gap-8">
 					{pinned.length > 0 && (
 						<section>
-							<div className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+							<div className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ck-faint">
 								<Pin className="size-3" />
 								Pinned
 							</div>
 							<ProjectGrid
 								projects={pinned}
+								usage={usageMap}
 								onToggleFavorite={(id, favorite) =>
 									toggle.mutate({ id, favorite })
 								}
@@ -244,12 +263,13 @@ export default function ProjectsPage() {
 					{rest.length > 0 && (
 						<section>
 							{pinned.length > 0 && (
-								<div className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+								<div className="mb-3 text-xs font-semibold uppercase tracking-wide text-ck-faint">
 									All projects
 								</div>
 							)}
 							<ProjectGrid
 								projects={rest}
+								usage={usageMap}
 								onToggleFavorite={(id, favorite) =>
 									toggle.mutate({ id, favorite })
 								}
@@ -268,11 +288,14 @@ export default function ProjectsPage() {
 
 function ProjectGrid({
 	projects,
+	usage,
 	onToggleFavorite,
 	onTogglePin,
 	onDelete,
 }: {
 	projects: ProjectListItem[];
+	/** 30-day response counts by project id; undefined entries render "—". */
+	usage?: Record<string, number>;
 	onToggleFavorite: (id: string, next: boolean) => void;
 	onTogglePin: (id: string, next: boolean) => void;
 	onDelete: (id: string) => void;
@@ -283,6 +306,7 @@ function ProjectGrid({
 				<ProjectCard
 					key={project.id}
 					project={project}
+					responses30d={usage?.[project.id]}
 					onToggleFavorite={onToggleFavorite}
 					onTogglePin={onTogglePin}
 					onDelete={onDelete}

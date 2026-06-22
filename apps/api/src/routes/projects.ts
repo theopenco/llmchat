@@ -14,7 +14,7 @@ import {
 	requireWorkspace,
 } from "@/middleware/session";
 
-import { eq, project } from "@llmchat/db";
+import { and, count, eq, gte, project, usageEvent } from "@llmchat/db";
 import {
 	DEFAULT_MODEL,
 	isModelAllowed,
@@ -83,6 +83,29 @@ export const projects = new Hono<AppContext>()
 			where: (pt, { eq: e }) => e(pt.workspaceId, workspaceId),
 		});
 		return c.json({ projects: rows });
+	})
+	// Per-project response counts for the last 30 days — the projects grid's
+	// "responses · 30d" badge. DELIBERATELY a separate endpoint, not folded into
+	// GET /projects: that list is on the hot path (inbox, shell switcher,
+	// onboarding, workspaces), so it stays lean while the grid lazy-loads these
+	// counts. One bounded, indexed (workspace_id, created_at) aggregate grouped by
+	// project — no pagination, output is at most the project cap.
+	.get("/projects/usage", async (c) => {
+		const workspaceId = c.get("workspaceId");
+		const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+		const rows = await db(c.env)
+			.select({ projectId: usageEvent.projectId, n: count() })
+			.from(usageEvent)
+			.where(
+				and(
+					eq(usageEvent.workspaceId, workspaceId),
+					gte(usageEvent.createdAt, since),
+				),
+			)
+			.groupBy(usageEvent.projectId);
+		const usage: Record<string, number> = {};
+		for (const r of rows) usage[r.projectId] = Number(r.n);
+		return c.json({ usage });
 	})
 	.post(
 		"/projects",

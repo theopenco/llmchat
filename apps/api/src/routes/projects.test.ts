@@ -32,6 +32,8 @@ interface State {
 	plan?: string;
 	/** Existing project count for the project-cap check. Defaults to 0. */
 	projectCount?: number;
+	/** Rows the /projects/usage aggregate (select→from→where→groupBy) returns. */
+	usageRows?: { projectId: string; n: number }[];
 }
 
 let insertSpy: ReturnType<typeof vi.fn>;
@@ -68,9 +70,17 @@ function mockDb(state: State) {
 				findFirst: async () => ({ plan: state.plan ?? "scale" }),
 			},
 		},
-		// Count queries (projectCount): db.select({n}).from(...).where(...) → [{n}]
+		// Two select shapes:
+		//  - projectCount: db.select({n}).from(...).where(...) — awaited directly.
+		//  - usage:        db.select(...).from(...).where(...).groupBy(...).
+		// So where() is both a thenable (count) and exposes groupBy (usage).
 		select: () => ({
-			from: () => ({ where: async () => [{ n: state.projectCount ?? 0 }] }),
+			from: () => ({
+				where: () =>
+					Object.assign(Promise.resolve([{ n: state.projectCount ?? 0 }]), {
+						groupBy: async () => state.usageRows ?? [],
+					}),
+			}),
 		}),
 		insert: insertSpy,
 		delete: deleteSpy,
@@ -87,6 +97,31 @@ function req(path: string, init: RequestInit = {}) {
 const json = { "content-type": "application/json" };
 
 beforeEach(() => vi.clearAllMocks());
+
+describe("GET /projects/usage — 30-day per-project counts", () => {
+	it("returns a { projectId: count } map for the workspace", async () => {
+		mockDb({
+			role: "agent",
+			usageRows: [
+				{ projectId: "p1", n: 12 },
+				{ projectId: "p2", n: 3 },
+			],
+		});
+		const res = await req("/projects/usage", {
+			headers: { "x-test-user": "u1", "x-workspace-id": "ws_1" },
+		});
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ usage: { p1: 12, p2: 3 } });
+	});
+
+	it("is role-gated — a non-member gets 403, no aggregate", async () => {
+		mockDb({}); // not a member
+		const res = await req("/projects/usage", {
+			headers: { "x-test-user": "u1", "x-workspace-id": "ws_1" },
+		});
+		expect(res.status).toBe(403);
+	});
+});
 
 describe("RBAC — POST /projects (create)", () => {
 	it("403s an agent (insufficient_role) and never inserts", async () => {
