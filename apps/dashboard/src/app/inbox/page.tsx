@@ -511,8 +511,11 @@ export default function InboxPage() {
 	// list-scoped header/toolbar give way to the full-screen thread.
 	const threadOpen = Boolean(selectedId && detailConv);
 
+	// h-full fills the shell's bounded main (below the top bar + any launch
+	// banner) — see dashboard-shell. The shell owns the chrome height now, so the
+	// inbox no longer hard-codes a viewport calc.
 	return (
-		<div className="flex h-[calc(100dvh-3rem)] flex-col md:h-[calc(100vh-3.5rem)]">
+		<div className="flex h-full flex-col">
 			{/* Header band + toolbar are list-scoped: hidden on mobile while a thread
 			    is open (the thread takes the full screen), always shown from md. */}
 			<div className={cn(threadOpen && "hidden md:block")}>

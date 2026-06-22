@@ -7,3 +7,12 @@ export { Card, CardHeader, CardTitle, CardContent, CardFooter } from "./card";
 export { Button, buttonVariants, type ButtonProps } from "./button";
 export { Badge, badgeVariants, type BadgeProps } from "./badge";
 export { Progress, type ProgressProps } from "./progress";
+export {
+	Menu,
+	MenuTrigger,
+	MenuContent,
+	MenuItem,
+	MenuLabel,
+	MenuSeparator,
+} from "./menu";
+export { NavItem, type NavItemProps } from "./nav-item";

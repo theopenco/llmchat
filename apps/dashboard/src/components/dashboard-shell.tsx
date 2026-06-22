@@ -1,19 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { BrandLogo } from "@/components/brand-logo";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { LaunchBanner } from "@/components/launch-banner";
-import {
-	SidebarInset,
-	SidebarProvider,
-	SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SidebarNav } from "@/components/shell/sidebar-nav";
+import { TopBar } from "@/components/shell/top-bar";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useSession } from "@/lib/auth-client";
 import { useOnboardingRedirect } from "@/lib/use-onboarding-redirect";
+import { SelectedProjectProvider } from "@/lib/use-selected-project";
+import { useWorkspace } from "@/lib/workspace";
 
 export function DashboardShell({
 	children,
@@ -24,9 +22,12 @@ export function DashboardShell({
 	initialEmail?: string;
 }) {
 	const { data, isPending } = useSession();
+	const { role } = useWorkspace();
 	const router = useRouter();
+	const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
 	const email = initialEmail ?? data?.user?.email;
+	const roleLabel = role ? role[0].toUpperCase() + role.slice(1) : "Member";
 
 	useEffect(() => {
 		// Only client-gate when the server didn't already confirm a session.
@@ -46,23 +47,45 @@ export function DashboardShell({
 	}
 
 	return (
-		<SidebarProvider>
-			<AppSidebar userEmail={email} />
-			<SidebarInset className="bg-background">
-				{/* Mobile-only bar to open the sidebar drawer; desktop matches the mockup with no top bar. */}
-				<header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-md md:hidden">
-					{/* Finger-sized (40px) — this is the only way to open the nav on a phone. */}
-					<SidebarTrigger className="-ml-1 size-10" />
-					<BrandLogo className="size-6" />
-					<span className="font-display font-semibold tracking-tight-display">
-						Clanker Support
-					</span>
-				</header>
-				<main className="flex-1">
-					<LaunchBanner />
-					{children}
-				</main>
-			</SidebarInset>
-		</SidebarProvider>
+		<SelectedProjectProvider>
+			{/* Frame: full-width Command Bar over a [sidebar | main] row. h-dvh +
+			    min-h-0 keeps a bounded main so the inbox's full-height panes and the
+			    scrollable content pages both behave. */}
+			<div className="flex h-dvh flex-col bg-ck-app text-ck-text">
+				<TopBar
+					userEmail={email}
+					roleLabel={roleLabel}
+					onOpenSidebar={() => setMobileNavOpen(true)}
+				/>
+
+				<div className="flex min-h-0 flex-1">
+					{/* Desktop sidebar */}
+					<aside className="hidden w-60 shrink-0 border-r border-ck-border bg-ck-sidebar md:block">
+						<SidebarNav />
+					</aside>
+
+					{/* Mobile sidebar drawer */}
+					<Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+						<SheetContent
+							side="left"
+							className="w-60 border-ck-border bg-ck-sidebar p-0"
+						>
+							<SheetTitle className="sr-only">Navigation</SheetTitle>
+							<SidebarNav />
+						</SheetContent>
+					</Sheet>
+
+					{/* Main: a bounded flex column. The banner is shrink-0 chrome; the
+					    inner div is the single scroll container for page content. This
+					    way a full-height page (the inbox, via h-full) gets exactly the
+					    space below the banner — no viewport-vs-chrome mismatch — and a
+					    tall content page scrolls inside main, never the document. */}
+					<main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-ck-app">
+						<LaunchBanner />
+						<div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+					</main>
+				</div>
+			</div>
+		</SelectedProjectProvider>
 	);
 }
