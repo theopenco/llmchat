@@ -44,7 +44,7 @@ export function PlanTiers({
 						key={tier.plan}
 						className={cn(
 							"relative flex flex-col rounded-2xl border bg-ck-card p-5",
-							tier.highlight ? "border-ck-accent-border" : "border-ck-border",
+							tier.highlight ? "border-ck-accent/35" : "border-ck-border",
 							!available && "opacity-75",
 						)}
 					>

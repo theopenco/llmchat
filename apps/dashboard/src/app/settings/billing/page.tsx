@@ -97,7 +97,7 @@ function BillingContent() {
 			{error && <BillingNotice message={error} />}
 
 			{exempt && (
-				<div className="rounded-[10px] border border-ck-accent-border bg-ck-accent-soft p-4 text-sm">
+				<div className="rounded-[10px] border border-ck-accent/35 bg-ck-accent/10 p-4 text-sm">
 					<p className="font-semibold text-ck-text">
 						Internal account — full access, no billing.
 					</p>

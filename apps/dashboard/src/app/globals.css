@@ -91,47 +91,49 @@
 	 * shell) consume these via the `ck` Tailwind color scale + the components/ds
 	 * primitives. The `.dark` class (set by next-themes) swaps the whole set, so
 	 * the existing Light/Dark/System switcher drives these for free.
+	 *
+	 * Values are SPACE-SEPARATED RGB CHANNELS (not hex) so the Tailwind `ck`
+	 * scale can wrap them as `rgb(var(--ck-*) / <alpha-value>)` and opacity
+	 * utilities (bg-ck-accent/10, border-ck-border/40, hover alphas) work. NOTE:
+	 * a channel var is NOT a valid standalone color — never use `var(--ck-*)`
+	 * bare in raw CSS; go through a `ck-*` utility, or wrap it `rgb(var(--ck-*))`.
 	 */
 	:root {
-		--ck-board: #e7e5df;
-		--ck-app: #f6f6f7;
-		--ck-sidebar: #fbfbfc;
-		--ck-topbar: #ffffff;
-		--ck-border: #ececef;
-		--ck-text: #18181b;
-		--ck-muted: #5b5b64;
-		--ck-faint: #9a9aa3;
-		--ck-disabled: #b6b6bf;
-		--ck-navhover: #f0f0f3;
-		--ck-card: #ffffff;
-		--ck-track: #ebebf0;
-		--ck-chip: #f0f0f3;
-		--ck-accent: #4f46e5; /* indigo-600 — light-mode accent */
-		--ck-accent-hover: #4338ca;
-		--ck-accent-soft: rgba(79, 70, 229, 0.08);
-		--ck-accent-border: rgba(79, 70, 229, 0.35);
-		--ck-warn: #b45309; /* amber — overage/reference only, never a fake limit */
+		--ck-board: 231 229 223;
+		--ck-app: 246 246 247;
+		--ck-sidebar: 251 251 252;
+		--ck-topbar: 255 255 255;
+		--ck-border: 236 236 239;
+		--ck-text: 24 24 27;
+		--ck-muted: 91 91 100;
+		--ck-faint: 154 154 163;
+		--ck-disabled: 182 182 191;
+		--ck-navhover: 240 240 243;
+		--ck-card: 255 255 255;
+		--ck-track: 235 235 240;
+		--ck-chip: 240 240 243;
+		--ck-accent: 79 70 229; /* indigo-600 #4f46e5 — light-mode accent */
+		--ck-accent-hover: 67 56 202; /* #4338ca */
+		--ck-warn: 180 83 9; /* amber #b45309 — overage/reference only, never a fake limit */
 	}
 
 	.dark {
-		--ck-board: #0a0b0d;
-		--ck-app: #0f1116;
-		--ck-sidebar: #14161b;
-		--ck-topbar: #101218;
-		--ck-border: #23262e;
-		--ck-text: #e9eaec;
-		--ck-muted: #9a9da4;
-		--ck-faint: #62646c;
-		--ck-disabled: #4d5159;
-		--ck-navhover: #1b1e25;
-		--ck-card: #14161b;
-		--ck-track: #252832;
-		--ck-chip: #1b1e25;
-		--ck-accent: #6366f1; /* indigo-500 — dark-mode accent */
-		--ck-accent-hover: #7679f2;
-		--ck-accent-soft: rgba(99, 102, 241, 0.13);
-		--ck-accent-border: rgba(99, 102, 241, 0.34);
-		--ck-warn: #e0a13f;
+		--ck-board: 10 11 13;
+		--ck-app: 15 17 22;
+		--ck-sidebar: 20 22 27;
+		--ck-topbar: 16 18 24;
+		--ck-border: 35 38 46;
+		--ck-text: 233 234 236;
+		--ck-muted: 154 157 164;
+		--ck-faint: 98 100 108;
+		--ck-disabled: 77 81 89;
+		--ck-navhover: 27 30 37;
+		--ck-card: 20 22 27;
+		--ck-track: 37 40 50;
+		--ck-chip: 27 30 37;
+		--ck-accent: 99 102 241; /* indigo-500 #6366f1 — dark-mode accent */
+		--ck-accent-hover: 118 121 242; /* #7679f2 */
+		--ck-warn: 224 161 63; /* #e0a13f */
 	}
 
 	/* Every border/divider resolves to the token. Without this, Tailwind v3
