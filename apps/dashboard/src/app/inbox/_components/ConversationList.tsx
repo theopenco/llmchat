@@ -101,7 +101,8 @@ function ConversationRow({
 								: "text-ck-muted",
 						)}
 					>
-						{conversation.firstMessage?.trim() ||
+						{conversation.summary?.trim() ||
+							conversation.firstMessage?.trim() ||
 							conversation.email ||
 							"No messages yet"}
 					</p>

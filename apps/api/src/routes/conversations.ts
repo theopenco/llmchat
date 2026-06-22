@@ -2,6 +2,11 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
+import {
+	maybeSummarize,
+	SUMMARY_PER_REQUEST_CAP,
+	summaryIsStale,
+} from "@/lib/conversation-summary";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { db } from "@/lib/db";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
@@ -71,6 +76,10 @@ export const conversations = new Hono<AppContext>()
 				// Comma-separated tag ids. OR semantics (a conversation matches if it
 				// has ANY of them). Empty/absent ⇒ no tag filtering.
 				tagIds: z.string().optional(),
+				// Lazy-summary trigger. Set ("1") on genuine loads/scrolls, NEVER on
+				// the 5s freshness poll — so summary generation scales with views, not
+				// poll cadence. Absent ⇒ pure read.
+				summarize: z.coerce.boolean().optional(),
 			}),
 		),
 		async (c) => {
@@ -301,6 +310,22 @@ export const conversations = new Hono<AppContext>()
 					const list = tagsByConv.get(t.conversationId) ?? [];
 					list.push({ id: t.id, name: t.name, color: t.color });
 					tagsByConv.set(t.conversationId, list);
+				}
+			}
+
+			// Lazy triage summaries: on a genuine load/scroll (summarize=1, never the
+			// 5s poll), enqueue async generation for stale conversations on this page
+			// — capped + cooldown-deduped, and OFF the customer's quota (writes no
+			// usageEvent). The list returns immediately with whatever summaries are
+			// cached; freshly-generated ones appear on the next load.
+			if (c.req.valid("query").summarize) {
+				const stale = rows
+					.filter((r) => summaryIsStale(r))
+					.slice(0, SUMMARY_PER_REQUEST_CAP);
+				for (const r of stale) {
+					c.executionCtx.waitUntil(
+						maybeSummarize(c.env, { id: r.id, messageCount: r.messageCount }),
+					);
 				}
 			}
 
