@@ -5,7 +5,7 @@ import { z } from "zod";
 import { meterEventName } from "@/lib/billing-config";
 import { db } from "@/lib/db";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
-import { rateLimit } from "@/lib/kv";
+import { publicLookupRateLimit, rateLimit } from "@/lib/kv";
 import { streamChat } from "@/lib/llm";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
 import { captureEvent } from "@/lib/posthog";
@@ -122,6 +122,16 @@ async function findOrCreateConversation(
 export const chat = new Hono<AppContext>()
 	.post("/chat", zValidator("json", chatBody), async (c) => {
 		const { projectKey, clientId, name, email, messages } = c.req.valid("json");
+
+		// Per-IP gate BEFORE the project lookup: bounds DB load from floods of
+		// invalid/unknown project keys (the per-project limits below only kick in
+		// once a key resolves). Fails open — public widget path.
+		const ip = clientIp(c);
+		const gate = await publicLookupRateLimit(c.env, ip);
+		if (!gate.ok) {
+			return c.json({ error: "rate limit exceeded" }, 429);
+		}
+
 		const project = await loadProject(c.env, projectKey);
 		if (!project) {
 			return c.json({ error: "invalid project key" }, 404);
@@ -134,7 +144,6 @@ export const chat = new Hono<AppContext>()
 			project.workspaceId,
 		);
 
-		const ip = clientIp(c);
 		const rl = await rateLimit(
 			c.env,
 			`chat:${project.id}:${ip}`,
@@ -334,14 +343,24 @@ export const chat = new Hono<AppContext>()
 		return result.toUIMessageStreamResponse();
 	})
 	.post("/escalate", zValidator("json", escalateBody), async (c) => {
-		const { projectKey, clientId, name, email, messages } = c.req.valid("json");
+		// `messages` is intentionally ignored: the operator notification transcript
+		// is rebuilt from stored rows below, never from this (forgeable) body.
+		const { projectKey, clientId, name, email } = c.req.valid("json");
+
+		// Per-IP gate BEFORE the project lookup — bounds invalid-key DB floods.
+		const ip = clientIp(c);
+		const gate = await publicLookupRateLimit(c.env, ip);
+		if (!gate.ok) {
+			return c.json({ error: "rate limit exceeded" }, 429);
+		}
+
 		const project = await loadProject(c.env, projectKey);
 		if (!project) {
 			return c.json({ error: "invalid project key" }, 404);
 		}
 		const rl = await rateLimit(
 			c.env,
-			`escalate:${project.id}:${clientIp(c)}`,
+			`escalate:${project.id}:${ip}`,
 			ESCALATE_RATE_LIMIT_MAX,
 			RATE_LIMIT_WINDOW,
 		);
@@ -376,7 +395,14 @@ export const chat = new Hono<AppContext>()
 			.where(eq(conversation.id, conv.id));
 
 		if (project.notifyEmail) {
-			const transcriptHtml = messages
+			// Rebuild the transcript from STORED messages (ordered by sequence), not
+			// the caller-supplied body — this email reaches the operator, so its
+			// contents must come from the DB, which can't be forged by the widget.
+			const rows = await db(c.env).query.message.findMany({
+				where: (mt, { eq: e }) => e(mt.conversationId, conv.id),
+				orderBy: (mt, { asc }) => asc(mt.sequence),
+			});
+			const transcriptHtml = rows
 				.map(
 					(m) =>
 						`<p><b>${escapeHtml(m.role)}:</b> ${escapeHtml(m.content)}</p>`,
@@ -404,7 +430,7 @@ export const chat = new Hono<AppContext>()
 					project_id: project.id,
 					workspace_id: project.workspaceId,
 					notified: !!project.notifyEmail,
-					message_count: messages.length,
+					message_count: systemSeq,
 				},
 			}),
 		);

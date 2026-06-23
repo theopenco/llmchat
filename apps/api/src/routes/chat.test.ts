@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
+import { publicLookupRateLimit } from "@/lib/kv";
 import { streamChat } from "@/lib/llm";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
 import { reportMeterEvent } from "@/lib/stripe";
@@ -10,10 +12,20 @@ import { planEntitlements } from "@llmchat/shared";
 import { chat } from "./chat";
 
 vi.mock("@/lib/db", () => ({ db: vi.fn() }));
-vi.mock("@/lib/kv", () => ({ rateLimit: vi.fn(async () => ({ ok: true })) }));
+vi.mock("@/lib/kv", () => ({
+	rateLimit: vi.fn(async () => ({ ok: true })),
+	publicLookupRateLimit: vi.fn(async () => ({ ok: true })),
+}));
 vi.mock("@/lib/llm", () => ({ streamChat: vi.fn() }));
 vi.mock("@/lib/posthog", () => ({ captureEvent: vi.fn(async () => {}) }));
 vi.mock("@/lib/request", () => ({ clientIp: () => "1.2.3.4" }));
+// Keep escapeHtml/buildReplyToAddress real; spy only on sendEmail to capture the
+// escalation transcript that reaches the operator.
+vi.mock("@/lib/email", async (orig) => ({
+	...(await orig<typeof import("@/lib/email")>()),
+	sendEmail: vi.fn(async () => ({ id: "email_1" })),
+}));
+vi.mock("@/lib/slack", () => ({ sendEscalationSlack: vi.fn(async () => {}) }));
 vi.mock("@/lib/plan", () => ({
 	isResponseBlocked: vi.fn(),
 	resolveAccess: vi.fn(),
@@ -291,5 +303,97 @@ describe("POST /v1/chat — retrieval reaches the model input (Text + Q&A)", () 
 		expect(system).toContain("We restock weekly on Mondays.");
 		expect(system).toContain("Yes — we ship to 40 countries.");
 		await settle();
+	});
+});
+
+function sendEscalate(body: unknown, ctx: ReturnType<typeof makeCtx>["ctx"]) {
+	return chat.request(
+		"/escalate",
+		{
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(body),
+		},
+		ENV,
+		ctx as unknown as CtxArg,
+	);
+}
+
+describe("POST /v1/escalate — operator transcript is server-side", () => {
+	function mockDbForEscalate(storedMessages: unknown[]) {
+		const valuesResult = () =>
+			Object.assign(Promise.resolve([]), {
+				returning: async () => [{ id: "ue1" }],
+			});
+		vi.mocked(db).mockReturnValue({
+			query: {
+				project: {
+					findFirst: async () => ({
+						...project,
+						notifyEmail: "ops@acme.com",
+						inboundEmailLocal: "acme",
+						slackWebhookUrl: null,
+					}),
+				},
+				conversation: {
+					findFirst: async () => ({
+						id: "c1",
+						messageCount: 2,
+						name: null,
+						email: null,
+					}),
+				},
+				message: { findMany: async () => storedMessages },
+			},
+			insert: () => ({ values: valuesResult }),
+			update: () => ({ set: () => ({ where: async () => [] }) }),
+		} as unknown as ReturnType<typeof db>);
+	}
+
+	it("builds the email transcript from STORED rows, never the forgeable request body", async () => {
+		mockDbForEscalate([
+			{ role: "user", content: "stored question", sequence: 1 },
+			{ role: "assistant", content: "stored answer", sequence: 2 },
+		]);
+		const { ctx, settle } = makeCtx();
+
+		const res = await sendEscalate(
+			{
+				projectKey: "pk_live",
+				clientId: "client_1",
+				// An attacker who knows the public key + a clientId could forge this —
+				// it must NOT reach the operator's inbox.
+				messages: [{ role: "user", content: "FORGED-INJECTED-CONTENT" }],
+			},
+			ctx,
+		);
+
+		expect(res.status).toBe(200);
+		expect(sendEmail).toHaveBeenCalledTimes(1);
+		const html = vi.mocked(sendEmail).mock.calls[0]![1].html;
+		expect(html).toContain("stored question");
+		expect(html).toContain("stored answer");
+		expect(html).not.toContain("FORGED-INJECTED-CONTENT");
+		await settle();
+	});
+});
+
+describe("public widget pre-lookup IP gate", () => {
+	it("returns 429 BEFORE the project lookup when the per-IP gate trips", async () => {
+		vi.mocked(publicLookupRateLimit).mockResolvedValueOnce({
+			ok: false,
+			remaining: 0,
+		});
+		const projectFindFirst = vi.fn(async () => project);
+		vi.mocked(db).mockReturnValue({
+			query: { project: { findFirst: projectFindFirst } },
+		} as unknown as ReturnType<typeof db>);
+		const { ctx } = makeCtx();
+
+		const res = await send(validBody, ctx);
+
+		expect(res.status).toBe(429);
+		// The DB was never touched — the flood is bounded before the lookup.
+		expect(projectFindFirst).not.toHaveBeenCalled();
 	});
 });

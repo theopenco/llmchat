@@ -85,9 +85,16 @@ describe("dev seed", () => {
 		db.exec(readFileSync(SEED_SQL, "utf8"));
 
 		const user = db
-			.prepare("SELECT id, email FROM user WHERE email = ?")
-			.get(ADMIN) as { id: string; email: string };
-		expect(user).toMatchObject({ id: "dev-admin", email: ADMIN });
+			.prepare("SELECT id, email, email_verified FROM user WHERE email = ?")
+			.get(ADMIN) as { id: string; email: string; email_verified: number };
+		// email_verified = 1 is a contract: PR 2b turns on requireEmailVerification,
+		// which would block sign-in for an unverified admin. The seeded admin must
+		// stay pre-verified so local dev sign-in keeps working.
+		expect(user).toMatchObject({
+			id: "dev-admin",
+			email: ADMIN,
+			email_verified: 1,
+		});
 
 		const member = db
 			.prepare("SELECT role FROM member WHERE user_id = ? AND workspace_id = ?")

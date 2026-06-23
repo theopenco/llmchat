@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { rateLimit } from "@/lib/kv";
+import { publicLookupRateLimit, rateLimit } from "@/lib/kv";
 import { clientIp } from "@/lib/request";
 
 import type { AppContext } from "@/env";
@@ -28,6 +28,14 @@ export const widgetMessages = new Hono<AppContext>().get(
 	zValidator("query", messagesQuery),
 	async (c) => {
 		const { projectKey, clientId } = c.req.valid("query");
+
+		// Per-IP gate BEFORE the project lookup — bounds invalid-key DB floods.
+		const ip = clientIp(c);
+		const gate = await publicLookupRateLimit(c.env, ip);
+		if (!gate.ok) {
+			return c.json({ error: "rate limit exceeded" }, 429);
+		}
+
 		const project = await db(c.env).query.project.findFirst({
 			where: (pt, { eq: e }) => e(pt.publicKey, projectKey),
 		});
@@ -37,7 +45,7 @@ export const widgetMessages = new Hono<AppContext>().get(
 
 		const rl = await rateLimit(
 			c.env,
-			`messages:${project.id}:${clientIp(c)}`,
+			`messages:${project.id}:${ip}`,
 			POLL_RATE_LIMIT_MAX,
 			POLL_RATE_LIMIT_WINDOW,
 		);
