@@ -1,9 +1,11 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
+import { createAuthRateLimitStorage } from "@/lib/auth-rate-limit-storage";
 import { db } from "@/lib/db";
 import { isAllowedOrigin } from "@/lib/origins";
 import { defaultWorkspaceName, provisionWorkspace } from "@/lib/provisioning";
+import { trustedIpHeaders } from "@/lib/request";
 
 import { account, session, user, verification } from "@llmchat/db";
 
@@ -45,13 +47,39 @@ export function buildSocialProviders(vars: Env["vars"]): SocialProviders {
  * hook can be asserted directly in tests without spinning up the auth runtime.
  */
 export function buildAuthOptions(env: Env) {
+	// Fail closed on a weak/missing signing secret: it protects every session
+	// cookie and verification token. Better Auth only rejects its literal default
+	// secret in production — an unset or short secret slips through — so assert
+	// here before any auth runtime is constructed.
+	const secret = env.vars.BETTER_AUTH_SECRET;
+	if (!secret || secret.length < 32) {
+		throw new Error(
+			"BETTER_AUTH_SECRET must be set and at least 32 characters — refusing to start auth with a weak or missing signing secret.",
+		);
+	}
 	return {
 		database: drizzleAdapter(db(env), {
 			provider: "sqlite",
 			schema: { user, session, account, verification },
 		}),
-		secret: env.vars.BETTER_AUTH_SECRET,
+		secret,
 		baseURL: env.vars.BETTER_AUTH_URL,
+		// Durable, cross-isolate auth rate limiting. Better Auth's built-in limiter
+		// defaults to in-memory (per-isolate → useless on workerd) and enabled only
+		// in production; force it on and back it with the Ploy state binding via
+		// customStorage. customStorage (not secondaryStorage) keeps SESSIONS in D1.
+		// Built-in rules already cap /sign-in, /sign-up, /change-password,
+		// /change-email at 3/10s and reset/verify paths at 3/60s.
+		rateLimit: {
+			enabled: true,
+			customStorage: createAuthRateLimitStorage(env),
+		},
+		// Make Better Auth's getIp() trust ONLY the operator-configured edge header
+		// (default cf-connecting-ip), never the spoofable x-forwarded-for. Without
+		// this, an attacker rotates x-forwarded-for to evade the per-IP auth limits.
+		advanced: {
+			ipAddress: { ipAddressHeaders: trustedIpHeaders(env) },
+		},
 		emailAndPassword: {
 			enabled: true,
 			// Length is the only password rule worth enforcing (NIST/OWASP 2026):
@@ -67,14 +95,20 @@ export function buildAuthOptions(env: Env) {
 		// the same `databaseHooks.user.create.after` provisioning hook below — so an
 		// OAuth user gets the same workspace + owner membership as an email sign-up.
 		socialProviders: buildSocialProviders(env.vars),
-		// Link a social login to an EXISTING account when the verified email matches
-		// (Google/GitHub are trusted — they verify emails), instead of erroring or
-		// creating a duplicate. Verified in Better Auth 1.6.9: an existing
-		// email/password user (even emailVerified:false) is found by lowercased
-		// email and the account is linked WITHOUT creating a new user — so the
-		// provisioning hook never double-fires and no duplicate workspace is made.
+		// SECURITY (pre-registration account takeover): disable IMPLICIT account
+		// linking. Better Auth 1.6.9's link-on-social-signin keys its decision off
+		// the INCOMING provider's emailVerified, never the existing local account's
+		// — so a verified Google/GitHub login would link into an attacker's
+		// pre-created, unverified email/password account (and flip it verified),
+		// handing both parties the same account. With OAuth live in prod this is a
+		// presently-open door. disableImplicitLinking forces "account not linked" on
+		// that path. Non-regressions (tested): a FIRST-TIME social signup (no
+		// existing email) still creates a user, and the authenticated explicit
+		// "Connect Google/GitHub" route still links — neither is gated by this flag.
+		// trustedProviders is dropped: it was inert here (it only relaxes implicit
+		// linking, which is now off) and misleadingly implied the old behavior.
 		account: {
-			accountLinking: { enabled: true, trustedProviders: ["google", "github"] },
+			accountLinking: { enabled: true, disableImplicitLinking: true },
 		},
 		// Every new account is provisioned a free-plan workspace + owner member,
 		// so a real sign-up never lands in a workspace-less dashboard. Fires once

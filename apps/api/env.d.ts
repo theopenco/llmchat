@@ -24,6 +24,7 @@ declare module "@meetploy/nextjs" {
 			INTERNAL_ACCOUNT_EMAILS?: string;
 			RESEND_API_KEY: string;
 			RESEND_INBOUND_WEBHOOK_SECRET?: string;
+			TRUSTED_CLIENT_IP_HEADER?: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;
 			GOOGLE_CLIENT_ID?: string;
@@ -59,6 +60,7 @@ declare global {
 			INTERNAL_ACCOUNT_EMAILS?: string;
 			RESEND_API_KEY: string;
 			RESEND_INBOUND_WEBHOOK_SECRET?: string;
+			TRUSTED_CLIENT_IP_HEADER?: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;
 			GOOGLE_CLIENT_ID?: string;

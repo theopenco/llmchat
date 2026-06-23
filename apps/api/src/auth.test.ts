@@ -66,15 +66,44 @@ describe("buildAuthOptions", () => {
 		expect(Object.keys(opts.socialProviders)).toEqual(["google"]);
 	});
 
-	it("links trusted social logins to existing accounts (no duplicate users)", () => {
-		// Google/GitHub verify emails, so linking an existing same-email account is
-		// safe; this is what prevents a duplicate user + duplicate workspace.
+	it("disables IMPLICIT account linking (account-takeover fix) and drops trustedProviders", () => {
+		// Implicit link-on-social-signin is the takeover vector (see
+		// auth.linking.e2e.test.ts for the behavioral proof). enabled stays true so
+		// the authenticated explicit "Connect" route — not gated by this flag —
+		// still works. trustedProviders is gone (inert once implicit linking is off).
 		expect(buildAuthOptions(env()).account).toEqual({
-			accountLinking: {
-				enabled: true,
-				trustedProviders: ["google", "github"],
-			},
+			accountLinking: { enabled: true, disableImplicitLinking: true },
 		});
+	});
+
+	it("enables durable rate limiting backed by a customStorage (not secondaryStorage, so sessions stay in D1)", () => {
+		const rl = buildAuthOptions(env()).rateLimit;
+		expect(rl.enabled).toBe(true);
+		expect(typeof rl.customStorage?.get).toBe("function");
+		expect(typeof rl.customStorage?.set).toBe("function");
+	});
+
+	it("trusts only the configured client-IP header for getIp (default cf-connecting-ip, never bare x-forwarded-for)", () => {
+		expect(buildAuthOptions(env()).advanced.ipAddress.ipAddressHeaders).toEqual(
+			["cf-connecting-ip"],
+		);
+		expect(
+			buildAuthOptions(env({ TRUSTED_CLIENT_IP_HEADER: "x-real-ip" })).advanced
+				.ipAddress.ipAddressHeaders,
+		).toEqual(["x-real-ip"]);
+	});
+
+	it("refuses to build with a missing or too-short BETTER_AUTH_SECRET (fail closed)", () => {
+		expect(() => buildAuthOptions(env({ BETTER_AUTH_SECRET: "" }))).toThrow(
+			/at least 32 characters/,
+		);
+		expect(() =>
+			buildAuthOptions(env({ BETTER_AUTH_SECRET: "short" })),
+		).toThrow(/at least 32 characters/);
+		// Exactly 32 is fine.
+		expect(() =>
+			buildAuthOptions(env({ BETTER_AUTH_SECRET: "y".repeat(32) })),
+		).not.toThrow();
 	});
 
 	it("provisions a workspace + owner membership on user creation (OAuth and email alike)", async () => {
