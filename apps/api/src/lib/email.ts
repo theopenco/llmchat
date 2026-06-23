@@ -55,3 +55,26 @@ export function escapeHtml(text: string) {
 	};
 	return text.replace(/[&<>"']/g, (c) => map[c] ?? c);
 }
+
+/** Subject/html/text for the email-verification message. The link is escaped for
+ * the href (the `&` between token & callbackURL must become `&amp;`). Kept brand-
+ * plain — this is the account email, not customer-facing support agent copy. */
+export function buildVerificationEmail(verifyUrl: string): {
+	subject: string;
+	html: string;
+	text: string;
+} {
+	const href = escapeHtml(verifyUrl);
+	return {
+		subject: "Verify your email for Clanker Support",
+		text: `Confirm your email to finish setting up your Clanker Support account:\n\n${verifyUrl}\n\nThis link expires shortly. If you didn't create an account, you can ignore this email.`,
+		html: `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a">
+<h1 style="font-size:20px;margin:0 0 12px">Verify your email</h1>
+<p style="margin:0 0 20px;line-height:1.5">Confirm your email to finish setting up your Clanker Support account.</p>
+<p style="margin:0 0 24px"><a href="${href}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Verify email</a></p>
+<p style="margin:0 0 8px;font-size:13px;color:#666">Or paste this link into your browser:</p>
+<p style="margin:0 0 24px;font-size:13px;word-break:break-all"><a href="${href}" style="color:#4f46e5">${href}</a></p>
+<p style="margin:0;font-size:12px;color:#999">This link expires shortly. If you didn't create an account, you can ignore this email.</p>
+</div>`,
+	};
+}

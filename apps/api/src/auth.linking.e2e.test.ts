@@ -182,6 +182,26 @@ describe("account-takeover fix — implicit OAuth linking", () => {
 		expect((res.data as { user: { id: string } }).user.id).toBe("new-user");
 	});
 
+	it("NON-REGRESSION: OAuth signup is NOT subject to the email-verification gate — a provider-verified user gets a session immediately", async () => {
+		// requireEmailVerification (PR2b) gates ONLY the credential path.
+		// handleOAuthUserInfo never consults it: a fresh Google identity
+		// (emailVerified:true) is created and a session is issued with no
+		// verification step — exactly the live prod behavior we must not regress.
+		const adapter = makeAdapter(null); // no existing user → fresh OAuth signup
+		const c = makeContext(
+			{ enabled: true, disableImplicitLinking: true },
+			adapter,
+			[],
+		);
+
+		const res = await handleOAuthUserInfo(c as never, OPTS as never);
+
+		expect(adapter.createOAuthUser).toHaveBeenCalledTimes(1);
+		expect(adapter.createSession).toHaveBeenCalledWith("new-user");
+		expect(res.error).toBeNull();
+		expect(res.data).not.toBeNull();
+	});
+
 	it("NON-REGRESSION: re-signin with an ALREADY-linked Google account issues a session and does not re-link", async () => {
 		// The everyday flow for an existing OAuth user. disableImplicitLinking must
 		// only block linking into a NON-linked account; it must not interfere here.
