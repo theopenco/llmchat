@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { DetailPanel } from "./DetailPanel";
 
-import type { Conversation } from "./types";
+import type { Conversation, Tag } from "./types";
 
 function conv(overrides: Partial<Conversation> = {}): Conversation {
 	return {
@@ -32,20 +32,23 @@ beforeAll(() => {
 
 function setup(
 	overrides: Partial<Conversation> = {},
-	props: { deleting?: boolean } = {},
+	props: { tags?: Tag[]; attachedTags?: Tag[] } = {},
 ) {
-	const onResolve = vi.fn();
-	const onDelete = vi.fn();
+	const onToggleTag = vi.fn();
+	const onCreateTag = vi.fn();
+	const onRemoveTag = vi.fn();
 	render(
 		<DetailPanel
 			conversation={conv(overrides)}
-			onResolve={onResolve}
-			onDelete={onDelete}
-			resolving={false}
-			deleting={props.deleting ?? false}
+			tags={props.tags ?? []}
+			attachedTags={props.attachedTags ?? []}
+			onToggleTag={onToggleTag}
+			onCreateTag={onCreateTag}
+			onRemoveTag={onRemoveTag}
+			creatingTag={false}
 		/>,
 	);
-	return { onResolve, onDelete };
+	return { onToggleTag, onCreateTag, onRemoveTag };
 }
 
 describe("DetailPanel", () => {
@@ -57,6 +60,13 @@ describe("DetailPanel", () => {
 		expect(screen.getByText("4")).toBeInTheDocument(); // message count
 	});
 
+	it("offers a Copy email action when an email is present", () => {
+		setup();
+		expect(
+			screen.getByRole("button", { name: /copy email/i }),
+		).toBeInTheDocument();
+	});
+
 	it("falls back to a literal placeholder when device/IP are missing (never invents)", () => {
 		setup({ userAgent: null, ipAddress: null });
 		expect(screen.getAllByText("Unknown").length).toBeGreaterThanOrEqual(2);
@@ -64,9 +74,7 @@ describe("DetailPanel", () => {
 
 	it("renders the roadmap visitor-context as an honest empty block — em-dashes, never a value", () => {
 		setup();
-		expect(
-			screen.getByText(/not captured yet — never show a guessed value/i),
-		).toBeInTheDocument();
+		expect(screen.getByText(/not captured yet/i)).toBeInTheDocument();
 		expect(screen.getByText("Location")).toBeInTheDocument();
 		expect(screen.getByText("Referrer")).toBeInTheDocument();
 		// Every roadmap field renders an em-dash, not a fabricated value.
@@ -84,42 +92,21 @@ describe("DetailPanel", () => {
 		expect(screen.queryByText(/not rated/i)).not.toBeInTheDocument();
 	});
 
-	it("Resolve fires directly", async () => {
-		const user = userEvent.setup();
-		const { onResolve } = setup();
-		await user.click(screen.getByRole("button", { name: /^resolve$/i }));
-		expect(onResolve).toHaveBeenCalledTimes(1);
-	});
-
-	it("offers Reopen (not Unarchive) for a resolved conversation", () => {
-		setup({ archivedAt: "2026-06-16T05:02:00.000Z" });
-		expect(screen.getByRole("button", { name: /reopen/i })).toBeInTheDocument();
-		expect(screen.queryByRole("button", { name: /unarchive/i })).toBeNull();
-	});
-
-	// Delete is a plain Button inside a controlled dialog (NOT AlertDialogAction):
-	// the trigger opens the confirm; the confirm's plain Delete button fires.
-	it("confirms before deleting, then the plain Delete button fires onDelete", async () => {
-		const user = userEvent.setup();
-		const { onDelete } = setup();
-
-		await user.click(
-			screen.getByRole("button", { name: /delete conversation/i }),
+	it("renders attached tags with a remove control and reports removal upward", async () => {
+		const tag: Tag = { id: "t1", name: "orders", color: "#6366f1" };
+		const { onRemoveTag } = setup({}, { tags: [tag], attachedTags: [tag] });
+		expect(screen.getByText("orders")).toBeInTheDocument();
+		await userEvent.click(
+			screen.getByRole("button", { name: /remove tag orders/i }),
 		);
-		expect(onDelete).not.toHaveBeenCalled();
-
-		await user.click(screen.getByRole("button", { name: /^delete$/i }));
-		expect(onDelete).toHaveBeenCalledTimes(1);
+		expect(onRemoveTag).toHaveBeenCalledWith("t1");
 	});
 
-	it("shows 'Deleting…' while the delete is pending (dialog stays open)", async () => {
-		const user = userEvent.setup();
-		setup({}, { deleting: true });
-		await user.click(
-			screen.getByRole("button", { name: /delete conversation/i }),
-		);
+	it("no longer renders Resolve/Delete — those live in the thread header now", () => {
+		setup();
+		expect(screen.queryByRole("button", { name: /^resolve$/i })).toBeNull();
 		expect(
-			screen.getByRole("button", { name: /deleting/i }),
-		).toBeInTheDocument();
+			screen.queryByRole("button", { name: /delete conversation/i }),
+		).toBeNull();
 	});
 });
