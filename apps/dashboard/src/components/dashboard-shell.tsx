@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { CommandPalette } from "@/components/shell/command-palette";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { LaunchBanner } from "@/components/launch-banner";
 import { SidebarNav } from "@/components/shell/sidebar-nav";
@@ -25,9 +26,26 @@ export function DashboardShell({
 	const { role } = useWorkspace();
 	const router = useRouter();
 	const [mobileNavOpen, setMobileNavOpen] = useState(false);
+	const [searchOpen, setSearchOpen] = useState(false);
 
 	const email = initialEmail ?? data?.user?.email;
 	const roleLabel = role ? role[0].toUpperCase() + role.slice(1) : "Member";
+
+	// Global ⌘K / Ctrl+K toggles the command palette from anywhere in the
+	// dashboard. (⌘K isn't a printable character, so this never hijacks typing.)
+	useEffect(() => {
+		function onKeyDown(e: KeyboardEvent) {
+			// Respect a handler that already consumed the chord (e.g. a focused
+			// editor's own ⌘K binding) before we hijack it for the palette.
+			if (e.defaultPrevented) return;
+			if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
+				e.preventDefault();
+				setSearchOpen((v) => !v);
+			}
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, []);
 
 	useEffect(() => {
 		// Only client-gate when the server didn't already confirm a session.
@@ -56,7 +74,9 @@ export function DashboardShell({
 					userEmail={email}
 					roleLabel={roleLabel}
 					onOpenSidebar={() => setMobileNavOpen(true)}
+					onOpenSearch={() => setSearchOpen(true)}
 				/>
+				<CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
 
 				<div className="flex min-h-0 flex-1">
 					{/* Desktop sidebar */}

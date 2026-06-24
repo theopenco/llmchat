@@ -4,6 +4,9 @@ export interface ApiOptions {
 	method?: string;
 	body?: unknown;
 	workspaceId?: string;
+	/** Abort signal — lets a caller (e.g. the ⌘K palette, via react-query) cancel
+	 * an in-flight request when a newer one supersedes it. */
+	signal?: AbortSignal;
 }
 
 /** Carries the HTTP status (and machine `code`, when the body is a JSON error)
@@ -60,11 +63,12 @@ export function describeApiError(error: unknown, fallback: string): string {
 
 export async function api<T>(
 	path: string,
-	{ method = "GET", body, workspaceId }: ApiOptions = {},
+	{ method = "GET", body, workspaceId, signal }: ApiOptions = {},
 ): Promise<T> {
 	const res = await fetch(`${apiBaseUrl()}${path}`, {
 		method,
 		credentials: "include",
+		signal,
 		headers: {
 			"content-type": "application/json",
 			...(workspaceId ? { "x-workspace-id": workspaceId } : {}),

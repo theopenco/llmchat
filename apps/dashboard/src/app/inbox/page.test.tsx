@@ -107,6 +107,31 @@ function setupApi() {
 			if (path === "/api/tags") return { tags: tagsState };
 			if (path.startsWith("/api/projects/p1/conversations/stats"))
 				return { total: 1, escalated: 0, resolved: 0, avgRating: null };
+			// Thread-detail GET (the windowed message thread for an open conversation)
+			// — only fetched once a conversation is selected (e.g. via a deep link).
+			if (
+				method === "GET" &&
+				/^\/api\/projects\/p1\/conversations\/c1(\?|$)/.test(path)
+			)
+				return {
+					conversation: {
+						id: "c1",
+						clientId: "c",
+						name: "Bob",
+						email: null,
+						ipAddress: null,
+						userAgent: null,
+						messageCount: 1,
+						escalatedAt: null,
+						archivedAt: null,
+						createdAt: "2026-06-16T05:00:00.000Z",
+						updatedAt: "2026-06-16T05:00:00.000Z",
+						csatRating: null,
+						summary: null,
+					},
+					messages: [],
+					hasOlder: false,
+				};
 			if (path.startsWith("/api/projects/p1/conversations"))
 				return convPage(path);
 			if (method === "DELETE" && path === "/api/tags/t1") {
@@ -140,6 +165,8 @@ const listCalls = () =>
 beforeEach(() => {
 	vi.clearAllMocks();
 	setupApi();
+	// Reset the URL between tests so deep-link state never leaks across them.
+	window.history.replaceState(null, "", "/inbox");
 });
 
 describe("InboxPage — deleting a filtered tag reconciles the filter", () => {
@@ -206,5 +233,46 @@ describe("InboxPage — deleting a filtered tag reconciles the filter", () => {
 		expect(
 			screen.queryByRole("button", { name: "Tags 1" }),
 		).not.toBeInTheDocument();
+	});
+});
+
+describe("InboxPage — ⌘K deep link", () => {
+	it("?project=&c= opens that conversation's thread (selects c1 from the URL)", async () => {
+		// A deep link from the ⌘K palette (or a shared thread URL).
+		window.history.replaceState(null, "", "/inbox?project=p1&c=c1");
+		renderInbox();
+
+		await screen.findByRole("heading", { name: "Conversations" });
+
+		// The deep link selected c1 → the windowed thread for c1 is fetched. (No
+		// click happened; selection came purely from the URL.)
+		await waitFor(() =>
+			expect(
+				calls.some(
+					(c) =>
+						c.method === "GET" &&
+						/^\/api\/projects\/p1\/conversations\/c1(\?|$)/.test(c.path),
+				),
+			).toBe(true),
+		);
+		// The open conversation's name shows in the thread header.
+		expect(await screen.findAllByText("Bob")).not.toHaveLength(0);
+	});
+
+	it("selecting a conversation syncs the open thread to the URL (shareable)", async () => {
+		renderInbox();
+		await screen.findByRole("heading", { name: "Conversations" });
+		await waitFor(() => expect(listCalls().length).toBeGreaterThan(0));
+
+		// No conversation is open yet → the URL carries no ?c=.
+		expect(window.location.search).not.toContain("c=c1");
+
+		const user = userEvent.setup();
+		await user.click(await screen.findByText("Bob"));
+
+		// Selecting c1 mirrors it into the URL so the thread is shareable / the ⌘K
+		// deep link round-trips.
+		await waitFor(() => expect(window.location.search).toContain("c=c1"));
+		expect(window.location.search).toContain("project=p1");
 	});
 });
