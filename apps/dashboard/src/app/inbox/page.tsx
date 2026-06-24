@@ -608,7 +608,7 @@ export default function InboxPage() {
 							onChange={handleProjectChange}
 						/>
 						<ListFilters
-							total={statsQuery.data?.total}
+							stats={statsQuery.data}
 							search={search}
 							onSearch={setSearch}
 							status={status}

@@ -10,7 +10,7 @@ function setup(props: Partial<React.ComponentProps<typeof ListFilters>> = {}) {
 	const onTagIdsChange = vi.fn();
 	const { unmount } = render(
 		<ListFilters
-			total={props.total}
+			stats={props.stats}
 			search=""
 			onSearch={onSearch}
 			status="open"
@@ -27,12 +27,13 @@ function setup(props: Partial<React.ComponentProps<typeof ListFilters>> = {}) {
 const billing = { id: "t1", name: "Billing", color: "#6366f1", count: 3 };
 
 describe("ListFilters", () => {
-	it("shows the real total when provided, and never a placeholder when absent", () => {
-		const { unmount } = setup({ total: 7 });
-		expect(screen.getByText("7 total")).toBeInTheDocument();
-		unmount();
-		setup({ total: undefined });
-		expect(screen.queryByText(/total/i)).not.toBeInTheDocument();
+	it("renders the Inbox heading and the real stat aggregates (LIVE)", () => {
+		setup({ stats: { total: 7, escalated: 1, resolved: 2, avgRating: 4 } });
+		expect(screen.getByRole("heading", { name: "Inbox" })).toBeInTheDocument();
+		// "Conversations" is the stats-card label (unique to the restored panel);
+		// its value is the real total.
+		expect(screen.getByText("Conversations")).toBeInTheDocument();
+		expect(screen.getByText("7")).toBeInTheDocument();
 	});
 
 	it("reports the typed search query upward", async () => {

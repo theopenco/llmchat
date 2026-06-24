@@ -4,8 +4,9 @@ import { Search, SlidersHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+import { InboxStats } from "./InboxStats";
 import { STATUS_FILTERS, type StatusFilter } from "./status";
-import type { Tag } from "./types";
+import type { ConversationStats, Tag } from "./types";
 
 const FALLBACK_DOT = "#6b7280";
 
@@ -39,7 +40,7 @@ function chipBase(active: boolean) {
  * are visibly dimmed and inert.
  */
 export function ListFilters({
-	total,
+	stats,
 	search,
 	onSearch,
 	status,
@@ -49,8 +50,8 @@ export function ListFilters({
 	onTagIdsChange,
 	onManageTags,
 }: {
-	/** Real project-wide total (server aggregate); undefined while loading. */
-	total?: number;
+	/** Real project-wide aggregates (server-side); undefined while loading. */
+	stats?: ConversationStats;
 	search: string;
 	onSearch: (value: string) => void;
 	status: StatusFilter;
@@ -71,17 +72,12 @@ export function ListFilters({
 
 	return (
 		<div className="flex flex-col gap-3 border-b border-ck-border px-4 pb-3 pt-4">
-			{/* Title + real total */}
-			<div className="flex items-center justify-between gap-2">
-				<h1 className="text-lg font-bold tracking-[-0.01em] text-ck-text">
-					Inbox
-				</h1>
-				{total != null && (
-					<span className="text-xs font-medium text-ck-faint tabular-nums">
-						{total} total
-					</span>
-				)}
-			</div>
+			<h1 className="text-lg font-bold tracking-[-0.01em] text-ck-text">
+				Inbox
+			</h1>
+
+			{/* Real project-wide aggregates (LIVE) — honest 0s when empty. */}
+			<InboxStats stats={stats} />
 
 			{/* Conversation search (LIVE) */}
 			<div className="relative">

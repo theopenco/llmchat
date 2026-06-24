@@ -51,21 +51,26 @@ export function TopBar({
 				<ProjectSwitcher />
 			</div>
 
-			<div className="flex-1" />
+			{/* Center: prominent wide search box (opens the ⌘K palette). The ⌘K
+			    logic lives in the shell — this is only the trigger. */}
+			<div className="flex flex-1 justify-center px-2">
+				<button
+					type="button"
+					onClick={onOpenSearch}
+					aria-label="Search conversations and projects"
+					className="hidden h-9 w-full max-w-md items-center gap-2 rounded-md border border-ck-border bg-ck-app px-3 text-sm text-ck-muted transition-colors hover:text-ck-text sm:flex"
+				>
+					<Search className="size-4 shrink-0" />
+					<span className="flex-1 truncate text-left">
+						Search conversations &amp; projects…
+					</span>
+					<kbd className="shrink-0 rounded border border-ck-border px-1.5 text-[11px] font-medium text-ck-faint">
+						⌘K
+					</kbd>
+				</button>
+			</div>
 
-			{/* Desktop: a search-box-styled trigger with the ⌘K hint. */}
-			<button
-				type="button"
-				onClick={onOpenSearch}
-				className="hidden h-9 items-center gap-2 rounded-md border border-ck-border bg-ck-app px-3 text-sm text-ck-muted transition-colors hover:text-ck-text sm:flex"
-			>
-				<Search className="size-4" />
-				<span>Search…</span>
-				<kbd className="ml-2 rounded border border-ck-border px-1.5 text-[11px] font-medium text-ck-faint">
-					⌘K
-				</kbd>
-			</button>
-			{/* Mobile: icon-only. */}
+			{/* Mobile: icon-only search. */}
 			<Button
 				variant="ghost"
 				size="icon"
