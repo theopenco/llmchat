@@ -33,11 +33,15 @@ import {
 } from "./_components/conversation-list";
 import { ManageTagsDialog } from "./_components/ManageTagsDialog";
 import { DetailPanel } from "./_components/DetailPanel";
-import { initials, parseDevice, pluralize } from "./_components/format";
+import {
+	initials,
+	parseDevice,
+	pluralize,
+	timeAgo,
+} from "./_components/format";
 import { InboxPanes } from "./_components/InboxPanes";
 import { InboxSkeleton } from "./_components/InboxSkeleton";
-import { InboxStats } from "./_components/InboxStats";
-import { InboxToolbar } from "./_components/InboxToolbar";
+import { ListFilters } from "./_components/ListFilters";
 import { LoadMore } from "./_components/LoadMore";
 import { MessageThread } from "./_components/MessageThread";
 import { appendOptimisticReply } from "./_components/optimistic-updaters";
@@ -48,8 +52,7 @@ import {
 	STATUS_PILL,
 	type StatusFilter,
 } from "./_components/status";
-import { TagChip } from "./_components/TagChip";
-import { TagPicker } from "./_components/TagPicker";
+import { ThreadActions } from "./_components/ThreadActions";
 import { useThreadMessages } from "./_components/useThreadMessages";
 import type { ConversationStats, Tag } from "./_components/types";
 import type { ProjectOption } from "./_components/ProjectSwitcher";
@@ -346,6 +349,11 @@ export default function InboxPage() {
 		createTagMut.mutate({ id: selectedId, name });
 	}
 
+	function handleRemoveTag(tagId: string) {
+		if (!selectedId) return;
+		detachTagMut.mutate({ id: selectedId, tagId });
+	}
+
 	// ── Global tag management (admin/owner) ──────────────────────────────────
 	// Rename/recolor: tag ids are stable, so after the write we just invalidate
 	// the tags query (picker/filter) AND the conversations prefix (head + every
@@ -569,7 +577,11 @@ export default function InboxPage() {
 	}
 
 	const threadSubtitle =
-		[detailConv?.email, parseDevice(detailConv?.userAgent)]
+		[
+			detailConv && `Started ${timeAgo(detailConv.createdAt)}`,
+			detailConv?.email,
+			parseDevice(detailConv?.userAgent),
+		]
 			.filter(Boolean)
 			.join(" · ") ||
 		(detailConv ? pluralize(detailConv.messageCount, "message") : "");
@@ -583,36 +595,6 @@ export default function InboxPage() {
 	// inbox no longer hard-codes a viewport calc.
 	return (
 		<div className="flex h-full flex-col">
-			{/* Header band + toolbar are list-scoped: hidden on mobile while a thread
-			    is open (the thread takes the full screen), always shown from md. */}
-			<div className={cn(threadOpen && "hidden md:block")}>
-				<header className="flex flex-wrap items-start justify-between gap-4 border-b border-ck-border px-6 py-4">
-					<div>
-						<h1 className="text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
-							Conversations
-						</h1>
-						<p className="mt-0.5 text-sm text-ck-muted">
-							Visitor conversations for this project.
-						</p>
-					</div>
-					<InboxStats stats={statsQuery.data} />
-				</header>
-
-				<InboxToolbar
-					search={search}
-					onSearch={setSearch}
-					status={status}
-					onStatusChange={(next) => {
-						setStatus(next);
-						setSelectedId(null);
-					}}
-					tags={allTags}
-					tagIds={tagIds}
-					onTagIdsChange={setTagIds}
-					onManageTags={canManage ? () => setManageTagsOpen(true) : undefined}
-				/>
-			</div>
-
 			<InboxPanes
 				hasSelection={threadOpen}
 				onBack={() => setSelectedId(null)}
@@ -624,6 +606,22 @@ export default function InboxPage() {
 							projects={projects.data?.projects ?? []}
 							value={projectId}
 							onChange={handleProjectChange}
+						/>
+						<ListFilters
+							stats={statsQuery.data}
+							search={search}
+							onSearch={setSearch}
+							status={status}
+							onStatusChange={(next) => {
+								setStatus(next);
+								setSelectedId(null);
+							}}
+							tags={allTags}
+							tagIds={tagIds}
+							onTagIdsChange={setTagIds}
+							onManageTags={
+								canManage ? () => setManageTagsOpen(true) : undefined
+							}
 						/>
 						{listQuery.isLoading ? (
 							<ConversationListSkeleton />
@@ -653,9 +651,19 @@ export default function InboxPage() {
 								{initials(detailConv.name)}
 							</span>
 							<div className="min-w-0 flex-1">
-								<p className="truncate text-sm font-bold text-ck-text">
-									{detailConv.name ?? "Anonymous"}
-								</p>
+								<div className="flex items-center gap-2">
+									<p className="truncate text-sm font-bold text-ck-text">
+										{detailConv.name ?? "Anonymous"}
+									</p>
+									<span
+										className={cn(
+											"inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+											STATUS_PILL[deriveStatus(detailConv)].className,
+										)}
+									>
+										{STATUS_PILL[deriveStatus(detailConv)].label}
+									</span>
+								</div>
 								{detailConv.summary && (
 									<p className="truncate text-xs text-ck-muted">
 										{detailConv.summary}
@@ -665,35 +673,18 @@ export default function InboxPage() {
 									{threadSubtitle}
 								</p>
 							</div>
-							<span
-								className={cn(
-									"inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
-									STATUS_PILL[deriveStatus(detailConv)].className,
-								)}
-							>
-								{STATUS_PILL[deriveStatus(detailConv)].label}
-							</span>
-							{selectedId && (
-								<div className="flex flex-wrap items-center justify-end gap-1">
-									{selectedTags.map((t) => (
-										<TagChip
-											key={t.id}
-											tag={t}
-											onRemove={(tagId) =>
-												detachTagMut.mutate({ id: selectedId, tagId })
-											}
-										/>
-									))}
-									<TagPicker
-										tags={allTags}
-										attachedIds={selectedTags.map((t) => t.id)}
-										onToggle={handleToggleTag}
-										onCreate={handleCreateTag}
-										creating={createTagMut.isPending}
-									/>
-								</div>
-							)}
 						</>
+					)
+				}
+				threadActions={
+					detailConv && (
+						<ThreadActions
+							resolved={Boolean(detailConv.archivedAt)}
+							onResolve={handleResolve}
+							onDelete={handleDelete}
+							resolving={archiveMut.isPending}
+							deleting={deleteMut.isPending}
+						/>
 					)
 				}
 				threadBody={
@@ -732,10 +723,12 @@ export default function InboxPage() {
 					detailConv ? (
 						<DetailPanel
 							conversation={detailConv}
-							onResolve={handleResolve}
-							onDelete={handleDelete}
-							resolving={archiveMut.isPending}
-							deleting={deleteMut.isPending}
+							tags={allTags}
+							attachedTags={selectedTags}
+							onToggleTag={handleToggleTag}
+							onCreateTag={handleCreateTag}
+							onRemoveTag={handleRemoveTag}
+							creatingTag={createTagMut.isPending}
 						/>
 					) : null
 				}

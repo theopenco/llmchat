@@ -29,7 +29,7 @@ function messageContains(content: string, term: string): boolean {
 /**
  * Visitor's per-message thumbs (answer quality) on an assistant reply. Shows
  * up / down / neutral clearly; read-only here. This is NOT the per-conversation
- * CSAT placeholder in DetailPanel/InboxStats — those are a separate feature.
+ * CSAT shown in the DetailPanel — those are a separate feature.
  */
 function RatingIndicator({ rating }: { rating: Message["rating"] }) {
 	const base = "flex items-center gap-1 px-1 text-[11px] font-medium";

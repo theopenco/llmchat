@@ -22,8 +22,10 @@ export interface InboxPanesProps {
 	onDetailsOpenChange: (open: boolean) => void;
 	/** Conversation list pane (project switcher + list). */
 	list: React.ReactNode;
-	/** Thread header content (avatar / name / subtitle / escalated badge). */
+	/** Thread header content (avatar / name / subtitle / status badge). */
 	threadHeader?: React.ReactNode;
+	/** Thread header actions (Resolve / Delete / Assign), right-aligned. */
+	threadActions?: React.ReactNode;
 	/** Thread body — the reused MessageThread, or a loading state. */
 	threadBody?: React.ReactNode;
 	/** Pinned reply composer. */
@@ -57,6 +59,7 @@ export function InboxPanes({
 	onDetailsOpenChange,
 	list,
 	threadHeader,
+	threadActions,
 	threadBody,
 	composer,
 	details,
@@ -100,6 +103,7 @@ export function InboxPanes({
 							<div className="flex min-w-0 flex-1 items-center gap-3">
 								{threadHeader}
 							</div>
+							{threadActions}
 							{details && (
 								<Button
 									type="button"

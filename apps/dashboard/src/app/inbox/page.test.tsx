@@ -175,21 +175,23 @@ describe("InboxPage — deleting a filtered tag reconciles the filter", () => {
 		renderInbox();
 
 		// The inbox is ready once the project + tags have loaded.
-		await screen.findByRole("heading", { name: "Conversations" });
+		await screen.findByRole("heading", { name: "Inbox" });
 		await waitFor(() => expect(listCalls().length).toBeGreaterThan(0));
 
-		// Select the "Billing" tag in the toolbar filter → it becomes part of the
-		// active filter and the list refetches scoped to it.
-		await user.click(screen.getByRole("button", { name: /^tags$/i }));
-		await user.click(await screen.findByRole("option", { name: /Billing/ }));
+		// Click the "Billing" tag chip → it becomes the active filter and the list
+		// refetches scoped to it.
+		await user.click(await screen.findByRole("button", { name: "Billing" }));
 		await waitFor(() =>
 			expect(listCalls().some((c) => c.path.includes("tagIds=t1"))).toBe(true),
 		);
-		// The filter now shows one active selection.
-		expect(screen.getByRole("button", { name: "Tags 1" })).toBeInTheDocument();
+		// The Billing chip now reads as the active filter.
+		expect(screen.getByRole("button", { name: "Billing" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
 
 		// Open Manage tags and delete the currently-filtered "Billing" tag.
-		await user.click(screen.getByRole("button", { name: /manage tags/i }));
+		await user.click(screen.getByRole("button", { name: /manage/i }));
 		const dialog = await screen.findByRole("dialog");
 		await user.click(
 			within(dialog).getByRole("button", { name: "Delete Billing" }),
@@ -229,9 +231,9 @@ describe("InboxPage — deleting a filtered tag reconciles the filter", () => {
 		await waitFor(() =>
 			expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
 		);
-		expect(screen.getByRole("button", { name: "Tags" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
 		expect(
-			screen.queryByRole("button", { name: "Tags 1" }),
+			screen.queryByRole("button", { name: "Billing" }),
 		).not.toBeInTheDocument();
 	});
 });
@@ -242,7 +244,7 @@ describe("InboxPage — ⌘K deep link", () => {
 		window.history.replaceState(null, "", "/inbox?project=p1&c=c1");
 		renderInbox();
 
-		await screen.findByRole("heading", { name: "Conversations" });
+		await screen.findByRole("heading", { name: "Inbox" });
 
 		// The deep link selected c1 → the windowed thread for c1 is fetched. (No
 		// click happened; selection came purely from the URL.)
@@ -261,7 +263,7 @@ describe("InboxPage — ⌘K deep link", () => {
 
 	it("selecting a conversation syncs the open thread to the URL (shareable)", async () => {
 		renderInbox();
-		await screen.findByRole("heading", { name: "Conversations" });
+		await screen.findByRole("heading", { name: "Inbox" });
 		await waitFor(() => expect(listCalls().length).toBeGreaterThan(0));
 
 		// No conversation is open yet → the URL carries no ?c=.

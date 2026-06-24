@@ -1,34 +1,22 @@
 "use client";
 
 import {
-	Check,
 	Clock,
 	Globe,
 	Mail,
 	MessageCircle,
 	Monitor,
-	RotateCcw,
 	Star,
-	Trash2,
 	TriangleAlert,
-	User,
 } from "lucide-react";
-import { useState } from "react";
 
-import {
-	AlertDialog,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ds";
+import { CopyButton } from "@/components/ds";
 import { cn } from "@/lib/utils";
 
 import { formatFullDate, initials, parseDevice } from "./format";
-import type { Conversation } from "./types";
+import { TagChip } from "./TagChip";
+import { TagPicker } from "./TagPicker";
+import type { Conversation, Tag } from "./types";
 
 function Section({
 	title,
@@ -61,7 +49,7 @@ function Field({
 	return (
 		<div className="flex items-start gap-3">
 			<span className="mt-0.5 text-ck-faint [&_svg]:size-4">{icon}</span>
-			<div className="min-w-0">
+			<div className="min-w-0 flex-1">
 				<p className="text-xs font-medium text-ck-faint">{label}</p>
 				<p
 					className={cn(
@@ -90,37 +78,51 @@ const ROADMAP_FIELDS = [
 
 export function DetailPanel({
 	conversation,
-	onResolve,
-	onDelete,
-	resolving,
-	deleting,
+	tags,
+	attachedTags,
+	onToggleTag,
+	onCreateTag,
+	onRemoveTag,
+	creatingTag,
 }: {
 	conversation: Conversation;
-	/** Toggle resolved (over PATCH {archived}); optimistic + reversible. */
-	onResolve: () => void;
-	/** Permanently delete — fired from the confirm dialog (non-optimistic). */
-	onDelete: () => void;
-	resolving: boolean;
-	deleting: boolean;
+	/** All workspace tags (for the picker). */
+	tags: Tag[];
+	/** Tags currently on this conversation. */
+	attachedTags: Tag[];
+	onToggleTag: (tag: Tag) => void;
+	onCreateTag: (name: string) => void;
+	onRemoveTag: (tagId: string) => void;
+	creatingTag?: boolean;
 }) {
-	const resolved = Boolean(conversation.archivedAt);
 	const device = parseDevice(conversation.userAgent);
-	const [confirmOpen, setConfirmOpen] = useState(false);
 
 	return (
 		<div className="flex min-h-0 flex-col bg-ck-sidebar">
+			{/* Identity + Copy email (LIVE) */}
 			<div className="flex flex-col items-center gap-3 border-b border-ck-border px-6 py-6">
 				<span className="flex size-16 items-center justify-center rounded-2xl bg-ck-accent text-lg font-bold text-white">
 					{initials(conversation.name)}
 				</span>
-				<div className="text-center">
+				<div className="flex flex-col items-center gap-1.5 text-center">
 					<p className="text-sm font-bold text-ck-text">
 						{conversation.name ?? "Anonymous"}
 					</p>
-					{conversation.email && (
-						<p className="mt-0.5 break-all text-xs text-ck-faint">
-							{conversation.email}
-						</p>
+					{conversation.email ? (
+						<>
+							<p className="break-all text-xs text-ck-faint">
+								{conversation.email}
+							</p>
+							<CopyButton
+								value={conversation.email}
+								label="Copy email"
+								variant="outline"
+								size="sm"
+								aria-label="Copy email address"
+							/>
+						</>
+					) : (
+						<p className="text-xs text-ck-faint">No email provided</p>
 					)}
 				</div>
 			</div>
@@ -143,18 +145,21 @@ export function DetailPanel({
 				{/* LIVE — real captured fields only. */}
 				<Section title="Contact">
 					<Field
-						icon={<User />}
-						label="Name"
-						value={conversation.name ?? "Not provided"}
-					/>
-					<Field
 						icon={<Mail />}
 						label="Email"
 						value={conversation.email ?? "Not provided"}
 					/>
-				</Section>
-
-				<Section title="Session">
+					<Field
+						icon={<Globe />}
+						label="IP address"
+						value={conversation.ipAddress ?? "Unknown"}
+						mono
+					/>
+					<Field
+						icon={<Monitor />}
+						label="Device"
+						value={device ?? "Unknown"}
+					/>
 					<Field
 						icon={<Clock />}
 						label="Started"
@@ -164,17 +169,6 @@ export function DetailPanel({
 						icon={<MessageCircle />}
 						label="Messages"
 						value={conversation.messageCount}
-					/>
-					<Field
-						icon={<Monitor />}
-						label="Device"
-						value={device ?? "Unknown"}
-					/>
-					<Field
-						icon={<Globe />}
-						label="IP address"
-						value={conversation.ipAddress ?? "Unknown"}
-						mono
 					/>
 				</Section>
 
@@ -206,6 +200,22 @@ export function DetailPanel({
 					)}
 				</Section>
 
+				{/* Tags (LIVE) — add/remove real workspace tags. */}
+				<Section title="Tags">
+					<div className="flex flex-wrap items-center gap-1.5">
+						{attachedTags.map((t) => (
+							<TagChip key={t.id} tag={t} onRemove={onRemoveTag} />
+						))}
+						<TagPicker
+							tags={tags}
+							attachedIds={attachedTags.map((t) => t.id)}
+							onToggle={onToggleTag}
+							onCreate={onCreateTag}
+							creating={creatingTag}
+						/>
+					</div>
+				</Section>
+
 				{/* ROADMAP — honest empty. The widget doesn't capture these yet; show
 				    the intended fields with em-dashes, never a fabricated value. */}
 				<div className="m-4 rounded-[14px] border border-dashed border-ck-border p-4">
@@ -213,7 +223,8 @@ export function DetailPanel({
 						Visitor context
 					</h3>
 					<p className="mt-1 text-[11px] leading-relaxed text-ck-faint">
-						Not captured yet — never show a guessed value.
+						Not captured yet — these populate once enrichment ships. Never a
+						guessed value.
 					</p>
 					<div className="mt-3 flex flex-col gap-2">
 						{ROADMAP_FIELDS.map((label) => (
@@ -227,68 +238,6 @@ export function DetailPanel({
 						))}
 					</div>
 				</div>
-			</div>
-
-			<div className="flex flex-col gap-2 border-t border-ck-border p-4">
-				<Button
-					variant="outline"
-					size="sm"
-					className="w-full"
-					disabled={resolving}
-					onClick={onResolve}
-				>
-					{resolved ? (
-						<>
-							<RotateCcw className="size-4" />
-							Reopen
-						</>
-					) : (
-						<>
-							<Check className="size-4" />
-							Resolve
-						</>
-					)}
-				</Button>
-
-				<Button
-					variant="ghost"
-					size="sm"
-					className="w-full text-ck-warn hover:bg-ck-warn/10 hover:text-ck-warn"
-					onClick={() => setConfirmOpen(true)}
-				>
-					<Trash2 className="size-4" />
-					Delete conversation
-				</Button>
-
-				{/*
-				 * Controlled AlertDialog + a plain submit Button — NOT AlertDialogAction,
-				 * which auto-closes on click and (under React 18) unmounts before the
-				 * handler fires (the dead-button bug). Delete is non-optimistic: the
-				 * dialog stays open showing "Deleting…" until the server confirms, so a
-				 * failed delete surfaces instead of reading as success.
-				 */}
-				<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-					<AlertDialogContent>
-						<AlertDialogHeader>
-							<AlertDialogTitle>Delete conversation?</AlertDialogTitle>
-							<AlertDialogDescription>
-								This permanently deletes the conversation and all its messages.
-								This can&apos;t be undone.
-							</AlertDialogDescription>
-						</AlertDialogHeader>
-						<AlertDialogFooter>
-							<AlertDialogCancel type="button">Cancel</AlertDialogCancel>
-							<Button
-								variant="primary"
-								className="bg-ck-warn hover:bg-ck-warn/90"
-								disabled={deleting}
-								onClick={onDelete}
-							>
-								{deleting ? "Deleting…" : "Delete"}
-							</Button>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialog>
 			</div>
 		</div>
 	);
