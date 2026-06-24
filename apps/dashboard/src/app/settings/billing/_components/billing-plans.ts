@@ -1,4 +1,4 @@
-import { BILLING_TIERS, type PaidPlan } from "@llmchat/shared";
+import { BILLING_TIERS, isUnlimited, type PaidPlan } from "@llmchat/shared";
 
 /**
  * Display copy for the three paid tiers. The *entitlement numbers* (projects,
@@ -15,6 +15,8 @@ export interface TierDisplay {
 	tagline: string;
 	/** Whole-USD monthly price, from the shared tier table (matches Stripe). */
 	priceUsdMonthly: number;
+	/** Whole-USD annual price (10× monthly — two months free), matches Stripe. */
+	priceUsdAnnual: number;
 	/** The recommended tier — gets the "Most popular" accent. */
 	highlight: boolean;
 	features: string[];
@@ -23,33 +25,40 @@ export interface TierDisplay {
 const fmt = (n: number) => n.toLocaleString("en-US");
 
 /** Build the feature bullets for a tier from its real entitlements + a little
- * tier-specific capability copy. */
+ * tier-specific capability copy. Mirrors the marketing pricing page wording so
+ * both surfaces describe the same plan identically. */
 function features(plan: PaidPlan, extra: string[]): string[] {
 	const t = BILLING_TIERS[plan];
-	const projects = `${t.maxProjects} project${t.maxProjects === 1 ? "" : "s"}`;
-	const seats = `${t.maxMembers} team member${t.maxMembers === 1 ? "" : "s"}`;
-	const responses = t.allowOverage
-		? `${fmt(t.maxResponsesPerMonth)} responses/mo included`
-		: `${fmt(t.maxResponsesPerMonth)} responses/mo`;
+	const responses = `${fmt(t.maxResponsesPerMonth)} AI responses/mo${
+		t.allowOverage ? " included" : ""
+	}`;
 	const overage = t.allowOverage
-		? "Then billed per response"
-		: "Hard cap — no overage";
-	const models = t.modelAccess === "all" ? "All models" : "Basic models";
+		? "Overage billed per response"
+		: "Hard cap — no surprise bills";
+	const projects = `${t.maxProjects} project${t.maxProjects === 1 ? "" : "s"}`;
+	const seats = isUnlimited(t.maxMembers)
+		? "Unlimited team members"
+		: `${t.maxMembers} team member${t.maxMembers === 1 ? "" : "s"}`;
+	const models =
+		t.modelAccess === "all"
+			? "All models, including frontier"
+			: "Fast models (mini · Haiku · Flash)";
 	const branding =
 		t.branding === "custom"
-			? "Custom branding"
+			? "Full white-label branding"
 			: t.branding === "off"
 				? "No “Powered by” badge"
 				: "“Powered by” badge";
-	return [projects, seats, responses, overage, models, branding, ...extra];
+	return [responses, overage, projects, seats, models, branding, ...extra];
 }
 
 export const TIERS: TierDisplay[] = [
 	{
 		plan: "starter",
 		name: "Starter",
-		tagline: "Launch your first support agent",
+		tagline: "Put one support agent live",
 		priceUsdMonthly: BILLING_TIERS.starter.priceUsdMonthly,
+		priceUsdAnnual: BILLING_TIERS.starter.priceUsdAnnual,
 		highlight: false,
 		features: features("starter", ["Email support"]),
 	},
@@ -58,6 +67,7 @@ export const TIERS: TierDisplay[] = [
 		name: "Growth",
 		tagline: "For growing support teams",
 		priceUsdMonthly: BILLING_TIERS.growth.priceUsdMonthly,
+		priceUsdAnnual: BILLING_TIERS.growth.priceUsdAnnual,
 		highlight: true,
 		features: features("growth", ["Priority support"]),
 	},
@@ -66,8 +76,9 @@ export const TIERS: TierDisplay[] = [
 		name: "Scale",
 		tagline: "High volume, fully white-labeled",
 		priceUsdMonthly: BILLING_TIERS.scale.priceUsdMonthly,
+		priceUsdAnnual: BILLING_TIERS.scale.priceUsdAnnual,
 		highlight: false,
-		features: features("scale", ["Priority support"]),
+		features: features("scale", ["Priority support + onboarding"]),
 	},
 ];
 

@@ -102,7 +102,7 @@ describe("BillingPage", () => {
 		// The plan card resolves with usage; the tier CTAs render immediately.
 		expect(await screen.findByText("No subscription")).toBeInTheDocument();
 		await clickButton(userEvent.setup(), /choose starter/i);
-		expect(startCheckout).toHaveBeenCalledWith("ws_1", "starter");
+		expect(startCheckout).toHaveBeenCalledWith("ws_1", "starter", "month");
 		await waitFor(() =>
 			expect(redirectToStripeCheckout).toHaveBeenCalledWith(session),
 		);
@@ -160,10 +160,10 @@ describe("BillingPage", () => {
 		setWorkspace("growth");
 		vi.mocked(fetchUsage).mockResolvedValue(usageFor("growth"));
 		renderPage();
-		// The real response count (42) and the real included quota (8,000) — both
+		// The real response count (42) and the real included quota (12,000) — both
 		// straight from /billing/usage, nothing hardcoded.
 		await waitFor(() => expect(screen.getByText("42")).toBeInTheDocument());
-		expect(screen.getByText(/toward 8,000 plan limit/i)).toBeInTheDocument();
+		expect(screen.getByText(/toward 12,000 plan limit/i)).toBeInTheDocument();
 	});
 
 	// The plan-limit bar is the ONLY designed-not-enforced element; it must carry

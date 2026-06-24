@@ -95,15 +95,22 @@ export const billing = new Hono<AppContext>()
 			"json",
 			z.object({
 				plan: z.enum(PAID_PLANS),
+				// Billing cadence. Annual (two months free) maps to a distinct
+				// Stripe price id; defaults to monthly when omitted.
+				interval: z.enum(["month", "year"]).default("month"),
 				returnTo: z.string().optional(),
 			}),
 		),
 		async (c) => {
 			const workspaceId = c.get("workspaceId");
 			const userId = c.get("userId");
-			const { plan, returnTo } = c.req.valid("json");
+			const { plan, interval, returnTo } = c.req.valid("json");
 			const { STRIPE_SECRET_KEY, DASHBOARD_URL } = c.env.vars;
-			const { basePriceId, overagePriceId } = planPrices(c.env.vars, plan);
+			const { basePriceId, overagePriceId } = planPrices(
+				c.env.vars,
+				plan,
+				interval,
+			);
 
 			// Only the base price is required to sell a tier. The metered overage
 			// price is OPTIONAL — when it isn't configured yet the subscription is

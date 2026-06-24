@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 
 import { Badge, Button } from "@/components/ds";
 import { cn } from "@/lib/utils";
-import type { PaidPlan } from "@llmchat/shared";
+import type { BillingInterval, PaidPlan } from "@llmchat/shared";
 
 import { TIERS } from "./billing-plans";
 
@@ -23,6 +23,7 @@ export function PlanTiers({
 	disabled,
 	onSelect,
 	ctaPrefix = "Choose",
+	interval = "month",
 }: {
 	currentPlan?: string;
 	availablePlans?: PaidPlan[];
@@ -32,13 +33,21 @@ export function PlanTiers({
 	onSelect: (plan: PaidPlan) => void;
 	/** CTA verb — "Choose" on billing, "Start with" on the paywall. */
 	ctaPrefix?: string;
+	/** Billing cadence shown in the price (the parent owns the toggle). */
+	interval?: BillingInterval;
 }) {
+	const annual = interval === "year";
 	return (
 		<div className="grid gap-4 lg:grid-cols-3">
 			{TIERS.map((tier) => {
 				const isCurrent = currentPlan === tier.plan;
 				const available = !availablePlans || availablePlans.includes(tier.plan);
 				const pending = selecting === tier.plan;
+				// Annual = the yearly price spread across 12 (rounded for display);
+				// the exact yearly total is shown beneath, so rounding is never charged.
+				const perMonth = annual
+					? Math.round(tier.priceUsdAnnual / 12)
+					: tier.priceUsdMonthly;
 				return (
 					<section
 						key={tier.plan}
@@ -61,11 +70,20 @@ export function PlanTiers({
 
 						<div className="mt-2 flex items-baseline gap-1.5">
 							<span className="text-[26px] font-extrabold tracking-[-0.02em] text-ck-text">
-								${tier.priceUsdMonthly}
+								${perMonth}
 							</span>
 							<span className="text-[13px] text-ck-faint">/mo</span>
+							{annual && (
+								<span className="text-[12px] text-ck-faint line-through">
+									${tier.priceUsdMonthly}
+								</span>
+							)}
 						</div>
-						<p className="mt-1 text-[13px] text-ck-muted">{tier.tagline}</p>
+						<p className="mt-1 text-[13px] text-ck-muted">
+							{annual
+								? `$${tier.priceUsdAnnual}/yr · 2 months free`
+								: tier.tagline}
+						</p>
 
 						<ul className="mt-4 flex-1 space-y-2.5">
 							{tier.features.map((f) => (

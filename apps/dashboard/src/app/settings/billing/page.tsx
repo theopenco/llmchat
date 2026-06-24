@@ -15,8 +15,9 @@ import {
 } from "@/lib/billing";
 import { useWorkspace } from "@/lib/workspace";
 import { WORKSPACES_KEY } from "@/lib/workspace-utils";
+import { cn } from "@/lib/utils";
 
-import type { PaidPlan } from "@llmchat/shared";
+import type { BillingInterval, PaidPlan } from "@llmchat/shared";
 
 import { BillingNotice } from "./_components/BillingNotice";
 import { BillingSkeleton } from "./_components/BillingSkeleton";
@@ -47,6 +48,8 @@ function BillingContent() {
 	const plan = workspaces.find((w) => w.id === workspaceId)?.plan ?? "none";
 	const isOwner = role === "owner";
 	const priceUsdMonthly = TIERS.find((t) => t.plan === plan)?.priceUsdMonthly;
+	// Billing cadence for new checkouts (the toggle below the plan grid).
+	const [interval, setInterval] = useState<BillingInterval>("month");
 
 	// Real usage-this-month (plan, entitlements, counts) for the meters.
 	const usageQ = useQuery({
@@ -66,7 +69,8 @@ function BillingContent() {
 	}, [status, qc, workspaceId]);
 
 	const checkout = useMutation({
-		mutationFn: (target: PaidPlan) => startCheckout(workspaceId!, target),
+		mutationFn: (target: PaidPlan) =>
+			startCheckout(workspaceId!, target, interval),
 		onMutate: () => setError(null),
 		onSuccess: (session) => void redirectToStripeCheckout(session),
 		onError: (e) => setError(errorMessage(e)),
@@ -127,10 +131,48 @@ function BillingContent() {
 			{!exempt && (
 				<>
 					<div className="space-y-3">
-						<div className="flex items-center gap-2">
+						<div className="flex flex-wrap items-center justify-between gap-2">
 							<span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-ck-faint">
 								Plans
 							</span>
+							<div
+								role="tablist"
+								aria-label="Billing cadence"
+								className="inline-flex items-center gap-1 rounded-full border border-ck-border bg-ck-card p-0.5"
+							>
+								{(["month", "year"] as const).map((value) => {
+									const active = interval === value;
+									return (
+										<button
+											key={value}
+											type="button"
+											role="tab"
+											aria-selected={active}
+											onClick={() => setInterval(value)}
+											className={cn(
+												"rounded-full px-3 py-1 text-[12.5px] font-semibold transition-colors",
+												active
+													? "bg-ck-accent text-white"
+													: "text-ck-muted hover:text-ck-text",
+											)}
+										>
+											{value === "month" ? "Monthly" : "Annual"}
+											{value === "year" && (
+												<span
+													className={cn(
+														"ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em]",
+														active
+															? "bg-white/20 text-white"
+															: "bg-ck-accent/10 text-ck-accent",
+													)}
+												>
+													−17%
+												</span>
+											)}
+										</button>
+									);
+								})}
+							</div>
 						</div>
 						<PlanTiers
 							currentPlan={plan}
@@ -138,6 +180,7 @@ function BillingContent() {
 							selecting={selecting}
 							disabled={!isOwner || pending}
 							onSelect={(target) => checkout.mutate(target)}
+							interval={interval}
 						/>
 					</div>
 
@@ -148,7 +191,8 @@ function BillingContent() {
 								A card is required to start.
 							</span>{" "}
 							Every plan is paid — pick a tier and add a card to put your agent
-							live. You&apos;re billed monthly and can change or cancel anytime.
+							live. Billed monthly or yearly, with a 14-day money-back
+							guarantee; change or cancel anytime.
 							{!isOwner && " Only a workspace owner can manage billing."}
 						</p>
 					</div>

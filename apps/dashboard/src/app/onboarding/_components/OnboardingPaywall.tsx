@@ -38,7 +38,9 @@ export function OnboardingPaywall({
 	});
 	const checkout = useMutation({
 		mutationFn: (plan: PaidPlan) =>
-			startCheckout(workspaceId, plan, "/onboarding"),
+			// The onboarding paywall sells monthly; the annual toggle lives on the
+			// billing screen. Pass the cadence explicitly so `returnTo` lands right.
+			startCheckout(workspaceId, plan, "month", "/onboarding"),
 		onMutate: () => setError(null),
 		onSuccess: (session) => void redirectToStripeCheckout(session),
 		onError: (e) =>

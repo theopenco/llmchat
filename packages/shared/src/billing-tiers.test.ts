@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import {
 	BILLING_TIERS,
+	ENTERPRISE_TIER,
 	INTERNAL_ENTITLEMENTS,
 	PAID_PLANS,
+	UNLIMITED,
 	isInternalEmail,
 	isModelAllowed,
 	isOverResponseQuota,
 	isPaidPlan,
+	isUnlimited,
 	isWithinLimit,
 	planEntitlements,
 	showPoweredByBadge,
@@ -65,6 +68,7 @@ describe("tier shape invariants", () => {
 	it("matches the spec's exact tier numbers and prices", () => {
 		expect(BILLING_TIERS.starter).toMatchObject({
 			priceUsdMonthly: 19,
+			priceUsdAnnual: 190,
 			maxProjects: 2,
 			maxMembers: 3,
 			maxResponsesPerMonth: 2_000,
@@ -74,22 +78,31 @@ describe("tier shape invariants", () => {
 		});
 		expect(BILLING_TIERS.growth).toMatchObject({
 			priceUsdMonthly: 89,
+			priceUsdAnnual: 890,
 			maxProjects: 5,
-			maxMembers: 8,
-			maxResponsesPerMonth: 8_000,
+			maxMembers: 10,
+			maxResponsesPerMonth: 12_000,
 			allowOverage: true,
 			modelAccess: "all",
 			branding: "off",
 		});
 		expect(BILLING_TIERS.scale).toMatchObject({
 			priceUsdMonthly: 299,
-			maxProjects: 15,
-			maxMembers: 20,
-			maxResponsesPerMonth: 25_000,
+			priceUsdAnnual: 2_990,
+			maxProjects: 20,
+			maxMembers: UNLIMITED,
+			maxResponsesPerMonth: 50_000,
 			allowOverage: true,
 			modelAccess: "all",
 			branding: "custom",
 		});
+	});
+
+	it("annual is 10× monthly — two months free — on every paid tier", () => {
+		for (const plan of PAID_PLANS) {
+			const t = BILLING_TIERS[plan];
+			expect(t.priceUsdAnnual).toBe(t.priceUsdMonthly * 10);
+		}
 	});
 });
 
@@ -197,5 +210,31 @@ describe("showPoweredByBadge", () => {
 		expect(showPoweredByBadge("none")).toBe(true);
 		expect(showPoweredByBadge("free")).toBe(true);
 		expect(showPoweredByBadge(undefined)).toBe(true);
+	});
+});
+
+describe("isUnlimited", () => {
+	it("treats the unlimited sentinel + internal caps as unlimited", () => {
+		expect(isUnlimited(UNLIMITED)).toBe(true);
+		expect(isUnlimited(BILLING_TIERS.scale.maxMembers)).toBe(true);
+		expect(isUnlimited(INTERNAL_ENTITLEMENTS.maxProjects)).toBe(true);
+	});
+
+	it("treats real finite caps as not unlimited", () => {
+		expect(isUnlimited(BILLING_TIERS.starter.maxMembers)).toBe(false);
+		expect(isUnlimited(BILLING_TIERS.growth.maxMembers)).toBe(false);
+		expect(isUnlimited(50_000)).toBe(false);
+		expect(isUnlimited(0)).toBe(false);
+	});
+});
+
+describe("ENTERPRISE_TIER", () => {
+	it("is display-only — not a purchasable Plan (resolves to none)", () => {
+		// Enterprise is sold, not self-served: there's no Plan value, so resolving
+		// the string "enterprise" must still land on the blocked `none` tier.
+		expect(planEntitlements("enterprise")).toBe(BILLING_TIERS.none);
+		expect(isPaidPlan("enterprise")).toBe(false);
+		expect(ENTERPRISE_TIER.name).toBe("Enterprise");
+		expect(ENTERPRISE_TIER.features.length).toBeGreaterThan(0);
 	});
 });

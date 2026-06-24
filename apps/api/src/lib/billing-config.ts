@@ -4,7 +4,7 @@
 // code. A tier whose price id is unset reads back undefined, and the billing
 // route short-circuits with `billing_not_configured` rather than calling Stripe.
 
-import type { PaidPlan } from "@llmchat/shared";
+import type { BillingInterval, PaidPlan } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 
@@ -25,20 +25,40 @@ export interface PlanPrices {
 	overagePriceId?: string;
 }
 
-/** Resolve the Stripe price ids for a paid tier from env. Starter has no
- * overage price (it hard-stops at the cap). */
-export function planPrices(vars: Vars, plan: PaidPlan): PlanPrices {
+/**
+ * Resolve the Stripe price ids for a paid tier from env. Starter has no overage
+ * price (it hard-stops at the cap).
+ *
+ * `interval` selects the flat base price: the monthly STRIPE_PRICE_* id, or the
+ * annual STRIPE_PRICE_*_ANNUAL id (two months free). The metered OVERAGE price
+ * is the same for both cadences — overage is reported from per-response meter
+ * events monthly regardless of how the base subscription is billed.
+ */
+export function planPrices(
+	vars: Vars,
+	plan: PaidPlan,
+	interval: BillingInterval = "month",
+): PlanPrices {
+	const annual = interval === "year";
 	switch (plan) {
 		case "starter":
-			return { basePriceId: vars.STRIPE_PRICE_STARTER };
+			return {
+				basePriceId: annual
+					? vars.STRIPE_PRICE_STARTER_ANNUAL
+					: vars.STRIPE_PRICE_STARTER,
+			};
 		case "growth":
 			return {
-				basePriceId: vars.STRIPE_PRICE_GROWTH,
+				basePriceId: annual
+					? vars.STRIPE_PRICE_GROWTH_ANNUAL
+					: vars.STRIPE_PRICE_GROWTH,
 				overagePriceId: vars.STRIPE_PRICE_GROWTH_OVERAGE,
 			};
 		case "scale":
 			return {
-				basePriceId: vars.STRIPE_PRICE_SCALE,
+				basePriceId: annual
+					? vars.STRIPE_PRICE_SCALE_ANNUAL
+					: vars.STRIPE_PRICE_SCALE,
 				overagePriceId: vars.STRIPE_PRICE_SCALE_OVERAGE,
 			};
 	}
