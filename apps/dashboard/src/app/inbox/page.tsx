@@ -7,7 +7,7 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { ApiError, api, describeApiError } from "@/lib/api";
@@ -75,6 +75,26 @@ export default function InboxPage() {
 	// Contact-details sheet (mobile/tablet); on desktop details are a permanent aside.
 	const [detailsOpen, setDetailsOpen] = useState(false);
 
+	// One-time ?project=&c= deep link (from the ⌘K palette or a shared thread
+	// URL). Read once on mount; applied after projects load (below) so the
+	// project-resolver effect can't clobber it. The thread endpoint re-validates
+	// tenancy server-side, so a forged/foreign id just yields an empty thread —
+	// never a cross-tenant leak.
+	const deepLinkRef = useRef<{
+		project: string | null;
+		conversation: string | null;
+	}>(undefined as never);
+	if (deepLinkRef.current === undefined) {
+		deepLinkRef.current =
+			typeof window === "undefined"
+				? { project: null, conversation: null }
+				: {
+						project: new URLSearchParams(window.location.search).get("project"),
+						conversation: new URLSearchParams(window.location.search).get("c"),
+					};
+	}
+	const deepLinkConsumed = useRef(false);
+
 	const projects = useQuery({
 		queryKey: ["projects", workspaceId],
 		enabled: !!workspaceId,
@@ -96,12 +116,44 @@ export default function InboxPage() {
 	// Keep the selected project valid for the current workspace; a stale id
 	// (e.g. after a workspace switch) falls back to the first project.
 	useEffect(() => {
-		const next = resolveSelectedId(projectId, projects.data?.projects ?? []);
+		const available = projects.data?.projects ?? [];
+		if (available.length === 0) return;
+
+		// One-time: honor the ?project=&c= deep link before the normal resolver, if
+		// the project is one the caller can actually see in this workspace.
+		if (!deepLinkConsumed.current) {
+			deepLinkConsumed.current = true;
+			const dl = deepLinkRef.current!;
+			if (dl.project && available.some((p) => p.id === dl.project)) {
+				setProjectId(dl.project);
+				if (dl.conversation) setSelectedId(dl.conversation);
+				return;
+			}
+		}
+
+		const next = resolveSelectedId(projectId, available);
 		if (next !== projectId) {
 			setProjectId(next);
 			setSelectedId(null);
 		}
 	}, [projects.data, projectId]);
+
+	// Mirror the open conversation into the URL (?project=&c=) so a thread is
+	// shareable and the ⌘K deep link round-trips. history.replaceState — not the
+	// router — so it never triggers a navigation/refetch.
+	useEffect(() => {
+		if (typeof window === "undefined" || !projectId) return;
+		const params = new URLSearchParams(window.location.search);
+		params.set("project", projectId);
+		if (selectedId) params.set("c", selectedId);
+		else params.delete("c");
+		const qs = params.toString();
+		window.history.replaceState(
+			null,
+			"",
+			qs ? `?${qs}` : window.location.pathname,
+		);
+	}, [projectId, selectedId]);
 
 	function handleProjectChange(id: string) {
 		setProjectId(id);
