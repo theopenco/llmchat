@@ -36,23 +36,29 @@ describe("resolveOnboardingState", () => {
 			resolveOnboardingState({
 				loading: true,
 				hasWorkspace: false,
+				projectsLoaded: false,
 				projectCount: 0,
 			}),
 		).toBe("loading");
 	});
 
-	it("needs onboarding with no workspace OR no project", () => {
+	it("needs onboarding with no workspace (brand-new account)", () => {
 		expect(
 			resolveOnboardingState({
 				loading: false,
 				hasWorkspace: false,
+				projectsLoaded: false,
 				projectCount: 0,
 			}),
 		).toBe("needs-onboarding");
+	});
+
+	it("needs onboarding when a SUCCESSFUL projects fetch returns zero", () => {
 		expect(
 			resolveOnboardingState({
 				loading: false,
 				hasWorkspace: true,
+				projectsLoaded: true,
 				projectCount: 0,
 			}),
 		).toBe("needs-onboarding");
@@ -63,6 +69,7 @@ describe("resolveOnboardingState", () => {
 			resolveOnboardingState({
 				loading: false,
 				hasWorkspace: true,
+				projectsLoaded: true,
 				projectCount: 1,
 			}),
 		).toBe("ready");
@@ -74,7 +81,32 @@ describe("resolveOnboardingState", () => {
 			resolveOnboardingState({
 				loading: true,
 				hasWorkspace: true,
+				projectsLoaded: true,
 				projectCount: 3,
+			}),
+		).toBe("loading");
+	});
+
+	it("does NOT conclude needs-onboarding from a failed/unsettled projects fetch", () => {
+		// The sharp bug: a failed `/api/projects` reports projectCount:0 with
+		// loading:false — identical to a genuine empty workspace. Concluding
+		// "needs-onboarding" here bounces a PAYING customer into onboarding, where
+		// rebuilding can provision a duplicate workspace. With projectsLoaded:false
+		// (isSuccess === false → error or pending) we must hold, never bounce.
+		expect(
+			resolveOnboardingState({
+				loading: false,
+				hasWorkspace: true,
+				projectsLoaded: false,
+				projectCount: 0,
+			}),
+		).not.toBe("needs-onboarding");
+		expect(
+			resolveOnboardingState({
+				loading: false,
+				hasWorkspace: true,
+				projectsLoaded: false,
+				projectCount: 0,
 			}),
 		).toBe("loading");
 	});
