@@ -2,7 +2,9 @@ import Link from "next/link";
 import {
 	ANALYTICS_EVENTS,
 	BILLING_TIERS,
+	ENTERPRISE_TIER,
 	PAID_PLANS,
+	isUnlimited,
 	type PaidPlan,
 } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -11,7 +13,8 @@ import { TrackedLink } from "@/components/TrackedLink";
 import { FaqSection } from "@/components/FaqSection";
 import { JsonLd } from "@/components/JsonLd";
 import { breadcrumbLd, faqPageLd, pageMeta, type Faq } from "@/lib/seo";
-import { CANONICAL_SITE_URL } from "@/lib/site-urls";
+import { CANONICAL_SITE_URL, SALES_EMAIL } from "@/lib/site-urls";
+import { PricingPlans, type PlanCard } from "./PricingPlans";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -20,9 +23,9 @@ const fmt = (n: number) => n.toLocaleString("en-US");
 const starterPrice = BILLING_TIERS.starter.priceUsdMonthly;
 
 export const metadata = pageMeta({
-	title: "Pricing — flat monthly plans, free to self-host",
+	title: "Pricing — flat monthly or annual plans, free to self-host",
 	description:
-		"Clanker Support pricing: flat monthly hosted plans from $19/mo with no per-seat fees, or self-host free with your own keys.",
+		"Clanker Support pricing: flat plans from $19/mo with no per-seat fees, two months free on annual, a 14-day money-back guarantee, or self-host free with your own keys.",
 	path: "/pricing",
 });
 
@@ -36,7 +39,7 @@ const TIER_META: Record<
 > = {
 	starter: {
 		name: "Starter",
-		tagline: "Launch your first support agent.",
+		tagline: "Put one support agent live.",
 		highlight: false,
 		extra: "Email support",
 	},
@@ -50,22 +53,32 @@ const TIER_META: Record<
 		name: "Scale",
 		tagline: "High volume, fully white-labeled.",
 		highlight: false,
-		extra: "Priority support",
+		extra: "Priority support + onboarding",
 	},
 };
 
+// Feature bullets are built from the real entitlements (the same shared table
+// Stripe + the API enforce), so the page can never advertise a limit or model
+// access the product doesn't actually grant.
 function tierFeatures(plan: PaidPlan): string[] {
 	const t = BILLING_TIERS[plan];
+	const seats = isUnlimited(t.maxMembers)
+		? "Unlimited team members"
+		: `${t.maxMembers} team member${t.maxMembers === 1 ? "" : "s"}`;
 	return [
-		`${t.maxProjects} project${t.maxProjects === 1 ? "" : "s"}`,
-		`${t.maxMembers} team member${t.maxMembers === 1 ? "" : "s"}`,
-		`${fmt(t.maxResponsesPerMonth)} bot responses/mo${
+		`${fmt(t.maxResponsesPerMonth)} AI responses/mo${
 			t.allowOverage ? " included" : ""
 		}`,
-		t.allowOverage ? "Then billed per response" : "Hard cap — no overage",
-		t.modelAccess === "all" ? "All models" : "Basic models",
+		t.allowOverage
+			? "Overage billed per response"
+			: "Hard cap — no surprise bills",
+		`${t.maxProjects} project${t.maxProjects === 1 ? "" : "s"}`,
+		seats,
+		t.modelAccess === "all"
+			? "All models, including frontier"
+			: "Fast models (mini · Haiku · Flash)",
 		t.branding === "custom"
-			? "Custom branding"
+			? "Full white-label branding"
 			: t.branding === "off"
 				? "No “Powered by” badge"
 				: "“Powered by” badge",
@@ -73,17 +86,29 @@ function tierFeatures(plan: PaidPlan): string[] {
 	];
 }
 
-const hostedTiers = PAID_PLANS.map((plan) => ({
+const hostedTiers: PlanCard[] = PAID_PLANS.map((plan) => ({
 	plan,
-	price: BILLING_TIERS[plan].priceUsdMonthly,
-	...TIER_META[plan],
+	name: TIER_META[plan].name,
+	tagline: TIER_META[plan].tagline,
+	highlight: TIER_META[plan].highlight,
+	priceMonthly: BILLING_TIERS[plan].priceUsdMonthly,
+	priceAnnual: BILLING_TIERS[plan].priceUsdAnnual,
 	features: tierFeatures(plan),
 }));
 
 const faqs: Faq[] = [
 	{
 		question: "How much does Clanker Support cost?",
-		answer: `Hosted plans are flat monthly: Starter at $${BILLING_TIERS.starter.priceUsdMonthly}, Growth at $${BILLING_TIERS.growth.priceUsdMonthly}, and Scale at $${BILLING_TIERS.scale.priceUsdMonthly} per month. There are no per-seat fees — seats are included in each plan. Prefer to run it yourself? Self-hosting is free with your own keys.`,
+		answer: `Hosted plans are flat monthly: Starter at $${BILLING_TIERS.starter.priceUsdMonthly}, Growth at $${BILLING_TIERS.growth.priceUsdMonthly}, and Scale at $${BILLING_TIERS.scale.priceUsdMonthly} per month. Pay yearly and get two months free. There are no per-seat fees — seats are included in each plan. Prefer to run it yourself? Self-hosting is free with your own keys.`,
+	},
+	{
+		question: "Do you offer annual billing?",
+		answer: `Yes. Pay yearly and get two months free on every plan — Starter is $${fmt(BILLING_TIERS.starter.priceUsdAnnual)}/yr, Growth $${fmt(BILLING_TIERS.growth.priceUsdAnnual)}/yr, and Scale $${fmt(BILLING_TIERS.scale.priceUsdAnnual)}/yr. Switch between monthly and annual anytime from billing.`,
+	},
+	{
+		question: "Is there a free trial or a guarantee?",
+		answer:
+			"Every hosted plan comes with a 14-day money-back guarantee, and you can cancel anytime — no contracts. Want to try before you buy? The live demo runs in your browser without signing up.",
 	},
 	{
 		question: "Is there a free plan?",
@@ -102,6 +127,11 @@ const faqs: Faq[] = [
 		question: "Can I self-host instead of paying?",
 		answer:
 			"Yes. Clanker Support is open and self-hostable. Bring an LLM Gateway key and a database, run it on your own infrastructure, and get the full feature set for free — you only pay your own model and hosting costs.",
+	},
+	{
+		question: "What's the Enterprise plan?",
+		answer:
+			"For agencies, high volume, or teams that need SSO/SAML, a DPA, an SLA, white-glove onboarding and migration, or a self-host support contract. Response volume and pricing are built around your usage — talk to sales.",
 	},
 ];
 
@@ -125,13 +155,19 @@ const pricingLd = {
 			priceCurrency: "USD",
 			description: "Run it yourself with your own keys. Full feature set.",
 		},
-		...PAID_PLANS.map((plan) => ({
-			"@type": "Offer",
-			name: `${TIER_META[plan].name} (hosted)`,
-			price: String(BILLING_TIERS[plan].priceUsdMonthly),
-			priceCurrency: "USD",
-			description: `${fmt(BILLING_TIERS[plan].maxResponsesPerMonth)} bot responses/mo, ${BILLING_TIERS[plan].maxProjects} projects, ${BILLING_TIERS[plan].maxMembers} seats.`,
-		})),
+		...PAID_PLANS.map((plan) => {
+			const t = BILLING_TIERS[plan];
+			const seats = isUnlimited(t.maxMembers)
+				? "unlimited seats"
+				: `${t.maxMembers} seats`;
+			return {
+				"@type": "Offer",
+				name: `${TIER_META[plan].name} (hosted)`,
+				price: String(t.priceUsdMonthly),
+				priceCurrency: "USD",
+				description: `${fmt(t.maxResponsesPerMonth)} bot responses/mo, ${t.maxProjects} projects, ${seats}.`,
+			};
+		}),
 	],
 };
 
@@ -159,70 +195,19 @@ export default function PricingPage() {
 						</em>
 					</h1>
 					<p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-						Pick a plan and add a card to put your agent to work. Every plan
-						includes your whole team — or run the whole stack yourself, free.
+						Every plan deflects tickets, escalates to a human, and threads
+						replies through email — with your whole team included. Cancel
+						anytime, or run the whole stack yourself, free.
 					</p>
 				</section>
 
-				{/* Hosted tiers */}
-				<section className="mt-14 grid gap-6 lg:grid-cols-3">
-					{hostedTiers.map((tier) => (
-						<div
-							key={tier.plan}
-							className={`flex flex-col rounded-3xl border p-8 ${
-								tier.highlight
-									? "border-accent/40 bg-paper-card shadow-glow"
-									: "border-rule bg-paper-card/50"
-							}`}
-						>
-							<div className="flex items-center justify-between">
-								<h2 className="font-display text-xl font-semibold tracking-tight-display text-ink">
-									{tier.name}
-								</h2>
-								{tier.highlight && (
-									<span className="rounded-full border border-accent/40 bg-paper px-3 py-1 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-accent">
-										Most popular
-									</span>
-								)}
-							</div>
-							<p className="mt-2 text-sm leading-relaxed text-muted">
-								{tier.tagline}
-							</p>
-							<div className="mt-5 flex items-baseline gap-1.5">
-								<span className="font-display text-4xl font-semibold tracking-tight-display text-ink">
-									${tier.price}
-								</span>
-								<span className="font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint">
-									/ month
-								</span>
-							</div>
-							<ul className="mt-7 flex-1 space-y-3">
-								{tier.features.map((feature) => (
-									<li
-										key={feature}
-										className="flex gap-3 text-sm leading-relaxed text-ink-soft"
-									>
-										<span className="mt-0.5 shrink-0 text-accent">✓</span>
-										{feature}
-									</li>
-								))}
-							</ul>
-							<TrackedLink
-								href={dashboardUrl}
-								event={ANALYTICS_EVENTS.signupStarted}
-								eventProps={{ source: "pricing_tier", plan: tier.plan }}
-								className={`mt-8 inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition-colors ${
-									tier.highlight
-										? "bg-accent text-white shadow-[0_10px_30px_-8px_rgba(99,102,241,0.7)] hover:bg-accent-deep"
-										: "border border-rule text-ink-soft hover:border-accent/40 hover:text-ink"
-								}`}
-							>
-								Get started
-								<span aria-hidden>→</span>
-							</TrackedLink>
-						</div>
-					))}
-				</section>
+				{/* Hosted tiers + cadence toggle + Enterprise (client island) */}
+				<PricingPlans
+					tiers={hostedTiers}
+					enterprise={ENTERPRISE_TIER}
+					dashboardUrl={dashboardUrl}
+					salesEmail={SALES_EMAIL}
+				/>
 
 				{/* Self-host band */}
 				<section className="mt-8 flex flex-col items-start justify-between gap-5 rounded-3xl border-l-2 border-accent bg-paper-deep/60 p-7 sm:flex-row sm:items-center">

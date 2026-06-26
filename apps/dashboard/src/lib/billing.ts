@@ -2,7 +2,12 @@ import { loadStripe } from "@stripe/stripe-js";
 
 import { ApiError, api } from "./api";
 
-import type { PaidPlan, Plan, TierEntitlements } from "@llmchat/shared";
+import type {
+	BillingInterval,
+	PaidPlan,
+	Plan,
+	TierEntitlements,
+} from "@llmchat/shared";
 
 /** Publishable key (safe to expose). Read from env, never hardcoded. */
 const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -28,17 +33,19 @@ export interface CheckoutSession {
 	url: string;
 }
 
-/** Owner-only. Creates a Checkout Session for a paid tier. `returnTo` is an
- * in-app path Stripe returns the browser to (defaults server-side to billing). */
+/** Owner-only. Creates a Checkout Session for a paid tier on the chosen billing
+ * cadence (monthly or annual). `returnTo` is an in-app path Stripe returns the
+ * browser to (defaults server-side to billing). */
 export async function startCheckout(
 	workspaceId: string,
 	plan: PaidPlan,
+	interval: BillingInterval = "month",
 	returnTo?: string,
 ): Promise<CheckoutSession> {
 	return api<CheckoutSession>("/billing/checkout", {
 		method: "POST",
 		workspaceId,
-		body: { plan, returnTo },
+		body: { plan, interval, returnTo },
 	});
 }
 

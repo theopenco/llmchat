@@ -18,6 +18,9 @@ declare module "@meetploy/nextjs" {
 			STRIPE_PRICE_STARTER?: string;
 			STRIPE_PRICE_GROWTH?: string;
 			STRIPE_PRICE_SCALE?: string;
+			STRIPE_PRICE_STARTER_ANNUAL?: string;
+			STRIPE_PRICE_GROWTH_ANNUAL?: string;
+			STRIPE_PRICE_SCALE_ANNUAL?: string;
 			STRIPE_PRICE_GROWTH_OVERAGE?: string;
 			STRIPE_PRICE_SCALE_OVERAGE?: string;
 			STRIPE_METER_EVENT?: string;
@@ -54,6 +57,9 @@ declare global {
 			STRIPE_PRICE_STARTER?: string;
 			STRIPE_PRICE_GROWTH?: string;
 			STRIPE_PRICE_SCALE?: string;
+			STRIPE_PRICE_STARTER_ANNUAL?: string;
+			STRIPE_PRICE_GROWTH_ANNUAL?: string;
+			STRIPE_PRICE_SCALE_ANNUAL?: string;
 			STRIPE_PRICE_GROWTH_OVERAGE?: string;
 			STRIPE_PRICE_SCALE_OVERAGE?: string;
 			STRIPE_METER_EVENT?: string;

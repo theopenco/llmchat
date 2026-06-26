@@ -15,3 +15,8 @@ export const CANONICAL_SHOWCASE_URL =
  * NEXT_PUBLIC_SITE_URL isn't set. */
 export const CANONICAL_SITE_URL =
 	process.env.NEXT_PUBLIC_SITE_URL ?? "https://clankersupport.com";
+
+/** Where the Enterprise / "Contact sales" CTA points. Overridable per
+ * environment; defaults to a sales mailbox on the canonical domain. */
+export const SALES_EMAIL =
+	process.env.NEXT_PUBLIC_SALES_EMAIL ?? "sales@clankersupport.com";

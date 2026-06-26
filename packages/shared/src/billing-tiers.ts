@@ -40,9 +40,30 @@ export interface TierEntitlements {
 	 * `"custom"`— no badge; custom branding permitted.
 	 */
 	branding: "badge" | "off" | "custom";
-	/** Display price in whole USD per month. 0 for the unpaid state. Must match
-	 * the Stripe price behind this tier's STRIPE_PRICE_* id. */
+	/** Display price in whole USD per month (billed monthly). 0 for the unpaid
+	 * state. Must match the Stripe price behind this tier's STRIPE_PRICE_* id. */
 	priceUsdMonthly: number;
+	/** Display price in whole USD per YEAR (billed annually). Set to 10× the
+	 * monthly price — two months free — so annual is the cash-flow-positive
+	 * default we nudge toward. 0 for the unpaid state. Must match the Stripe
+	 * price behind this tier's STRIPE_PRICE_*_ANNUAL id. */
+	priceUsdAnnual: number;
+}
+
+/** A subscription billing cadence. Annual = two months free (see
+ * `priceUsdAnnual`); the API maps each to a distinct Stripe price id. */
+export type BillingInterval = "month" | "year";
+
+/** Sentinel for an "unlimited" cap. Large enough that isWithinLimit() never
+ * blocks, and recognized by isUnlimited() so the UI renders "Unlimited" instead
+ * of a meaningless nine-digit number. */
+export const UNLIMITED = Number.MAX_SAFE_INTEGER;
+
+/** Whether a cap is effectively unlimited (so UI shows "Unlimited", not the raw
+ * number). Treats any near-MAX_SAFE_INTEGER value — the UNLIMITED sentinel and
+ * the internal-account caps — as unlimited. */
+export function isUnlimited(n: number): boolean {
+	return n >= 1_000_000;
 }
 
 export const BILLING_TIERS: Record<Plan, TierEntitlements> = {
@@ -57,6 +78,7 @@ export const BILLING_TIERS: Record<Plan, TierEntitlements> = {
 		modelAccess: "basic",
 		branding: "badge",
 		priceUsdMonthly: 0,
+		priceUsdAnnual: 0,
 	},
 	starter: {
 		maxProjects: 2,
@@ -66,24 +88,33 @@ export const BILLING_TIERS: Record<Plan, TierEntitlements> = {
 		modelAccess: "basic",
 		branding: "badge",
 		priceUsdMonthly: 19,
+		priceUsdAnnual: 190, // 10× monthly — two months free
 	},
 	growth: {
 		maxProjects: 5,
-		maxMembers: 8,
-		maxResponsesPerMonth: 8_000,
+		maxMembers: 10,
+		// Best unit economics step up the ladder: Growth's per-response value
+		// ($89 / 12k ≈ $0.0074) beats Starter's ($19 / 2k ≈ $0.0095), so
+		// upgrading is the rational move rather than a worse deal.
+		maxResponsesPerMonth: 12_000,
 		allowOverage: true,
 		modelAccess: "all",
 		branding: "off",
 		priceUsdMonthly: 89,
+		priceUsdAnnual: 890, // 10× monthly — two months free
 	},
 	scale: {
-		maxProjects: 15,
-		maxMembers: 20,
-		maxResponsesPerMonth: 25_000,
+		maxProjects: 20,
+		// "No per-seat fees" taken to its conclusion: seats are unlimited at the
+		// top self-serve tier (seats cost us nothing — responses are the metered
+		// unit). Rendered as "Unlimited" via isUnlimited().
+		maxMembers: UNLIMITED,
+		maxResponsesPerMonth: 50_000,
 		allowOverage: true,
 		modelAccess: "all",
 		branding: "custom",
 		priceUsdMonthly: 299,
+		priceUsdAnnual: 2_990, // 10× monthly — two months free
 	},
 };
 
@@ -95,14 +126,37 @@ export const BILLING_TIERS: Record<Plan, TierEntitlements> = {
  * reported to Stripe for an exempt workspace.
  */
 export const INTERNAL_ENTITLEMENTS: TierEntitlements = {
-	maxProjects: Number.MAX_SAFE_INTEGER,
-	maxMembers: Number.MAX_SAFE_INTEGER,
-	maxResponsesPerMonth: Number.MAX_SAFE_INTEGER,
+	maxProjects: UNLIMITED,
+	maxMembers: UNLIMITED,
+	maxResponsesPerMonth: UNLIMITED,
 	allowOverage: false,
 	modelAccess: "all",
 	branding: "custom",
 	priceUsdMonthly: 0,
+	priceUsdAnnual: 0,
 };
+
+/**
+ * Enterprise is **sold, not self-served**: there is no `Plan` value, no Stripe
+ * Checkout, and no enforced entitlement table for it — provisioning is manual
+ * (typically an internal/custom workspace with a bespoke contract). This
+ * constant is display-only copy for the pricing page's "Contact sales" tier, so
+ * the marketing and dashboard surfaces describe it consistently. It anchors the
+ * page high (door-in-the-face) and captures volume/agency/regulated buyers.
+ */
+export const ENTERPRISE_TIER = {
+	name: "Enterprise",
+	tagline: "For agencies, high volume, and teams that need control.",
+	features: [
+		"Everything in Scale",
+		"Custom response volume & pricing",
+		"Unlimited projects & seats",
+		"SSO/SAML, audit logs & DPA",
+		"SLA + dedicated support channel",
+		"White-glove onboarding & migration",
+		"Self-host support contract",
+	],
+} as const;
 
 /** The paid tiers, in upgrade order — what the pricing page offers. */
 export const PAID_PLANS = ["starter", "growth", "scale"] as const;

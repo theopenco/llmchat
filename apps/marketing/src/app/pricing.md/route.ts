@@ -1,6 +1,11 @@
-import { BILLING_TIERS, PAID_PLANS } from "@llmchat/shared";
+import {
+	BILLING_TIERS,
+	ENTERPRISE_TIER,
+	PAID_PLANS,
+	isUnlimited,
+} from "@llmchat/shared";
 
-import { CANONICAL_SITE_URL } from "@/lib/site-urls";
+import { CANONICAL_SITE_URL, SALES_EMAIL } from "@/lib/site-urls";
 
 // Static, machine-readable pricing for AI agents evaluating the product. Prices
 // and limits are generated from the shared BILLING_TIERS table (the same source
@@ -27,10 +32,13 @@ function tierBlock(plan: (typeof PAID_PLANS)[number]): string {
 			: t.branding === "off"
 				? 'No "Powered by" badge'
 				: '"Powered by" badge';
+	const seats = isUnlimited(t.maxMembers)
+		? "unlimited team members"
+		: `${t.maxMembers} team members`;
 	return [
-		`### ${TIER_NAME[plan]} — $${t.priceUsdMonthly}/month`,
+		`### ${TIER_NAME[plan]} — $${t.priceUsdMonthly}/month (or $${fmt(t.priceUsdAnnual)}/year — two months free)`,
 		`- ${overage}`,
-		`- ${t.maxProjects} projects, ${t.maxMembers} team members (no per-seat fees)`,
+		`- ${t.maxProjects} projects, ${seats} (no per-seat fees)`,
 		`- ${t.modelAccess === "all" ? "All models" : "Basic models"}; ${branding}`,
 	].join("\n");
 }
@@ -47,8 +55,14 @@ Clanker Support is an AI-powered support agent. It is open and self-hostable, wi
 ## Hosted (clankersupport.com)
 - Paid-only — there is no free hosted tier.
 - Flat monthly plans billed via Stripe; no per-seat fees (seats are included per plan).
+- Annual billing available on every plan at 10× the monthly price (two months free).
+- 14-day money-back guarantee; cancel anytime.
 
 ${PAID_PLANS.map(tierBlock).join("\n\n")}
+
+### Enterprise — custom pricing
+- ${ENTERPRISE_TIER.features.join("\n- ")}
+- Contact sales: ${SALES_EMAIL}
 
 More: ${CANONICAL_SITE_URL}/pricing
 `;

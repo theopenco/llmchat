@@ -52,7 +52,7 @@ describe("UsageMeter", () => {
 		// Real count from /billing/usage — not fabricated.
 		await waitFor(() => expect(screen.getByText("42")).toBeInTheDocument());
 		expect(screen.getByText("Growth plan")).toBeInTheDocument();
-		expect(screen.getByText(/plan limit 8,000/i)).toBeInTheDocument();
+		expect(screen.getByText(/plan limit 12,000/i)).toBeInTheDocument();
 		expect(screen.getByText(/aren.t enforced yet/i)).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: /billing/i })).toHaveAttribute(
 			"href",
