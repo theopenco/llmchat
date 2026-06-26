@@ -320,7 +320,10 @@ function sendEscalate(body: unknown, ctx: ReturnType<typeof makeCtx>["ctx"]) {
 }
 
 describe("POST /v1/escalate — operator transcript is server-side", () => {
-	function mockDbForEscalate(storedMessages: unknown[]) {
+	function mockDbForEscalate(
+		storedMessages: unknown[],
+		notifyEmail: string | null = "ops@acme.com",
+	) {
 		const valuesResult = () =>
 			Object.assign(Promise.resolve([]), {
 				returning: async () => [{ id: "ue1" }],
@@ -330,7 +333,7 @@ describe("POST /v1/escalate — operator transcript is server-side", () => {
 				project: {
 					findFirst: async () => ({
 						...project,
-						notifyEmail: "ops@acme.com",
+						notifyEmail,
 						inboundEmailLocal: "acme",
 						slackWebhookUrl: null,
 					}),
@@ -374,6 +377,52 @@ describe("POST /v1/escalate — operator transcript is server-side", () => {
 		expect(html).toContain("stored question");
 		expect(html).toContain("stored answer");
 		expect(html).not.toContain("FORGED-INJECTED-CONTENT");
+		await settle();
+	});
+
+	it("addresses the operator alert to the project's notifyEmail — the create-time default reaches the owner", async () => {
+		mockDbForEscalate(
+			[{ role: "user", content: "help", sequence: 1 }],
+			"owner@acme.com",
+		);
+		const { ctx, settle } = makeCtx();
+
+		const res = await sendEscalate(
+			{
+				projectKey: "pk_live",
+				clientId: "client_1",
+				messages: [{ role: "user", content: "help" }],
+			},
+			ctx,
+		);
+
+		expect(res.status).toBe(200);
+		expect(sendEmail).toHaveBeenCalledTimes(1);
+		// A freshly-created project's notifyEmail (seeded from the owner at creation)
+		// is exactly what the alert is addressed to — so escalation reaches someone.
+		expect(vi.mocked(sendEmail).mock.calls[0]![1].to).toBe("owner@acme.com");
+		await settle();
+	});
+
+	it("sends NO operator email when notifyEmail is null — the day-one gap the create-time default closes", async () => {
+		mockDbForEscalate([{ role: "user", content: "help", sequence: 1 }], null);
+		const { ctx, settle } = makeCtx();
+
+		const res = await sendEscalate(
+			{
+				projectKey: "pk_live",
+				clientId: "client_1",
+				messages: [{ role: "user", content: "help" }],
+			},
+			ctx,
+		);
+
+		// Escalation is still recorded + visible in the inbox (loop intact)…
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({ ok: true });
+		// …but with no notifyEmail there is no alert — exactly why creation now
+		// defaults notifyEmail to the owner's email.
+		expect(sendEmail).not.toHaveBeenCalled();
 		await settle();
 	});
 });

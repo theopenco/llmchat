@@ -34,6 +34,10 @@ interface State {
 	projectCount?: number;
 	/** Rows the /projects/usage aggregate (select→from→where→groupBy) returns. */
 	usageRows?: { projectId: string; n: number }[];
+	/** Email the creating user's row carries — drives the notifyEmail default on
+	 * create. `undefined` here means "use a default"; pass null to model a user
+	 * with no email on record. */
+	creatorEmail?: string | null;
 }
 
 let insertSpy: ReturnType<typeof vi.fn>;
@@ -42,10 +46,17 @@ let updateSpy: ReturnType<typeof vi.fn>;
 /** The exact object handed to `.update().set(...)` on the last PATCH — lets a
  * test assert ONLY the provided fields are written (no defaulted siblings). */
 let lastSetData: Record<string, unknown> | null;
+/** The exact object handed to `.insert().values(...)` on the last create — lets
+ * a test assert the notifyEmail default (and that explicit values survive). */
+let lastInsertValues: Record<string, unknown> | null;
 
 function mockDb(state: State) {
+	lastInsertValues = null;
 	insertSpy = vi.fn(() => ({
-		values: () => ({ returning: async () => [{ id: "p_new", name: "New" }] }),
+		values: (v: Record<string, unknown>) => {
+			lastInsertValues = v;
+			return { returning: async () => [{ id: "p_new", ...v }] };
+		},
 	}));
 	deleteSpy = vi.fn(() => ({ where: async () => [] }));
 	lastSetData = null;
@@ -68,6 +79,17 @@ function mockDb(state: State) {
 			},
 			workspace: {
 				findFirst: async () => ({ plan: state.plan ?? "scale" }),
+			},
+			// The create handler looks up the caller's own user row to seed the
+			// notifyEmail default. `undefined` creatorEmail ⇒ a sensible default.
+			user: {
+				findFirst: async () => ({
+					id: "u1",
+					email:
+						state.creatorEmail === undefined
+							? "owner@acme.com"
+							: state.creatorEmail,
+				}),
 			},
 		},
 		// Two select shapes:
@@ -232,6 +254,48 @@ describe("Plan caps — POST /projects (create)", () => {
 	});
 });
 
+describe("notifyEmail default — escalation alerts work out of the box", () => {
+	const hdr = { "x-test-user": "u1", "x-workspace-id": "ws_1", ...json };
+
+	function create(body: Record<string, unknown>) {
+		return req("/projects", {
+			method: "POST",
+			headers: hdr,
+			body: JSON.stringify(body),
+		});
+	}
+
+	it("seeds notifyEmail with the creating user's email when omitted (alerts fire on a fresh project)", async () => {
+		mockDb({ role: "owner", creatorEmail: "owner@acme.com" });
+		const res = await create({ name: "Bot" });
+		expect(res.status).toBe(200);
+		// The inserted row carries the owner's address, so /escalate's
+		// `if (project.notifyEmail)` email path is live without any manual config.
+		expect(lastInsertValues).toMatchObject({ notifyEmail: "owner@acme.com" });
+	});
+
+	it("respects an explicit notifyEmail at creation (default only fills an omitted field)", async () => {
+		mockDb({ role: "owner", creatorEmail: "owner@acme.com" });
+		const res = await create({ name: "Bot", notifyEmail: "ops@acme.com" });
+		expect(res.status).toBe(200);
+		expect(lastInsertValues).toMatchObject({ notifyEmail: "ops@acme.com" });
+	});
+
+	it("respects an explicit null (opting out of alerts is honored, not overwritten)", async () => {
+		mockDb({ role: "owner", creatorEmail: "owner@acme.com" });
+		const res = await create({ name: "Bot", notifyEmail: null });
+		expect(res.status).toBe(200);
+		expect(lastInsertValues).toMatchObject({ notifyEmail: null });
+	});
+
+	it("falls back to null when the creating user has no email on record", async () => {
+		mockDb({ role: "owner", creatorEmail: null });
+		const res = await create({ name: "Bot" });
+		expect(res.status).toBe(200);
+		expect(lastInsertValues).toMatchObject({ notifyEmail: null });
+	});
+});
+
 describe("RBAC — read & delete", () => {
 	it("lets an agent LIST projects (read is open to members)", async () => {
 		mockDb({ role: "agent" });
@@ -288,6 +352,8 @@ describe("PATCH /projects/:id — partial update never clobbers siblings", () =>
 		["model", "gpt-5.4-mini"],
 		["escalationThreshold", 5],
 		["name", "Renamed bot"],
+		// notifyEmail stays editable after the create-time default is seeded.
+		["notifyEmail", "newops@acme.com"],
 	])("PATCH { %s } writes only that field to .set()", async (field, value) => {
 		mockDb({ role: "admin", existingProject: { id: "p1" }, plan: "scale" });
 		const res = await patch({ [field]: value });
