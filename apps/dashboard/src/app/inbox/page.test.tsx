@@ -14,8 +14,11 @@ beforeAll(() => {
 	Element.prototype.hasPointerCapture ??= () => false;
 });
 
+// Stable router.replace spy (hoisted with the mock) so the onboarding-redirect
+// guard can be asserted at the real incident call site.
+const routerReplace = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
-	useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+	useRouter: () => ({ replace: routerReplace, push: vi.fn() }),
 }));
 
 // Admin in a workspace with a project, so the inbox renders (not onboarding) and
@@ -276,5 +279,44 @@ describe("InboxPage — ⌘K deep link", () => {
 		// deep link round-trips.
 		await waitFor(() => expect(window.location.search).toContain("c=c1"));
 		expect(window.location.search).toContain("project=p1");
+	});
+});
+
+// The named incident path: the inbox wires `projectsLoaded: projects.isSuccess`
+// inline (page.tsx) then redirects to /onboarding only on "needs-onboarding".
+// These render-level tests pin that wiring at the real call site — a wrong VALUE
+// (e.g. a future `projectsLoaded: true`) compiles but would reintroduce the
+// paying-customer bounce / duplicate-workspace bug, and would fail here.
+describe("InboxPage — onboarding redirect guards on the projects fetch outcome", () => {
+	it("does NOT redirect to /onboarding when the projects fetch FAILS (no false bounce)", async () => {
+		vi.mocked(api).mockImplementation(async (path: string, opts = {}) => {
+			calls.push({ path, method: opts.method ?? "GET" });
+			// A failed projects fetch reports zero projects too — must NOT be read as
+			// an empty workspace and bounce the user (where rebuilding dupes a ws).
+			if (path === "/api/projects") throw new Error("projects fetch failed");
+			if (path === "/api/tags") return { tags: tagsState };
+			return {};
+		});
+		renderInbox();
+		// Let the failed query settle (retry:false → straight to error).
+		await waitFor(() =>
+			expect(calls.some((c) => c.path === "/api/projects")).toBe(true),
+		);
+		// Give the redirect effect time to (wrongly) fire, then assert it never did.
+		await new Promise((r) => setTimeout(r, 30));
+		expect(routerReplace).not.toHaveBeenCalledWith("/onboarding");
+	});
+
+	it("DOES redirect a genuinely-empty workspace (successful fetch, zero projects) to /onboarding", async () => {
+		vi.mocked(api).mockImplementation(async (path: string, opts = {}) => {
+			calls.push({ path, method: opts.method ?? "GET" });
+			if (path === "/api/projects") return { projects: [] };
+			if (path === "/api/tags") return { tags: tagsState };
+			return {};
+		});
+		renderInbox();
+		await waitFor(() =>
+			expect(routerReplace).toHaveBeenCalledWith("/onboarding"),
+		);
 	});
 });

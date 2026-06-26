@@ -33,6 +33,9 @@ export function useOnboardingState(): {
 	const state = resolveOnboardingState({
 		loading,
 		hasWorkspace: !!workspaceId,
+		// Only a successful fetch may be read as "zero projects" → onboarding; a
+		// failed fetch must not bounce the user (it would risk a duplicate workspace).
+		projectsLoaded: projects.isSuccess,
 		projectCount: projects.data?.projects.length ?? 0,
 	});
 	return { state, workspaceId };

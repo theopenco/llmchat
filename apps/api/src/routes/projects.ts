@@ -113,6 +113,7 @@ export const projects = new Hono<AppContext>()
 		zValidator("json", projectCreateInput),
 		async (c) => {
 			const workspaceId = c.get("workspaceId");
+			const userId = c.get("userId");
 			const data = c.req.valid("json");
 			// Paywall (server-side, non-bypassable): a non-exempt workspace with no
 			// active subscription can't build at all — paid-only, hard gate before
@@ -131,10 +132,25 @@ export const projects = new Hono<AppContext>()
 			if (!exempt && !isModelAllowed(plan, data.model)) {
 				return c.json({ error: "model_not_allowed" }, 402);
 			}
+			// Escalation alerts work out of the box: when the caller omits
+			// notifyEmail, seed it with the creating user's own email so the "Talk
+			// to a human" handoff actually reaches someone on day one (still editable
+			// later via PATCH / Settings → Behavior). An explicit value — including
+			// null to opt out — is always respected. Looking up the caller's OWN
+			// session user by id is not a tenant-scoped read, so a bare id match is
+			// correct here.
+			let notifyEmail = data.notifyEmail;
+			if (notifyEmail === undefined) {
+				const creator = await db(c.env).query.user.findFirst({
+					where: (u, { eq: e }) => e(u.id, userId),
+				});
+				notifyEmail = creator?.email ?? null;
+			}
 			const [created] = await db(c.env)
 				.insert(project)
 				.values({
 					...data,
+					notifyEmail,
 					workspaceId,
 					publicKey: generatePublicKey(),
 					inboundEmailLocal: generateInboundLocal(),

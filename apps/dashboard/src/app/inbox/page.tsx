@@ -459,6 +459,9 @@ export default function InboxPage() {
 	const onboardingState = resolveOnboardingState({
 		loading: workspacesLoading || (!!workspaceId && projects.isLoading),
 		hasWorkspace: workspaces.length > 0,
+		// Guard the bounce on a SUCCESSFUL projects fetch: a failed/pending fetch
+		// reads as zero too, and bouncing on it can provision a duplicate workspace.
+		projectsLoaded: projects.isSuccess,
 		projectCount: projects.data?.projects.length ?? 0,
 	});
 	useEffect(() => {
