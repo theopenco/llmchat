@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { PaidPlan } from "@llmchat/shared";
+import type { BillingInterval, PaidPlan } from "@llmchat/shared";
 
 import { TIERS } from "./billing-plans";
 
@@ -23,6 +23,7 @@ export function TierGrid({
 	disabled,
 	onSelect,
 	ctaPrefix = "Choose",
+	interval = "month",
 }: {
 	currentPlan?: string;
 	availablePlans?: PaidPlan[];
@@ -32,13 +33,21 @@ export function TierGrid({
 	onSelect: (plan: PaidPlan) => void;
 	/** CTA verb — "Choose" on billing, "Start with" on the paywall. */
 	ctaPrefix?: string;
+	/** Billing cadence shown in the price (the parent owns the toggle). */
+	interval?: BillingInterval;
 }) {
+	const annual = interval === "year";
 	return (
 		<div className="grid gap-4 lg:grid-cols-3">
 			{TIERS.map((tier) => {
 				const isCurrent = currentPlan === tier.plan;
 				const available = !availablePlans || availablePlans.includes(tier.plan);
 				const pending = selecting === tier.plan;
+				// Annual = the yearly price spread across 12 (rounded for display);
+				// the exact yearly total is shown beneath, so rounding is never charged.
+				const perMonth = annual
+					? Math.round(tier.priceUsdAnnual / 12)
+					: tier.priceUsdMonthly;
 				return (
 					<section
 						key={tier.plan}
@@ -53,14 +62,21 @@ export function TierGrid({
 							<h3 className="font-display text-lg font-semibold tracking-tight-display">
 								{tier.name}
 							</h3>
-							<div className="mt-2 flex items-baseline gap-1">
+							<div className="mt-2 flex items-baseline gap-1.5">
 								<span className="text-3xl font-semibold tracking-tight-display">
-									${tier.priceUsdMonthly}
+									${perMonth}
 								</span>
 								<span className="text-sm text-muted-foreground">/ month</span>
+								{annual && (
+									<span className="text-sm text-muted-foreground line-through">
+										${tier.priceUsdMonthly}
+									</span>
+								)}
 							</div>
 							<p className="mt-1 text-sm text-muted-foreground">
-								{tier.tagline}
+								{annual
+									? `$${tier.priceUsdAnnual}/yr · 2 months free`
+									: tier.tagline}
 							</p>
 						</div>
 

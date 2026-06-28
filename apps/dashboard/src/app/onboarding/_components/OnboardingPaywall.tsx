@@ -12,8 +12,9 @@ import {
 	redirectToStripeCheckout,
 	startCheckout,
 } from "@/lib/billing";
+import { cn } from "@/lib/utils";
 
-import type { PaidPlan } from "@llmchat/shared";
+import type { BillingInterval, PaidPlan } from "@llmchat/shared";
 
 /**
  * Hard paywall shown before onboarding when the workspace has no active
@@ -31,6 +32,8 @@ export function OnboardingPaywall({
 	canManage: boolean;
 }) {
 	const [error, setError] = useState<string | null>(null);
+	// Billing cadence for checkout — toggled below, mirrors the billing screen.
+	const [interval, setInterval] = useState<BillingInterval>("month");
 	// Shares the billing-usage cache; only used here for availablePlans.
 	const usageQ = useQuery({
 		queryKey: ["billing-usage", workspaceId],
@@ -38,9 +41,9 @@ export function OnboardingPaywall({
 	});
 	const checkout = useMutation({
 		mutationFn: (plan: PaidPlan) =>
-			// The onboarding paywall sells monthly; the annual toggle lives on the
-			// billing screen. Pass the cadence explicitly so `returnTo` lands right.
-			startCheckout(workspaceId, plan, "month", "/onboarding"),
+			// Cadence comes from the toggle; pass it (and returnTo) explicitly so the
+			// Stripe session bills monthly/yearly and lands back on /onboarding.
+			startCheckout(workspaceId, plan, interval, "/onboarding"),
 		onMutate: () => setError(null),
 		onSuccess: (session) => void redirectToStripeCheckout(session),
 		onError: (e) =>
@@ -61,7 +64,7 @@ export function OnboardingPaywall({
 				</h1>
 				<p className="max-w-lg text-balance text-sm text-muted-foreground">
 					Clanker Support is paid from day one — pick a plan and add a card to
-					get started. Billed monthly; change or cancel anytime.
+					get started. Billed monthly or yearly; change or cancel anytime.
 				</p>
 			</header>
 
@@ -71,13 +74,57 @@ export function OnboardingPaywall({
 				</div>
 			)}
 
-			<div className="mt-10">
+			{/* Cadence toggle. Annual gives two months free, same as the billing
+			    screen — the price + saving render per-tier inside TierGrid. */}
+			<div className="mt-8 flex justify-center">
+				<div
+					role="tablist"
+					aria-label="Billing cadence"
+					className="inline-flex items-center gap-1 rounded-full border bg-card p-1"
+				>
+					{(["month", "year"] as const).map((value) => {
+						const active = interval === value;
+						return (
+							<button
+								key={value}
+								type="button"
+								role="tab"
+								aria-selected={active}
+								onClick={() => setInterval(value)}
+								className={cn(
+									"rounded-full px-4 py-1.5 text-sm font-semibold transition-colors",
+									active
+										? "bg-primary text-primary-foreground"
+										: "text-muted-foreground hover:text-foreground",
+								)}
+							>
+								{value === "month" ? "Monthly" : "Annual"}
+								{value === "year" && (
+									<span
+										className={cn(
+											"ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em]",
+											active
+												? "bg-white/20 text-primary-foreground"
+												: "bg-primary/10 text-primary",
+										)}
+									>
+										2 months free
+									</span>
+								)}
+							</button>
+						);
+					})}
+				</div>
+			</div>
+
+			<div className="mt-8">
 				<TierGrid
 					availablePlans={usageQ.data?.availablePlans}
 					selecting={selecting}
 					disabled={!canManage || checkout.isPending}
 					onSelect={(plan) => checkout.mutate(plan)}
 					ctaPrefix="Start with"
+					interval={interval}
 				/>
 			</div>
 
