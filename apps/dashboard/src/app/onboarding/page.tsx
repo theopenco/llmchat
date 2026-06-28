@@ -9,6 +9,7 @@ import { widgetStyles } from "@llmchat/widget/styles";
 import { isPaidPlan } from "@llmchat/shared";
 
 import { BrandLogo } from "@/components/brand-logo";
+import { WorkspaceSwitcher } from "@/components/shell/workspace-switcher";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useSession } from "@/lib/auth-client";
@@ -33,7 +34,7 @@ function OnboardingFlow() {
 	const qc = useQueryClient();
 	const { data: session, isPending: sessionPending } = useSession();
 	const { state, workspaceId } = useOnboardingState();
-	const { setWorkspaceId, role } = useWorkspace();
+	const { setWorkspaceId, role, workspaces } = useWorkspace();
 
 	// Resolve the active workspace's plan/exemption to gate building behind the
 	// paywall (first-run only). Shares the billing-usage query cache.
@@ -217,6 +218,16 @@ function OnboardingFlow() {
 			<div className="absolute right-3 top-3 z-20 sm:right-5 sm:top-5">
 				<OnboardingAccountMenu email={session.user.email} />
 			</div>
+
+			{/* Second escape hatch: a member of multiple workspaces who lands here
+			    because their *active* workspace is empty/unpaid can switch to another
+			    org (often the paid, non-empty one) instead of being trapped. Only
+			    shown when there's actually somewhere to switch to. */}
+			{workspaces.length > 1 && (
+				<div className="absolute left-3 top-3 z-20 sm:left-5 sm:top-5">
+					<WorkspaceSwitcher />
+				</div>
+			)}
 
 			<div className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-10 px-4 py-10 sm:px-6">
 				{needsPaywall && workspaceId ? (

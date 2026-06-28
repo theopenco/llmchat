@@ -10,7 +10,7 @@ import {
 } from "@/lib/workspace-deletion";
 import { requireSession } from "@/middleware/session";
 
-import { count, eq, member, workspace } from "@llmchat/db";
+import { count, eq, member, project, workspace } from "@llmchat/db";
 
 import type { AppContext } from "@/env";
 
@@ -18,11 +18,21 @@ export const workspaces = new Hono<AppContext>()
 	.use("*", requireSession)
 	.get("/workspaces", async (c) => {
 		const userId = c.get("userId");
+		// Include a per-workspace project count so the dashboard can pick a sensible
+		// default workspace (a non-empty, paid one) rather than whichever row sorts
+		// first. There's no ORDER BY, so blindly taking the first row could strand a
+		// member of a non-empty paid workspace on /onboarding behind an empty one.
 		const rows = await db(c.env)
-			.select({ workspace: workspace, role: member.role })
+			.select({
+				workspace: workspace,
+				role: member.role,
+				projectCount: count(project.id),
+			})
 			.from(member)
 			.innerJoin(workspace, eq(workspace.id, member.workspaceId))
-			.where(eq(member.userId, userId));
+			.leftJoin(project, eq(project.workspaceId, workspace.id))
+			.where(eq(member.userId, userId))
+			.groupBy(workspace.id, member.role);
 		return c.json({ workspaces: rows });
 	})
 	.post(

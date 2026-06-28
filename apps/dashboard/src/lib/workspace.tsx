@@ -56,7 +56,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 	// each render just because `.map()` produced a fresh array.
 	const { data, isLoading } = query;
 	const workspaces = useMemo(
-		() => data?.workspaces.map((w) => ({ ...w.workspace, role: w.role })) ?? [],
+		() =>
+			data?.workspaces.map((w) => ({
+				...w.workspace,
+				role: w.role,
+				projectCount: w.projectCount,
+			})) ?? [],
 		[data],
 	);
 
