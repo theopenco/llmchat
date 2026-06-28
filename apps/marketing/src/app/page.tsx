@@ -110,7 +110,7 @@ export default function Home() {
 					<div className="relative mx-auto flex max-w-3xl flex-col items-center px-6 pb-28 pt-24 text-center sm:pt-36">
 						<span className="animate-rise-in inline-flex items-center gap-2 rounded-full border border-rule bg-paper-card/60 px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted">
 							<span className="size-1.5 rounded-full bg-accent shadow-[0_0_10px_2px_rgba(99,102,241,0.7)]" />
-							Any model · One script tag
+							Simple monthly plans · Live in 30 seconds
 						</span>
 
 						<h1 className="font-display animate-rise-in mt-7 text-balance text-5xl font-semibold leading-[1.02] tracking-tight-display text-ink [animation-delay:80ms] sm:text-7xl">
@@ -138,10 +138,6 @@ export default function Home() {
 								<span aria-hidden>→</span>
 							</TrackedLink>
 						</div>
-
-						<p className="animate-rise-in mt-5 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint [animation-delay:260ms]">
-							Simple monthly plans · Live in 5 minutes
-						</p>
 					</div>
 				</section>
 
