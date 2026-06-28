@@ -31,12 +31,10 @@ const links: { label: string; href: string; active?: NavKey }[] = [
  */
 export function MobileNav({
 	active,
-	showcaseUrl,
 	githubUrl,
 	discordUrl,
 }: {
 	active?: NavKey;
-	showcaseUrl: string;
 	githubUrl: string;
 	discordUrl: string;
 }) {
@@ -146,29 +144,10 @@ export function MobileNav({
 									);
 								})}
 								<li
-									className="py-4 transition-all duration-300"
-									style={{
-										transitionDelay: open
-											? `${80 + links.length * 45}ms`
-											: "0ms",
-										opacity: open ? 1 : 0,
-										transform: open ? "translateY(0)" : "translateY(6px)",
-									}}
-								>
-									<a
-										href={showcaseUrl}
-										onClick={() => setOpen(false)}
-										className="inline-flex items-center gap-2 rounded-full border border-rule px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:border-accent/40 hover:text-ink"
-									>
-										<span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_2px_rgba(99,102,241,0.6)]" />
-										Live demo
-									</a>
-								</li>
-								<li
 									className="flex items-center justify-between border-t border-rule-soft py-4 transition-all duration-300"
 									style={{
 										transitionDelay: open
-											? `${80 + (links.length + 1) * 45}ms`
+											? `${80 + links.length * 45}ms`
 											: "0ms",
 										opacity: open ? 1 : 0,
 										transform: open ? "translateY(0)" : "translateY(6px)",
@@ -183,7 +162,7 @@ export function MobileNav({
 									className="flex items-center gap-3 border-t border-rule-soft py-4 transition-all duration-300"
 									style={{
 										transitionDelay: open
-											? `${80 + (links.length + 2) * 45}ms`
+											? `${80 + (links.length + 1) * 45}ms`
 											: "0ms",
 										opacity: open ? 1 : 0,
 										transform: open ? "translateY(0)" : "translateY(6px)",
