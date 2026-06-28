@@ -7,18 +7,85 @@ import { conversation, eq, message } from "@llmchat/db";
 
 import type { AppContext } from "@/env";
 
-interface InboundPayload {
-	to: string[];
-	from: { address: string };
+// Resend wraps inbound mail in an `{ type, data }` envelope; the parsed email
+// lives under `data`. `from` is an RFC-5322 string ("Name <a@b>" or "a@b"),
+// `to` an array of such strings. The webhook carries METADATA ONLY — the body
+// (text/html/headers) must be fetched from `/emails/receiving/:email_id`.
+interface InboundEvent {
+	type?: string;
+	data?: InboundEmail;
+}
+
+interface InboundEmail {
+	email_id?: string;
+	from?: string;
+	to?: string[];
 	subject?: string;
 	text?: string;
 	html?: string;
-	headers?: Record<string, string>;
+	headers?: Record<string, string> | Array<{ name: string; value: string }>;
 }
 
 function parseInboundLocal(toAddress: string): string | null {
 	const m = toAddress.match(/^reply\+([^@]+)@/);
 	return m ? m[1]! : null;
+}
+
+/** Extract the bare address from an RFC-5322 string ("Name <a@b>" → "a@b"). */
+function parseFromAddress(from: string | undefined): string | null {
+	if (!from) {
+		return null;
+	}
+	// Keep the original casing: conversation.email is stored as the visitor
+	// entered it, and the fallback match compares it exactly.
+	const angle = from.match(/<([^>]+)>/);
+	return (angle ? angle[1]! : from).trim() || null;
+}
+
+/** Read a header case-insensitively from either a record or a name/value array. */
+function getHeader(
+	headers: InboundEmail["headers"],
+	name: string,
+): string | undefined {
+	if (!headers) {
+		return undefined;
+	}
+	const lower = name.toLowerCase();
+	if (Array.isArray(headers)) {
+		return headers.find((h) => h.name?.toLowerCase() === lower)?.value;
+	}
+	const hit = Object.entries(headers).find(([k]) => k.toLowerCase() === lower);
+	return hit?.[1];
+}
+
+/**
+ * Fetch the full received email (body + headers) by id. The webhook payload is
+ * metadata-only, so this is required to get text/html and the In-Reply-To
+ * header used for threading. Best-effort: returns null on any failure.
+ */
+async function fetchReceivedEmail(
+	apiKey: string,
+	emailId: string,
+): Promise<InboundEmail | null> {
+	try {
+		const res = await fetch(
+			`https://api.resend.com/emails/receiving/${emailId}`,
+			{ headers: { authorization: `Bearer ${apiKey}` } },
+		);
+		if (!res.ok) {
+			console.error(
+				`inbound-email: fetch body failed ${res.status}: ${await res.text()}`,
+			);
+			return null;
+		}
+		const body = (await res.json()) as InboundEmail & { data?: InboundEmail };
+		// The REST response returns the email object directly; tolerate a `data`
+		// envelope just in case.
+		return body.data ?? body;
+	} catch (err) {
+		console.error("inbound-email: fetch body errored", err);
+		return null;
+	}
 }
 
 export const inboundEmail = new Hono<AppContext>().post(
@@ -41,17 +108,24 @@ export const inboundEmail = new Hono<AppContext>().post(
 		if (!signed) {
 			return c.json({ error: "invalid signature" }, 401);
 		}
-		let payload: InboundPayload;
+		let event: InboundEvent;
 		try {
-			payload = JSON.parse(rawBody) as InboundPayload;
+			event = JSON.parse(rawBody) as InboundEvent;
 		} catch {
 			return c.json({ error: "invalid payload" }, 400);
 		}
-		const localPart = payload.to
+		// The parsed email lives under `data`; tolerate a flat payload too so we
+		// don't crash on shape drift.
+		const email = event.data ?? (event as InboundEmail);
+		const localPart = (email.to ?? [])
 			.map(parseInboundLocal)
 			.find((v): v is string => v !== null);
 		if (!localPart) {
 			return c.json({ error: "no matching local part" }, 400);
+		}
+		const fromAddress = parseFromAddress(email.from);
+		if (!fromAddress) {
+			return c.json({ error: "no sender address" }, 400);
 		}
 		const proj = await db(c.env).query.project.findFirst({
 			where: (pt, { eq: e }) => e(pt.inboundEmailLocal, localPart),
@@ -60,7 +134,27 @@ export const inboundEmail = new Hono<AppContext>().post(
 			return c.json({ error: "project not found" }, 404);
 		}
 
-		const inReplyTo = payload.headers?.["In-Reply-To"]?.replace(/[<>]/g, "");
+		// The webhook is metadata-only — fetch the full email for body + headers
+		// when they're absent (and we have an id + key to do so).
+		let full = email;
+		if (
+			(email.text == null || email.headers == null) &&
+			email.email_id &&
+			c.env.vars.RESEND_API_KEY
+		) {
+			const fetched = await fetchReceivedEmail(
+				c.env.vars.RESEND_API_KEY,
+				email.email_id,
+			);
+			if (fetched) {
+				full = { ...email, ...fetched };
+			}
+		}
+
+		const inReplyTo = getHeader(full.headers, "In-Reply-To")?.replace(
+			/[<>]/g,
+			"",
+		);
 		let conv = inReplyTo
 			? await db(c.env).query.conversation.findFirst({
 					where: (ct, { and, eq: e, exists }) =>
@@ -84,7 +178,7 @@ export const inboundEmail = new Hono<AppContext>().post(
 		if (!conv) {
 			conv = await db(c.env).query.conversation.findFirst({
 				where: (ct, { and, eq: e }) =>
-					and(e(ct.projectId, proj.id), e(ct.email, payload.from.address)),
+					and(e(ct.projectId, proj.id), e(ct.email, fromAddress)),
 				orderBy: (ct, { desc }) => desc(ct.updatedAt),
 			});
 		}
@@ -93,15 +187,17 @@ export const inboundEmail = new Hono<AppContext>().post(
 			return c.json({ error: "conversation not found" }, 404);
 		}
 
+		const content = (full.text ?? full.html ?? "").trim();
+		if (!content) {
+			return c.json({ error: "empty body" }, 400);
+		}
 		const nextSeq = conv.messageCount + 1;
-		await db(c.env)
-			.insert(message)
-			.values({
-				conversationId: conv.id,
-				role: "user",
-				content: payload.text ?? payload.html ?? "",
-				sequence: nextSeq,
-			});
+		await db(c.env).insert(message).values({
+			conversationId: conv.id,
+			role: "user",
+			content,
+			sequence: nextSeq,
+		});
 		await db(c.env)
 			.update(conversation)
 			.set({ messageCount: nextSeq, updatedAt: new Date() })

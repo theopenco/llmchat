@@ -34,10 +34,15 @@ async function signSvix(
 	return `v1,${btoa(bin)}`;
 }
 
+// Real Resend inbound shape: an `{ type, data }` envelope, `from` an RFC-5322
+// string, `to` an array of strings.
 const FORGED = {
-	to: ["reply+dev@example.com"],
-	from: { address: "attacker@evil.com" },
-	text: "forged reply injected into someone's conversation",
+	type: "email.received",
+	data: {
+		to: ["reply+dev@example.com"],
+		from: "Attacker <attacker@evil.com>",
+		text: "forged reply injected into someone's conversation",
+	},
 };
 
 function post(
@@ -97,5 +102,23 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 			{ RESEND_INBOUND_WEBHOOK_SECRET: secret },
 		);
 		expect(res.status).toBe(404);
+	});
+
+	it("does not crash on an envelope missing data.to — returns 400, not 500", async () => {
+		// Regression: the handler used to read top-level `payload.to` and call
+		// `.map` on it, throwing "Cannot read properties of undefined (reading
+		// 'map')" against Resend's real `{ type, data }` envelope.
+		const secret = `whsec_${btoa("inbound-webhook-signing-key-0001")}`;
+		const body = JSON.stringify({ type: "email.received", data: {} });
+		const id = "msg_noto";
+		const ts = String(Math.floor(Date.now() / 1000));
+		const signature = await signSvix(secret, id, ts, body);
+
+		const res = await post(
+			body,
+			{ "svix-id": id, "svix-timestamp": ts, "svix-signature": signature },
+			{ RESEND_INBOUND_WEBHOOK_SECRET: secret },
+		);
+		expect(res.status).toBe(400);
 	});
 });
