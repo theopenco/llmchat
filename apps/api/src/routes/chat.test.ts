@@ -425,6 +425,79 @@ describe("POST /v1/escalate — operator transcript is server-side", () => {
 		expect(sendEmail).not.toHaveBeenCalled();
 		await settle();
 	});
+
+	it("acknowledges the customer and seeds the email thread when a visitor email + inbound domain are present", async () => {
+		const valuesSpy = vi.fn(() =>
+			Object.assign(Promise.resolve([]), {
+				returning: async () => [{ id: "ue1" }],
+			}),
+		);
+		vi.mocked(db).mockReturnValue({
+			query: {
+				project: {
+					findFirst: async () => ({
+						...project,
+						name: "Acme Tools",
+						notifyEmail: "ops@acme.com",
+						inboundEmailLocal: "acme",
+						slackWebhookUrl: null,
+					}),
+				},
+				conversation: {
+					findFirst: async () => ({
+						id: "c1",
+						messageCount: 2,
+						name: null,
+						email: null,
+					}),
+				},
+				message: { findMany: async () => [] },
+			},
+			insert: () => ({ values: valuesSpy }),
+			update: () => ({ set: () => ({ where: async () => [] }) }),
+		} as unknown as ReturnType<typeof db>);
+
+		const env = {
+			vars: { INBOUND_EMAIL_DOMAIN: "mail.acme.com" },
+			DB: {},
+		} as unknown as typeof ENV;
+		const { ctx, settle } = makeCtx();
+
+		const res = await chat.request(
+			"/escalate",
+			{
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({
+					projectKey: "pk_live",
+					clientId: "client_1",
+					email: "visitor@example.com",
+					messages: [],
+				}),
+			},
+			env,
+			ctx as unknown as CtxArg,
+		);
+
+		expect(res.status).toBe(200);
+		// Two emails: operator alert + customer acknowledgement.
+		expect(sendEmail).toHaveBeenCalledTimes(2);
+		const ack = vi
+			.mocked(sendEmail)
+			.mock.calls.map((call) => call[1])
+			.find((args) => args.to === "visitor@example.com");
+		expect(ack).toBeDefined();
+		expect(ack!.subject).toContain("Acme Tools");
+		expect(ack!.replyTo).toBe("reply+acme@mail.acme.com");
+		// Message-ID seeds threading; it must match a stored message's emailMessageId.
+		const messageId = ack!.headers?.["Message-ID"];
+		expect(messageId).toMatch(/^<[^@]+@mail\.acme\.com>$/);
+		const stored = valuesSpy.mock.calls
+			.map((call) => call[0] as { emailMessageId?: string; role?: string })
+			.find((row) => row.role === "system");
+		expect(`<${stored!.emailMessageId}>`).toBe(messageId);
+		await settle();
+	});
 });
 
 describe("public widget pre-lookup IP gate", () => {

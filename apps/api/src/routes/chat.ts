@@ -377,11 +377,19 @@ export const chat = new Hono<AppContext>()
 		// DB first: the escalation must be recorded and visible in the inbox
 		// regardless of whether any notification below succeeds.
 		const systemSeq = conv.messageCount + 1;
+		// Seed the email thread: stamp the system message with a Message-ID so a
+		// reply to the customer acknowledgement (sent below) threads back into this
+		// conversation via In-Reply-To. Only meaningful when inbound email is
+		// configured, so it's gated on INBOUND_EMAIL_DOMAIN.
+		const ackMessageId = c.env.vars.INBOUND_EMAIL_DOMAIN
+			? `${crypto.randomUUID()}@${c.env.vars.INBOUND_EMAIL_DOMAIN}`
+			: null;
 		await db(c.env).insert(messageTable).values({
 			conversationId: conv.id,
 			role: "system",
 			content: "Visitor requested a human operator",
 			sequence: systemSeq,
+			emailMessageId: ackMessageId,
 		});
 		await db(c.env)
 			.update(conversation)
@@ -419,6 +427,35 @@ export const chat = new Hono<AppContext>()
 				// The escalation is already recorded and visible in the inbox; a
 				// failed notification email must not fail the visitor's request.
 				console.error("escalate: notification email failed", err);
+			}
+		}
+
+		// Acknowledge the customer so they know a human will follow up, and seed
+		// the email thread so their reply lands back in this conversation. Gated
+		// on the visitor having an email, inbound email being configured (so the
+		// Message-ID exists), and a deliverable reply-to (so replies are captured).
+		const visitorEmail = email ?? conv.email;
+		const ackReplyTo = buildReplyToAddress(c.env, project.inboundEmailLocal);
+		if (visitorEmail && ackMessageId && ackReplyTo) {
+			try {
+				await sendEmail(c.env, {
+					to: visitorEmail,
+					subject: `Re: your message to ${project.name}`,
+					html:
+						`<p>Thanks for reaching out to ${escapeHtml(project.name)} — ` +
+						`a member of our team will get back to you shortly.</p>` +
+						`<p>You can reply directly to this email and your message ` +
+						`will be added to the conversation.</p>`,
+					text:
+						`Thanks for reaching out to ${project.name} — a member of our ` +
+						`team will get back to you shortly.\n\nYou can reply directly ` +
+						`to this email and your message will be added to the conversation.`,
+					replyTo: ackReplyTo,
+					headers: { "Message-ID": `<${ackMessageId}>` },
+				});
+			} catch (err) {
+				// Best-effort: a failed acknowledgement must not fail escalation.
+				console.error("escalate: customer acknowledgement email failed", err);
 			}
 		}
 
