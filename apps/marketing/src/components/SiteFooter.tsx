@@ -2,7 +2,9 @@ import Link from "next/link";
 import { allCompetitors } from "content-collections";
 import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { BrandMark } from "@/components/BrandMark";
+import { DiscordIcon, XIcon } from "@/components/SocialIcons";
 import { TrackedLink } from "@/components/TrackedLink";
+import { DISCORD_URL, X_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -110,6 +112,26 @@ export function SiteFooter() {
 						© {new Date().getFullYear()} Clanker Support
 					</p>
 					<div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+						<div className="flex items-center gap-3">
+							<a
+								href={DISCORD_URL}
+								target="_blank"
+								rel="noopener noreferrer"
+								aria-label="Join the Clanker Support Discord"
+								className="text-faint transition-colors hover:text-ink"
+							>
+								<DiscordIcon className="size-4" />
+							</a>
+							<a
+								href={X_URL}
+								target="_blank"
+								rel="noopener noreferrer"
+								aria-label="Follow Clanker Support on X"
+								className="text-faint transition-colors hover:text-ink"
+							>
+								<XIcon className="size-4" />
+							</a>
+						</div>
 						<Link
 							href="/privacy-policy"
 							className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint transition-colors hover:text-ink"

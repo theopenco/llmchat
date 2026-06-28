@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { AuthButton } from "@/components/AuthButton";
 import { BrandMark } from "@/components/BrandMark";
+import { GitHubStars } from "@/components/GitHubStars";
 import { MobileNav } from "@/components/MobileNav";
+import { DiscordIcon } from "@/components/SocialIcons";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { CANONICAL_SHOWCASE_URL } from "@/lib/site-urls";
+import {
+	CANONICAL_SHOWCASE_URL,
+	DISCORD_URL,
+	GITHUB_URL,
+} from "@/lib/site-urls";
 
 type NavKey = "features" | "resources" | "compare" | "pricing";
 
@@ -115,11 +121,28 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 						Live demo
 					</a>
 
+					<GitHubStars className="hidden sm:inline-flex" />
+
+					<a
+						href={DISCORD_URL}
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label="Join the Clanker Support Discord"
+						className="hidden size-9 items-center justify-center rounded-full border border-rule text-ink-soft transition-colors hover:border-accent/40 hover:text-ink sm:inline-flex"
+					>
+						<DiscordIcon className="size-4" />
+					</a>
+
 					<ThemeToggle className="hidden sm:inline-flex" />
 
 					<AuthButton />
 
-					<MobileNav active={active} showcaseUrl={CANONICAL_SHOWCASE_URL} />
+					<MobileNav
+						active={active}
+						showcaseUrl={CANONICAL_SHOWCASE_URL}
+						githubUrl={GITHUB_URL}
+						discordUrl={DISCORD_URL}
+					/>
 				</nav>
 			</div>
 		</header>

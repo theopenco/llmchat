@@ -20,3 +20,10 @@ export const CANONICAL_SITE_URL =
  * environment; defaults to a sales mailbox on the canonical domain. */
 export const SALES_EMAIL =
 	process.env.NEXT_PUBLIC_SALES_EMAIL ?? "sales@clankersupport.com";
+
+/** Public community / social links surfaced in the header and footer. The
+ * GitHub repo doubles as the source for the live star count in the navbar. */
+export const GITHUB_REPO = "theopenco/llmchat";
+export const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
+export const DISCORD_URL = "https://discord.gg/RnyjHWuTKP";
+export const X_URL = "https://x.com/ClankrSupport";
