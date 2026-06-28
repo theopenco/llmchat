@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 
+import { DiscordIcon, GitHubIcon } from "@/components/SocialIcons";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 type NavKey = "features" | "resources" | "compare" | "pricing";
@@ -31,9 +32,13 @@ const links: { label: string; href: string; active?: NavKey }[] = [
 export function MobileNav({
 	active,
 	showcaseUrl,
+	githubUrl,
+	discordUrl,
 }: {
 	active?: NavKey;
 	showcaseUrl: string;
+	githubUrl: string;
+	discordUrl: string;
 }) {
 	const [open, setOpen] = useState(false);
 	const [mounted, setMounted] = useState(false);
@@ -173,6 +178,35 @@ export function MobileNav({
 										Theme
 									</span>
 									<ThemeToggle />
+								</li>
+								<li
+									className="flex items-center gap-3 border-t border-rule-soft py-4 transition-all duration-300"
+									style={{
+										transitionDelay: open
+											? `${80 + (links.length + 2) * 45}ms`
+											: "0ms",
+										opacity: open ? 1 : 0,
+										transform: open ? "translateY(0)" : "translateY(6px)",
+									}}
+								>
+									<a
+										href={githubUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										aria-label="Star Clanker Support on GitHub"
+										className="inline-flex size-10 items-center justify-center rounded-full border border-rule text-ink-soft transition-colors hover:border-accent/40 hover:text-ink"
+									>
+										<GitHubIcon className="size-4" />
+									</a>
+									<a
+										href={discordUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										aria-label="Join the Clanker Support Discord"
+										className="inline-flex size-10 items-center justify-center rounded-full border border-rule text-ink-soft transition-colors hover:border-accent/40 hover:text-ink"
+									>
+										<DiscordIcon className="size-4" />
+									</a>
 								</li>
 							</ul>
 						</nav>
