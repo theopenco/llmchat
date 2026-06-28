@@ -108,6 +108,9 @@ export const inboundEmail = new Hono<AppContext>().post(
 		if (!signed) {
 			return c.json({ error: "invalid signature" }, 401);
 		}
+		// TEMP debug: log the exact verified payload Resend sends so we can
+		// confirm its real shape (which 400 branch is firing below).
+		console.log("[inbound-email] raw payload:", rawBody);
 		let event: InboundEvent;
 		try {
 			event = JSON.parse(rawBody) as InboundEvent;
@@ -121,10 +124,12 @@ export const inboundEmail = new Hono<AppContext>().post(
 			.map(parseInboundLocal)
 			.find((v): v is string => v !== null);
 		if (!localPart) {
+			console.warn("[inbound-email] no matching local part; to=", email.to);
 			return c.json({ error: "no matching local part" }, 400);
 		}
 		const fromAddress = parseFromAddress(email.from);
 		if (!fromAddress) {
+			console.warn("[inbound-email] no sender address; from=", email.from);
 			return c.json({ error: "no sender address" }, 400);
 		}
 		const proj = await db(c.env).query.project.findFirst({
@@ -189,6 +194,10 @@ export const inboundEmail = new Hono<AppContext>().post(
 
 		const content = (full.text ?? full.html ?? "").trim();
 		if (!content) {
+			console.warn(
+				"[inbound-email] empty body; has text/html keys=",
+				Object.keys(full),
+			);
 			return c.json({ error: "empty body" }, 400);
 		}
 		const nextSeq = conv.messageCount + 1;
