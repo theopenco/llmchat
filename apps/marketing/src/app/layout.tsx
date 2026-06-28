@@ -6,7 +6,6 @@ import {
 	Hanken_Grotesk,
 	JetBrains_Mono,
 } from "next/font/google";
-import Script from "next/script";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
@@ -112,12 +111,19 @@ export default function RootLayout({
 				>
 					<PostHogProvider>{children}</PostHogProvider>
 				</ThemeProvider>
-				<Script
+				{/*
+				 * Plain <script> (React 19 hoists/dedupes async scripts) rather than
+				 * next/script: Ploy's deploy runs its own esbuild pass over the Next
+				 * output, and that pass has mangled Next-emitted scripts before (see
+				 * the __name shim in the dashboard layout). A bare async tag keeps
+				 * Next's client script-loader module out of that pass entirely.
+				 */}
+				<script
 					src="https://api.clankersupport.com/widget.js"
 					data-project="pk_adadae5c42fbc58d2e4927cac84a2131ae3bf042d8032187"
 					data-api="https://api.clankersupport.com"
 					data-brand="#6366F1"
-					strategy="afterInteractive"
+					async
 				/>
 			</body>
 		</html>
