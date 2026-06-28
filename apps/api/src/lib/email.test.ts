@@ -27,4 +27,30 @@ describe("buildReplyToAddress", () => {
 		} as unknown as Env;
 		expect(buildReplyToAddress(env, "dev")).toBe("reply+dev@mail.example.com");
 	});
+
+	it("returns undefined when the inbound domain is unset", () => {
+		const env = { vars: {} } as unknown as Env;
+		expect(buildReplyToAddress(env, "dev")).toBeUndefined();
+	});
+
+	it("returns undefined when the inbound domain is empty/whitespace", () => {
+		const env = { vars: { INBOUND_EMAIL_DOMAIN: "   " } } as unknown as Env;
+		expect(buildReplyToAddress(env, "dev")).toBeUndefined();
+	});
+
+	it("returns undefined for an unexpanded $VAR domain", () => {
+		const env = {
+			vars: { INBOUND_EMAIL_DOMAIN: "$INBOUND_EMAIL_DOMAIN" },
+		} as unknown as Env;
+		expect(buildReplyToAddress(env, "dev")).toBeUndefined();
+	});
+
+	it("returns undefined when the project local part is missing", () => {
+		const env = {
+			vars: { INBOUND_EMAIL_DOMAIN: "mail.example.com" },
+		} as unknown as Env;
+		expect(buildReplyToAddress(env, "")).toBeUndefined();
+		expect(buildReplyToAddress(env, null)).toBeUndefined();
+		expect(buildReplyToAddress(env, undefined)).toBeUndefined();
+	});
 });
