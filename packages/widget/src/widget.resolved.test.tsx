@@ -23,27 +23,31 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-/** A feed with enough visitor turns that the "Talk to a human" CTA WOULD show
- * (>= the default threshold of 3) — so hiding it can only be the escalation. */
-function mockFeed(escalatedAt: string | null) {
+/** A feed with a real exchange (>=1 visitor + >=1 bot message) so the "Mark
+ * resolved" CTA is eligible — then archivedAt alone decides whether it shows the
+ * button or the resolved notice. */
+function mockFeed(archivedAt: string | null) {
 	vi.spyOn(serverMessages, "useServerMessages").mockReturnValue({
-		serverMessages: [1, 2, 3].map((n) => ({
-			id: `s${n}`,
-			role: "user",
-			content: `msg ${n}`,
-			sequence: n,
-			createdAt: n,
-		})),
+		serverMessages: [
+			{ id: "s1", role: "user", content: "hi", sequence: 1, createdAt: 1 },
+			{
+				id: "s2",
+				role: "assistant",
+				content: "hello",
+				sequence: 2,
+				createdAt: 2,
+			},
+		],
 		conversationId: "c1",
 		csatRating: null,
-		escalatedAt,
-		archivedAt: null,
+		escalatedAt: null,
+		archivedAt,
 		refresh: vi.fn(),
 	});
 }
 
-async function mountIdentified(escalatedAt: string | null) {
-	mockFeed(escalatedAt);
+async function mountIdentified(archivedAt: string | null) {
+	mockFeed(archivedAt);
 	render(
 		<Widget
 			widgetMode="live"
@@ -58,27 +62,26 @@ async function mountIdentified(escalatedAt: string | null) {
 	await userEvent.click(screen.getByRole("button", { name: /start chat/i }));
 }
 
-describe("LiveWidget — escalation hydration (Bug 3)", () => {
-	it("hydrates escalated from the feed: hides the CTA, shows the notice, keeps the composer typeable", async () => {
+describe("LiveWidget — resolved hydration (Bug 4)", () => {
+	it("hydrates resolved from the feed: hides the Resolve button and shows the notice", async () => {
 		await mountIdentified("2026-06-29T00:00:00.000Z");
-		// NN6: the CTA is hidden purely from the server escalatedAt (escalatedLocal is
-		// false this session — the reload case) so /v1/escalate can't be re-fired.
+		// The button is hidden purely from the server archivedAt (resolvedLocal is
+		// false this session — the reload case), mirroring the escalation pattern.
 		expect(
-			screen.queryByRole("button", { name: /talk to a human/i }),
+			screen.queryByRole("button", { name: /mark resolved/i }),
 		).not.toBeInTheDocument();
-		expect(
-			screen.getByText(/human operator has been notified/i),
-		).toBeInTheDocument();
-		// NN1: silence the bot, not the visitor — the message input stays enabled.
+		expect(screen.getByText(/marked resolved/i)).toBeInTheDocument();
+		// Composer stays enabled post-resolve (no precedent for disabling it).
 		expect(
 			screen.getByRole("textbox", { name: /message/i }),
 		).not.toBeDisabled();
 	});
 
-	it("a non-escalated feed with the same message count DOES show the CTA (proves it's escalation that hides it)", async () => {
+	it("a non-resolved feed with the same exchange DOES show the Resolve button", async () => {
 		await mountIdentified(null);
 		expect(
-			screen.getByRole("button", { name: /talk to a human/i }),
+			screen.getByRole("button", { name: /mark resolved/i }),
 		).toBeInTheDocument();
+		expect(screen.queryByText(/marked resolved/i)).not.toBeInTheDocument();
 	});
 });

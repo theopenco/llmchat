@@ -20,12 +20,14 @@ export function useServerMessages(
 	conversationId: string | null;
 	csatRating: number | null;
 	escalatedAt: string | number | null;
+	archivedAt: string | number | null;
 	refresh: () => void;
 } {
 	const [serverMessages, setServerMessages] = useState<ServerMessage[]>([]);
 	const [conversationId, setConversationId] = useState<string | null>(null);
 	const [csatRating, setCsatRating] = useState<number | null>(null);
 	const [escalatedAt, setEscalatedAt] = useState<string | number | null>(null);
+	const [archivedAt, setArchivedAt] = useState<string | number | null>(null);
 	const abortRef = useRef<AbortController | null>(null);
 
 	const load = useCallback(async () => {
@@ -43,6 +45,7 @@ export function useServerMessages(
 			setConversationId(feed.conversationId);
 			setCsatRating(feed.csatRating);
 			setEscalatedAt(feed.escalatedAt);
+			setArchivedAt(feed.archivedAt);
 		} catch {
 			// Transient poll failure — keep showing the last good feed.
 		}
@@ -64,5 +67,12 @@ export function useServerMessages(
 		void load();
 	}, [load]);
 
-	return { serverMessages, conversationId, csatRating, escalatedAt, refresh };
+	return {
+		serverMessages,
+		conversationId,
+		csatRating,
+		escalatedAt,
+		archivedAt,
+		refresh,
+	};
 }

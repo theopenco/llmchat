@@ -38,6 +38,7 @@ function ConversationRow({
 	onSelect: () => void;
 }) {
 	const escalated = Boolean(conversation.escalatedAt);
+	const resolved = Boolean(conversation.archivedAt);
 	const unread = Boolean(conversation.unread);
 	return (
 		<button
@@ -108,11 +109,16 @@ function ConversationRow({
 					</p>
 				)}
 				<div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-					{escalated && (
+					{/* Resolved takes precedence over Escalated (matches deriveStatus). */}
+					{resolved ? (
+						<span className="inline-flex h-4 items-center rounded-full bg-ck-accent/15 px-1.5 text-[10px] font-semibold text-ck-accent">
+							Resolved
+						</span>
+					) : escalated ? (
 						<span className="inline-flex h-4 items-center rounded-full bg-ck-warn/15 px-1.5 text-[10px] font-semibold text-ck-warn">
 							Escalated
 						</span>
-					)}
+					) : null}
 					{conversation.tags?.map((t) => (
 						<TagChip key={t.id} tag={t} />
 					))}

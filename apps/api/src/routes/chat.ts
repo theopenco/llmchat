@@ -22,8 +22,10 @@ import { sendEscalationSlack } from "@/lib/slack";
 import { reportMeterEvent } from "@/lib/stripe";
 
 import {
+	and as andWhere,
 	conversation,
 	eq,
+	isNull,
 	message as messageTable,
 	usageEvent,
 } from "@llmchat/db";
@@ -87,10 +89,19 @@ const escalateBody = z.object({
 		.max(200),
 });
 
+// Visitor-resolve identifies its own conversation by (projectKey, clientId) —
+// never a client-trusted conversation id (tenant-safe, mirrors /v1/escalate).
+const resolveBody = z.object({
+	projectKey: z.string().max(128),
+	clientId: z.string().max(128),
+});
+
 const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_WINDOW = 60 * 60;
 // Escalations trigger notification emails — keep the budget much tighter.
 const ESCALATE_RATE_LIMIT_MAX = 5;
+// Visitor-resolve is a cheap idempotent DB write (no email/Slack); modest cap.
+const RESOLVE_RATE_LIMIT_MAX = 10;
 // Hard ceiling on the in-chat visitor recap generation so a slow/hung gpt-5-nano
 // call can never delay the escalate response. On timeout the recap is dropped
 // (summary: null) — the escalation itself is already recorded.
@@ -545,4 +556,80 @@ export const chat = new Hono<AppContext>()
 		// empty, so the widget simply shows no card. Escalation already succeeded.
 		const summary = await summaryPromise;
 		return c.json({ ok: true, summary });
+	})
+	.post("/resolve", zValidator("json", resolveBody), async (c) => {
+		const { projectKey, clientId } = c.req.valid("json");
+
+		// Per-IP gate BEFORE the project lookup — bounds invalid-key DB floods.
+		const ip = clientIp(c);
+		const gate = await publicLookupRateLimit(c.env, ip);
+		if (!gate.ok) {
+			return c.json({ error: "rate limit exceeded" }, 429);
+		}
+
+		const project = await loadProject(c.env, projectKey);
+		if (!project) {
+			return c.json({ error: "invalid project key" }, 404);
+		}
+		const rl = await rateLimit(
+			c.env,
+			`resolve:${project.id}:${ip}`,
+			RESOLVE_RATE_LIMIT_MAX,
+			RATE_LIMIT_WINDOW,
+		);
+		if (!rl.ok) {
+			return c.json({ error: "rate limit exceeded" }, 429);
+		}
+		// Tenant-safe: the visitor's own conversation, by (projectId, clientId) —
+		// never a client-supplied id. Banked rule: and(), never bare eq().
+		const conv = await db(c.env).query.conversation.findFirst({
+			where: (ct, { and, eq: e }) =>
+				and(e(ct.projectId, project.id), e(ct.clientId, clientId)),
+		});
+		if (!conv) {
+			return c.json({ error: "no conversation" }, 404);
+		}
+		// Idempotent: already resolved → no-op (mirrors escalate's alreadyEscalated).
+		// A reloading visitor whose session-local "resolved" flag reset can re-POST;
+		// this stops a second archivedAt re-stamp.
+		if (conv.archivedAt) {
+			return c.json({ ok: true, resolved: true, alreadyResolved: true });
+		}
+		// Decision B — protect the bug-3 holding guard. A human is handling an
+		// escalated conversation, so a VISITOR must NOT resolve it: setting
+		// archivedAt would flip the `escalatedAt && !archivedAt` guard false and let
+		// the bot answer over the live handoff. The operator closes escalated chats
+		// from the dashboard instead. Benign 200 no-op (NOT 409/500) so a race —
+		// visitor taps Resolve just as escalation lands — settles cleanly: the
+		// widget re-polls and shows the escalated state instead of an error band.
+		if (conv.escalatedAt) {
+			return c.json({ ok: true, resolved: false, reason: "escalated" });
+		}
+		// Atomic with the Decision B guard: archive ONLY while not escalated. The
+		// read-time `if (conv.escalatedAt)` above gives the friendly response in the
+		// common case; this `isNull(escalatedAt)` write predicate closes the TOCTOU
+		// window where a concurrent /v1/escalate stamps escalatedAt between the
+		// findFirst and this update — without it a visitor-set archivedAt on a
+		// just-escalated row would flip the holding guard (`escalatedAt &&
+		// !archivedAt`, chat.ts) false and un-mute the bot over a live handoff.
+		const updated = await db(c.env)
+			.update(conversation)
+			.set({
+				archivedAt: new Date(),
+				resolvedBy: "visitor",
+				updatedAt: new Date(),
+			})
+			.where(
+				andWhere(
+					eq(conversation.id, conv.id),
+					isNull(conversation.escalatedAt),
+				),
+			)
+			.returning({ id: conversation.id });
+		if (updated.length === 0) {
+			// A concurrent escalation won the race — leave the bot muted; the widget
+			// re-polls /v1/messages and shows the escalated state.
+			return c.json({ ok: true, resolved: false, reason: "escalated" });
+		}
+		return c.json({ ok: true, resolved: true });
 	});

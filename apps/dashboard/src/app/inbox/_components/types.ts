@@ -16,6 +16,11 @@ export interface Conversation {
 	messageCount: number;
 	escalatedAt: string | null;
 	archivedAt: string | null;
+	/** Who resolved the conversation: "visitor" (clicked Resolve in the widget),
+	 * "admin" (operator resolved here), or null for legacy/un-attributed resolves
+	 * → render a plain "Resolved" with no actor. Optional so existing fixtures
+	 * needn't set it. */
+	resolvedBy?: string | null;
 	createdAt: string;
 	updatedAt: string;
 	/** Tags attached to this conversation (added by the list API; [] when none). */

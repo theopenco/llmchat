@@ -21,6 +21,10 @@ export interface MessageFeed {
 	 * server), or null. Lets the widget hydrate "escalated" on reload so it hides
 	 * the "Talk to a human" CTA and never re-fires /v1/escalate. */
 	escalatedAt: string | number | null;
+	/** When the conversation was resolved/archived (ISO string from the server),
+	 * or null. Lets the widget hydrate "resolved" on reload so it hides the
+	 * "Mark resolved" button and shows the resolved notice. */
+	archivedAt: string | number | null;
 	messages: ServerMessage[];
 }
 
@@ -41,6 +45,7 @@ export async function fetchMessages(
 		conversationId: data.conversationId ?? null,
 		csatRating: data.csatRating ?? null,
 		escalatedAt: data.escalatedAt ?? null,
+		archivedAt: data.archivedAt ?? null,
 		messages: data.messages ?? [],
 	};
 }

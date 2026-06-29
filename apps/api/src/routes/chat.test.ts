@@ -946,3 +946,136 @@ describe("public widget pre-lookup IP gate", () => {
 		expect(projectFindFirst).not.toHaveBeenCalled();
 	});
 });
+
+function sendResolve(body: unknown, ctx: ReturnType<typeof makeCtx>["ctx"]) {
+	return chat.request(
+		"/resolve",
+		{
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(body),
+		},
+		ENV,
+		ctx as unknown as CtxArg,
+	);
+}
+
+describe("POST /v1/resolve — visitor-initiated resolve (Bug 4, Decision B)", () => {
+	// Mocks just the conversation row's escalated/archived state + captures the
+	// conversation update payload (setSpy) so we can assert the archivedAt write
+	// (or its absence). convRow === null → no conversation (404 path).
+	// `updateReturning` is what the atomic conditional UPDATE ... RETURNING yields:
+	// [{ id }] = the write won (archived), [] = it lost the race to a concurrent
+	// escalate (isNull(escalatedAt) predicate matched 0 rows).
+	function mockResolveDb(
+		convRow: Record<string, unknown> | null,
+		updateReturning: unknown[] = [{ id: "c1" }],
+	) {
+		const setSpy = vi.fn((_p: unknown) => ({
+			where: () => ({ returning: async () => updateReturning }),
+		}));
+		vi.mocked(db).mockReturnValue({
+			query: {
+				project: { findFirst: async () => project },
+				conversation: {
+					findFirst: async () =>
+						convRow === null ? undefined : { id: "c1", ...convRow },
+				},
+			},
+			update: () => ({ set: setSpy }),
+		} as unknown as ReturnType<typeof db>);
+		return { setSpy };
+	}
+
+	const body = { projectKey: "pk_live", clientId: "client_1" };
+
+	it("resolves a non-escalated conversation: sets archivedAt + resolvedBy 'visitor'", async () => {
+		const { setSpy } = mockResolveDb({ escalatedAt: null, archivedAt: null });
+		const { ctx } = makeCtx();
+		const res = await sendResolve(body, ctx);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({ ok: true, resolved: true });
+		expect(setSpy).toHaveBeenCalledTimes(1);
+		const payload = setSpy.mock.calls[0]![0] as {
+			archivedAt?: unknown;
+			resolvedBy?: unknown;
+		};
+		expect(payload.archivedAt).toBeInstanceOf(Date);
+		expect(payload.resolvedBy).toBe("visitor");
+	});
+
+	it("DECISION B: an escalated conversation is NOT resolved — archivedAt stays unset so the bug-3 holding guard holds", async () => {
+		const { setSpy } = mockResolveDb({
+			escalatedAt: new Date(),
+			archivedAt: null,
+		});
+		const { ctx } = makeCtx();
+		const res = await sendResolve(body, ctx);
+		// Benign no-op — 200, NOT 409/500.
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({
+			ok: true,
+			resolved: false,
+			reason: "escalated",
+		});
+		// Load-bearing: no archivedAt write → `escalatedAt && !archivedAt` stays
+		// true → the bot stays muted over the live human handoff (protects Bug 3).
+		expect(setSpy).not.toHaveBeenCalled();
+	});
+
+	it("is idempotent: an already-resolved conversation is a no-op", async () => {
+		const { setSpy } = mockResolveDb({
+			escalatedAt: null,
+			archivedAt: new Date(),
+		});
+		const { ctx } = makeCtx();
+		const res = await sendResolve(body, ctx);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({
+			ok: true,
+			resolved: true,
+			alreadyResolved: true,
+		});
+		expect(setSpy).not.toHaveBeenCalled();
+	});
+
+	it("already-resolved wins over the escalated block (archived + escalated → idempotent no-op)", async () => {
+		const { setSpy } = mockResolveDb({
+			escalatedAt: new Date(),
+			archivedAt: new Date(),
+		});
+		const { ctx } = makeCtx();
+		const res = await sendResolve(body, ctx);
+		expect(await res.json()).toMatchObject({ alreadyResolved: true });
+		expect(setSpy).not.toHaveBeenCalled();
+	});
+
+	it("returns 404 when the visitor has no conversation", async () => {
+		mockResolveDb(null);
+		const { ctx } = makeCtx();
+		const res = await sendResolve(body, ctx);
+		expect(res.status).toBe(404);
+	});
+
+	it("DECISION B (race): if escalation lands between read and write, the atomic update no-ops — bot stays muted", async () => {
+		// Snapshot reads a non-escalated conv, but the conditional UPDATE matches 0
+		// rows (a concurrent /v1/escalate stamped escalatedAt in the window), so the
+		// `isNull(escalatedAt)` predicate makes the write lose the race.
+		const { setSpy } = mockResolveDb(
+			{ escalatedAt: null, archivedAt: null },
+			[], // RETURNING [] — 0 rows updated
+		);
+		const { ctx } = makeCtx();
+		const res = await sendResolve(body, ctx);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({
+			ok: true,
+			resolved: false,
+			reason: "escalated",
+		});
+		// The write was ATTEMPTED but matched no escalated-free row → archivedAt
+		// never lands on the escalated conversation, so `escalatedAt && !archivedAt`
+		// stays true and the bot stays muted over the live handoff.
+		expect(setSpy).toHaveBeenCalledTimes(1);
+	});
+});

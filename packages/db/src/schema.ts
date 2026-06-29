@@ -189,6 +189,15 @@ export const conversation = sqliteTable(
 		// Columns were shipped ahead of this code in migration 0014 (phase 1).
 		summary: text(),
 		summaryMessageCount: integer(),
+		// Who resolved the conversation (the actor), recorded alongside archivedAt
+		// (the resolve timestamp). "visitor" = clicked Resolve in the widget via
+		// /v1/resolve; "admin" = operator resolved from the dashboard PATCH; "bot"
+		// is RESERVED for a future auto-resolve path that doesn't exist yet (never
+		// written). NULL = resolved before this column, or otherwise un-attributed
+		// → the UI shows a plain "Resolved", never a guessed actor. Does not affect
+		// status derivation (still archivedAt > escalatedAt > open). Column shipped
+		// ahead of this code in migration 0015 (phase 1).
+		resolvedBy: text(),
 		createdAt: createdAt(),
 		updatedAt: timestamp()
 			.notNull()
