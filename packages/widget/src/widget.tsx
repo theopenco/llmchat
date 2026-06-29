@@ -15,7 +15,12 @@ import { WidgetFrame } from "./components/WidgetFrame";
 import { rateConversation, shouldPromptCsat } from "./csat";
 import { requestEscalation } from "./escalation";
 import { requestResolve } from "./resolve";
-import { getOrCreateClientId, getText } from "./lib";
+import {
+	getOrCreateClientId,
+	getStoredIdentity,
+	getText,
+	setStoredIdentity,
+} from "./lib";
 import { mergeMessages } from "./messages-sync";
 import { rateMessage, useMessageRatings } from "./rating";
 import { ShowcaseChat } from "./ShowcaseChat";
@@ -135,9 +140,13 @@ function LiveWidget({
 	const inline = mode === "inline";
 	const [open, setOpen] = useState(inline);
 	const [text, setText] = useState("");
-	const [name, setName] = useState("");
-	const [email, setEmail] = useState("");
-	const [identified, setIdentified] = useState(false);
+	// Hydrate identity from localStorage on first render (lazy init → no flash of
+	// the form on reload). The widget mounts client-side only, and getStoredIdentity
+	// is failure-safe, so reading storage during init is fine.
+	const storedIdentity = useState(() => getStoredIdentity())[0];
+	const [name, setName] = useState(storedIdentity?.name ?? "");
+	const [email, setEmail] = useState(storedIdentity?.email ?? "");
+	const [identified, setIdentified] = useState(storedIdentity != null);
 	const [escalatedLocal, setEscalatedLocal] = useState(false);
 	const [escalating, setEscalating] = useState(false);
 	const [escalateFailed, setEscalateFailed] = useState(false);
@@ -363,7 +372,12 @@ function LiveWidget({
 					email={email}
 					onNameChange={setName}
 					onEmailChange={setEmail}
-					onSubmit={() => setIdentified(true)}
+					onSubmit={() => {
+						// Persist so a reload skips the form (the conversation itself
+						// already survives via the sessionStorage clientId).
+						setStoredIdentity({ name: name.trim(), email: email.trim() });
+						setIdentified(true);
+					}}
 				/>
 			) : (
 				<>

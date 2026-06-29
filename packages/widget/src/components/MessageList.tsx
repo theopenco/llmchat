@@ -98,11 +98,11 @@ export function MessageList({
 
 	return (
 		<div className="llmchat-messages" ref={containerRef}>
-			{messages.length === 0 && (
-				<div className="llmchat-msg llmchat-msg-assistant">
-					<Markdown content={greeting} />
-				</div>
-			)}
+			{/* Synthetic greeting — always the first bubble, so it stays put after the
+			   visitor's first message (it's not part of the message stream). */}
+			<div className="llmchat-msg llmchat-msg-assistant">
+				<Markdown content={greeting} />
+			</div>
 			{messages.map((m) => {
 				if (!m.content) {
 					return null;
