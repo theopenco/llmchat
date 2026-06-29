@@ -17,6 +17,10 @@ export interface MessageFeed {
 	/** Conversation-level CSAT (1–5), null until rated. Lets the widget avoid
 	 * re-prompting an already-rated visitor. */
 	csatRating: number | null;
+	/** When the conversation was escalated to a human (ISO string from the
+	 * server), or null. Lets the widget hydrate "escalated" on reload so it hides
+	 * the "Talk to a human" CTA and never re-fires /v1/escalate. */
+	escalatedAt: string | number | null;
 	messages: ServerMessage[];
 }
 
@@ -36,6 +40,7 @@ export async function fetchMessages(
 	return {
 		conversationId: data.conversationId ?? null,
 		csatRating: data.csatRating ?? null,
+		escalatedAt: data.escalatedAt ?? null,
 		messages: data.messages ?? [],
 	};
 }

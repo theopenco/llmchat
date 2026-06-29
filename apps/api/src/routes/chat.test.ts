@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
-import { publicLookupRateLimit } from "@/lib/kv";
+import { ESCALATED_HOLDING_MESSAGE } from "@/lib/holding";
+import { publicLookupRateLimit, shouldSendHolding } from "@/lib/kv";
 import { streamChat, summarizeForVisitor } from "@/lib/llm";
+import { sendEscalationSlack } from "@/lib/slack";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
 import { reportMeterEvent } from "@/lib/stripe";
 
@@ -15,7 +17,9 @@ vi.mock("@/lib/db", () => ({ db: vi.fn() }));
 vi.mock("@/lib/kv", () => ({
 	rateLimit: vi.fn(async () => ({ ok: true })),
 	publicLookupRateLimit: vi.fn(async () => ({ ok: true })),
+	shouldSendHolding: vi.fn(async () => true),
 }));
+// NOT mocked: @/lib/holding — the guard returns a REAL drainable UI message stream.
 vi.mock("@/lib/llm", () => ({
 	streamChat: vi.fn(),
 	summarizeForVisitor: vi.fn(async () => null),
@@ -370,6 +374,109 @@ describe("POST /v1/chat — visitor identity (Bug 1: agent is identity-aware)", 
 			input.identity,
 		);
 		expect(system).not.toContain("# Visitor");
+		await settle();
+	});
+});
+
+describe("POST /v1/chat — escalation mutes the bot (Bug 3 holding message)", () => {
+	// Spy-capturing /chat db: conversation.findFirst returns convRow
+	// (escalatedAt/archivedAt/messageCount); insert is a spy so we can assert what a
+	// muted turn persisted (the user row only — never an assistant/usageEvent row).
+	function mockChatDb(
+		convRow: Record<string, unknown>,
+		sources: unknown[] = [],
+	) {
+		const valuesSpy = vi.fn((_row: unknown) =>
+			Object.assign(Promise.resolve([]), {
+				returning: async () => [{ id: "ue1" }],
+			}),
+		);
+		vi.mocked(db).mockReturnValue({
+			query: {
+				project: { findFirst: async () => project },
+				conversation: {
+					findFirst: async () => ({ id: "c1", messageCount: 1, ...convRow }),
+				},
+				source: { findMany: async () => sources },
+				systemPrompt: { findFirst: async () => undefined },
+			},
+			insert: () => ({ values: valuesSpy }),
+			update: () => ({ set: () => ({ where: async () => [] }) }),
+		} as unknown as ReturnType<typeof db>);
+		return { valuesSpy };
+	}
+
+	const ESCALATED = { escalatedAt: new Date(), archivedAt: null };
+
+	it("mutes the bot when escalated-and-unresolved — streams the holding ack, never calls the model", async () => {
+		mockChatDb(ESCALATED);
+		vi.mocked(shouldSendHolding).mockResolvedValueOnce(true);
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(200);
+		// It's a UI message stream (what useChat parses), not a JSON body.
+		expect(res.headers.get("content-type")).toContain("text/event-stream");
+		expect(streamChat).not.toHaveBeenCalled();
+		expect(await res.text()).toContain(ESCALATED_HOLDING_MESSAGE);
+		await settle();
+	});
+
+	it("still persists the visitor message on a muted turn (operator sees it)", async () => {
+		const { valuesSpy } = mockChatDb(ESCALATED);
+		const { ctx, settle } = makeCtx();
+		await send(validBody, ctx);
+		// Silence the bot, not the visitor: exactly one insert — the 'user' row.
+		expect(valuesSpy).toHaveBeenCalledTimes(1);
+		expect((valuesSpy.mock.calls[0]![0] as { role?: string }).role).toBe(
+			"user",
+		);
+		await settle();
+	});
+
+	it("a non-escalated conversation answers normally (regression)", async () => {
+		mockChatDb({ escalatedAt: null, archivedAt: null });
+		streamOk();
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(200);
+		expect(streamChat).toHaveBeenCalledTimes(1);
+		await settle();
+	});
+
+	it("an escalated-but-ARCHIVED (resolved) conversation answers normally (predicate boundary)", async () => {
+		mockChatDb({ escalatedAt: new Date(), archivedAt: new Date() });
+		streamOk();
+		const { ctx, settle } = makeCtx();
+		await send(validBody, ctx);
+		expect(streamChat).toHaveBeenCalledTimes(1);
+		await settle();
+	});
+
+	it("a muted turn is FREE — no usageEvent and no meter, even on an overage plan", async () => {
+		const { valuesSpy } = mockChatDb(ESCALATED);
+		setAccess({ plan: "growth", stripeCustomerId: "cus_9" });
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		await settle();
+		expect(res.status).toBe(200);
+		// Anchor to the guard: if the mute were removed, streamChat would run and
+		// this fails — so the "free" guarantee can't false-pass.
+		expect(streamChat).not.toHaveBeenCalled();
+		// Only the user row inserted (no usageEvent row); nothing metered.
+		expect(valuesSpy).toHaveBeenCalledTimes(1);
+		expect(reportMeterEvent).not.toHaveBeenCalled();
+	});
+
+	it("throttle: empty stream (no bubble) when shouldSendHolding is false — still free", async () => {
+		const { valuesSpy } = mockChatDb(ESCALATED);
+		vi.mocked(shouldSendHolding).mockResolvedValueOnce(false);
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(200);
+		expect(streamChat).not.toHaveBeenCalled();
+		expect(await res.text()).not.toContain(ESCALATED_HOLDING_MESSAGE);
+		// Throttled turn is also free: only the user row, no usageEvent.
+		expect(valuesSpy).toHaveBeenCalledTimes(1);
 		await settle();
 	});
 });
@@ -758,6 +865,66 @@ describe("POST /v1/escalate — in-chat visitor summary (Bug 2)", () => {
 		});
 		await settle();
 	});
+});
+
+describe("POST /v1/escalate — idempotent (Bug 3)", () => {
+	function mockAlreadyEscalated() {
+		const valuesSpy = vi.fn((_row: unknown) =>
+			Object.assign(Promise.resolve([]), {
+				returning: async () => [{ id: "x" }],
+			}),
+		);
+		const setSpy = vi.fn((_p: unknown) => ({ where: async () => [] }));
+		vi.mocked(db).mockReturnValue({
+			query: {
+				project: {
+					findFirst: async () => ({
+						...project,
+						notifyEmail: "ops@acme.com",
+						inboundEmailLocal: "acme",
+						slackWebhookUrl: null,
+					}),
+				},
+				conversation: {
+					findFirst: async () => ({
+						id: "c1",
+						messageCount: 2,
+						name: null,
+						email: null,
+						escalatedAt: new Date(), // already escalated
+					}),
+				},
+				message: { findMany: async () => [] },
+			},
+			insert: () => ({ values: valuesSpy }),
+			update: () => ({ set: setSpy }),
+		} as unknown as ReturnType<typeof db>);
+		return { valuesSpy, setSpy };
+	}
+
+	it("a re-escalation on an already-escalated conversation is a no-op — no re-fire, no re-stamp, no recap", async () => {
+		const { valuesSpy, setSpy } = mockAlreadyEscalated();
+		const { ctx, settle } = makeCtx();
+		const res = await sendEscalate(
+			{ projectKey: "pk_live", clientId: "client_1", messages: [] },
+			ctx,
+		);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({
+			ok: true,
+			summary: null,
+			alreadyEscalated: true,
+		});
+		expect(sendEmail).not.toHaveBeenCalled(); // no operator/customer re-notify
+		expect(sendEscalationSlack).not.toHaveBeenCalled();
+		expect(summarizeForVisitor).not.toHaveBeenCalled(); // no recap re-gen (Bug 2)
+		expect(valuesSpy).not.toHaveBeenCalled(); // no duplicate system row
+		expect(setSpy).not.toHaveBeenCalled(); // no escalatedAt re-stamp
+		await settle();
+	});
+	// The first-escalation happy path (escalatedAt null → full flow incl. the Bug-2
+	// recap) is covered by the "in-chat visitor summary" describe above, whose
+	// conversation mock has no escalatedAt → this guard is false → nothing skipped.
 });
 
 describe("public widget pre-lookup IP gate", () => {
