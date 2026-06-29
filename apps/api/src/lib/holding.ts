@@ -14,20 +14,27 @@ export const ESCALATED_HOLDING_MESSAGE =
 
 /**
  * Return the escalation holding acknowledgement as a v6 UI message stream that the
- * widget's useChat already renders — or, when `text` is null, an EMPTY stream that
- * completes cleanly with NO bot bubble (the throttled/cooldown case). Makes no
+ * widget's useChat already renders — or, when `text` is null, a content-less
+ * message envelope that completes cleanly with NO bot bubble (the muted
+ * post-escalation turn; the widget drops the empty content). Makes no
  * model call and writes nothing to the DB: a muted turn costs nothing. workerd-safe
  * (pure stream + Response, no Node deps).
  */
 export function holdingStreamResponse(text: string | null): Response {
 	const stream = createUIMessageStream({
 		execute: ({ writer }) => {
-			if (!text) return; // empty stream → useChat completes with no bubble
-			const id = crypto.randomUUID();
+			// Always emit a COMPLETE message envelope so the widget's useChat settles
+			// cleanly. An event-less stream leaves useChat in an error state ("Something
+			// went wrong sending your message"), which broke every muted post-escalation
+			// turn. With no text we emit just start+finish — a content-less assistant
+			// turn the widget renders as nothing (MessageList drops empty content).
 			writer.write({ type: "start" });
-			writer.write({ type: "text-start", id });
-			writer.write({ type: "text-delta", id, delta: text });
-			writer.write({ type: "text-end", id });
+			if (text) {
+				const id = crypto.randomUUID();
+				writer.write({ type: "text-start", id });
+				writer.write({ type: "text-delta", id, delta: text });
+				writer.write({ type: "text-end", id });
+			}
 			writer.write({ type: "finish" });
 		},
 	});

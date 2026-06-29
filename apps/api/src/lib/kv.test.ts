@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { publicLookupRateLimit, rateLimit, shouldSendHolding } from "./kv";
+import { publicLookupRateLimit, rateLimit } from "./kv";
 
 import type { Env } from "@/env";
 
@@ -60,46 +60,6 @@ describe("rateLimit", () => {
 		});
 		expect(result.ok).toBe(false);
 		expect(result.remaining).toBe(0);
-		errorSpy.mockRestore();
-	});
-});
-
-describe("shouldSendHolding", () => {
-	it("sends on the first turn, then stays quiet within the cooldown window", async () => {
-		const store = new Map<string, string>();
-		const env = envWithStore(store);
-		expect(await shouldSendHolding(env, "c1")).toBe(true); // first → send
-		expect(await shouldSendHolding(env, "c1")).toBe(false); // within ~5min → quiet
-		expect([...store.keys()][0]).toBe("holdmsg:c1");
-	});
-
-	it("throttles per conversation independently", async () => {
-		const store = new Map<string, string>();
-		const env = envWithStore(store);
-		await shouldSendHolding(env, "c1");
-		expect(await shouldSendHolding(env, "c1")).toBe(false);
-		expect(await shouldSendHolding(env, "c2")).toBe(true); // different conv → send
-	});
-
-	it("sends again once the cooldown window elapses", async () => {
-		vi.useFakeTimers();
-		try {
-			vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
-			const store = new Map<string, string>();
-			const env = envWithStore(store);
-			expect(await shouldSendHolding(env, "c1")).toBe(true);
-			expect(await shouldSendHolding(env, "c1")).toBe(false);
-			vi.setSystemTime(new Date("2026-01-01T00:06:00Z")); // +6min > 5min cooldown
-			expect(await shouldSendHolding(env, "c1")).toBe(true);
-		} finally {
-			vi.useRealTimers();
-		}
-	});
-
-	it("fails OPEN toward sending when STATE is unavailable (reassure, not dead-air)", async () => {
-		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(await shouldSendHolding(envWithBrokenStore(), "c1")).toBe(true);
-		expect(errorSpy).toHaveBeenCalled();
 		errorSpy.mockRestore();
 	});
 });
