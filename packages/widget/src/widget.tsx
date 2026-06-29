@@ -88,6 +88,60 @@ function ShowcaseWidget({ brandColor, mode = "bubble" }: BaseWidgetProps) {
 const DEFAULT_ESCALATION_THRESHOLD = 3;
 const SEND_ERROR =
 	"Something went wrong sending your message. Please try again.";
+// Shown when /v1/chat returns 429 — a TEMPORARY throttle, not a broken product.
+// A prospect hitting the cap on our homepage demo must read this as "slow down a
+// moment", not "this is broken".
+const RATE_LIMIT_ERROR =
+	"You're sending messages quickly — please wait a moment and try again.";
+
+// Tag carried by the error we throw from the chat transport's fetch on a 429, so
+// the render layer can tell a rate-limit throttle apart from a generic failure.
+const RATE_LIMIT_SENTINEL = "widget_rate_limited_429";
+
+class WidgetRateLimitError extends Error {
+	constructor() {
+		super(RATE_LIMIT_SENTINEL);
+		this.name = "WidgetRateLimitError";
+	}
+}
+
+/** True when an error (or anything in its `cause` chain) is our 429 marker. The
+ * cause-walk guards against the AI SDK wrapping the thrown transport error. */
+export function isRateLimitError(error: unknown): boolean {
+	let e: unknown = error;
+	for (let depth = 0; e instanceof Error && depth < 10; depth++) {
+		if (
+			e.name === "WidgetRateLimitError" ||
+			e.message.includes(RATE_LIMIT_SENTINEL)
+		) {
+			return true;
+		}
+		e = (e as { cause?: unknown }).cause;
+	}
+	return false;
+}
+
+/** The error line to show under the thread: null when not failed, the friendly
+ * throttle line on a 429, else the generic send error. */
+export function sendErrorMessage(
+	failed: boolean,
+	error: unknown,
+): string | null {
+	if (!failed) return null;
+	return isRateLimitError(error) ? RATE_LIMIT_ERROR : SEND_ERROR;
+}
+
+// The chat transport's fetch: surface a 429 as a typed error so the widget can
+// show the friendly throttle line. Without this, the AI SDK would try to parse the
+// 429 JSON as a stream and fail with a generic error (indistinguishable from a real
+// outage). Any other status flows through untouched (the SDK handles it as before).
+export const rateLimitAwareFetch: typeof fetch = async (input, init) => {
+	const res = await fetch(input, init);
+	if (res.status === 429) {
+		throw new WidgetRateLimitError();
+	}
+	return res;
+};
 
 /**
  * The configured human-handoff threshold, or the default when it's missing or
@@ -170,6 +224,7 @@ function LiveWidget({
 				transport: new DefaultChatTransport({
 					api: `${apiUrl}/v1/chat`,
 					body: { projectKey, clientId, name, email: email || undefined },
+					fetch: rateLimitAwareFetch,
 				}),
 			}),
 		[apiUrl, projectKey, clientId, name, email],
@@ -373,7 +428,7 @@ function LiveWidget({
 						}
 						messages={displayMessages}
 						typing={loading}
-						error={sendFailed ? SEND_ERROR : null}
+						error={sendErrorMessage(sendFailed, error)}
 						onRate={conversationId ? rate : undefined}
 					/>
 					{showEscalation && (
