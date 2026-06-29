@@ -98,11 +98,14 @@ export function MessageList({
 
 	return (
 		<div className="llmchat-messages" ref={containerRef}>
-			{messages.length === 0 && (
-				<div className="llmchat-msg llmchat-msg-assistant">
-					<Markdown content={greeting} />
-				</div>
-			)}
+			{/* The greeting is a persistent client-only node, NOT a member of the
+			   `messages` array: it always renders as the first assistant bubble so it
+			   stays put once the visitor sends. Keeping it out of `messages` insulates
+			   it from mergeMessages (it would otherwise look like an unmatched local
+			   tail entry) and from rating/scroll/poll logic. */}
+			<div className="llmchat-msg llmchat-msg-assistant">
+				<Markdown content={greeting} />
+			</div>
 			{messages.map((m) => {
 				if (!m.content) {
 					return null;

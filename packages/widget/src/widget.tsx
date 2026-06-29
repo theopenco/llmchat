@@ -368,7 +368,9 @@ function LiveWidget({
 			) : (
 				<>
 					<MessageList
-						greeting={`Hi ${name}! How can I help?`}
+						greeting={
+							name ? `Hi ${name}! How can I help?` : "Hi! How can I help?"
+						}
 						messages={displayMessages}
 						typing={loading}
 						error={sendFailed ? SEND_ERROR : null}
