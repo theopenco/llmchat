@@ -68,6 +68,26 @@ describe("production migrations", () => {
 		db.close();
 	});
 
+	it("adds the nullable conversation.resolved_by column (0015)", () => {
+		// Phase 1 of visitor-resolve: the resolution-actor column must exist in a
+		// freshly-migrated DB, nullable (NULL = resolved before this column / no
+		// actor → the UI shows a plain "Resolved", never a guessed actor). schema.ts
+		// deliberately doesn't declare it yet (migrate-before-serve, mirroring
+		// 0014), so this is the ground-truth check that the migration applies
+		// cleanly.
+		const db = migratedDb();
+		const cols = db.prepare("PRAGMA table_info('conversation')").all() as {
+			name: string;
+			type: string;
+			notnull: number;
+		}[];
+		const byName = Object.fromEntries(cols.map((c) => [c.name, c]));
+		expect(byName.resolved_by, "resolved_by column").toBeTruthy();
+		expect(byName.resolved_by.type.toUpperCase()).toContain("TEXT");
+		expect(byName.resolved_by.notnull, "resolved_by nullable").toBe(0);
+		db.close();
+	});
+
 	it("contain no seed file (the dev seed lives outside migrations/)", () => {
 		const offending = readdirSync(MIGRATIONS_DIR)
 			.filter((f) => f.endsWith(".sql"))

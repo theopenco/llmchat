@@ -1,0 +1,21 @@
+-- Resolution attribution: WHO resolved a conversation (the actor), recorded
+-- alongside the existing `archived_at` resolve timestamp. Values: 'visitor' (the
+-- visitor clicked Resolve in the widget via /v1/resolve), 'admin' (an operator
+-- resolved from the dashboard PATCH), and 'bot' RESERVED for a future
+-- auto-resolve path that does NOT exist yet (no scheduler) — never written.
+-- Nullable: NULL = resolved before this column existed, or otherwise
+-- un-attributed → the UI shows a plain "Resolved" with no actor (honest, never a
+-- guessed name). `archived_at` stays the resolve timestamp; this column is purely
+-- the actor and does NOT change status derivation (still archived_at >
+-- escalated_at > open). Additive ADD COLUMN matching the 0010/0014 pattern;
+-- Ploy's ledger applies each file once, in filename order.
+--
+-- PHASE 1 of 2 (deliberate migrate-before-serve split, mirroring 0014). Ploy's
+-- deploy ordering between "apply migrations" and "new Worker serves traffic" is
+-- undocumented, so this PR ships ONLY the column — schema.ts is intentionally NOT
+-- changed, so the live Worker never SELECTs a column that might not exist yet
+-- (findOrCreateConversation on /v1/chat is the hottest path; no read can 500 on a
+-- missing column under any ordering). The /v1/resolve endpoint + admin
+-- attribution write + widget Resolve button + dashboard banner land in a
+-- follow-up PR once this column is live in prod.
+ALTER TABLE `conversation` ADD COLUMN `resolved_by` text;
