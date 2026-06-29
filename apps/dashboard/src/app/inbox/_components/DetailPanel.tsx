@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	Check,
 	Clock,
 	Globe,
 	Mail,
@@ -138,6 +139,24 @@ export function DetailPanel({
 						</div>
 						<p className="mt-1 text-xs text-ck-warn/80">
 							{formatFullDate(conversation.escalatedAt)}
+						</p>
+					</div>
+				)}
+
+				{conversation.archivedAt && (
+					<div className="m-4 rounded-[10px] bg-ck-accent/12 p-3">
+						<div className="flex items-center gap-2">
+							<Check className="size-4 text-ck-accent" />
+							<span className="text-xs font-semibold text-ck-accent">
+								{conversation.resolvedBy === "visitor"
+									? "Resolved by the visitor"
+									: conversation.resolvedBy === "admin"
+										? "Resolved by your team"
+										: "Resolved"}
+							</span>
+						</div>
+						<p className="mt-1 text-xs text-ck-accent/80">
+							{formatFullDate(conversation.archivedAt)}
 						</p>
 					</div>
 				)}

@@ -555,7 +555,12 @@ export const conversations = new Hono<AppContext>()
 			if (archived !== undefined) {
 				await db(c.env)
 					.update(conversation)
-					.set({ archivedAt: archived ? new Date() : null })
+					.set({
+						archivedAt: archived ? new Date() : null,
+						// Attribution mirror of archivedAt: an operator resolving from the
+						// dashboard is recorded as "admin"; reopening clears both.
+						resolvedBy: archived ? "admin" : null,
+					})
 					.where(
 						and(eq(conversation.id, id), eq(conversation.projectId, projectId)),
 					);

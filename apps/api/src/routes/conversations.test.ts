@@ -84,6 +84,9 @@ let conversationTagSelects: number;
 let insertSpy: ReturnType<typeof vi.fn>;
 let deleteSpy: ReturnType<typeof vi.fn>;
 let updateSpy: ReturnType<typeof vi.fn>;
+/** Captures the .set() payload of the most recent update (e.g. the archive
+ * PATCH) so tests can assert archivedAt / resolvedBy attribution. */
+let setSpy: ReturnType<typeof vi.fn>;
 
 /** Records the shape of every message-table query so tests can assert the
  * content-search queries are scoped via a conversation join. */
@@ -105,7 +108,10 @@ function mockDb(state: State) {
 		},
 	}));
 	deleteSpy = vi.fn(() => ({ where: async () => [] }));
-	updateSpy = vi.fn(() => ({ set: () => ({ where: async () => [] }) }));
+	setSpy = vi.fn((_payload: Record<string, unknown>) => ({
+		where: async () => [],
+	}));
+	updateSpy = vi.fn(() => ({ set: setSpy }));
 
 	function builder(distinct: boolean) {
 		const q = { table: null as unknown, joined: false };
@@ -943,6 +949,29 @@ describe("conversation IDOR — tenant scoping on mutations", () => {
 		});
 		expect(res.status).toBe(200);
 		expect(updateSpy).toHaveBeenCalled();
+	});
+
+	it("PATCH archive attributes the resolve to 'admin'; reopen clears archivedAt + resolvedBy (Bug 4)", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: { id: "c1", projectId: "p1", messageCount: 2 },
+		});
+		await send("/projects/p1/conversations/c1", "PATCH", { archived: true });
+		expect(setSpy.mock.calls[0]![0]).toMatchObject({ resolvedBy: "admin" });
+		expect(setSpy.mock.calls[0]![0].archivedAt).toBeInstanceOf(Date);
+
+		// Reopen: archivedAt AND resolvedBy both clear (no stale attribution).
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: { id: "c1", projectId: "p1", messageCount: 2 },
+		});
+		await send("/projects/p1/conversations/c1", "PATCH", { archived: false });
+		expect(setSpy.mock.calls[0]![0]).toMatchObject({
+			archivedAt: null,
+			resolvedBy: null,
+		});
 	});
 
 	it("PATCH read 404s a cross-tenant conversation id — never writes a read receipt", async () => {

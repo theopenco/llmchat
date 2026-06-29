@@ -56,3 +56,23 @@ describe("GET /v1/messages — escalatedAt exposure (Bug 3)", () => {
 		expect(json.escalatedAt).toBeNull();
 	});
 });
+
+describe("GET /v1/messages — archivedAt exposure (Bug 4 resolved-state hydration)", () => {
+	it("returns archivedAt so the widget can hydrate the resolved state on reload", async () => {
+		const when = new Date("2026-06-29T00:00:00.000Z");
+		mockDb({ id: "c1", csatRating: null, escalatedAt: null, archivedAt: when });
+		const res = await getMessages();
+		expect(res.status).toBe(200);
+		expect((await res.json()).archivedAt).toBe(when.toISOString());
+	});
+
+	it("returns archivedAt: null for a non-resolved conversation", async () => {
+		mockDb({ id: "c1", csatRating: null, escalatedAt: null, archivedAt: null });
+		expect((await (await getMessages()).json()).archivedAt).toBeNull();
+	});
+
+	it("returns archivedAt: null in the no-conversation branch (shape stability)", async () => {
+		mockDb(null);
+		expect((await (await getMessages()).json()).archivedAt).toBeNull();
+	});
+});

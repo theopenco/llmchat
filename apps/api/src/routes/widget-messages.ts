@@ -62,6 +62,7 @@ export const widgetMessages = new Hono<AppContext>().get(
 				conversationId: null,
 				csatRating: null,
 				escalatedAt: null,
+				archivedAt: null,
 				messages: [],
 			});
 		}
@@ -82,6 +83,10 @@ export const widgetMessages = new Hono<AppContext>().get(
 			// Lets the widget hydrate "escalated" on reload (hide the CTA, show the
 			// notice) so it can't re-fire /v1/escalate. Serializes to an ISO string.
 			escalatedAt: conv.escalatedAt,
+			// Same pattern for "resolved": lets the widget hydrate the resolved state
+			// on reload (hide the Resolve button, show the notice). Raw timestamp →
+			// ISO string, mirroring escalatedAt; the widget derives the boolean.
+			archivedAt: conv.archivedAt,
 			messages: rows.map((m) => ({
 				id: m.id,
 				role: m.role,

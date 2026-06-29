@@ -9,9 +9,12 @@ import { EscalationSection } from "./components/EscalationSection";
 import { IdentifyForm } from "./components/IdentifyForm";
 import { MessageList } from "./components/MessageList";
 import { PoweredBy } from "./components/PoweredBy";
+import { ResolvedNotice } from "./components/ResolvedNotice";
+import { ResolveSection } from "./components/ResolveSection";
 import { WidgetFrame } from "./components/WidgetFrame";
 import { rateConversation, shouldPromptCsat } from "./csat";
 import { requestEscalation } from "./escalation";
+import { requestResolve } from "./resolve";
 import { getOrCreateClientId, getText } from "./lib";
 import { mergeMessages } from "./messages-sync";
 import { rateMessage, useMessageRatings } from "./rating";
@@ -109,6 +112,19 @@ export function deriveEscalated(
 	return sessionEscalated || feedEscalatedAt != null;
 }
 
+/**
+ * Whether the conversation is resolved — true if resolved this session OR the
+ * server feed reports it archived. Hydrating from the server keeps the resolved
+ * state across reload: the "Mark resolved" button stays hidden and the resolved
+ * notice keeps showing (mirrors deriveEscalated).
+ */
+export function deriveResolved(
+	sessionResolved: boolean,
+	feedArchivedAt: string | number | null,
+): boolean {
+	return sessionResolved || feedArchivedAt != null;
+}
+
 function LiveWidget({
 	projectKey,
 	apiUrl,
@@ -125,6 +141,9 @@ function LiveWidget({
 	const [escalatedLocal, setEscalatedLocal] = useState(false);
 	const [escalating, setEscalating] = useState(false);
 	const [escalateFailed, setEscalateFailed] = useState(false);
+	const [resolvedLocal, setResolvedLocal] = useState(false);
+	const [resolving, setResolving] = useState(false);
+	const [resolveFailed, setResolveFailed] = useState(false);
 	// Visitor-facing recap returned by /v1/escalate; null = no card (honesty rail).
 	const [escalationSummary, setEscalationSummary] = useState<string | null>(
 		null,
@@ -166,11 +185,15 @@ function LiveWidget({
 		conversationId,
 		csatRating,
 		escalatedAt: serverEscalatedAt,
+		archivedAt: serverArchivedAt,
 		refresh,
 	} = useServerMessages(apiUrl, projectKey, clientId, open && identified);
 	// Escalated this session OR per the server feed (hydrates on reload so the
 	// "Talk to a human" CTA can't reappear and re-fire /v1/escalate).
 	const escalated = deriveEscalated(escalatedLocal, serverEscalatedAt);
+	// Resolved this session OR per the server feed (hydrates on reload like
+	// escalated, so the "Mark resolved" button stays hidden and the notice shows).
+	const resolved = deriveResolved(resolvedLocal, serverArchivedAt);
 
 	// Per-message thumbs: optimistic, rolling back if the request fails.
 	const sendRating = useCallback(
@@ -214,13 +237,19 @@ function LiveWidget({
 		(m) => m.role === "user",
 	).length;
 	const threshold = resolveEscalationThreshold(escalationThreshold);
-	const showEscalation = !escalated && userMessageCount >= threshold;
+	// Hide the escalate CTA once escalated OR resolved (resolved wins — terminal).
+	const showEscalation =
+		!escalated && !resolved && userMessageCount >= threshold;
 
 	// A "real exchange" = at least one persisted visitor message and one bot
 	// reply. Only then (and only when not already rated) do we prompt on close.
 	const hasRealExchange =
 		serverMessages.some((m) => m.role === "user") &&
 		serverMessages.some((m) => m.role === "assistant");
+	// Offer "Mark resolved" once there's a real exchange and the conversation is
+	// neither escalated (Decision B — the operator closes escalated chats) nor
+	// already resolved.
+	const showResolve = !escalated && !resolved && hasRealExchange;
 	const csatEligible = shouldPromptCsat({
 		hasRealExchange,
 		alreadyRated: csatRating != null || csatRated,
@@ -294,6 +323,30 @@ function LiveWidget({
 		}
 	}
 
+	async function handleResolve() {
+		if (resolving) {
+			return;
+		}
+		setResolving(true);
+		setResolveFailed(false);
+		try {
+			const { resolved: didResolve } = await requestResolve(apiUrl, {
+				projectKey,
+				clientId,
+			});
+			// didResolve === false = the server declined (escalated — Decision B);
+			// don't flip local resolved, just re-poll so the escalated state surfaces.
+			if (didResolve) {
+				setResolvedLocal(true);
+			}
+			refresh();
+		} catch {
+			setResolveFailed(true);
+		} finally {
+			setResolving(false);
+		}
+	}
+
 	return (
 		<WidgetFrame
 			inline={inline}
@@ -328,7 +381,19 @@ function LiveWidget({
 							onEscalate={handleEscalate}
 						/>
 					)}
-					{escalated && <EscalationNotice summary={escalationSummary} />}
+					{showResolve && (
+						<ResolveSection
+							pending={resolving}
+							failed={resolveFailed}
+							onResolve={handleResolve}
+						/>
+					)}
+					{/* Resolved wins (terminal) over the escalation notice. */}
+					{resolved ? (
+						<ResolvedNotice />
+					) : (
+						escalated && <EscalationNotice summary={escalationSummary} />
+					)}
 					<Composer
 						value={text}
 						disabled={loading}

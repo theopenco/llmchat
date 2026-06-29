@@ -86,6 +86,27 @@ describe("DetailPanel", () => {
 		expect(screen.getByText(/escalated to a human/i)).toBeInTheDocument();
 	});
 
+	it("shows the resolved banner with the actor when resolved (Bug 4 attribution)", () => {
+		setup({ archivedAt: "2026-06-16T05:02:00.000Z", resolvedBy: "visitor" });
+		expect(screen.getByText(/resolved by the visitor/i)).toBeInTheDocument();
+	});
+
+	it("attributes an admin resolve to the team", () => {
+		setup({ archivedAt: "2026-06-16T05:02:00.000Z", resolvedBy: "admin" });
+		expect(screen.getByText(/resolved by your team/i)).toBeInTheDocument();
+	});
+
+	it("falls back to a plain 'Resolved' when the actor is null (legacy rows — never a guessed actor)", () => {
+		setup({ archivedAt: "2026-06-16T05:02:00.000Z", resolvedBy: null });
+		expect(screen.getByText(/^resolved$/i)).toBeInTheDocument();
+		expect(screen.queryByText(/resolved by/i)).not.toBeInTheDocument();
+	});
+
+	it("shows no resolved banner when not resolved", () => {
+		setup({ archivedAt: null });
+		expect(screen.queryByText(/^resolved/i)).not.toBeInTheDocument();
+	});
+
 	it("shows the CSAT score honestly when rated", () => {
 		setup({ csatRating: 4 });
 		expect(screen.getByText(/4 \/ 5/)).toBeInTheDocument();
