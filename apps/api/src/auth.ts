@@ -75,8 +75,9 @@ export function buildAuthOptions(env: Env) {
 			customStorage: createAuthRateLimitStorage(env),
 		},
 		// Make Better Auth's getIp() trust ONLY the operator-configured edge header
-		// (default cf-connecting-ip), never the spoofable x-forwarded-for. Without
-		// this, an attacker rotates x-forwarded-for to evade the per-IP auth limits.
+		// (default x-real-ip — Ploy's forwarded client IP), never the spoofable
+		// x-forwarded-for. Without this, an attacker rotates x-forwarded-for to evade
+		// the per-IP auth limits.
 		advanced: {
 			ipAddress: { ipAddressHeaders: trustedIpHeaders(env) },
 		},
