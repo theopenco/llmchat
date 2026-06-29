@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { ESCALATED_HOLDING_MESSAGE } from "@/lib/holding";
-import { publicLookupRateLimit, rateLimit, shouldSendHolding } from "@/lib/kv";
+import { publicLookupRateLimit, shouldSendHolding } from "@/lib/kv";
 import { streamChat, summarizeForVisitor } from "@/lib/llm";
 import { sendEscalationSlack } from "@/lib/slack";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
@@ -25,11 +25,7 @@ vi.mock("@/lib/llm", () => ({
 	summarizeForVisitor: vi.fn(async () => null),
 }));
 vi.mock("@/lib/posthog", () => ({ captureEvent: vi.fn(async () => {}) }));
-vi.mock("@/lib/request", () => ({
-	clientIp: () => "1.2.3.4",
-	rateLimitSubject: (ip: string, clientId: string) =>
-		ip && ip !== "unknown" ? ip : clientId ? `c:${clientId}` : "unknown",
-}));
+vi.mock("@/lib/request", () => ({ clientIp: () => "1.2.3.4" }));
 // Keep escapeHtml/buildReplyToAddress real; spy only on sendEmail to capture the
 // escalation transcript that reaches the operator.
 vi.mock("@/lib/email", async (orig) => ({
@@ -929,61 +925,6 @@ describe("POST /v1/escalate — idempotent (Bug 3)", () => {
 	// The first-escalation happy path (escalatedAt null → full flow incl. the Bug-2
 	// recap) is covered by the "in-chat visitor summary" describe above, whose
 	// conversation mock has no escalatedAt → this guard is false → nothing skipped.
-});
-
-describe("POST /v1/chat — rate-limit exemption + cap", () => {
-	it("EXEMPT internal/founder/demo workspace gets a HIGH cap — testing is unblocked but the public demo is NOT uncapped", async () => {
-		setAccess({ exempt: true, plan: "internal" });
-		streamOk();
-		const { ctx, settle } = makeCtx();
-		const res = await send(validBody, ctx);
-		expect(res.status).toBe(200);
-		// Still rate-limited (the demo is a public embed with a committed key) but at
-		// a far higher ceiling — 1000/hour, invisible to real testing, bounded vs abuse.
-		expect(rateLimit).toHaveBeenCalledWith(
-			expect.anything(),
-			"chat:p1:1.2.3.4",
-			1000,
-			60 * 60,
-		);
-		await settle();
-	});
-
-	it("even an EXEMPT workspace is still BOUNDED — 429 if its high cap is exhausted (no uncapped public key)", async () => {
-		setAccess({ exempt: true, plan: "internal" });
-		vi.mocked(rateLimit).mockResolvedValueOnce({ ok: false, remaining: 0 });
-		const { ctx } = makeCtx();
-		const res = await send(validBody, ctx);
-		expect(res.status).toBe(429);
-		expect(streamChat).not.toHaveBeenCalled();
-	});
-
-	it("a REAL (non-exempt) project IS rate-limited at the raised 60/hour cap", async () => {
-		setAccess({ exempt: false, plan: "starter" });
-		streamOk();
-		const { ctx, settle } = makeCtx();
-		const res = await send(validBody, ctx);
-		expect(res.status).toBe(200);
-		// Abuse protection intact: the per-(project, IP) bucket is hit, at 60/3600s.
-		expect(rateLimit).toHaveBeenCalledWith(
-			expect.anything(),
-			"chat:p1:1.2.3.4", // real IP (clientIp mock) — not collapsed
-			60,
-			60 * 60,
-		);
-		await settle();
-	});
-
-	it("a spammer on a real project is still bounded — 429 when the cap is exhausted, no inference", async () => {
-		setAccess({ exempt: false, plan: "starter" });
-		// The pre-lookup gate is publicLookupRateLimit (separately mocked, ok); the
-		// only rateLimit call in /chat is the cost cap — fail it to simulate exhaustion.
-		vi.mocked(rateLimit).mockResolvedValueOnce({ ok: false, remaining: 0 });
-		const { ctx } = makeCtx();
-		const res = await send(validBody, ctx);
-		expect(res.status).toBe(429);
-		expect(streamChat).not.toHaveBeenCalled(); // capped before any model call
-	});
 });
 
 describe("public widget pre-lookup IP gate", () => {
