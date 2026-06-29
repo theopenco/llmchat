@@ -17,7 +17,7 @@ import { publicLookupRateLimit, rateLimit, shouldSendHolding } from "@/lib/kv";
 import { streamChat, summarizeForVisitor } from "@/lib/llm";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
 import { captureEvent } from "@/lib/posthog";
-import { clientIp, rateLimitSubject } from "@/lib/request";
+import { clientIp } from "@/lib/request";
 import { sendEscalationSlack } from "@/lib/slack";
 import { reportMeterEvent } from "@/lib/stripe";
 
@@ -96,20 +96,7 @@ const resolveBody = z.object({
 	clientId: z.string().max(128),
 });
 
-// Per-(project, IP) cost cap on live inference for real (non-exempt) customers.
-// 60/hour: a genuine support back-and-forth is bursty but finite — even a long,
-// detailed conversation rarely exceeds ~30 visitor turns, and 60/hour equals one
-// message every minute sustained for a full hour, which no single real conversation
-// reaches. So a real customer never hits it, while a single-IP spammer stays bounded
-// to 60 model calls/hour (each response output-capped at ~2k tokens, bounding cost).
-const RATE_LIMIT_MAX = 60;
-// Internal/founder/demo workspaces (the non-spoofable `exempt` signal) get a far
-// higher ceiling so our own testing never trips it — no human sends 1000 msgs/hour.
-// But they are NOT uncapped: the marketing/showcase demo is a PUBLIC embed with a
-// committed key, so a real ceiling still protects our shared LLM key from unlimited-
-// inference abuse through that key. Generous enough to be invisible to real testing,
-// low enough to bound a botnet hammering the public demo key.
-const EXEMPT_RATE_LIMIT_MAX = 1000;
+const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_WINDOW = 60 * 60;
 // Escalations trigger notification emails — keep the budget much tighter.
 const ESCALATE_RATE_LIMIT_MAX = 5;
@@ -161,14 +148,9 @@ export const chat = new Hono<AppContext>()
 
 		// Per-IP gate BEFORE the project lookup: bounds DB load from floods of
 		// invalid/unknown project keys (the per-project limits below only kick in
-		// once a key resolves). Fails open — public widget path. Keyed via
-		// rateLimitSubject so a missing trusted-IP header falls back to per-clientId
-		// instead of collapsing all chat traffic into one `pubkey:unknown` bucket.
+		// once a key resolves). Fails open — public widget path.
 		const ip = clientIp(c);
-		const gate = await publicLookupRateLimit(
-			c.env,
-			rateLimitSubject(ip, clientId),
-		);
+		const gate = await publicLookupRateLimit(c.env, ip);
 		if (!gate.ok) {
 			return c.json({ error: "rate limit exceeded" }, 429);
 		}
@@ -185,21 +167,10 @@ export const chat = new Hono<AppContext>()
 			project.workspaceId,
 		);
 
-		// The per-(project, IP) inference cost cap. Internal/founder/demo workspaces
-		// (the non-spoofable `exempt` signal — same owner-email check as the paywall,
-		// resolved server-side, never client input) get a MUCH higher ceiling so we can
-		// test our own widget freely — but they are NOT uncapped: the demo is a public
-		// embed with a committed key, so removing its cap entirely would expose our
-		// shared LLM key to unlimited inference abuse. Real (non-exempt) customer
-		// projects keep the standard cap — protection is never weakened for them. The
-		// bucket key falls back to per-clientId when the trusted IP header is missing
-		// (rateLimitSubject, matching the pre-lookup gate above), so a header misconfig
-		// can't collapse every chat visitor into one shared bucket (the earlier outage).
-		const chatRateMax = exempt ? EXEMPT_RATE_LIMIT_MAX : RATE_LIMIT_MAX;
 		const rl = await rateLimit(
 			c.env,
-			`chat:${project.id}:${rateLimitSubject(ip, clientId)}`,
-			chatRateMax,
+			`chat:${project.id}:${ip}`,
+			RATE_LIMIT_MAX,
 			RATE_LIMIT_WINDOW,
 		);
 		if (!rl.ok) {
