@@ -45,4 +45,34 @@ describe("requestEscalation", () => {
 		);
 		await expect(requestEscalation("http://x", payload)).rejects.toThrow();
 	});
+
+	it("returns the visitor recap carried in the response body", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockResolvedValue(
+					new Response(
+						JSON.stringify({ summary: "You asked about your order." }),
+					),
+				),
+		);
+		await expect(requestEscalation("http://x", payload)).resolves.toEqual({
+			summary: "You asked about your order.",
+		});
+	});
+
+	it("collapses a missing/empty/malformed summary to null (honesty rail — no card)", async () => {
+		for (const body of [
+			"{}",
+			JSON.stringify({ summary: "" }),
+			JSON.stringify({ summary: "   " }),
+			"not json",
+		]) {
+			vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body)));
+			await expect(requestEscalation("http://x", payload)).resolves.toEqual({
+				summary: null,
+			});
+		}
+	});
 });

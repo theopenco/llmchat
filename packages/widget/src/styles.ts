@@ -722,6 +722,49 @@ export const widgetStyles = `
 .llmchat-escalated {
 	color: #4b5563;
 	background: #f9fafb;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.llmchat-escalated-notice {
+	margin: 0;
+}
+
+/* ── Escalation handoff summary card ───────────────────────────────── */
+/* A one-time recap shown after escalation — not a chat bubble. Brand-tinted so
+   it stands off the gray band; body uses neutral ink so it stays readable for
+   any brand hue. Rendered only when the server returned a non-empty summary. */
+.llmchat-summary {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	padding: 0.5rem 0.625rem;
+	border-radius: 0.625rem;
+	border: 1px solid color-mix(in srgb, var(--brand) 22%, transparent);
+	background: color-mix(in srgb, var(--brand) 6%, #fff);
+	animation: llmchat-msg-in 0.2s ease;
+}
+.llmchat-summary-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--brand);
+}
+.llmchat-summary-label-icon {
+	width: 0.8rem;
+	height: 0.8rem;
+	flex-shrink: 0;
+}
+.llmchat-summary-body {
+	margin: 0;
+	font-size: 0.85rem;
+	line-height: 1.4;
+	color: #374151;
+	word-break: break-word;
 }
 
 /* ── Composer ──────────────────────────────────────────────────────── */

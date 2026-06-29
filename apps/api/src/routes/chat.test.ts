@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { publicLookupRateLimit } from "@/lib/kv";
-import { streamChat } from "@/lib/llm";
+import { streamChat, summarizeForVisitor } from "@/lib/llm";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
 import { reportMeterEvent } from "@/lib/stripe";
 
@@ -16,7 +16,10 @@ vi.mock("@/lib/kv", () => ({
 	rateLimit: vi.fn(async () => ({ ok: true })),
 	publicLookupRateLimit: vi.fn(async () => ({ ok: true })),
 }));
-vi.mock("@/lib/llm", () => ({ streamChat: vi.fn() }));
+vi.mock("@/lib/llm", () => ({
+	streamChat: vi.fn(),
+	summarizeForVisitor: vi.fn(async () => null),
+}));
 vi.mock("@/lib/posthog", () => ({ captureEvent: vi.fn(async () => {}) }));
 vi.mock("@/lib/request", () => ({ clientIp: () => "1.2.3.4" }));
 // Keep escapeHtml/buildReplyToAddress real; spy only on sendEmail to capture the
@@ -561,6 +564,198 @@ describe("POST /v1/escalate — operator transcript is server-side", () => {
 			.map((call) => call[0] as { emailMessageId?: string; role?: string })
 			.find((row) => row.role === "system");
 		expect(`<${stored!.emailMessageId}>`).toBe(messageId);
+		await settle();
+	});
+});
+
+describe("POST /v1/escalate — in-chat visitor summary (Bug 2)", () => {
+	// Spy-capturing escalate mock: records inserted message rows (valuesSpy) and
+	// conversation update payloads (setSpy) so we can assert the system row was
+	// written and that the recap NEVER writes #94's summary columns.
+	function mockDbForSummary(
+		storedMessages: unknown[],
+		notifyEmail: string | null = null,
+	) {
+		const valuesSpy = vi.fn((_row: unknown) =>
+			Object.assign(Promise.resolve([]), {
+				returning: async () => [{ id: "ue1" }],
+			}),
+		);
+		const setSpy = vi.fn((_payload: unknown) => ({ where: async () => [] }));
+		vi.mocked(db).mockReturnValue({
+			query: {
+				project: {
+					findFirst: async () => ({
+						...project,
+						notifyEmail,
+						inboundEmailLocal: "acme",
+						slackWebhookUrl: null,
+					}),
+				},
+				conversation: {
+					findFirst: async () => ({
+						id: "c1",
+						messageCount: 2,
+						name: null,
+						email: null,
+					}),
+				},
+				message: { findMany: async () => storedMessages },
+			},
+			insert: () => ({ values: valuesSpy }),
+			update: () => ({ set: setSpy }),
+		} as unknown as ReturnType<typeof db>);
+		return { valuesSpy, setSpy };
+	}
+
+	const exchange = [
+		{ role: "user", content: "my order is late", sequence: 1 },
+		{ role: "assistant", content: "let me check on that", sequence: 2 },
+	];
+
+	function escalateBody() {
+		return {
+			projectKey: "pk_live",
+			clientId: "client_1",
+			messages: [{ role: "user", content: "my order is late" }],
+		};
+	}
+
+	it("returns the generated recap in the response body", async () => {
+		vi.mocked(summarizeForVisitor).mockResolvedValueOnce(
+			"You asked about your late order and we started looking into it.",
+		);
+		mockDbForSummary(exchange);
+		const { ctx, settle } = makeCtx();
+		const res = await sendEscalate(escalateBody(), ctx);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({
+			ok: true,
+			summary:
+				"You asked about your late order and we started looking into it.",
+		});
+		await settle();
+	});
+
+	it("ISOLATION: a summary failure never fails the escalation (still 200, summary null, system row + email)", async () => {
+		vi.mocked(summarizeForVisitor).mockRejectedValueOnce(
+			new Error("gateway down"),
+		);
+		const { valuesSpy } = mockDbForSummary(exchange, "ops@acme.com");
+		const { ctx, settle } = makeCtx();
+		const res = await sendEscalate(escalateBody(), ctx);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({ ok: true, summary: null });
+		// the failing path was actually exercised (future-proofs the rejection branch)
+		expect(summarizeForVisitor).toHaveBeenCalledTimes(1);
+		// escalation still recorded + operator still notified — and NN2: exactly one
+		// inserted row (the system marker), never a persisted recap message.
+		expect(valuesSpy).toHaveBeenCalledTimes(1);
+		const insertedSystem = valuesSpy.mock.calls
+			.map((c) => c[0] as { role?: string; content?: string })
+			.find((row) => row.role === "system");
+		expect(insertedSystem?.content).toBe("Visitor requested a human operator");
+		expect(sendEmail).toHaveBeenCalled();
+		await settle();
+	});
+
+	it("hangs are bounded: a never-resolving summarizer times out → 200, summary null (NN1)", async () => {
+		vi.useFakeTimers();
+		try {
+			// Never resolves — only the Promise.race timeout can settle the recap.
+			vi.mocked(summarizeForVisitor).mockReturnValueOnce(
+				new Promise<string | null>(() => {}),
+			);
+			mockDbForSummary(exchange);
+			const { ctx } = makeCtx();
+			const resPromise = sendEscalate(escalateBody(), ctx);
+			// Advance past the 4.5s ceiling, flushing the timer + microtasks.
+			await vi.advanceTimersByTimeAsync(5_000);
+			const res = await resPromise;
+			expect(res.status).toBe(200);
+			expect(await res.json()).toMatchObject({ ok: true, summary: null });
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("returns summary: null when the recap is empty/unavailable (honesty rail — no card)", async () => {
+		vi.mocked(summarizeForVisitor).mockResolvedValueOnce(null);
+		mockDbForSummary(exchange);
+		const { ctx, settle } = makeCtx();
+		const res = await sendEscalate(escalateBody(), ctx);
+		expect(await res.json()).toMatchObject({ ok: true, summary: null });
+		await settle();
+	});
+
+	it("skips generation for a thin conversation (min-content gate, parity with #94)", async () => {
+		mockDbForSummary([{ role: "user", content: "hi", sequence: 1 }]);
+		const { ctx, settle } = makeCtx();
+		const res = await sendEscalate(escalateBody(), ctx);
+		expect(await res.json()).toMatchObject({ ok: true, summary: null });
+		expect(summarizeForVisitor).not.toHaveBeenCalled();
+		await settle();
+	});
+
+	it("excludes the system row from the recap transcript but KEEPS it in the operator email (NN5)", async () => {
+		vi.mocked(summarizeForVisitor).mockResolvedValueOnce("recap");
+		mockDbForSummary(
+			[
+				...exchange,
+				{
+					role: "system",
+					content: "Visitor requested a human operator",
+					sequence: 3,
+				},
+			],
+			"ops@acme.com",
+		);
+		const { ctx, settle } = makeCtx();
+		await sendEscalate(escalateBody(), ctx);
+		// buildTranscript is the REAL impl (conversation-summary is not mocked): the
+		// recap transcript drops the system marker so it doesn't summarize the
+		// escalation event itself.
+		const transcript = vi.mocked(summarizeForVisitor).mock.calls[0]![1];
+		expect(transcript).toContain("Visitor: my order is late");
+		expect(transcript).toContain("Agent: let me check on that");
+		expect(transcript).not.toContain("Visitor requested a human operator");
+		// …while the operator email keeps EVERY row, including the marker.
+		const html = vi.mocked(sendEmail).mock.calls[0]![1].html;
+		expect(html).toContain("Visitor requested a human operator");
+		await settle();
+	});
+
+	it("NO-CLOBBER: never writes conversation.summary / summaryMessageCount, never persists a recap row (#94 untouched)", async () => {
+		vi.mocked(summarizeForVisitor).mockResolvedValueOnce("recap");
+		const { setSpy, valuesSpy } = mockDbForSummary(exchange);
+		const { ctx, settle } = makeCtx();
+		await sendEscalate(escalateBody(), ctx);
+		for (const call of setSpy.mock.calls) {
+			const payload = call[0] as Record<string, unknown>;
+			expect(payload).not.toHaveProperty("summary");
+			expect(payload).not.toHaveProperty("summaryMessageCount");
+		}
+		// NN2: the recap is return-only — the sole inserted row is the system marker,
+		// never a persisted recap message.
+		expect(valuesSpy).toHaveBeenCalledTimes(1);
+		expect((valuesSpy.mock.calls[0]![0] as { role?: string }).role).toBe(
+			"system",
+		);
+		await settle();
+	});
+
+	it("generates the recap even when notifyEmail is null (transcript fetch hoisted out of the email block)", async () => {
+		vi.mocked(summarizeForVisitor).mockResolvedValueOnce(
+			"recap with no operator email",
+		);
+		mockDbForSummary(exchange, null);
+		const { ctx, settle } = makeCtx();
+		const res = await sendEscalate(escalateBody(), ctx);
+		expect(summarizeForVisitor).toHaveBeenCalledTimes(1);
+		expect(await res.json()).toMatchObject({
+			ok: true,
+			summary: "recap with no operator email",
+		});
 		await settle();
 	});
 });
