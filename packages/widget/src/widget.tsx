@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Composer } from "./components/Composer";
 import { CsatStep } from "./components/CsatStep";
+import { EscalationNotice } from "./components/EscalationNotice";
 import { EscalationSection } from "./components/EscalationSection";
 import { IdentifyForm } from "./components/IdentifyForm";
 import { MessageList } from "./components/MessageList";
@@ -84,8 +85,6 @@ function ShowcaseWidget({ brandColor, mode = "bubble" }: BaseWidgetProps) {
 const DEFAULT_ESCALATION_THRESHOLD = 3;
 const SEND_ERROR =
 	"Something went wrong sending your message. Please try again.";
-const ESCALATED_NOTICE =
-	"A human operator has been notified. We’ll get back to you soon.";
 
 /**
  * The configured human-handoff threshold, or the default when it's missing or
@@ -113,6 +112,10 @@ function LiveWidget({
 	const [escalated, setEscalated] = useState(false);
 	const [escalating, setEscalating] = useState(false);
 	const [escalateFailed, setEscalateFailed] = useState(false);
+	// Visitor-facing recap returned by /v1/escalate; null = no card (honesty rail).
+	const [escalationSummary, setEscalationSummary] = useState<string | null>(
+		null,
+	);
 	const [clientId, setClientId] = useState("");
 	// CSAT closing screen: "hidden" during chat, "prompt" on close (when
 	// eligible), "thanks" briefly after a rating.
@@ -250,7 +253,7 @@ function LiveWidget({
 		setEscalating(true);
 		setEscalateFailed(false);
 		try {
-			await requestEscalation(apiUrl, {
+			const { summary } = await requestEscalation(apiUrl, {
 				projectKey,
 				clientId,
 				name,
@@ -260,6 +263,7 @@ function LiveWidget({
 					content,
 				})),
 			});
+			setEscalationSummary(summary);
 			setEscalated(true);
 			refresh();
 		} catch {
@@ -303,9 +307,7 @@ function LiveWidget({
 							onEscalate={handleEscalate}
 						/>
 					)}
-					{escalated && (
-						<div className="llmchat-escalated">{ESCALATED_NOTICE}</div>
-					)}
+					{escalated && <EscalationNotice summary={escalationSummary} />}
 					<Composer
 						value={text}
 						disabled={loading}

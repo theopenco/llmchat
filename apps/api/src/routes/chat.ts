@@ -3,10 +3,14 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import { meterEventName } from "@/lib/billing-config";
+import {
+	buildTranscript,
+	SUMMARY_MIN_MESSAGES,
+} from "@/lib/conversation-summary";
 import { db } from "@/lib/db";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
 import { publicLookupRateLimit, rateLimit } from "@/lib/kv";
-import { streamChat } from "@/lib/llm";
+import { streamChat, summarizeForVisitor } from "@/lib/llm";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
 import { captureEvent } from "@/lib/posthog";
 import { clientIp } from "@/lib/request";
@@ -83,6 +87,10 @@ const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_WINDOW = 60 * 60;
 // Escalations trigger notification emails — keep the budget much tighter.
 const ESCALATE_RATE_LIMIT_MAX = 5;
+// Hard ceiling on the in-chat visitor recap generation so a slow/hung gpt-5-nano
+// call can never delay the escalate response. On timeout the recap is dropped
+// (summary: null) — the escalation itself is already recorded.
+const VISITOR_SUMMARY_TIMEOUT_MS = 4_500;
 
 async function loadProject(env: AppContext["Bindings"], publicKey: string) {
 	const p = await db(env).query.project.findFirst({
@@ -407,14 +415,39 @@ export const chat = new Hono<AppContext>()
 			})
 			.where(eq(conversation.id, conv.id));
 
+		// Rebuild the transcript from STORED messages (ordered by sequence), not the
+		// caller-supplied body. Fetched unconditionally — the operator email needs it
+		// (forgery-safe contents) AND the visitor recap below needs it even when no
+		// operator email is configured.
+		const rows = await db(c.env).query.message.findMany({
+			where: (mt, { eq: e }) => e(mt.conversationId, conv.id),
+			orderBy: (mt, { asc }) => asc(mt.sequence),
+		});
+
+		// Start the visitor-facing recap now so the gpt-5-nano call overlaps the email
+		// round-trips below; it's awaited (timeout-bounded) just before the response.
+		// The escalation is ALREADY durably recorded above, so a slow/failed/empty
+		// recap can never fail or hang the visitor's human request. Exclude system rows
+		// (the "Visitor requested a human operator" marker) so the recap summarizes the
+		// conversation, not the escalation event; the operator email keeps every row.
+		// Gate on a real exchange (parity with the inbox path) so a thin chat isn't
+		// padded into a vacuous recap.
+		const recapRows = rows.filter(
+			(m) => m.role !== "system" && m.content.trim(),
+		);
+		const summaryPromise: Promise<string | null> =
+			recapRows.length >= SUMMARY_MIN_MESSAGES
+				? Promise.race([
+						summarizeForVisitor(c.env, buildTranscript(recapRows)).catch(
+							() => null,
+						),
+						new Promise<null>((resolve) =>
+							setTimeout(() => resolve(null), VISITOR_SUMMARY_TIMEOUT_MS),
+						),
+					])
+				: Promise.resolve(null);
+
 		if (project.notifyEmail) {
-			// Rebuild the transcript from STORED messages (ordered by sequence), not
-			// the caller-supplied body — this email reaches the operator, so its
-			// contents must come from the DB, which can't be forged by the widget.
-			const rows = await db(c.env).query.message.findMany({
-				where: (mt, { eq: e }) => e(mt.conversationId, conv.id),
-				orderBy: (mt, { asc }) => asc(mt.sequence),
-			});
 			const transcriptHtml = rows
 				.map(
 					(m) =>
@@ -480,5 +513,9 @@ export const chat = new Hono<AppContext>()
 		// never blocks or breaks the escalation (no-op when no webhook is set).
 		c.executionCtx.waitUntil(sendEscalationSlack(c.env, project, conv.id));
 
-		return c.json({ ok: true });
+		// Resolve the recap last (it overlapped the email sends). Never throws —
+		// both race members are failure-guarded — and is null on any error/timeout/
+		// empty, so the widget simply shows no card. Escalation already succeeded.
+		const summary = await summaryPromise;
+		return c.json({ ok: true, summary });
 	});
