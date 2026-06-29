@@ -291,3 +291,35 @@ describe("MessageList auto-scroll (useStickToBottom)", () => {
 		expect(container.querySelector(".llmchat-jump")).toBeInTheDocument();
 	});
 });
+
+describe("MessageList greeting", () => {
+	it("renders the greeting when there are no messages", () => {
+		render(
+			<MessageList
+				greeting="Hi Luca! How can I help?"
+				messages={[]}
+				typing={false}
+				error={null}
+			/>,
+		);
+		expect(screen.getByText("Hi Luca! How can I help?")).toBeInTheDocument();
+	});
+
+	it("keeps the greeting visible (and first) after the first message is sent", () => {
+		// Regression: the greeting used to be gated on messages.length === 0, so it
+		// vanished the moment the visitor sent. It must persist as the first
+		// assistant bubble above the thread.
+		const { container } = render(
+			<MessageList
+				greeting="Hi Luca! How can I help?"
+				messages={[msg("u1", "user", "hello")]}
+				typing={false}
+				error={null}
+			/>,
+		);
+		expect(screen.getByText("Hi Luca! How can I help?")).toBeInTheDocument();
+		const bubbles = container.querySelectorAll(".llmchat-msg");
+		expect(bubbles[0]).toHaveTextContent("Hi Luca! How can I help?");
+		expect(bubbles[1]).toHaveTextContent("hello");
+	});
+});
