@@ -533,8 +533,22 @@ export const widgetStyles = `
 	background: #f3f4f6;
 	color: #4b5563;
 }
+/* Pressed = unmistakable: fill the thumb (this CSS fill overrides the inline
+   fill="none" on the outline icons) and tint the button, so a registered vote
+   reads as clearly selected instead of a faint outline recolor. */
 .llmchat-rate-btn[aria-pressed="true"] {
 	color: var(--brand);
+	background: color-mix(in srgb, var(--brand) 12%, transparent);
+}
+.llmchat-rate-btn[aria-pressed="true"] svg {
+	fill: currentColor;
+}
+/* "Helpful" presses positive/brand; "Not helpful" presses to a distinct, muted
+   "noted" state — the filled thumb registers the vote without reading as
+   celebratory, and the darker tint keeps it clearly apart from the brand thumb. */
+.llmchat-rate-btn[aria-label="Not helpful"][aria-pressed="true"] {
+	color: #4b5563;
+	background: #e5e7eb;
 }
 .llmchat-rate-btn:focus-visible {
 	outline: none;
