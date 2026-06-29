@@ -57,7 +57,12 @@ const project = {
 function mockDb({
 	hasProject = true,
 	sources = [],
-}: { hasProject?: boolean; sources?: unknown[] } = {}) {
+	convRow = {},
+}: {
+	hasProject?: boolean;
+	sources?: unknown[];
+	convRow?: Record<string, unknown>;
+} = {}) {
 	const valuesResult = () =>
 		Object.assign(Promise.resolve([]), {
 			returning: async () => [{ id: "ue1" }],
@@ -65,7 +70,9 @@ function mockDb({
 	vi.mocked(db).mockReturnValue({
 		query: {
 			project: { findFirst: async () => (hasProject ? project : undefined) },
-			conversation: { findFirst: async () => ({ id: "c1", messageCount: 0 }) },
+			conversation: {
+				findFirst: async () => ({ id: "c1", messageCount: 0, ...convRow }),
+			},
 			source: { findMany: async () => sources },
 			systemPrompt: { findFirst: async () => undefined },
 		},
@@ -302,6 +309,64 @@ describe("POST /v1/chat — retrieval reaches the model input (Text + Q&A)", () 
 		expect(system).toContain("# Reference sources");
 		expect(system).toContain("We restock weekly on Mondays.");
 		expect(system).toContain("Yes — we ship to 40 countries.");
+		await settle();
+	});
+});
+
+describe("POST /v1/chat — visitor identity (Bug 1: agent is identity-aware)", () => {
+	it("threads the stored conv.name/email into streamChat and the system prompt", async () => {
+		mockDb({ convRow: { name: "Jane Doe", email: "jane@acme.com" } });
+		setAccess({ plan: "starter" });
+		streamOk();
+		const { ctx, settle } = makeCtx();
+		// Body carries a CONFLICTING name/email; the handler must ignore it and use the
+		// canonical stored conversation columns, proving identity isn't forgeable per-turn.
+		const res = await send(
+			{ ...validBody, name: "Forged Body", email: "forged@evil.com" },
+			ctx,
+		);
+		expect(res.status).toBe(200);
+		expect(streamChat).toHaveBeenCalledTimes(1);
+
+		const input = vi.mocked(streamChat).mock.calls[0]![1];
+		expect(input.identity).toEqual({
+			name: "Jane Doe",
+			email: "jane@acme.com",
+		});
+
+		// Run the REAL buildSystem over those args → the literal system string the
+		// gateway receives carries the identity block.
+		const { buildSystem } =
+			await vi.importActual<typeof import("@/lib/llm")>("@/lib/llm");
+		const system = buildSystem(
+			input.systemPrompt,
+			input.knowledgeText,
+			input.sources,
+			input.identity,
+		);
+		expect(system).toContain("# Visitor");
+		expect(system).toContain("Name: Jane Doe");
+		expect(system).toContain("Email: jane@acme.com");
+		await settle();
+	});
+
+	it("an anonymous conversation injects no identity block (honesty rail)", async () => {
+		// The default mock conversation has no name/email.
+		streamOk();
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(200);
+
+		const input = vi.mocked(streamChat).mock.calls[0]![1];
+		const { buildSystem } =
+			await vi.importActual<typeof import("@/lib/llm")>("@/lib/llm");
+		const system = buildSystem(
+			input.systemPrompt,
+			input.knowledgeText,
+			input.sources,
+			input.identity,
+		);
+		expect(system).not.toContain("# Visitor");
 		await settle();
 	});
 });

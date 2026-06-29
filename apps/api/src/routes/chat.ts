@@ -268,6 +268,11 @@ export const chat = new Hono<AppContext>()
 					url: s.url ?? "",
 					content: s.content,
 				})),
+				// Surface the already-identified visitor from the STORED conversation
+				// columns (set once at creation, not re-read from each turn's body) so the
+				// agent never re-asks for contact details on file. Anonymous (null/null)
+				// conversations inject nothing.
+				identity: { name: conv.name, email: conv.email },
 				messages: messages as UIMessage[],
 			});
 		} catch (err) {
