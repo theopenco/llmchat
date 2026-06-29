@@ -96,6 +96,19 @@ export function resolveEscalationThreshold(value?: number): number {
 		: DEFAULT_ESCALATION_THRESHOLD;
 }
 
+/**
+ * Whether the conversation is escalated to a human — true if escalated this
+ * session OR the server feed reports an escalation. Hydrating from the server
+ * means a reload keeps the handoff state: the "Talk to a human" CTA stays hidden
+ * (so the visitor can't re-fire /v1/escalate) and the notice keeps showing.
+ */
+export function deriveEscalated(
+	sessionEscalated: boolean,
+	feedEscalatedAt: string | number | null,
+): boolean {
+	return sessionEscalated || feedEscalatedAt != null;
+}
+
 function LiveWidget({
 	projectKey,
 	apiUrl,
@@ -109,7 +122,7 @@ function LiveWidget({
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [identified, setIdentified] = useState(false);
-	const [escalated, setEscalated] = useState(false);
+	const [escalatedLocal, setEscalatedLocal] = useState(false);
 	const [escalating, setEscalating] = useState(false);
 	const [escalateFailed, setEscalateFailed] = useState(false);
 	// Visitor-facing recap returned by /v1/escalate; null = no card (honesty rail).
@@ -148,8 +161,16 @@ function LiveWidget({
 
 	// Poll the persisted feed while chatting so admin replies from the
 	// dashboard appear without a refresh.
-	const { serverMessages, conversationId, csatRating, refresh } =
-		useServerMessages(apiUrl, projectKey, clientId, open && identified);
+	const {
+		serverMessages,
+		conversationId,
+		csatRating,
+		escalatedAt: serverEscalatedAt,
+		refresh,
+	} = useServerMessages(apiUrl, projectKey, clientId, open && identified);
+	// Escalated this session OR per the server feed (hydrates on reload so the
+	// "Talk to a human" CTA can't reappear and re-fire /v1/escalate).
+	const escalated = deriveEscalated(escalatedLocal, serverEscalatedAt);
 
 	// Per-message thumbs: optimistic, rolling back if the request fails.
 	const sendRating = useCallback(
@@ -264,7 +285,7 @@ function LiveWidget({
 				})),
 			});
 			setEscalationSummary(summary);
-			setEscalated(true);
+			setEscalatedLocal(true);
 			refresh();
 		} catch {
 			setEscalateFailed(true);

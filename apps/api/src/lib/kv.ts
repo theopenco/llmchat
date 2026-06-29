@@ -75,6 +75,44 @@ export async function rateLimit(
 	}
 }
 
+// One escalation "holding" acknowledgement per this window — so a waiting visitor
+// who sends several messages isn't spammed the same canned line each time.
+const HOLD_COOLDOWN_SECONDS = 300; // ~5 min
+
+/**
+ * Throttle the post-escalation holding acknowledgement. Returns true ⇒ SEND the
+ * ack now (the first post-escalation turn, or the first turn after the cooldown
+ * elapsed); false ⇒ stay quiet (the empty stream). Backed by the STATE binding
+ * with the same get/set + value-tracked-expiry pattern as rateLimit. FAILS OPEN
+ * toward SENDING — a STATE outage should reassure the visitor, not dead-air them.
+ */
+export async function shouldSendHolding(
+	env: Env,
+	conversationId: string,
+): Promise<boolean> {
+	const cacheKey = `holdmsg:${conversationId}`;
+	const now = Math.floor(Date.now() / 1000);
+	try {
+		const raw = await env.STATE.get(cacheKey);
+		if (raw) {
+			try {
+				const parsed = JSON.parse(raw) as { ts: number };
+				if (parsed.ts && now - parsed.ts < HOLD_COOLDOWN_SECONDS) {
+					return false; // still within the cooldown — stay quiet
+				}
+			} catch {
+				// Malformed entry — treat as no recent ack.
+			}
+		}
+		await env.STATE.set(cacheKey, JSON.stringify({ ts: now }));
+		return true;
+	} catch (err) {
+		// Fail open toward SENDING: reassure rather than leave the visitor in silence.
+		console.error("shouldSendHolding: state store unavailable, sending", err);
+		return true;
+	}
+}
+
 // Per-IP gate run BEFORE the project lookup on the public widget routes, so a
 // flood of requests bearing unknown/invalid project keys can't drive unbounded
 // DB lookups. Generous — a legit embed polls only a few times/sec, and many

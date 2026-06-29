@@ -9,7 +9,11 @@ import {
 } from "@/lib/conversation-summary";
 import { db } from "@/lib/db";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
-import { publicLookupRateLimit, rateLimit } from "@/lib/kv";
+import {
+	ESCALATED_HOLDING_MESSAGE,
+	holdingStreamResponse,
+} from "@/lib/holding";
+import { publicLookupRateLimit, rateLimit, shouldSendHolding } from "@/lib/kv";
 import { streamChat, summarizeForVisitor } from "@/lib/llm";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
 import { captureEvent } from "@/lib/posthog";
@@ -227,6 +231,20 @@ export const chat = new Hono<AppContext>()
 			.set({ messageCount: nextSeq, updatedAt: new Date() })
 			.where(eq(conversation.id, conv.id));
 
+		// Holding-message guard: a human is in the loop (escalated and not yet
+		// resolved), so the bot must NOT answer over the handoff. The visitor message
+		// is already persisted above (the operator sees it) and messageCount is
+		// bumped, so returning here only skips the model call + the post-stream
+		// waitUntil — NO assistant row, NO usageEvent, NO Stripe meter: a muted turn
+		// is free. Instead of an AI reply we stream a static, automated holding
+		// acknowledgement (throttled to once per ~5 min so a waiting visitor isn't
+		// spammed; an empty stream completes cleanly with no bubble otherwise). The
+		// reopen latch (unarchive leaves escalatedAt set) is a ticketed follow-up.
+		if (conv.escalatedAt && !conv.archivedAt) {
+			const send = await shouldSendHolding(c.env, conv.id);
+			return holdingStreamResponse(send ? ESCALATED_HOLDING_MESSAGE : null);
+		}
+
 		let activePromptContent = project.systemPrompt;
 		const activePromptId = project.activeSystemPromptId;
 		if (activePromptId) {
@@ -386,6 +404,15 @@ export const chat = new Hono<AppContext>()
 		});
 		if (!conv) {
 			return c.json({ error: "no conversation" }, 404);
+		}
+		// Idempotent escalation: if already escalated, do nothing again — no duplicate
+		// system row, no escalatedAt re-stamp, no operator email/Slack, and skip the
+		// visitor-recap generation. A reloading visitor whose session-local "escalated"
+		// flag reset can re-POST /v1/escalate; this stops it re-firing notifications.
+		// (The widget also hydrates escalatedAt from /v1/messages to hide the CTA; this
+		// is the server-side backstop for races that hydration can't cover.)
+		if (conv.escalatedAt) {
+			return c.json({ ok: true, summary: null, alreadyEscalated: true });
 		}
 		// DB first: the escalation must be recorded and visible in the inbox
 		// regardless of whether any notification below succeeds.

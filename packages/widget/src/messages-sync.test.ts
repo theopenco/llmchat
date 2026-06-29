@@ -112,4 +112,30 @@ describe("fetchMessages", () => {
 		);
 		await expect(fetchMessages("http://x", "pk", "c1")).rejects.toThrow(/429/);
 	});
+
+	it("carries escalatedAt through (lets the widget hydrate the handoff state)", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(
+				new Response(
+					JSON.stringify({
+						escalatedAt: "2026-06-29T00:00:00.000Z",
+						messages: [],
+					}),
+				),
+			),
+		);
+		const feed = await fetchMessages("http://x", "pk", "c1");
+		expect(feed.escalatedAt).toBe("2026-06-29T00:00:00.000Z");
+	});
+
+	it("defaults escalatedAt to null when the server omits it (staged-rollout safe)", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(new Response(JSON.stringify({ messages: [] }))),
+		);
+		expect(
+			(await fetchMessages("http://x", "pk", "c1")).escalatedAt,
+		).toBeNull();
+	});
 });

@@ -58,7 +58,12 @@ export const widgetMessages = new Hono<AppContext>().get(
 				a(e(ct.projectId, project.id), e(ct.clientId, clientId)),
 		});
 		if (!conv) {
-			return c.json({ conversationId: null, csatRating: null, messages: [] });
+			return c.json({
+				conversationId: null,
+				csatRating: null,
+				escalatedAt: null,
+				messages: [],
+			});
 		}
 
 		const rows = await db(c.env).query.message.findMany({
@@ -74,6 +79,9 @@ export const widgetMessages = new Hono<AppContext>().get(
 			conversationId: conv.id,
 			// Conversation-level CSAT so the widget never re-prompts a rated visitor.
 			csatRating: conv.csatRating,
+			// Lets the widget hydrate "escalated" on reload (hide the CTA, show the
+			// notice) so it can't re-fire /v1/escalate. Serializes to an ISO string.
+			escalatedAt: conv.escalatedAt,
 			messages: rows.map((m) => ({
 				id: m.id,
 				role: m.role,

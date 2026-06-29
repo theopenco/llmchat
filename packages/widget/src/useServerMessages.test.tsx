@@ -81,6 +81,27 @@ describe("useServerMessages", () => {
 		]);
 	});
 
+	it("exposes escalatedAt from the feed (drives the widget's handoff state)", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(
+					JSON.stringify({
+						escalatedAt: "2026-06-29T00:00:00.000Z",
+						messages: [],
+					}),
+				),
+			);
+		vi.stubGlobal("fetch", fetchMock);
+		const { result } = renderHook(() =>
+			useServerMessages("http://x", "pk", "c1", true),
+		);
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(0);
+		});
+		expect(result.current.escalatedAt).toBe("2026-06-29T00:00:00.000Z");
+	});
+
 	it("stops polling on unmount", async () => {
 		const fetchMock = vi.fn().mockResolvedValue(feedResponse([]));
 		vi.stubGlobal("fetch", fetchMock);
