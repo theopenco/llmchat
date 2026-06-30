@@ -2,6 +2,7 @@ import Link from "next/link";
 import { allPosts } from "content-collections";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { HeroThumbnail } from "@/components/HeroThumbnail";
 import { categories, formatDateShort, type CategoryFilter } from "@/lib/format";
 import { pageMeta } from "@/lib/seo";
 
@@ -104,12 +105,17 @@ export default async function BlogPage({
 								</span>
 							</div>
 						</div>
-						<div className="relative hidden md:col-span-5 md:block">
-							<div className="flex h-full items-center justify-center overflow-hidden rounded-2xl border border-rule bg-paper-deep">
-								<span className="font-display select-none text-[10rem] font-semibold leading-none text-accent/15">
-									01
-								</span>
-							</div>
+						<div className="relative hidden md:col-span-5 md:flex md:items-center">
+							{featured.slug === "clanker-support-is-live-on-product-hunt" ? (
+								// The launch post's featured card previews the actual 1A hero.
+								<HeroThumbnail />
+							) : (
+								<div className="flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border border-rule bg-paper-deep">
+									<span className="font-display select-none text-[10rem] font-semibold leading-none text-accent/15">
+										01
+									</span>
+								</div>
+							)}
 						</div>
 					</Link>
 				)}
