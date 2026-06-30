@@ -98,8 +98,11 @@ export function MessageList({
 
 	return (
 		<div className="llmchat-messages" ref={containerRef}>
-			{/* Synthetic greeting — always the first bubble, so it stays put after the
-			   visitor's first message (it's not part of the message stream). */}
+			{/* The greeting is a persistent client-only node, NOT a member of the
+			   `messages` array: it always renders as the first assistant bubble so it
+			   stays put once the visitor sends. Keeping it out of `messages` insulates
+			   it from mergeMessages (it would otherwise look like an unmatched local
+			   tail entry) and from rating/scroll/poll logic. */}
 			<div className="llmchat-msg llmchat-msg-assistant">
 				<Markdown content={greeting} />
 			</div>

@@ -1,3 +1,5 @@
+import { ESCALATED_HOLDING_MESSAGE } from "@llmchat/shared/holding";
+
 import type { DisplayMessage } from "./components/MessageList";
 import type { Rating } from "./rating";
 
@@ -56,28 +58,67 @@ export async function fetchMessages(
  * in-flight user message and the streaming assistant reply).
  *
  * Each local message is matched against one unconsumed server message with the
- * same role+content; matched ones are dropped (already persisted), unmatched
- * ones (still streaming / in flight / failed) are appended after the feed.
+ * same role+content; matched ones are dropped (already persisted) and rendered via
+ * the feed. Unmatched ones (still streaming / in flight / failed) are appended
+ * after the feed — EXCEPT the escalation holding ack.
+ *
+ * The holding ack is client-only (streamed, never persisted → never matches a
+ * server row), so a plain tail-dump would float it to the BOTTOM, below later admin
+ * replies and subsequent visitor turns. We instead ANCHOR it to the server slot of
+ * the visitor message it acknowledges (its nearest preceding matched local), so it
+ * renders in correct chronological order. Only the holding row is anchored — the
+ * normal in-flight pair (just-sent user + streaming reply) legitimately tails.
  */
 export function mergeMessages(
 	server: ServerMessage[],
 	local: DisplayMessage[],
 ): DisplayMessage[] {
 	const consumed = new Set<number>();
-	const tail: DisplayMessage[] = [];
-	for (const l of local) {
+	// Match each local message to a server index (or -1 = unmatched), in local order.
+	const matched: number[] = local.map((l) => {
 		const idx = server.findIndex(
 			(s, i) =>
 				!consumed.has(i) && s.role === l.role && s.content === l.content,
 		);
-		if (idx >= 0) {
-			consumed.add(idx);
-		} else {
-			tail.push(l);
+		if (idx >= 0) consumed.add(idx);
+		return idx;
+	});
+
+	// Holding acks (unmatched assistant rows with the shared ack content) → keyed by
+	// the server index they anchor after. Everything else unmatched → the tail.
+	const anchored = new Map<number, DisplayMessage[]>();
+	const tail: DisplayMessage[] = [];
+	for (let i = 0; i < local.length; i++) {
+		if (matched[i]! >= 0) continue; // persisted → rendered via the feed
+		const l = local[i]!;
+		const isHolding =
+			l.role === "assistant" && l.content === ESCALATED_HOLDING_MESSAGE;
+		if (isHolding) {
+			// Anchor = the server index of the nearest preceding matched local (the
+			// visitor message this ack replied to).
+			let anchor = -1;
+			for (let j = i - 1; j >= 0; j--) {
+				const m = matched[j]!;
+				if (m >= 0) {
+					anchor = m;
+					break;
+				}
+			}
+			if (anchor >= 0) {
+				const existing = anchored.get(anchor);
+				if (existing) existing.push(l);
+				else anchored.set(anchor, [l]);
+				continue;
+			}
+			// No preceding persisted message yet (transient, pre-poll) — tail for now;
+			// it anchors once the visitor message lands in the feed.
 		}
+		tail.push(l);
 	}
-	return [
-		...server.map((s) => ({
+
+	const out: DisplayMessage[] = [];
+	server.forEach((s, i) => {
+		out.push({
 			id: s.id,
 			role: s.role,
 			content: s.content,
@@ -85,7 +126,9 @@ export function mergeMessages(
 			// Only persisted assistant messages can be rated (they have a stable
 			// DB id); in-flight local messages can't until the feed catches up.
 			rateable: s.role === "assistant",
-		})),
-		...tail,
-	];
+		});
+		const holds = anchored.get(i);
+		if (holds) out.push(...holds);
+	});
+	return [...out, ...tail];
 }

@@ -103,6 +103,25 @@ export default function RootLayout({
 			className={`${display.variable} ${sans.variable} ${mono.variable}`}
 		>
 			<body>
+				{/*
+				 * Defensive shim for the esbuild `__name` (keepNames) helper. Ploy's
+				 * deploy pipeline runs esbuild over the Next output and bakes
+				 * `__name(fn, "fn")` into next-themes' inlined theme <script> without
+				 * defining `__name` in that inline scope — so the script throws
+				 * "__name is not defined" before paint, the `.dark` class is never
+				 * applied pre-hydration, and the page flashes light then snaps to dark.
+				 * The local Next build doesn't emit it, so it can't be caught in dev;
+				 * defining `__name` here (before the theme script runs) restores the
+				 * anti-FOUC behavior. Faithful to esbuild's real helper so any `.name`
+				 * reliance is preserved. (Same fix as the dashboard layout.)
+				 */}
+				<script
+					// eslint-disable-next-line react/no-danger
+					dangerouslySetInnerHTML={{
+						__html:
+							'self.__name||(self.__name=function(t,n){try{Object.defineProperty(t,"name",{value:n,configurable:true})}catch(e){}return t});',
+					}}
+				/>
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="dark"

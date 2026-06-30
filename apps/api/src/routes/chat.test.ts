@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { ESCALATED_HOLDING_MESSAGE } from "@/lib/holding";
-import { publicLookupRateLimit } from "@/lib/kv";
+import { publicLookupRateLimit, shouldSendHolding } from "@/lib/kv";
 import { streamChat, summarizeForVisitor } from "@/lib/llm";
 import { sendEscalationSlack } from "@/lib/slack";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
@@ -17,6 +17,7 @@ vi.mock("@/lib/db", () => ({ db: vi.fn() }));
 vi.mock("@/lib/kv", () => ({
 	rateLimit: vi.fn(async () => ({ ok: true })),
 	publicLookupRateLimit: vi.fn(async () => ({ ok: true })),
+	shouldSendHolding: vi.fn(async () => true),
 }));
 // NOT mocked: @/lib/holding — the guard returns a REAL drainable UI message stream.
 vi.mock("@/lib/llm", () => ({
@@ -384,12 +385,18 @@ describe("POST /v1/chat — escalation mutes the bot (Bug 3 holding message)", (
 	function mockChatDb(
 		convRow: Record<string, unknown>,
 		sources: unknown[] = [],
+		opts: { adminReply?: boolean } = {},
 	) {
 		const valuesSpy = vi.fn((_row: unknown) =>
 			Object.assign(Promise.resolve([]), {
 				returning: async () => [{ id: "ue1" }],
 			}),
 		);
+		// Captures the (column, value) pairs the admin-reply probe's `where` builds, so
+		// a test can assert the predicate is scoped to THIS conversation AND role admin
+		// (a dropped conversationId scope = cross-conversation leak; role "user" = wrong
+		// signal — neither could false-pass a bare `opts.adminReply` mock otherwise).
+		const adminProbeEqs: Array<[unknown, unknown]> = [];
 		vi.mocked(db).mockReturnValue({
 			query: {
 				project: { findFirst: async () => project },
@@ -398,30 +405,54 @@ describe("POST /v1/chat — escalation mutes the bot (Bug 3 holding message)", (
 				},
 				source: { findMany: async () => sources },
 				systemPrompt: { findFirst: async () => undefined },
+				// The Problem-2 "has a human replied?" probe (role: admin). Defaults to
+				// no admin reply, so existing escalated tests keep hitting the ack path.
+				message: {
+					findFirst: async (args?: {
+						where?: (
+							f: Record<string, string>,
+							o: {
+								and: (...x: unknown[]) => unknown;
+								eq: (c: unknown, v: unknown) => unknown;
+							},
+						) => unknown;
+					}) => {
+						args?.where?.(
+							{ conversationId: "conversationId", role: "role" },
+							{
+								and: (...x: unknown[]) => x,
+								eq: (c: unknown, v: unknown) => {
+									adminProbeEqs.push([c, v]);
+									return null;
+								},
+							},
+						);
+						return opts.adminReply ? { id: "admin_msg_1" } : undefined;
+					},
+				},
 			},
 			insert: () => ({ values: valuesSpy }),
 			update: () => ({ set: () => ({ where: async () => [] }) }),
 		} as unknown as ReturnType<typeof db>);
-		return { valuesSpy };
+		return { valuesSpy, adminProbeEqs };
 	}
 
 	const ESCALATED = { escalatedAt: new Date(), archivedAt: null };
 
-	it("mutes the bot when escalated-and-unresolved — empty stream (no bubble), never calls the model", async () => {
+	it("mutes the bot when escalated-and-unresolved — streams the holding ack, never calls the model", async () => {
 		mockChatDb(ESCALATED);
+		vi.mocked(shouldSendHolding).mockResolvedValueOnce(true);
 		const { ctx, settle } = makeCtx();
 		const res = await send(validBody, ctx);
 		expect(res.status).toBe(200);
 		// It's a UI message stream (what useChat parses), not a JSON body.
 		expect(res.headers.get("content-type")).toContain("text/event-stream");
 		expect(streamChat).not.toHaveBeenCalled();
-		// The bot says nothing over the handoff — the automated ack is posted once at
-		// escalation (see the /v1/escalate tests), never streamed per message here.
-		expect(await res.text()).not.toContain(ESCALATED_HOLDING_MESSAGE);
+		expect(await res.text()).toContain(ESCALATED_HOLDING_MESSAGE);
 		await settle();
 	});
 
-	it("a muted turn persists ONLY the visitor message (no assistant/ack row)", async () => {
+	it("still persists the visitor message on a muted turn (operator sees it)", async () => {
 		const { valuesSpy } = mockChatDb(ESCALATED);
 		const { ctx, settle } = makeCtx();
 		await send(validBody, ctx);
@@ -462,13 +493,63 @@ describe("POST /v1/chat — escalation mutes the bot (Bug 3 holding message)", (
 		// Anchor to the guard: if the mute were removed, streamChat would run and
 		// this fails — so the "free" guarantee can't false-pass.
 		expect(streamChat).not.toHaveBeenCalled();
-		// Free = no billable usageEvent row and nothing metered. (Only the visitor's
-		// message row is persisted on a muted turn; it is never metered.)
-		const meteredInsert = valuesSpy.mock.calls.some(
-			(call) => "promptTokens" in (call[0] as object),
-		);
-		expect(meteredInsert).toBe(false);
+		// Only the user row inserted (no usageEvent row); nothing metered.
+		expect(valuesSpy).toHaveBeenCalledTimes(1);
 		expect(reportMeterEvent).not.toHaveBeenCalled();
+	});
+
+	it("throttle: empty stream (no bubble) when shouldSendHolding is false — still free", async () => {
+		const { valuesSpy } = mockChatDb(ESCALATED);
+		vi.mocked(shouldSendHolding).mockResolvedValueOnce(false);
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(200);
+		expect(streamChat).not.toHaveBeenCalled();
+		expect(await res.text()).not.toContain(ESCALATED_HOLDING_MESSAGE);
+		// Throttled turn is also free: only the user row, no usageEvent.
+		expect(valuesSpy).toHaveBeenCalledTimes(1);
+		await settle();
+	});
+
+	// Problem 2: once a human (admin) is actively replying, the bot goes FULLY silent
+	// — no "we'll follow up" ack (it's contradictory) and still no model call.
+	it("a human (admin) has replied → fully silent: no ack, no model call, throttle NOT consulted", async () => {
+		const { valuesSpy } = mockChatDb(ESCALATED, [], { adminReply: true });
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(200);
+		// Bot stays muted (anchored to streamChat so the mute can't false-pass)...
+		expect(streamChat).not.toHaveBeenCalled();
+		// ...and the ack is suppressed — the visitor sees the real human reply via polling.
+		expect(await res.text()).not.toContain(ESCALATED_HOLDING_MESSAGE);
+		// Lazy throttle: the admin-replied path returns BEFORE shouldSendHolding, so it
+		// never dirties the STATE cooldown timestamp.
+		expect(shouldSendHolding).not.toHaveBeenCalled();
+		// Still free + visitor message still persisted (operator sees it).
+		expect(valuesSpy).toHaveBeenCalledTimes(1);
+		await settle();
+	});
+
+	it("NO human reply yet (waiting gap) → the throttle IS consulted and the ack fires", async () => {
+		mockChatDb(ESCALATED, [], { adminReply: false });
+		vi.mocked(shouldSendHolding).mockResolvedValueOnce(true);
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		// The gap path reaches the throttle (proves it's only suppressed once a human is in).
+		expect(shouldSendHolding).toHaveBeenCalledTimes(1);
+		expect(await res.text()).toContain(ESCALATED_HOLDING_MESSAGE);
+		expect(streamChat).not.toHaveBeenCalled();
+		await settle();
+	});
+
+	it("the human-reply probe is scoped to THIS conversation AND role admin (no cross-conversation / wrong-role leak)", async () => {
+		const { adminProbeEqs } = mockChatDb(ESCALATED, [], { adminReply: false });
+		const { ctx, settle } = makeCtx();
+		await send(validBody, ctx);
+		await settle();
+		// Locks the predicate: eq(conversationId, conv.id) AND eq(role, "admin").
+		expect(adminProbeEqs).toContainEqual(["conversationId", "c1"]);
+		expect(adminProbeEqs).toContainEqual(["role", "admin"]);
 	});
 });
 
@@ -746,18 +827,13 @@ describe("POST /v1/escalate — in-chat visitor summary (Bug 2)", () => {
 		expect(await res.json()).toMatchObject({ ok: true, summary: null });
 		// the failing path was actually exercised (future-proofs the rejection branch)
 		expect(summarizeForVisitor).toHaveBeenCalledTimes(1);
-		// escalation still recorded + operator still notified. Two rows persist: the
-		// system marker, then the one-time automated ack anchored right after it —
-		// never the recap summary, which is return-only.
-		expect(valuesSpy).toHaveBeenCalledTimes(2);
-		const inserted = valuesSpy.mock.calls.map(
-			(c) => c[0] as { role?: string; content?: string; sequence?: number },
-		);
-		const insertedSystem = inserted.find((row) => row.role === "system");
-		const insertedAck = inserted.find((row) => row.role === "assistant");
+		// escalation still recorded + operator still notified — and NN2: exactly one
+		// inserted row (the system marker), never a persisted recap message.
+		expect(valuesSpy).toHaveBeenCalledTimes(1);
+		const insertedSystem = valuesSpy.mock.calls
+			.map((c) => c[0] as { role?: string; content?: string })
+			.find((row) => row.role === "system");
 		expect(insertedSystem?.content).toBe("Visitor requested a human operator");
-		expect(insertedAck?.content).toBe(ESCALATED_HOLDING_MESSAGE);
-		expect(insertedAck?.sequence).toBe((insertedSystem?.sequence ?? 0) + 1);
 		expect(sendEmail).toHaveBeenCalled();
 		await settle();
 	});
@@ -838,19 +914,12 @@ describe("POST /v1/escalate — in-chat visitor summary (Bug 2)", () => {
 			expect(payload).not.toHaveProperty("summary");
 			expect(payload).not.toHaveProperty("summaryMessageCount");
 		}
-		// The recap is return-only — never persisted. The escalation persists exactly
-		// two rows: the system marker, then the one-time automated ack — neither is
-		// the recap summary.
-		expect(valuesSpy).toHaveBeenCalledTimes(2);
-		const roles = valuesSpy.mock.calls.map(
-			(c) => (c[0] as { role?: string }).role,
+		// NN2: the recap is return-only — the sole inserted row is the system marker,
+		// never a persisted recap message.
+		expect(valuesSpy).toHaveBeenCalledTimes(1);
+		expect((valuesSpy.mock.calls[0]![0] as { role?: string }).role).toBe(
+			"system",
 		);
-		expect(roles).toEqual(["system", "assistant"]);
-		const contents = valuesSpy.mock.calls.map(
-			(c) => (c[0] as { content?: string }).content,
-		);
-		expect(contents).not.toContain("recap");
-		expect(contents).toContain(ESCALATED_HOLDING_MESSAGE);
 		await settle();
 	});
 

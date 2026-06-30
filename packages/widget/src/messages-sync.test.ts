@@ -1,3 +1,4 @@
+import { ESCALATED_HOLDING_MESSAGE } from "@llmchat/shared/holding";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fetchMessages, mergeMessages } from "./messages-sync";
@@ -85,6 +86,86 @@ describe("mergeMessages", () => {
 			],
 		);
 		expect(merged.map((m) => m.content)).toEqual(["help", "On it!", "thanks"]);
+	});
+});
+
+describe("mergeMessages — holding-ack anchoring (Bug 3 / Problem 1)", () => {
+	const HOLD = {
+		id: "lh",
+		role: "assistant",
+		content: ESCALATED_HOLDING_MESSAGE,
+	};
+
+	it("anchors the holding ack right after the visitor turn it acknowledges — ABOVE a later admin reply, not floating at the bottom", () => {
+		const merged = mergeMessages(
+			[srv(1, "user", "help me"), srv(2, "admin", "human here")],
+			[{ id: "l1", role: "user", content: "help me" }, HOLD],
+		);
+		expect(merged.map((m) => `${m.role}:${m.content}`)).toEqual([
+			"user:help me",
+			`assistant:${ESCALATED_HOLDING_MESSAGE}`,
+			"admin:human here",
+		]);
+		// The contradiction we're fixing: the ack must NOT be the last row when a
+		// human has replied below it.
+		expect(merged[merged.length - 1]!.role).toBe("admin");
+	});
+
+	it("keeps the holding ack anchored when a LATER visitor turn is persisted (no float to the bottom)", () => {
+		const merged = mergeMessages(
+			[srv(1, "user", "first"), srv(2, "user", "second")],
+			[
+				{ id: "l1", role: "user", content: "first" },
+				HOLD,
+				{ id: "l2", role: "user", content: "second" },
+			],
+		);
+		expect(merged.map((m) => m.content)).toEqual([
+			"first",
+			ESCALATED_HOLDING_MESSAGE,
+			"second",
+		]);
+	});
+
+	it("anchors N holding acks, each after its OWN triggering visitor turn", () => {
+		const merged = mergeMessages(
+			[srv(1, "user", "q1"), srv(2, "user", "q2")],
+			[
+				{ id: "l1", role: "user", content: "q1" },
+				{ id: "h1", role: "assistant", content: ESCALATED_HOLDING_MESSAGE },
+				{ id: "l2", role: "user", content: "q2" },
+				{ id: "h2", role: "assistant", content: ESCALATED_HOLDING_MESSAGE },
+			],
+		);
+		expect(merged.map((m) => m.id)).toEqual(["s1", "h1", "s2", "h2"]);
+	});
+
+	it("does NOT anchor the normal in-flight pair — a streaming (non-holding) assistant reply still tails", () => {
+		const merged = mergeMessages(
+			[srv(1, "user", "hello")],
+			[
+				{ id: "l1", role: "user", content: "hello" },
+				{ id: "l2", role: "assistant", content: "streaming answer…" },
+			],
+		);
+		expect(merged.map((m) => m.id)).toEqual(["s1", "l2"]);
+	});
+
+	it("tails a holding with no preceding persisted message yet (transient, pre-poll)", () => {
+		const merged = mergeMessages(
+			[], // nothing persisted yet
+			[{ id: "l1", role: "user", content: "q1" }, HOLD],
+		);
+		expect(merged.map((m) => m.id)).toEqual(["l1", "lh"]);
+	});
+
+	it("the anchored holding ack is never rateable", () => {
+		const merged = mergeMessages(
+			[srv(1, "user", "help me")],
+			[{ id: "l1", role: "user", content: "help me" }, HOLD],
+		);
+		const ack = merged.find((m) => m.content === ESCALATED_HOLDING_MESSAGE);
+		expect(ack?.rateable).toBeFalsy();
 	});
 });
 

@@ -13,7 +13,7 @@ import {
 	ESCALATED_HOLDING_MESSAGE,
 	holdingStreamResponse,
 } from "@/lib/holding";
-import { publicLookupRateLimit, rateLimit } from "@/lib/kv";
+import { publicLookupRateLimit, rateLimit, shouldSendHolding } from "@/lib/kv";
 import { streamChat, summarizeForVisitor } from "@/lib/llm";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
 import { captureEvent } from "@/lib/posthog";
@@ -242,20 +242,34 @@ export const chat = new Hono<AppContext>()
 			.set({ messageCount: nextSeq, updatedAt: new Date() })
 			.where(eq(conversation.id, conv.id));
 
-		// Holding-message guard: a human is handling the conversation (escalated and
-		// not yet resolved), so the bot must NOT answer over the handoff. The visitor
-		// message is already persisted above (the operator sees it) and messageCount
-		// is bumped, so returning here only skips the model call + the post-stream
+		// Holding-message guard: a human is in the loop (escalated and not yet
+		// resolved), so the bot must NOT answer over the handoff. The visitor message
+		// is already persisted above (the operator sees it) and messageCount is
+		// bumped, so returning here only skips the model call + the post-stream
 		// waitUntil — NO assistant row, NO usageEvent, NO Stripe meter: a muted turn
-		// is free. (The reopen latch — unarchive leaves escalatedAt set — is a
-		// ticketed follow-up.)
+		// is free. The bot stays muted in BOTH branches below (neither calls the model).
+		// The reopen latch (unarchive leaves escalatedAt set) is a ticketed follow-up.
 		if (conv.escalatedAt && !conv.archivedAt) {
-			// Return an EMPTY stream (no bubble) and skip the model call. The one-time
-			// automated acknowledgement is persisted ONCE at escalation (see
-			// /escalate), never streamed here — so it stays anchored at the escalation
-			// point and the visitor's later messages always sort BELOW it, instead of
-			// a stream-only bubble that mergeMessages floats to the tail.
-			return holdingStreamResponse(null);
+			// Once an operator (role "admin") has actually replied, a human owns the
+			// conversation and is responding directly — so SUPPRESS the automated
+			// "we'll follow up" ack too: re-serving it while a human is actively
+			// replying is contradictory. Go fully silent (empty stream, no bubble); the
+			// visitor sees the operator's real replies via /v1/messages polling. The ack
+			// only fires while no human (admin) reply exists yet — the waiting gap (so an
+			// operator who replied before escalation suppresses even the first ack, which
+			// is correct: a human is already engaged). Evaluate the
+			// throttle LAZILY (only in the no-admin branch) so this admin-replied path
+			// never dirties the STATE cooldown timestamp.
+			const adminReplied = await db(c.env).query.message.findFirst({
+				where: (m, { and, eq: e }) =>
+					and(e(m.conversationId, conv.id), e(m.role, "admin")),
+				columns: { id: true },
+			});
+			if (adminReplied) {
+				return holdingStreamResponse(null);
+			}
+			const send = await shouldSendHolding(c.env, conv.id);
+			return holdingStreamResponse(send ? ESCALATED_HOLDING_MESSAGE : null);
 		}
 
 		let activePromptContent = project.systemPrompt;
@@ -552,29 +566,6 @@ export const chat = new Hono<AppContext>()
 		// Slack notification runs post-response and is failure-tolerant, so it
 		// never blocks or breaks the escalation (no-op when no webhook is set).
 		c.executionCtx.waitUntil(sendEscalationSlack(c.env, project, conv.id));
-
-		// Post the one-time automated acknowledgement as a REAL persisted message,
-		// anchored right after the escalation marker. It shows once in the visitor's
-		// thread, and because every later message they send gets a higher sequence,
-		// they all sort BELOW it (never the stream-only tail-float of before).
-		// Inserted here, after the operator email + recap were built from `rows`, so
-		// it pollutes neither. Best-effort: the escalation already succeeded above.
-		try {
-			await db(c.env)
-				.insert(messageTable)
-				.values({
-					conversationId: conv.id,
-					role: "assistant",
-					content: ESCALATED_HOLDING_MESSAGE,
-					sequence: systemSeq + 1,
-				});
-			await db(c.env)
-				.update(conversation)
-				.set({ messageCount: systemSeq + 1, updatedAt: new Date() })
-				.where(eq(conversation.id, conv.id));
-		} catch (err) {
-			console.error("escalate: holding acknowledgement persist failed", err);
-		}
 
 		// Resolve the recap last (it overlapped the email sends). Never throws —
 		// both race members are failure-guarded — and is null on any error/timeout/

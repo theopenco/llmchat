@@ -168,7 +168,17 @@ function LiveWidget({
 
 	useEffect(() => {
 		setClientId(getOrCreateClientId());
-	}, []);
+		// Prefill from a prior visit (localStorage, per-project, ≤30d) so a returning
+		// or reloading visitor skips the IdentifyForm. Convenience only — the server
+		// conversation row stays authoritative for the model. getStoredIdentity returns
+		// null on empty/expired/malformed, so an absent/stale entry still shows the form.
+		const saved = getStoredIdentity(projectKey);
+		if (saved) {
+			setName(saved.name);
+			setEmail(saved.email);
+			setIdentified(true);
+		}
+	}, [projectKey]);
 
 	// Server decides whether the "Powered by" badge shows (plan-gated, tamper-
 	// proof). Defaults to shown until the server says otherwise.
@@ -374,16 +384,17 @@ function LiveWidget({
 					onNameChange={setName}
 					onEmailChange={setEmail}
 					onSubmit={() => {
-						// Persist so a reload skips the form (the conversation itself
-						// already survives via the sessionStorage clientId).
-						setStoredIdentity({ name: name.trim(), email: email.trim() });
+						// Remember for next visit (IdentifyForm already blocks an empty name).
+						setStoredIdentity(projectKey, { name, email });
 						setIdentified(true);
 					}}
 				/>
 			) : (
 				<>
 					<MessageList
-						greeting={`Hi ${name}! How can I help?`}
+						greeting={
+							name ? `Hi ${name}! How can I help?` : "Hi! How can I help?"
+						}
 						messages={displayMessages}
 						typing={loading}
 						error={sendFailed ? SEND_ERROR : null}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { ProductHuntBadge } from "@/components/ProductHuntBadge";
 import { TrackedLink } from "@/components/TrackedLink";
 import { JsonLd } from "@/components/JsonLd";
 import { FaqSection } from "@/components/FaqSection";
@@ -332,6 +333,13 @@ export default function Home() {
 			</main>
 
 			<SiteFooter />
+
+			{/* Floating Product Hunt badge — pinned just above the chat widget
+			    bubble (bottom-right). Hidden on the smallest screens so it never
+			    crowds mobile content. */}
+			<div className="fixed bottom-24 right-5 z-40 hidden sm:block">
+				<ProductHuntBadge />
+			</div>
 		</>
 	);
 }

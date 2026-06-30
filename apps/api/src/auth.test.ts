@@ -83,14 +83,14 @@ describe("buildAuthOptions", () => {
 		expect(typeof rl.customStorage?.set).toBe("function");
 	});
 
-	it("trusts only the configured client-IP header for getIp (default cf-connecting-ip, never bare x-forwarded-for)", () => {
+	it("trusts only the configured client-IP header for getIp (default x-real-ip, never bare x-forwarded-for)", () => {
 		expect(buildAuthOptions(env()).advanced.ipAddress.ipAddressHeaders).toEqual(
-			["cf-connecting-ip"],
+			["x-real-ip"],
 		);
 		expect(
-			buildAuthOptions(env({ TRUSTED_CLIENT_IP_HEADER: "x-real-ip" })).advanced
-				.ipAddress.ipAddressHeaders,
-		).toEqual(["x-real-ip"]);
+			buildAuthOptions(env({ TRUSTED_CLIENT_IP_HEADER: "cf-connecting-ip" }))
+				.advanced.ipAddress.ipAddressHeaders,
+		).toEqual(["cf-connecting-ip"]);
 	});
 
 	it("refuses to build with a missing or too-short BETTER_AUTH_SECRET (fail closed)", () => {
