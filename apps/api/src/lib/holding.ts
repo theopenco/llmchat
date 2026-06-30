@@ -1,16 +1,11 @@
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 
-/**
- * The static, automated acknowledgement a visitor sees IN PLACE of an AI reply
- * when they message a conversation that's escalated to a human. Clearly labelled
- * automated and promises no timeline (honesty rail). Exported so the stream, the
- * tests, and any client-side copy share one source of truth.
- *
- * Deliberately NOT placed in @/lib/llm: chat.test.ts mocks that whole module, and
- * the guard needs the REAL builder to produce a drainable stream in tests.
- */
-export const ESCALATED_HOLDING_MESSAGE =
-	"This is an automated message. Thanks — your reply has been added to the conversation and our support team will follow up here. Feel free to keep adding details in the meantime.";
+// The holding-ack copy now lives in @llmchat/shared/holding (single source of
+// truth shared with the widget, which recognizes it to anchor the bubble). Re-
+// exported here so existing `import { ESCALATED_HOLDING_MESSAGE } from "@/lib/holding"`
+// callers (and chat.test.ts, which deliberately does NOT mock this module so the
+// guard gets the REAL stream builder below) keep working unchanged.
+export { ESCALATED_HOLDING_MESSAGE } from "@llmchat/shared/holding";
 
 /**
  * Return the escalation holding acknowledgement as a v6 UI message stream that the

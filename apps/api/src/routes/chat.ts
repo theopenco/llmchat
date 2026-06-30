@@ -247,11 +247,27 @@ export const chat = new Hono<AppContext>()
 		// is already persisted above (the operator sees it) and messageCount is
 		// bumped, so returning here only skips the model call + the post-stream
 		// waitUntil — NO assistant row, NO usageEvent, NO Stripe meter: a muted turn
-		// is free. Instead of an AI reply we stream a static, automated holding
-		// acknowledgement (throttled to once per ~5 min so a waiting visitor isn't
-		// spammed; an empty stream completes cleanly with no bubble otherwise). The
-		// reopen latch (unarchive leaves escalatedAt set) is a ticketed follow-up.
+		// is free. The bot stays muted in BOTH branches below (neither calls the model).
+		// The reopen latch (unarchive leaves escalatedAt set) is a ticketed follow-up.
 		if (conv.escalatedAt && !conv.archivedAt) {
+			// Once an operator (role "admin") has actually replied, a human owns the
+			// conversation and is responding directly — so SUPPRESS the automated
+			// "we'll follow up" ack too: re-serving it while a human is actively
+			// replying is contradictory. Go fully silent (empty stream, no bubble); the
+			// visitor sees the operator's real replies via /v1/messages polling. The ack
+			// only fires while no human (admin) reply exists yet — the waiting gap (so an
+			// operator who replied before escalation suppresses even the first ack, which
+			// is correct: a human is already engaged). Evaluate the
+			// throttle LAZILY (only in the no-admin branch) so this admin-replied path
+			// never dirties the STATE cooldown timestamp.
+			const adminReplied = await db(c.env).query.message.findFirst({
+				where: (m, { and, eq: e }) =>
+					and(e(m.conversationId, conv.id), e(m.role, "admin")),
+				columns: { id: true },
+			});
+			if (adminReplied) {
+				return holdingStreamResponse(null);
+			}
 			const send = await shouldSendHolding(c.env, conv.id);
 			return holdingStreamResponse(send ? ESCALATED_HOLDING_MESSAGE : null);
 		}
