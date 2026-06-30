@@ -18,7 +18,7 @@ export const widgetConfig = new Hono<AppContext>().get(
 		const key = c.req.param("key");
 		const project = await db(c.env).query.project.findFirst({
 			where: (pt, { eq: e }) => e(pt.publicKey, key),
-			columns: { workspaceId: true },
+			columns: { workspaceId: true, privacyPolicyUrl: true },
 		});
 		if (!project) {
 			return c.json({ error: "invalid project key" }, 404);
@@ -26,6 +26,10 @@ export const widgetConfig = new Hono<AppContext>().get(
 		// Branding follows the resolved tier: exempt/internal and Growth/Scale
 		// suppress the badge; Starter (and unpaid) show it.
 		const { entitlements } = await resolveAccess(c.env, project.workspaceId);
-		return c.json({ showBranding: entitlements.branding === "badge" });
+		return c.json({
+			showBranding: entitlements.branding === "badge",
+			// Null → the widget links its privacy notice to its built-in default.
+			privacyPolicyUrl: project.privacyPolicyUrl ?? null,
+		});
 	},
 );

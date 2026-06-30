@@ -37,6 +37,7 @@ const projectCreateInput = z.object({
 	escalationThreshold: z.number().int().min(1).default(3),
 	notifyEmail: z.email().nullable().optional(),
 	slackWebhookUrl: z.url().nullable().optional(),
+	privacyPolicyUrl: z.url().nullable().optional(),
 	favorite: z.boolean().optional(),
 	pinned: z.boolean().optional(),
 });
@@ -59,6 +60,7 @@ const projectUpdateInput = z.object({
 	escalationThreshold: z.number().int().min(1).optional(),
 	notifyEmail: z.email().nullable().optional(),
 	slackWebhookUrl: z.url().nullable().optional(),
+	privacyPolicyUrl: z.url().nullable().optional(),
 	favorite: z.boolean().optional(),
 	pinned: z.boolean().optional(),
 });

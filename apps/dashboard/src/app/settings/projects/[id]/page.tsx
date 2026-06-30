@@ -32,6 +32,7 @@ const EDITABLE_KEYS: (keyof ProjectDraft)[] = [
 	"escalationThreshold",
 	"notifyEmail",
 	"slackWebhookUrl",
+	"privacyPolicyUrl",
 ];
 
 function toDraft(p: Project): ProjectDraft {
@@ -44,6 +45,7 @@ function toDraft(p: Project): ProjectDraft {
 		escalationThreshold: p.escalationThreshold,
 		notifyEmail: p.notifyEmail,
 		slackWebhookUrl: p.slackWebhookUrl,
+		privacyPolicyUrl: p.privacyPolicyUrl,
 	};
 }
 

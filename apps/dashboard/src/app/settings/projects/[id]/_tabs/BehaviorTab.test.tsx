@@ -21,6 +21,7 @@ function draft(o: Partial<ProjectDraft> = {}): ProjectDraft {
 		escalationThreshold: 3,
 		notifyEmail: null,
 		slackWebhookUrl: null,
+		privacyPolicyUrl: null,
 		...o,
 	};
 }

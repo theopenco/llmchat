@@ -15,6 +15,7 @@ function draft(): ProjectDraft {
 		escalationThreshold: 3,
 		notifyEmail: null,
 		slackWebhookUrl: null,
+		privacyPolicyUrl: null,
 	};
 }
 

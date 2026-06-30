@@ -58,6 +58,24 @@ export function WidgetTab({
 						)}
 					</Field>
 
+					<Field
+						label="Privacy policy URL"
+						hint="Linked from the “you agree to our privacy policy” notice. Leave blank to use the Clanker Support default."
+					>
+						{(id) => (
+							<input
+								id={id}
+								type="url"
+								className={`${dsInputClass} font-mono text-xs`}
+								placeholder="https://yourdomain.com/privacy"
+								value={draft.privacyPolicyUrl ?? ""}
+								onChange={(e) =>
+									set("privacyPolicyUrl", e.target.value || null)
+								}
+							/>
+						)}
+					</Field>
+
 					{/* Roadmap — dimmed, no fake control. */}
 					<Field
 						label="Launcher position"
