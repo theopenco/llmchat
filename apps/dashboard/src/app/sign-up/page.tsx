@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { AuthLayout } from "@/components/auth-layout";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
+import { VerifyEmailNotice } from "@/components/auth/verify-email-notice";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ export default function SignUpPage() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [loading, setLoading] = useState(false);
+	const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -51,13 +53,36 @@ export default function SignUpPage() {
 			return;
 		}
 		track(ANALYTICS_EVENTS.signupCompleted, { method: "email" });
-		// New account → straight into onboarding (workspace is provisioned
-		// server-side). Hard navigation, not router.replace: the session cookie
-		// is set on the API origin, so the client session store on this page is
-		// still "logged out" — a soft nav lands on /onboarding with a stale store
-		// and its auth gate bounces back to sign-in. A full load re-initializes
-		// the session with the cookie present.
-		window.location.assign("/onboarding");
+		// Email verification is required: sign-up issues NO session. Instead of
+		// navigating (which would bounce off the auth gate), show the "check your
+		// email" panel. The session arrives only after the user clicks the link
+		// (autoSignInAfterVerification) and lands on /verify-email → /onboarding.
+		setLoading(false);
+		setSubmittedEmail(parsed.data.email);
+	}
+
+	if (submittedEmail) {
+		return (
+			<AuthLayout
+				heading="Check your email"
+				subheading="Verify your email to finish setting up your account"
+			>
+				<VerifyEmailNotice
+					email={submittedEmail}
+					body="We sent a verification link to"
+				/>
+				<p className="mt-6 text-center text-sm text-muted-foreground">
+					Wrong email?{" "}
+					<button
+						type="button"
+						onClick={() => setSubmittedEmail(null)}
+						className="font-medium text-primary"
+					>
+						Go back
+					</button>
+				</p>
+			</AuthLayout>
+		);
 	}
 
 	return (

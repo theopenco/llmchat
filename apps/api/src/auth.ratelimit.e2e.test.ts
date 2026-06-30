@@ -182,29 +182,50 @@ describe("durable auth rate limiting (cross-isolate)", () => {
 	});
 
 	it("keeps SESSIONS in D1, never in STATE — the delete-cascade contract", async () => {
-		// customStorage (not secondaryStorage) must mean a sign-up's session lands in
-		// the D1 `session` table and STATE holds ONLY rate-limit buckets. If a future
+		// customStorage (not secondaryStorage) must mean a real session lands in the
+		// D1 `session` table and STATE holds ONLY rate-limit buckets. If a future
 		// change relocated sessions to STATE, the FK-based delete cascade would orphan
-		// them — this guards exactly that.
+		// them — this guards exactly that. (Sign-up no longer auto-sessions under the
+		// PR2b email-verification gate, so verify the user then sign in to mint one.)
 		const { store, STATE } = freshStore();
 		const auth = createAuth(makeEnv(STATE));
+		const email = "fresh@example.com";
+		const password = "whatever123";
+		const headers = {
+			"content-type": "application/json",
+			"cf-connecting-ip": "203.0.113.20",
+			origin: "http://localhost:3001",
+		};
 
-		const res = await auth.handler(
+		const signUp = await auth.handler(
 			new Request("http://localhost:8787/api/auth/sign-up/email", {
 				method: "POST",
-				headers: {
-					"content-type": "application/json",
-					"cf-connecting-ip": "203.0.113.20",
-					origin: "http://localhost:3001",
-				},
-				body: JSON.stringify({
-					email: "fresh@example.com",
-					password: "whatever123",
-					name: "Fresh",
-				}),
+				headers,
+				body: JSON.stringify({ email, password, name: "Fresh" }),
 			}),
 		);
-		expect(res.status).toBeLessThan(400);
+		expect(signUp.status).toBeLessThan(400);
+		// Gated: sign-up issues no session.
+		expect(
+			(
+				sqlite.prepare("SELECT count(*) AS c FROM session").get() as {
+					c: number;
+				}
+			).c,
+		).toBe(0);
+
+		// Mark verified (stand-in for clicking the link) so sign-in can mint a session.
+		sqlite
+			.prepare("UPDATE user SET email_verified = 1 WHERE email = ?")
+			.run(email);
+		const signIn = await auth.handler(
+			new Request("http://localhost:8787/api/auth/sign-in/email", {
+				method: "POST",
+				headers,
+				body: JSON.stringify({ email, password }),
+			}),
+		);
+		expect(signIn.status).toBeLessThan(400);
 
 		const sessions = sqlite
 			.prepare("SELECT count(*) AS c FROM session")
