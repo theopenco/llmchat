@@ -3,7 +3,7 @@ title: "Introducing Clanker Support: AI support that actually escalates"
 description: "Today we're launching Clanker Support — a drop-in widget that answers from your docs and hands off to your team when the bot can't help."
 date: "2026-05-20"
 category: "Announcements"
-featured: true
+featured: false
 ---
 
 We built Clanker Support because we kept running into the same problem: AI chatbots that confidently hallucinate rather than admit they don't know something. Your customers deserve better, and so does your team.
