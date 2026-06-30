@@ -9,6 +9,7 @@ import { EscalationSection } from "./components/EscalationSection";
 import { IdentifyForm } from "./components/IdentifyForm";
 import { MessageList } from "./components/MessageList";
 import { PoweredBy } from "./components/PoweredBy";
+import { PrivacyNotice } from "./components/PrivacyNotice";
 import { ResolvedNotice } from "./components/ResolvedNotice";
 import { ResolveSection } from "./components/ResolveSection";
 import { WidgetFrame } from "./components/WidgetFrame";
@@ -408,6 +409,9 @@ function LiveWidget({
 					) : (
 						escalated && <EscalationNotice summary={escalationSummary} />
 					)}
+					{/* Consent line above the composer — shown until the visitor's first
+					    message, then it vanishes for the rest of the conversation. */}
+					{userMessageCount === 0 && <PrivacyNotice />}
 					<Composer
 						value={text}
 						disabled={loading}

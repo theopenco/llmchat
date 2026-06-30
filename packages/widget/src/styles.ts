@@ -781,6 +781,32 @@ export const widgetStyles = `
 	word-break: break-word;
 }
 
+/* ── Privacy consent notice (above the composer, until first message) ── */
+.llmchat-privacy {
+	margin: 0;
+	flex-shrink: 0;
+	padding: 0.5rem 0.875rem;
+	font-size: 0.72rem;
+	line-height: 1.4;
+	text-align: center;
+	color: #6b7280;
+	background: #fff;
+	border-top: 1px solid #e5e7eb;
+}
+.llmchat-privacy a {
+	color: var(--brand);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.llmchat-privacy a:hover {
+	text-decoration: none;
+}
+/* When the notice is present it owns the divider above the composer, so the
+   composer drops its own top border to avoid a double line. */
+.llmchat-privacy + .llmchat-input {
+	border-top: none;
+}
+
 /* ── Composer ──────────────────────────────────────────────────────── */
 .llmchat-input {
 	border-top: 1px solid #e5e7eb;
