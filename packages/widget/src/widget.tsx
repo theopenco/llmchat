@@ -15,7 +15,12 @@ import { WidgetFrame } from "./components/WidgetFrame";
 import { rateConversation, shouldPromptCsat } from "./csat";
 import { requestEscalation } from "./escalation";
 import { requestResolve } from "./resolve";
-import { getOrCreateClientId, getText } from "./lib";
+import {
+	getOrCreateClientId,
+	getStoredIdentity,
+	getText,
+	setStoredIdentity,
+} from "./lib";
 import { mergeMessages } from "./messages-sync";
 import { rateMessage, useMessageRatings } from "./rating";
 import { ShowcaseChat } from "./ShowcaseChat";
@@ -158,7 +163,17 @@ function LiveWidget({
 
 	useEffect(() => {
 		setClientId(getOrCreateClientId());
-	}, []);
+		// Prefill from a prior visit (localStorage, per-project, ≤30d) so a returning
+		// or reloading visitor skips the IdentifyForm. Convenience only — the server
+		// conversation row stays authoritative for the model. getStoredIdentity returns
+		// null on empty/expired/malformed, so an absent/stale entry still shows the form.
+		const saved = getStoredIdentity(projectKey);
+		if (saved) {
+			setName(saved.name);
+			setEmail(saved.email);
+			setIdentified(true);
+		}
+	}, [projectKey]);
 
 	// Server decides whether the "Powered by" badge shows (plan-gated, tamper-
 	// proof). Defaults to shown until the server says otherwise.
@@ -363,7 +378,11 @@ function LiveWidget({
 					email={email}
 					onNameChange={setName}
 					onEmailChange={setEmail}
-					onSubmit={() => setIdentified(true)}
+					onSubmit={() => {
+						// Remember for next visit (IdentifyForm already blocks an empty name).
+						setStoredIdentity(projectKey, { name, email });
+						setIdentified(true);
+					}}
 				/>
 			) : (
 				<>
