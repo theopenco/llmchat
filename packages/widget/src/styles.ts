@@ -285,6 +285,9 @@ export const widgetStyles = `
 
 /* ── Messages ──────────────────────────────────────────────────────── */
 .llmchat-messages {
+	/* position:relative so a message's offsetTop is measured against this scroll
+	   container — useAnchoredScroll relies on it to pin the latest turn to the top. */
+	position: relative;
 	flex: 1;
 	overflow-y: auto;
 	padding: 1rem 0.875rem;
@@ -294,6 +297,12 @@ export const widgetStyles = `
 	background: #fff;
 	scrollbar-width: thin;
 	scrollbar-color: #d1d5db transparent;
+}
+/* Bottom spacer that lets the latest visitor message reach the top of the
+   viewport; its height is set imperatively by useAnchoredScroll (0 by default). */
+.llmchat-anchor-spacer {
+	flex: 0 0 auto;
+	pointer-events: none;
 }
 .llmchat-messages::-webkit-scrollbar {
 	width: 8px;
@@ -779,6 +788,32 @@ export const widgetStyles = `
 	line-height: 1.4;
 	color: #374151;
 	word-break: break-word;
+}
+
+/* ── Privacy consent notice (above the composer, until first message) ── */
+.llmchat-privacy {
+	margin: 0;
+	flex-shrink: 0;
+	padding: 0.5rem 0.875rem;
+	font-size: 0.72rem;
+	line-height: 1.4;
+	text-align: center;
+	color: #6b7280;
+	background: #fff;
+	border-top: 1px solid #e5e7eb;
+}
+.llmchat-privacy a {
+	color: var(--brand);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.llmchat-privacy a:hover {
+	text-decoration: none;
+}
+/* When the notice is present it owns the divider above the composer, so the
+   composer drops its own top border to avoid a double line. */
+.llmchat-privacy + .llmchat-input {
+	border-top: none;
 }
 
 /* ── Composer ──────────────────────────────────────────────────────── */

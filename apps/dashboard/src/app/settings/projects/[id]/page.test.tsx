@@ -48,6 +48,7 @@ const PROJECT: Project = {
 	escalationThreshold: 3,
 	notifyEmail: null,
 	slackWebhookUrl: null,
+	privacyPolicyUrl: null,
 };
 
 beforeEach(() => {

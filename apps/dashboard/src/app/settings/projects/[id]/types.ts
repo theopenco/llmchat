@@ -11,6 +11,7 @@ export interface Project {
 	escalationThreshold: number;
 	notifyEmail: string | null;
 	slackWebhookUrl: string | null;
+	privacyPolicyUrl: string | null;
 }
 
 export interface Source {
@@ -45,6 +46,7 @@ export type ProjectDraft = Pick<
 	| "escalationThreshold"
 	| "notifyEmail"
 	| "slackWebhookUrl"
+	| "privacyPolicyUrl"
 >;
 
 export const INSTRUCTION_TEMPLATES = {

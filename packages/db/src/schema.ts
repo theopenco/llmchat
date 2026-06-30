@@ -154,6 +154,9 @@ export const project = sqliteTable(
 		escalationThreshold: integer().notNull().default(3),
 		notifyEmail: text(),
 		slackWebhookUrl: text(),
+		// Absolute URL the widget's "agree to our privacy policy" notice links to.
+		// Null → the widget falls back to the Clanker Support default policy.
+		privacyPolicyUrl: text(),
 		// Local part for inbound email replies: reply+<inboundEmailLocal>@domain
 		inboundEmailLocal: text().notNull().unique(),
 		createdAt: createdAt(),

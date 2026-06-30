@@ -190,13 +190,34 @@ describe("MessageList markdown", () => {
 	});
 });
 
-describe("MessageList auto-scroll (useStickToBottom)", () => {
-	it("stays pinned to the bottom as a reply streams when near the bottom", () => {
+describe("MessageList anchored scroll (useAnchoredScroll)", () => {
+	// jsdom reports offsetTop 0 for every node, so "scroll the anchor to the top"
+	// resolves to scrollTop 0 — distinct from the old stick-to-bottom behavior,
+	// which would have jumped to scrollHeight (1000).
+	it("pins the visitor's new message to the top, not the bottom, when sent", () => {
+		const a1 = msg("a1", "assistant", "previous answer");
+		const { el, rerender } = renderList([a1], false);
+		const s = mockScroll(el, { scrollHeight: 1000, clientHeight: 400 });
+		s.setTop(300); // somewhere in the middle
+
+		rerender(
+			<MessageList
+				greeting="hi"
+				messages={[a1, msg("u2", "user", "a new question")]}
+				typing
+				error={null}
+			/>,
+		);
+		expect(s.top).toBe(0); // anchored to the top (would be 1000 if it chased the bottom)
+	});
+
+	it("does NOT move the viewport as the reply streams in below the anchor", () => {
 		const user = msg("u1", "user", "hello there");
 		const { el, rerender } = renderList([user], true);
 		const s = mockScroll(el, { scrollHeight: 1000, clientHeight: 400 });
-		s.setTop(620); // 1000 - 620 - 400 = -20 ≤ 100 → near bottom
+		s.setTop(50); // reading from the top of the turn
 
+		// Same visitor turn (u1) — only the assistant reply grows.
 		rerender(
 			<MessageList
 				greeting="hi"
@@ -205,27 +226,10 @@ describe("MessageList auto-scroll (useStickToBottom)", () => {
 				error={null}
 			/>,
 		);
-		expect(s.top).toBe(1000); // followed to the bottom
+		expect(s.top).toBe(50); // stays put — the reply reads top-down, no chase
 	});
 
-	it("does NOT scroll when the user has scrolled up to read earlier messages", () => {
-		const user = msg("u1", "user", "hello there");
-		const { el, rerender } = renderList([user], true);
-		const s = mockScroll(el, { scrollHeight: 1000, clientHeight: 400 });
-		s.setTop(0); // 1000 - 0 - 400 = 600 > 100 → scrolled up
-
-		rerender(
-			<MessageList
-				greeting="hi"
-				messages={[user, msg("a1", "assistant", "a long streaming answer…")]}
-				typing
-				error={null}
-			/>,
-		);
-		expect(s.top).toBe(0); // left alone — no yank
-	});
-
-	it("does not jump to the bottom when mounting with existing history", () => {
+	it("does not jump when mounting with existing history", () => {
 		const history = Array.from({ length: 8 }, (_, i) =>
 			msg(`m${i}`, i % 2 ? "assistant" : "user", `message ${i}`),
 		);
@@ -234,21 +238,25 @@ describe("MessageList auto-scroll (useStickToBottom)", () => {
 		expect(s.top).toBe(0);
 	});
 
-	it("follows the visitor's own sent message even if they were scrolled up", () => {
+	it("reserves a bottom spacer so a short reply still pins the message to the top", () => {
 		const a1 = msg("a1", "assistant", "previous answer");
-		const { el, rerender } = renderList([a1], false);
-		const s = mockScroll(el, { scrollHeight: 1000, clientHeight: 400 });
-		s.setTop(0); // scrolled up
+		const { el, rerender, container } = renderList([a1], false);
+		// Short thread: total content (200) is less than the viewport (400), so the
+		// spacer must make up the difference (minus the anchor and the top gap).
+		mockScroll(el, { scrollHeight: 200, clientHeight: 400 });
 
 		rerender(
 			<MessageList
 				greeting="hi"
 				messages={[a1, msg("u2", "user", "a new question")]}
-				typing={false}
+				typing
 				error={null}
 			/>,
 		);
-		expect(s.top).toBe(1000); // user-initiated → always follows
+		const spacer = container.querySelector<HTMLElement>(
+			"[data-llmchat-spacer]",
+		);
+		expect(spacer?.style.height).toBe("188px"); // 400 - 200 - 12 (TOP_GAP)
 	});
 
 	it("does not scroll on a rating-only re-render", () => {
@@ -260,7 +268,7 @@ describe("MessageList auto-scroll (useStickToBottom)", () => {
 		};
 		const { el, rerender } = renderList([a1], false);
 		const s = mockScroll(el, { scrollHeight: 1000, clientHeight: 400 });
-		s.setTop(0); // scrolled up
+		s.setTop(300);
 
 		rerender(
 			<MessageList
@@ -271,7 +279,7 @@ describe("MessageList auto-scroll (useStickToBottom)", () => {
 				onRate={() => {}}
 			/>,
 		);
-		expect(s.top).toBe(0); // rating change leaves the thread put
+		expect(s.top).toBe(300); // rating change leaves the thread put
 	});
 
 	it("shows the scroll-to-latest button while streaming and scrolled up", () => {

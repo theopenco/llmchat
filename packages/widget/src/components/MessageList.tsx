@@ -1,4 +1,4 @@
-import { useStickToBottom } from "../hooks/useStickToBottom";
+import { useAnchoredScroll } from "../hooks/useAnchoredScroll";
 import type { Rating } from "../rating";
 import { Markdown } from "./Markdown";
 import { ThumbDownIcon, ThumbUpIcon } from "./icons";
@@ -87,13 +87,20 @@ export function MessageList({
 	onRate?: (messageId: string, current: Rating, intent: "up" | "down") => void;
 }) {
 	const last = messages[messages.length - 1];
+	// The visitor's latest message — pinned to the top of the viewport when sent,
+	// so the reply streams in below it and the chat reads top-down (à la Chatbase)
+	// rather than the view chasing the bottom token-by-token.
+	const lastUserId = messages.reduce(
+		(id, m) => (m.role === "user" ? m.id : id),
+		"",
+	);
 	const { containerRef, atBottom, scrollToBottom } =
-		useStickToBottom<HTMLDivElement>({
+		useAnchoredScroll<HTMLDivElement>({
+			// Changes only when the visitor sends → anchor that turn to the top.
+			anchorKey: lastUserId,
 			// Grows as tokens stream / a message is added — but NOT on a rating
-			// toggle (same length & content), so rating doesn't trigger a scroll.
+			// toggle (same length & content), so rating doesn't re-fit anything.
 			contentKey: `${messages.length}:${last?.content.length ?? 0}`,
-			// The visitor's own sends (role "user") always follow to the bottom.
-			sendKey: messages.reduce((id, m) => (m.role === "user" ? m.id : id), ""),
 		});
 
 	return (
@@ -125,7 +132,11 @@ export function MessageList({
 					);
 				}
 				return (
-					<div key={m.id} className={`llmchat-msg llmchat-msg-${m.role}`}>
+					<div
+						key={m.id}
+						className={`llmchat-msg llmchat-msg-${m.role}`}
+						{...(m.id === lastUserId ? { "data-llmchat-anchor": "" } : {})}
+					>
 						<MessageBody role={m.role} content={m.content} />
 					</div>
 				);
@@ -145,6 +156,10 @@ export function MessageList({
 					{error}
 				</div>
 			)}
+			{/* Reserved space so the latest visitor message can scroll to the very
+			   top even when its reply is short; height is managed by useAnchoredScroll
+			   and collapses once the turn fills the viewport. */}
+			<div className="llmchat-anchor-spacer" data-llmchat-spacer aria-hidden />
 			{typing && !atBottom && (
 				<button
 					type="button"

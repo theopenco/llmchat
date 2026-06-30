@@ -9,6 +9,7 @@ import { EscalationSection } from "./components/EscalationSection";
 import { IdentifyForm } from "./components/IdentifyForm";
 import { MessageList } from "./components/MessageList";
 import { PoweredBy } from "./components/PoweredBy";
+import { PrivacyNotice } from "./components/PrivacyNotice";
 import { ResolvedNotice } from "./components/ResolvedNotice";
 import { ResolveSection } from "./components/ResolveSection";
 import { WidgetFrame } from "./components/WidgetFrame";
@@ -25,7 +26,7 @@ import { mergeMessages } from "./messages-sync";
 import { rateMessage, useMessageRatings } from "./rating";
 import { ShowcaseChat } from "./ShowcaseChat";
 import { useServerMessages } from "./useServerMessages";
-import { useShowBranding } from "./widget-config";
+import { useWidgetConfig } from "./widget-config";
 
 import type { Rating } from "./rating";
 
@@ -140,9 +141,13 @@ function LiveWidget({
 	const inline = mode === "inline";
 	const [open, setOpen] = useState(inline);
 	const [text, setText] = useState("");
-	const [name, setName] = useState("");
-	const [email, setEmail] = useState("");
-	const [identified, setIdentified] = useState(false);
+	// Hydrate identity from localStorage on first render (lazy init → no flash of
+	// the form on reload). The widget mounts client-side only, and getStoredIdentity
+	// is failure-safe, so reading storage during init is fine.
+	const storedIdentity = useState(() => getStoredIdentity(projectKey))[0];
+	const [name, setName] = useState(storedIdentity?.name ?? "");
+	const [email, setEmail] = useState(storedIdentity?.email ?? "");
+	const [identified, setIdentified] = useState(storedIdentity != null);
 	const [escalatedLocal, setEscalatedLocal] = useState(false);
 	const [escalating, setEscalating] = useState(false);
 	const [escalateFailed, setEscalateFailed] = useState(false);
@@ -176,8 +181,12 @@ function LiveWidget({
 	}, [projectKey]);
 
 	// Server decides whether the "Powered by" badge shows (plan-gated, tamper-
-	// proof). Defaults to shown until the server says otherwise.
-	const showBranding = useShowBranding(apiUrl, projectKey);
+	// proof) and supplies the project's privacy policy URL. Defaults to branded /
+	// built-in privacy link until the server says otherwise.
+	const { showBranding, privacyPolicyUrl } = useWidgetConfig(
+		apiUrl,
+		projectKey,
+	);
 
 	const chat = useMemo(
 		() =>
@@ -414,6 +423,11 @@ function LiveWidget({
 						<ResolvedNotice />
 					) : (
 						escalated && <EscalationNotice summary={escalationSummary} />
+					)}
+					{/* Consent line above the composer — shown until the visitor's first
+					    message, then it vanishes for the rest of the conversation. */}
+					{userMessageCount === 0 && (
+						<PrivacyNotice privacyPolicyUrl={privacyPolicyUrl} />
 					)}
 					<Composer
 						value={text}

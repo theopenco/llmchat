@@ -674,7 +674,7 @@ describe("POST /v1/escalate — operator transcript is server-side", () => {
 	});
 
 	it("acknowledges the customer and seeds the email thread when a visitor email + inbound domain are present", async () => {
-		const valuesSpy = vi.fn(() =>
+		const valuesSpy = vi.fn((_row: unknown) =>
 			Object.assign(Promise.resolve([]), {
 				returning: async () => [{ id: "ue1" }],
 			}),
