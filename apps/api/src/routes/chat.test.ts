@@ -385,12 +385,18 @@ describe("POST /v1/chat — escalation mutes the bot (Bug 3 holding message)", (
 	function mockChatDb(
 		convRow: Record<string, unknown>,
 		sources: unknown[] = [],
+		opts: { adminReply?: boolean } = {},
 	) {
 		const valuesSpy = vi.fn((_row: unknown) =>
 			Object.assign(Promise.resolve([]), {
 				returning: async () => [{ id: "ue1" }],
 			}),
 		);
+		// Captures the (column, value) pairs the admin-reply probe's `where` builds, so
+		// a test can assert the predicate is scoped to THIS conversation AND role admin
+		// (a dropped conversationId scope = cross-conversation leak; role "user" = wrong
+		// signal — neither could false-pass a bare `opts.adminReply` mock otherwise).
+		const adminProbeEqs: Array<[unknown, unknown]> = [];
 		vi.mocked(db).mockReturnValue({
 			query: {
 				project: { findFirst: async () => project },
@@ -399,11 +405,36 @@ describe("POST /v1/chat — escalation mutes the bot (Bug 3 holding message)", (
 				},
 				source: { findMany: async () => sources },
 				systemPrompt: { findFirst: async () => undefined },
+				// The Problem-2 "has a human replied?" probe (role: admin). Defaults to
+				// no admin reply, so existing escalated tests keep hitting the ack path.
+				message: {
+					findFirst: async (args?: {
+						where?: (
+							f: Record<string, string>,
+							o: {
+								and: (...x: unknown[]) => unknown;
+								eq: (c: unknown, v: unknown) => unknown;
+							},
+						) => unknown;
+					}) => {
+						args?.where?.(
+							{ conversationId: "conversationId", role: "role" },
+							{
+								and: (...x: unknown[]) => x,
+								eq: (c: unknown, v: unknown) => {
+									adminProbeEqs.push([c, v]);
+									return null;
+								},
+							},
+						);
+						return opts.adminReply ? { id: "admin_msg_1" } : undefined;
+					},
+				},
 			},
 			insert: () => ({ values: valuesSpy }),
 			update: () => ({ set: () => ({ where: async () => [] }) }),
 		} as unknown as ReturnType<typeof db>);
-		return { valuesSpy };
+		return { valuesSpy, adminProbeEqs };
 	}
 
 	const ESCALATED = { escalatedAt: new Date(), archivedAt: null };
@@ -478,6 +509,47 @@ describe("POST /v1/chat — escalation mutes the bot (Bug 3 holding message)", (
 		// Throttled turn is also free: only the user row, no usageEvent.
 		expect(valuesSpy).toHaveBeenCalledTimes(1);
 		await settle();
+	});
+
+	// Problem 2: once a human (admin) is actively replying, the bot goes FULLY silent
+	// — no "we'll follow up" ack (it's contradictory) and still no model call.
+	it("a human (admin) has replied → fully silent: no ack, no model call, throttle NOT consulted", async () => {
+		const { valuesSpy } = mockChatDb(ESCALATED, [], { adminReply: true });
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(200);
+		// Bot stays muted (anchored to streamChat so the mute can't false-pass)...
+		expect(streamChat).not.toHaveBeenCalled();
+		// ...and the ack is suppressed — the visitor sees the real human reply via polling.
+		expect(await res.text()).not.toContain(ESCALATED_HOLDING_MESSAGE);
+		// Lazy throttle: the admin-replied path returns BEFORE shouldSendHolding, so it
+		// never dirties the STATE cooldown timestamp.
+		expect(shouldSendHolding).not.toHaveBeenCalled();
+		// Still free + visitor message still persisted (operator sees it).
+		expect(valuesSpy).toHaveBeenCalledTimes(1);
+		await settle();
+	});
+
+	it("NO human reply yet (waiting gap) → the throttle IS consulted and the ack fires", async () => {
+		mockChatDb(ESCALATED, [], { adminReply: false });
+		vi.mocked(shouldSendHolding).mockResolvedValueOnce(true);
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		// The gap path reaches the throttle (proves it's only suppressed once a human is in).
+		expect(shouldSendHolding).toHaveBeenCalledTimes(1);
+		expect(await res.text()).toContain(ESCALATED_HOLDING_MESSAGE);
+		expect(streamChat).not.toHaveBeenCalled();
+		await settle();
+	});
+
+	it("the human-reply probe is scoped to THIS conversation AND role admin (no cross-conversation / wrong-role leak)", async () => {
+		const { adminProbeEqs } = mockChatDb(ESCALATED, [], { adminReply: false });
+		const { ctx, settle } = makeCtx();
+		await send(validBody, ctx);
+		await settle();
+		// Locks the predicate: eq(conversationId, conv.id) AND eq(role, "admin").
+		expect(adminProbeEqs).toContainEqual(["conversationId", "c1"]);
+		expect(adminProbeEqs).toContainEqual(["role", "admin"]);
 	});
 });
 
