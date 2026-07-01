@@ -1,4 +1,25 @@
+import { isInternalEmail } from "@llmchat/shared";
+
 import type { Env } from "@/env";
+
+/**
+ * Pure platform-admin decision. An UNVERIFIED email is NEVER an admin — this is
+ * the load-bearing guard: email/password sign-up is unverified and auto-signs-in,
+ * so without it an attacker could register an as-yet-unclaimed `ADMIN_EMAILS`
+ * address (or any address later granted role='admin') and self-elevate. Once
+ * verified, access is granted by the email allowlist OR a DB role of 'admin'.
+ * OAuth accounts arrive verified; the dev seed's admin is pre-verified.
+ */
+export function isAdminGranted(input: {
+	emailVerified: boolean;
+	email: string;
+	role: string | null | undefined;
+	allowlist: readonly string[];
+}): boolean {
+	if (!input.emailVerified) return false;
+	if (isInternalEmail(input.email, input.allowlist)) return true;
+	return input.role === "admin";
+}
 
 /**
  * The platform-admin email allowlist, parsed from `ADMIN_EMAILS`. Empty when

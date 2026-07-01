@@ -8,9 +8,12 @@
 -- existing user backfills to the least-privileged 'user'. Ploy's ledger applies
 -- each migration file once, in filename order.
 --
--- Preview-safety: the running Worker never does a `SELECT *` of the user row
--- (Better Auth reads only its own fields; the two remaining app-level user
--- lookups are scoped to `columns: { email }`), so a preview DB that skips this
--- migration will not 500 the hot auth path. Only the new /admin/* routes read
--- `role`, and admin access also falls back to the ADMIN_EMAILS env allowlist.
+-- Preview-safety (migrate-before-serve, mirroring 0014/0015): this column is
+-- ADDED here but deliberately NOT declared on the Drizzle `user` table in
+-- schema.ts. Better Auth's adapter loads the session user with an unprojected
+-- `select().from(user)` on every request, so declaring the column in schema.ts
+-- would 500 all auth on a preview DB that skipped this migration. The /admin/*
+-- routes read `role` via an explicit `sql` projection (fault-tolerant), so no
+-- code path names the column unless it exists. Admin access also falls back to
+-- the ADMIN_EMAILS env allowlist (verified emails only).
 ALTER TABLE `user` ADD COLUMN `role` text DEFAULT 'user' NOT NULL;

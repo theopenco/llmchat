@@ -6,11 +6,26 @@ import { useState } from "react";
 import { cx } from "@/lib/cx";
 import { signIn } from "@/lib/auth-client";
 
-/** Only same-origin relative paths are honored as a post-login redirect. */
+/**
+ * Only SAME-ORIGIN targets are honored as a post-login redirect. Resolve the
+ * candidate exactly as the browser will (via the URL parser) and accept it only
+ * if its origin matches — a startsWith("/") check is not enough, since
+ * "//evil.com" and "/\\evil.com" (backslash, which the parser normalizes to a
+ * slash) both resolve to an absolute off-origin URL (open-redirect, CWE-601).
+ */
 function safeNext(): string {
 	if (typeof window === "undefined") return "/";
 	const n = new URLSearchParams(window.location.search).get("next");
-	return n && n.startsWith("/") && !n.startsWith("//") ? n : "/";
+	if (!n) return "/";
+	try {
+		const url = new URL(n, window.location.origin);
+		if (url.origin === window.location.origin) {
+			return url.pathname + url.search + url.hash;
+		}
+	} catch {
+		// Unparseable — fall through to the safe default.
+	}
+	return "/";
 }
 
 export default function LoginPage() {

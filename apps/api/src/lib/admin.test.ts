@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { adminEmails, adminUrl } from "./admin";
+import { adminEmails, adminUrl, isAdminGranted } from "./admin";
 
 import type { Env } from "@/env";
 
@@ -31,5 +31,61 @@ describe("adminUrl", () => {
 
 	it("defaults to the local dev port when unset", () => {
 		expect(adminUrl(env({}))).toBe("http://localhost:3004");
+	});
+});
+
+describe("isAdminGranted", () => {
+	const allow = ["ops@clanker.com"];
+
+	it("NEVER grants admin to an unverified email — even on the allowlist or with role='admin'", () => {
+		expect(
+			isAdminGranted({
+				emailVerified: false,
+				email: "ops@clanker.com",
+				role: "admin",
+				allowlist: allow,
+			}),
+		).toBe(false);
+	});
+
+	it("grants a verified email on the allowlist (case-insensitive)", () => {
+		expect(
+			isAdminGranted({
+				emailVerified: true,
+				email: "OPS@CLANKER.COM",
+				role: null,
+				allowlist: allow,
+			}),
+		).toBe(true);
+	});
+
+	it("grants a verified email with DB role='admin'", () => {
+		expect(
+			isAdminGranted({
+				emailVerified: true,
+				email: "someone@else.com",
+				role: "admin",
+				allowlist: allow,
+			}),
+		).toBe(true);
+	});
+
+	it("denies a verified non-admin, non-allowlisted email", () => {
+		expect(
+			isAdminGranted({
+				emailVerified: true,
+				email: "user@customer.com",
+				role: "user",
+				allowlist: allow,
+			}),
+		).toBe(false);
+		expect(
+			isAdminGranted({
+				emailVerified: true,
+				email: "user@customer.com",
+				role: null,
+				allowlist: [],
+			}),
+		).toBe(false);
 	});
 });
