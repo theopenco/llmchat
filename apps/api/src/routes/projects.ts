@@ -145,6 +145,10 @@ export const projects = new Hono<AppContext>()
 			if (notifyEmail === undefined) {
 				const creator = await db(c.env).query.user.findFirst({
 					where: (u, { eq: e }) => e(u.id, userId),
+					// Only the email is read below. Scope the projection so this never
+					// becomes a `SELECT *` of the user row — a preview DB that skipped
+					// migrations may lack newer columns (e.g. `role`).
+					columns: { email: true },
 				});
 				notifyEmail = creator?.email ?? null;
 			}
