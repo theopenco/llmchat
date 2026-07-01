@@ -256,20 +256,31 @@ export const admin = new Hono<AppContext>()
 	.get("/admin/users", requireGlobalAdmin, async (c) => {
 		const d = db(c.env);
 		const limit = parseLimit(c.req.query("limit"));
-		// `role` is read via a raw `sql` projection because it isn't modeled on the
-		// Drizzle `user` table (see schema.ts / migration 0017). Admin-gated, so it
-		// only runs once the column is guaranteed to exist in prod.
-		const users = await d
-			.select({
-				id: user.id,
-				name: user.name,
-				email: user.email,
-				emailVerified: user.emailVerified,
-				role: sql<string>`role`,
-				createdAt: user.createdAt,
-			})
-			.from(user)
-			.orderBy(desc(user.createdAt))
-			.limit(limit);
-		return c.json({ users });
+		const base = {
+			id: user.id,
+			name: user.name,
+			email: user.email,
+			emailVerified: user.emailVerified,
+			createdAt: user.createdAt,
+		};
+		// `role` isn't modeled on the Drizzle `user` table (see schema.ts), so it's
+		// read via a raw `sql` projection — guarded the same way as the middleware.
+		// requireGlobalAdmin can pass via the ADMIN_EMAILS allowlist WITHOUT the
+		// 0017 column existing (e.g. a migration-less preview), so a bare read could
+		// 500; on failure, fall back to the least-privileged 'user'.
+		try {
+			const users = await d
+				.select({ ...base, role: sql<string>`role` })
+				.from(user)
+				.orderBy(desc(user.createdAt))
+				.limit(limit);
+			return c.json({ users });
+		} catch {
+			const rows = await d
+				.select(base)
+				.from(user)
+				.orderBy(desc(user.createdAt))
+				.limit(limit);
+			return c.json({ users: rows.map((u) => ({ ...u, role: "user" })) });
+		}
 	});

@@ -19,9 +19,8 @@
 
 -- role = 'admin' makes the seeded user a PLATFORM admin, so the local admin
 -- dashboard (apps/admin, admin.clankersupport.com in prod) works out of the box
--- with these credentials. Distinct from the workspace-scoped owner membership
--- below. (ADMIN_EMAILS in apps/api/.env.example also lists this address, so the
--- env-allowlist path works locally too.)
+-- with these credentials (email_verified = 1 satisfies the admin verified-email
+-- gate). Distinct from the workspace-scoped owner membership below.
 INSERT OR IGNORE INTO `user` (`id`, `name`, `email`, `email_verified`, `role`)
 VALUES ('dev-admin', 'Local Admin', 'admin@example.com', 1, 'admin');
 
