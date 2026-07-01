@@ -4,6 +4,7 @@ import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { BrandMark } from "@/components/BrandMark";
 import { DiscordIcon, XIcon } from "@/components/SocialIcons";
 import { TrackedLink } from "@/components/TrackedLink";
+import { TOOLS } from "@/lib/tools";
 import { DISCORD_URL, X_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
@@ -19,7 +20,7 @@ export function SiteFooter() {
 	return (
 		<footer className="mt-32 border-t border-rule bg-paper-deep">
 			<div className="mx-auto max-w-6xl px-6 py-16">
-				<div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+				<div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
 					<div>
 						<div className="flex items-center gap-2.5">
 							<BrandMark className="size-8" />
@@ -75,6 +76,24 @@ export function SiteFooter() {
 							<li>
 								<Link href="/blog" className={colLink}>
 									Blog
+								</Link>
+							</li>
+						</ul>
+					</div>
+
+					<div>
+						<h3 className={colHead}>Free tools</h3>
+						<ul className="mt-4 space-y-2.5">
+							{TOOLS.map((t) => (
+								<li key={t.slug}>
+									<Link href={`/tools/${t.slug}`} className={colLink}>
+										{t.name}
+									</Link>
+								</li>
+							))}
+							<li>
+								<Link href="/tools" className={colLink}>
+									All tools
 								</Link>
 							</li>
 						</ul>

@@ -7,6 +7,7 @@ export interface LlmsTxtInput {
 	posts: { slug: string; title: string; description: string }[];
 	competitors: { id: string; name: string; tldr: string }[];
 	migrations: { slug: string; name: string; tagline: string }[];
+	tools: { slug: string; name: string; tagline: string }[];
 }
 
 const SUMMARY =
@@ -24,6 +25,13 @@ export function buildLlmsTxt(siteUrl: string, input: LlmsTxtInput): string {
 		`- [Compare](${siteUrl}/compare): How Clanker Support compares to other AI support tools.`,
 		`- [Pricing](${siteUrl}/pricing.md): Self-host (free) and hosted plans — Starter, Growth, and Scale.`,
 	];
+
+	if (input.tools.length) {
+		lines.push("", "## Free tools");
+		for (const t of input.tools) {
+			lines.push(`- [${t.name}](${siteUrl}/tools/${t.slug}): ${t.tagline}`);
+		}
+	}
 
 	if (input.competitors.length) {
 		lines.push("", "## Comparisons");

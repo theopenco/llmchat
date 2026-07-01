@@ -10,6 +10,8 @@ export const ANALYTICS_EVENTS = {
 	migrationGuideViewed: "migration_guide_viewed",
 	useCaseViewed: "use_case_viewed",
 	blogPostRead: "blog_post_read",
+	toolViewed: "tool_viewed",
+	toolUsed: "tool_used",
 
 	// ── Product / dashboard ─────────────────────────────────────────
 	signupCompleted: "signup_completed",

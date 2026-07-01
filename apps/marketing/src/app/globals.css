@@ -159,6 +159,41 @@
 		color: rgb(var(--ink-soft));
 	}
 
+	/* Range slider for the free tools — accent fill up to --fill (set inline). */
+	.tool-range {
+		appearance: none;
+		width: 100%;
+		height: 4px;
+		border-radius: 9999px;
+		background: linear-gradient(
+			to right,
+			rgb(var(--accent)) var(--fill, 50%),
+			rgb(var(--rule)) var(--fill, 50%)
+		);
+		cursor: pointer;
+	}
+	.tool-range::-webkit-slider-thumb {
+		appearance: none;
+		width: 18px;
+		height: 18px;
+		border-radius: 9999px;
+		background: rgb(var(--accent));
+		border: 3px solid rgb(var(--paper-card));
+		box-shadow:
+			0 0 0 1px rgb(var(--accent)),
+			0 4px 12px rgba(99, 102, 241, 0.5);
+	}
+	.tool-range::-moz-range-thumb {
+		width: 18px;
+		height: 18px;
+		border-radius: 9999px;
+		background: rgb(var(--accent));
+		border: 3px solid rgb(var(--paper-card));
+		box-shadow:
+			0 0 0 1px rgb(var(--accent)),
+			0 4px 12px rgba(99, 102, 241, 0.5);
+	}
+
 	/* Drop cap for the first paragraph of an article. */
 	.dropcap > p:first-of-type::first-letter {
 		font-family: var(--font-display), sans-serif;
