@@ -1,0 +1,10 @@
+kind: nextjs
+build: pnpm --filter @llmchat/admin build
+out: .next
+
+env:
+  # The admin console talks to the API + Better Auth. Browser-safe (public).
+  NEXT_PUBLIC_API_URL: https://api.clankersupport.com
+
+dev:
+  port: 3004
