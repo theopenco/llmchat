@@ -1,15 +1,6 @@
 "use client";
 
-import {
-	Check,
-	Clock,
-	Globe,
-	Mail,
-	MessageCircle,
-	Monitor,
-	Star,
-	TriangleAlert,
-} from "lucide-react";
+import { Check, Star, TriangleAlert } from "lucide-react";
 
 import { CopyButton } from "@/components/ds";
 import { cn } from "@/lib/utils";
@@ -36,31 +27,27 @@ function Section({
 	);
 }
 
+/** Chatbase-style detail row: gray label left, bold value right-aligned. */
 function Field({
-	icon,
 	label,
 	value,
 	mono,
 }: {
-	icon: React.ReactNode;
 	label: string;
 	value: React.ReactNode;
 	mono?: boolean;
 }) {
 	return (
-		<div className="flex items-start gap-3">
-			<span className="mt-0.5 text-ck-faint [&_svg]:size-4">{icon}</span>
-			<div className="min-w-0 flex-1">
-				<p className="text-xs font-medium text-ck-faint">{label}</p>
-				<p
-					className={cn(
-						"break-words text-sm text-ck-text",
-						mono && "font-mono text-xs",
-					)}
-				>
-					{value}
-				</p>
-			</div>
+		<div className="flex items-baseline justify-between gap-3">
+			<span className="shrink-0 text-xs text-ck-faint">{label}</span>
+			<span
+				className={cn(
+					"min-w-0 break-words text-right text-sm font-medium text-ck-text",
+					mono && "font-mono text-xs",
+				)}
+			>
+				{value}
+			</span>
 		</div>
 	);
 }
@@ -99,7 +86,7 @@ export function DetailPanel({
 	const device = parseDevice(conversation.userAgent);
 
 	return (
-		<div className="flex min-h-0 flex-col bg-ck-sidebar">
+		<div className="flex min-h-0 flex-col bg-ck-card">
 			{/* Identity + Copy email (LIVE) */}
 			<div className="flex flex-col items-center gap-3 border-b border-ck-border px-6 py-6">
 				<span className="flex size-16 items-center justify-center rounded-2xl bg-ck-accent text-lg font-bold text-white">
@@ -144,10 +131,10 @@ export function DetailPanel({
 				)}
 
 				{conversation.archivedAt && (
-					<div className="m-4 rounded-[10px] bg-ck-accent/12 p-3">
+					<div className="m-4 rounded-[10px] bg-ck-good/12 p-3">
 						<div className="flex items-center gap-2">
-							<Check className="size-4 text-ck-accent" />
-							<span className="text-xs font-semibold text-ck-accent">
+							<Check className="size-4 text-ck-good" />
+							<span className="text-xs font-semibold text-ck-good">
 								{conversation.resolvedBy === "visitor"
 									? "Resolved by the visitor"
 									: conversation.resolvedBy === "admin"
@@ -155,7 +142,7 @@ export function DetailPanel({
 										: "Resolved"}
 							</span>
 						</div>
-						<p className="mt-1 text-xs text-ck-accent/80">
+						<p className="mt-1 text-xs text-ck-good/80">
 							{formatFullDate(conversation.archivedAt)}
 						</p>
 					</div>
@@ -163,32 +150,18 @@ export function DetailPanel({
 
 				{/* LIVE — real captured fields only. */}
 				<Section title="Contact">
+					<Field label="Email" value={conversation.email ?? "Not provided"} />
 					<Field
-						icon={<Mail />}
-						label="Email"
-						value={conversation.email ?? "Not provided"}
-					/>
-					<Field
-						icon={<Globe />}
 						label="IP address"
 						value={conversation.ipAddress ?? "Unknown"}
 						mono
 					/>
+					<Field label="Device" value={device ?? "Unknown"} />
 					<Field
-						icon={<Monitor />}
-						label="Device"
-						value={device ?? "Unknown"}
-					/>
-					<Field
-						icon={<Clock />}
 						label="Started"
 						value={formatFullDate(conversation.createdAt)}
 					/>
-					<Field
-						icon={<MessageCircle />}
-						label="Messages"
-						value={conversation.messageCount}
-					/>
+					<Field label="Messages" value={conversation.messageCount} />
 				</Section>
 
 				<Section title="CSAT rating">
@@ -201,7 +174,7 @@ export function DetailPanel({
 										className={cn(
 											"size-4",
 											n <= conversation.csatRating!
-												? "text-ck-warn"
+												? "text-ck-good"
 												: "text-ck-disabled",
 										)}
 										fill={

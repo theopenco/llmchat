@@ -58,7 +58,7 @@ export function TopBar({
 					type="button"
 					onClick={onOpenSearch}
 					aria-label="Search conversations and projects"
-					className="hidden h-9 w-full max-w-md items-center gap-2 rounded-md border border-ck-border bg-ck-app px-3 text-sm text-ck-muted transition-colors hover:text-ck-text sm:flex"
+					className="hidden h-9 w-full max-w-md items-center gap-2 rounded-[10px] border border-transparent bg-ck-chip px-3 text-sm text-ck-muted transition-colors hover:bg-ck-navhover hover:text-ck-text sm:flex"
 				>
 					<Search className="size-4 shrink-0" />
 					<span className="flex-1 truncate text-left">
@@ -96,6 +96,9 @@ export function TopBar({
 					<HelpCircle className="size-4" />
 				</a>
 			</Button>
+
+			{/* Thin divider before the avatar (Chatbase top-right cluster). */}
+			<span className="mx-1 hidden h-5 w-px bg-ck-border sm:block" />
 
 			<AccountMenu userEmail={userEmail} roleLabel={roleLabel} />
 		</header>

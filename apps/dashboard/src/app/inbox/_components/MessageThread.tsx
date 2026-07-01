@@ -1,7 +1,13 @@
 "use client";
 
 import { useStickToBottom } from "@llmchat/widget/chat";
-import { ArrowDown, Headset, ThumbsDown, ThumbsUp } from "lucide-react";
+import {
+	ArrowDown,
+	Headset,
+	Sparkles,
+	ThumbsDown,
+	ThumbsUp,
+} from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 
 import { Bubble, Button } from "@/components/ds";
@@ -103,7 +109,13 @@ function MessageBubble({
 			data-search-hit={firstHit ? "true" : undefined}
 			className={cn("flex flex-col gap-1", right ? "items-end" : "items-start")}
 		>
-			<span className={cn("px-1 text-[11px] font-semibold", labelClass)}>
+			<span
+				className={cn(
+					"inline-flex items-center gap-1 px-1 text-[11px] font-semibold",
+					labelClass,
+				)}
+			>
+				{message.role === "assistant" && <Sparkles className="size-3" />}
 				{label}
 			</span>
 			<Bubble side={side} tone={tone}>

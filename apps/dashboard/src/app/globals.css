@@ -10,41 +10,50 @@
 	 * the same hue family (marketing itself is dark-only). Aligning these
 	 * variables is the leverage point — shadcn primitives inherit automatically.
 	 */
+	/*
+	 * LIGHT is now the default (Chatbase-style adoption): a warm near-white
+	 * canvas, white cards, hairline borders, and a MONOCHROME near-black primary
+	 * (Chatbase uses black buttons + black user bubbles, not a color brand). These
+	 * shadcn tokens drive components/ui/* (dialogs, Sheet, ⌘K palette, Sonner,
+	 * auth pages); they're kept in lockstep with the --ck-* set below so those
+	 * surfaces match the shell/inbox. Semantic destructive/success/warning/info
+	 * stay colored.
+	 */
 	:root {
-		--background: 220 33% 98%; /* faint slate canvas — white cards pop on it */
-		--foreground: 221 39% 11%; /* #111827 brand neutral */
+		--background: 60 6% 97%; /* #F7F7F6 warm near-white canvas */
+		--foreground: 0 0% 10%; /* #1A1A1A near-black text */
 		--card: 0 0% 100%;
-		--card-foreground: 221 39% 11%;
+		--card-foreground: 0 0% 10%;
 		--popover: 0 0% 100%;
-		--popover-foreground: 221 39% 11%;
-		--primary: 239 84% 67%; /* indigo-500 #6366F1 — unified brand indigo (matches mockups) */
+		--popover-foreground: 0 0% 10%;
+		--primary: 0 0% 10%; /* near-black primary (Chatbase) */
 		--primary-foreground: 0 0% 100%;
-		--secondary: 220 33% 96%;
-		--secondary-foreground: 221 39% 11%;
-		--muted: 220 33% 96%;
-		--muted-foreground: 221 14% 43%;
-		--accent: 220 33% 96%;
-		--accent-foreground: 221 39% 11%;
+		--secondary: 0 0% 96%;
+		--secondary-foreground: 0 0% 10%;
+		--muted: 0 0% 96%;
+		--muted-foreground: 0 0% 45%; /* #737373 muted gray */
+		--accent: 0 0% 96%;
+		--accent-foreground: 0 0% 10%;
 		--destructive: 0 84.2% 60.2%;
 		--destructive-foreground: 210 40% 98%;
-		--success: 142.1 76.2% 36.3%;
+		--success: 142.1 71% 40%;
 		--success-foreground: 138 76% 97%;
 		--warning: 38 92% 50%;
 		--warning-foreground: 48 96% 89%;
 		--info: 221.2 83.2% 53.3%;
 		--info-foreground: 210 40% 98%;
-		--border: 220 22% 90%;
-		--input: 220 22% 90%;
-		--ring: 239 84% 67%;
+		--border: 0 0% 92%; /* #EBEBEB hairline */
+		--input: 0 0% 92%;
+		--ring: 0 0% 10%;
 		--radius: 0.5rem;
-		--sidebar-background: 220 33% 98%;
-		--sidebar-foreground: 221 20% 35%;
-		--sidebar-primary: 239 84% 67%;
+		--sidebar-background: 60 6% 97%;
+		--sidebar-foreground: 0 0% 35%;
+		--sidebar-primary: 0 0% 10%;
 		--sidebar-primary-foreground: 0 0% 100%;
-		--sidebar-accent: 220 33% 94%;
-		--sidebar-accent-foreground: 221 39% 11%;
-		--sidebar-border: 220 22% 90%;
-		--sidebar-ring: 239 84% 67%;
+		--sidebar-accent: 0 0% 94%;
+		--sidebar-accent-foreground: 0 0% 10%;
+		--sidebar-border: 0 0% 92%;
+		--sidebar-ring: 0 0% 10%;
 	}
 
 	.dark {
@@ -99,22 +108,24 @@
 	 * bare in raw CSS; go through a `ck-*` utility, or wrap it `rgb(var(--ck-*))`.
 	 */
 	:root {
-		--ck-board: 231 229 223;
-		--ck-app: 246 246 247;
-		--ck-sidebar: 251 251 252;
+		--ck-board: 244 244 243;
+		--ck-app: 247 247 246; /* #F7F7F6 canvas */
+		--ck-sidebar: 247 247 246; /* match app so the white active pill pops */
 		--ck-topbar: 255 255 255;
-		--ck-border: 236 236 239;
-		--ck-text: 24 24 27;
-		--ck-muted: 91 91 100;
-		--ck-faint: 154 154 163;
-		--ck-disabled: 182 182 191;
-		--ck-navhover: 240 240 243;
+		--ck-border: 236 236 236; /* #ECECEC hairline */
+		--ck-text: 26 26 26; /* #1A1A1A */
+		--ck-muted: 122 122 125; /* #7A7A7D */
+		--ck-faint: 150 150 155;
+		--ck-disabled: 182 182 186;
+		--ck-navhover: 240 240 239;
 		--ck-card: 255 255 255;
-		--ck-track: 235 235 240;
-		--ck-chip: 240 240 243;
-		--ck-accent: 79 70 229; /* indigo-600 #4f46e5 — light-mode accent */
-		--ck-accent-hover: 67 56 202; /* #4338ca */
-		--ck-warn: 180 83 9; /* amber #b45309 — overage/reference only, never a fake limit */
+		--ck-track: 234 234 233;
+		--ck-chip: 241 241 240; /* gray AI/visitor bubble + subtle fills */
+		--ck-accent: 26 26 26; /* near-black — Chatbase primary (black buttons/bubbles) */
+		--ck-accent-hover: 60 60 66; /* black can't darken → hover lightens */
+		--ck-good: 22 163 74; /* #16A34A — CSAT / resolved / positive */
+		--ck-link: 37 99 235; /* #2563EB — text links */
+		--ck-warn: 180 83 9; /* amber #b45309 — escalated only, never a fake limit */
 	}
 
 	.dark {
@@ -131,8 +142,10 @@
 		--ck-card: 20 22 27;
 		--ck-track: 37 40 50;
 		--ck-chip: 27 30 37;
-		--ck-accent: 99 102 241; /* indigo-500 #6366f1 — dark-mode accent */
+		--ck-accent: 99 102 241; /* indigo-500 #6366f1 — dark-mode accent (kept) */
 		--ck-accent-hover: 118 121 242; /* #7679f2 */
+		--ck-good: 74 222 128; /* green — CSAT / resolved / positive */
+		--ck-link: 96 165 250; /* blue — links */
 		--ck-warn: 224 161 63; /* #e0a13f */
 	}
 

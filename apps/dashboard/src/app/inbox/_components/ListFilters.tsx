@@ -4,6 +4,7 @@ import { Search, SlidersHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+import { pluralize } from "./format";
 import { InboxStats } from "./InboxStats";
 import { STATUS_FILTERS, type StatusFilter } from "./status";
 import type { ConversationStats, Tag } from "./types";
@@ -72,9 +73,16 @@ export function ListFilters({
 
 	return (
 		<div className="flex flex-col gap-3 border-b border-ck-border px-4 pb-3 pt-4">
-			<h1 className="text-lg font-bold tracking-[-0.01em] text-ck-text">
-				Inbox
-			</h1>
+			<div>
+				<h1 className="text-lg font-bold tracking-[-0.01em] text-ck-text">
+					Inbox
+				</h1>
+				{stats && (
+					<p className="mt-0.5 text-xs text-ck-faint">
+						{pluralize(stats.total, "conversation")}
+					</p>
+				)}
+			</div>
 
 			{/* Real project-wide aggregates (LIVE) — honest 0s when empty. */}
 			<InboxStats stats={stats} />
@@ -87,7 +95,7 @@ export function ListFilters({
 					onChange={(e) => onSearch(e.target.value)}
 					placeholder="Search conversations…"
 					aria-label="Search conversations"
-					className="h-9 w-full rounded-[10px] border border-ck-border bg-ck-card pl-9 pr-3 text-sm text-ck-text outline-none placeholder:text-ck-faint focus-visible:border-ck-accent"
+					className="h-9 w-full rounded-[10px] border border-transparent bg-ck-chip pl-9 pr-3 text-sm text-ck-text outline-none placeholder:text-ck-faint focus-visible:border-ck-accent focus-visible:bg-ck-card"
 				/>
 			</div>
 

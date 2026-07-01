@@ -61,7 +61,7 @@ export function UsageMeter() {
 						Limits aren&apos;t enforced yet —{" "}
 						<Link
 							href="/settings/billing"
-							className="font-semibold text-ck-accent"
+							className="font-semibold text-ck-link"
 						>
 							Billing
 						</Link>

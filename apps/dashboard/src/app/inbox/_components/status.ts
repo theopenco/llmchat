@@ -47,6 +47,6 @@ export const STATUS_PILL: Record<
 	},
 	resolved: {
 		label: "Resolved",
-		className: "bg-ck-accent/12 text-ck-accent",
+		className: "bg-ck-good/12 text-ck-good",
 	},
 };

@@ -48,15 +48,15 @@ function ConversationRow({
 			className={cn(
 				"flex w-full items-start gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors",
 				selected
-					? "bg-ck-accent/10 ring-1 ring-inset ring-ck-accent/25"
-					: "hover:bg-ck-navhover",
+					? "border border-ck-border bg-ck-card shadow-sm"
+					: "border border-transparent hover:bg-ck-navhover",
 			)}
 		>
 			<div className="relative shrink-0">
 				<span
 					className={cn(
 						"flex size-9 items-center justify-center rounded-full text-xs font-bold",
-						selected ? "bg-ck-accent text-white" : "bg-ck-chip text-ck-muted",
+						selected ? "bg-ck-text text-white" : "bg-ck-chip text-ck-muted",
 					)}
 				>
 					{initials(conversation.name)}
@@ -111,7 +111,7 @@ function ConversationRow({
 				<div className="mt-0.5 flex flex-wrap items-center gap-1.5">
 					{/* Resolved takes precedence over Escalated (matches deriveStatus). */}
 					{resolved ? (
-						<span className="inline-flex h-4 items-center rounded-full bg-ck-accent/15 px-1.5 text-[10px] font-semibold text-ck-accent">
+						<span className="inline-flex h-4 items-center rounded-full bg-ck-good/15 px-1.5 text-[10px] font-semibold text-ck-good">
 							Resolved
 						</span>
 					) : escalated ? (
