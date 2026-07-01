@@ -4,6 +4,7 @@ import { allCompetitors, allMigrations, allPosts } from "content-collections";
 import { buildSitemap } from "@/lib/seo";
 import { FEATURES } from "@/lib/features";
 import { USE_CASES } from "@/lib/use-cases";
+import { TOOLS } from "@/lib/tools";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -15,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			migrations: allMigrations.map((m) => ({ slug: m.slug })),
 			features: FEATURES.map((f) => ({ slug: f.slug })),
 			useCases: USE_CASES.map((u) => ({ slug: u.slug })),
+			tools: TOOLS.map((t) => ({ slug: t.slug })),
 		},
 		new Date(),
 	);

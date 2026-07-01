@@ -1,6 +1,7 @@
 import { allCompetitors, allMigrations, allPosts } from "content-collections";
 
 import { buildLlmsTxt } from "@/lib/llms-txt";
+import { TOOLS } from "@/lib/tools";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 // Static: the content collections are fixed at build time.
@@ -22,6 +23,11 @@ export function GET() {
 			slug: m.slug,
 			name: m.name,
 			tagline: m.tagline,
+		})),
+		tools: TOOLS.map((t) => ({
+			slug: t.slug,
+			name: t.name,
+			tagline: t.tagline,
 		})),
 	});
 

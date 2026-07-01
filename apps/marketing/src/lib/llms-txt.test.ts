@@ -18,6 +18,13 @@ const input = {
 	migrations: [
 		{ slug: "intercom", name: "Intercom", tagline: "Move in an afternoon." },
 	],
+	tools: [
+		{
+			slug: "csat-calculator",
+			name: "CSAT calculator",
+			tagline: "Score your support in seconds.",
+		},
+	],
 };
 
 describe("buildLlmsTxt", () => {
@@ -45,6 +52,13 @@ describe("buildLlmsTxt", () => {
 		expect(out).toContain("## Journal");
 	});
 
+	it("enumerates the free tools", () => {
+		expect(out).toContain("## Free tools");
+		expect(out).toContain(
+			`[CSAT calculator](${BASE}/tools/csat-calculator): Score your support in seconds.`,
+		);
+	});
+
 	it("uses the 'support agent' positioning, never 'chatbot'", () => {
 		expect(out.toLowerCase()).toContain("support agent");
 		expect(out.toLowerCase()).not.toContain("chatbot");
@@ -57,7 +71,8 @@ describe("buildLlmsTxt", () => {
 	});
 
 	it("omits a section when its collection is empty", () => {
-		const out2 = buildLlmsTxt(BASE, { ...input, posts: [] });
+		const out2 = buildLlmsTxt(BASE, { ...input, posts: [], tools: [] });
 		expect(out2).not.toContain("## Journal");
+		expect(out2).not.toContain("## Free tools");
 	});
 });

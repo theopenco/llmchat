@@ -5,7 +5,9 @@ import {
 	buildSitemap,
 	faqPageLd,
 	howToLd,
+	itemListLd,
 	pageMeta,
+	webApplicationLd,
 } from "./seo";
 
 const NOW = new Date("2026-06-20T00:00:00.000Z");
@@ -20,6 +22,7 @@ const input = {
 	migrations: [{ slug: "intercom" }],
 	features: [{ slug: "drop-in-widget" }, { slug: "email-threading" }],
 	useCases: [{ slug: "ecommerce" }, { slug: "documentation" }],
+	tools: [{ slug: "csat-calculator" }, { slug: "llms-txt-generator" }],
 };
 
 describe("buildSitemap", () => {
@@ -52,6 +55,12 @@ describe("buildSitemap", () => {
 		expect(urls).toContain(`${BASE}/use-cases/documentation`);
 	});
 
+	it("includes the tools hub and every tool page", () => {
+		expect(urls).toContain(`${BASE}/tools`);
+		expect(urls).toContain(`${BASE}/tools/csat-calculator`);
+		expect(urls).toContain(`${BASE}/tools/llms-txt-generator`);
+	});
+
 	it("has no relative or double-slashed URLs and no duplicates", () => {
 		for (const u of urls) {
 			expect(u.startsWith("https://")).toBe(true);
@@ -67,8 +76,40 @@ describe("buildSitemap", () => {
 		expect(post?.lastModified).toEqual(new Date("2026-05-01"));
 	});
 
-	it("counts = 8 static + posts + competitors + migrations + features + use cases", () => {
-		expect(entries).toHaveLength(8 + 2 + 2 + 1 + 2 + 2);
+	it("counts = 9 static + posts + competitors + migrations + features + use cases + tools", () => {
+		expect(entries).toHaveLength(9 + 2 + 2 + 1 + 2 + 2 + 2);
+	});
+});
+
+describe("webApplicationLd", () => {
+	it("marks the tool as a free web app with an explicit zero-price offer", () => {
+		const ld = webApplicationLd({
+			name: "CSAT calculator",
+			description: "Calculate your CSAT score.",
+			url: `${BASE}/tools/csat-calculator`,
+		});
+		expect(ld["@type"]).toBe("WebApplication");
+		expect(ld.applicationCategory).toBe("BusinessApplication");
+		expect(ld.offers).toEqual({
+			"@type": "Offer",
+			price: "0",
+			priceCurrency: "USD",
+		});
+		expect(ld.url).toBe(`${BASE}/tools/csat-calculator`);
+	});
+});
+
+describe("itemListLd", () => {
+	it("numbers list items from 1 with absolute URLs", () => {
+		const ld = itemListLd([
+			{ name: "A", url: `${BASE}/tools/a` },
+			{ name: "B", url: `${BASE}/tools/b` },
+		]);
+		expect(ld["@type"]).toBe("ItemList");
+		expect(ld.itemListElement).toEqual([
+			{ "@type": "ListItem", position: 1, name: "A", url: `${BASE}/tools/a` },
+			{ "@type": "ListItem", position: 2, name: "B", url: `${BASE}/tools/b` },
+		]);
 	});
 });
 

@@ -105,12 +105,55 @@ export function howToLd(opts: {
 	};
 }
 
+/**
+ * schema.org `WebApplication` for a free interactive tool page (calculator /
+ * generator). `offers` at price 0 is what marks it as free — required for the
+ * software-app rich result. Category is `BusinessApplication`: these are
+ * support-team utilities, not games or dev tools.
+ */
+export function webApplicationLd(opts: {
+	name: string;
+	description: string;
+	url: string;
+}): Record<string, unknown> {
+	return {
+		"@context": "https://schema.org",
+		"@type": "WebApplication",
+		name: opts.name,
+		description: opts.description,
+		url: opts.url,
+		applicationCategory: "BusinessApplication",
+		operatingSystem: "Web",
+		offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+	};
+}
+
+/**
+ * schema.org `ItemList` of pages — used on hub/index pages (e.g. /tools) so
+ * crawlers see the set as a curated collection with stable ordering.
+ */
+export function itemListLd(
+	items: { name: string; url: string }[],
+): Record<string, unknown> {
+	return {
+		"@context": "https://schema.org",
+		"@type": "ItemList",
+		itemListElement: items.map((item, i) => ({
+			"@type": "ListItem",
+			position: i + 1,
+			name: item.name,
+			url: item.url,
+		})),
+	};
+}
+
 export interface SitemapInput {
 	posts: { slug: string; date: string }[];
 	competitors: { id: string }[];
 	migrations: { slug: string }[];
 	features: { slug: string }[];
 	useCases: { slug: string }[];
+	tools: { slug: string }[];
 }
 
 /**
@@ -163,6 +206,12 @@ export function buildSitemap(
 			priority: 0.7,
 		},
 		{
+			url: url("/tools"),
+			lastModified: now,
+			changeFrequency: "monthly",
+			priority: 0.8,
+		},
+		{
 			url: url("/privacy-policy"),
 			lastModified: now,
 			changeFrequency: "yearly",
@@ -211,6 +260,13 @@ export function buildSitemap(
 		priority: 0.7,
 	}));
 
+	const tools: MetadataRoute.Sitemap = input.tools.map((t) => ({
+		url: url(`/tools/${t.slug}`),
+		lastModified: now,
+		changeFrequency: "monthly",
+		priority: 0.7,
+	}));
+
 	return [
 		...staticEntries,
 		...posts,
@@ -218,5 +274,6 @@ export function buildSitemap(
 		...migrate,
 		...features,
 		...useCases,
+		...tools,
 	];
 }
