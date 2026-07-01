@@ -2,8 +2,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 
 import { createAuth } from "@/auth";
+import { adminUrl } from "@/lib/admin";
 import { isAllowedOrigin } from "@/lib/origins";
 import { account } from "@/routes/account";
+import { admin } from "@/routes/admin";
 import { billing } from "@/routes/billing";
 import { chat } from "@/routes/chat";
 import { conversations } from "@/routes/conversations";
@@ -37,9 +39,12 @@ app.use(
 			if (c.req.path.startsWith("/api/auth")) {
 				const mkt = c.env.vars.MARKETING_URL || "http://localhost:3002";
 				const showcase = c.env.vars.SHOWCASE_URL || "http://localhost:3003";
+				// The admin console signs in through Better Auth too, so its origin
+				// must be allowed to read/write /api/auth/*.
 				return isAllowedOrigin(origin, dash) ||
 					isAllowedOrigin(origin, mkt) ||
-					isAllowedOrigin(origin, showcase)
+					isAllowedOrigin(origin, showcase) ||
+					isAllowedOrigin(origin, adminUrl(c.env))
 					? origin
 					: null;
 			}
@@ -75,6 +80,19 @@ app.use("/billing/checkout", billingBrowserCors);
 app.use("/billing/portal", billingBrowserCors);
 app.use("/billing/usage", billingBrowserCors);
 
+// Admin console API: credentialed, pinned to the admin origin only (never the
+// dashboard/marketing/showcase). Preview deployments of the admin app match via
+// isAllowedOrigin's preview-suffix logic. Auth is asserted per-route by
+// requireGlobalAdmin — this is just the browser-origin gate.
+app.use(
+	"/admin/*",
+	cors({
+		origin: (origin, c) =>
+			isAllowedOrigin(origin, adminUrl(c.env)) ? origin : null,
+		credentials: true,
+	}),
+);
+
 app.on(["GET", "POST"], "/api/auth/*", (c) => {
 	const auth = createAuth(c.env);
 	return auth.handler(c.req.raw);
@@ -94,6 +112,7 @@ app.route("/api", systemPrompts);
 app.route("/api", sources);
 app.route("/api", tags);
 app.route("/api", conversations);
+app.route("/", admin);
 app.route("/", inboundEmail);
 // Billing mounts at root so the webhook is reachable at /billing/webhook
 // (the URL registered in Stripe), not under /api.
