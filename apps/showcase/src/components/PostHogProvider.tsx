@@ -14,8 +14,17 @@ const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const POSTHOG_HOST =
 	process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
 
+// Dev servers run with the same production key from .env, so localhost
+// sessions land in production analytics. Skip capture locally;
+// NEXT_PUBLIC_POSTHOG_CAPTURE_DEV=true opts back in when testing capture.
+function isLocalhostSession() {
+	if (process.env.NEXT_PUBLIC_POSTHOG_CAPTURE_DEV === "true") return false;
+	const host = window.location.hostname;
+	return host === "localhost" || host === "127.0.0.1";
+}
+
 function initPostHog() {
-	if (!POSTHOG_KEY || posthog.__loaded) return;
+	if (!POSTHOG_KEY || posthog.__loaded || isLocalhostSession()) return;
 	posthog.init(POSTHOG_KEY, {
 		api_host: POSTHOG_HOST,
 		// The showcase is anonymous demo traffic — only build profiles once a
