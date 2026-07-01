@@ -44,7 +44,7 @@ describe("MessageThread", () => {
 		expect(screen.queryByText("Admin")).not.toBeInTheDocument();
 	});
 
-	it("puts the visitor on the left and the bot/admin on the right", () => {
+	it("puts the AI agent on the left and the visitor/you on the right", () => {
 		render(
 			<MessageThread
 				messages={[
@@ -54,8 +54,8 @@ describe("MessageThread", () => {
 				]}
 			/>,
 		);
-		expect(sideOf("I need help")).toBe("left");
-		expect(sideOf("Hi there")).toBe("right");
+		expect(sideOf("I need help")).toBe("right");
+		expect(sideOf("Hi there")).toBe("left");
 		expect(sideOf("On it!")).toBe("right");
 		// Role labels are shown for bubbles.
 		expect(screen.getByText("Visitor")).toBeInTheDocument();

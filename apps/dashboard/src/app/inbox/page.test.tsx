@@ -181,6 +181,9 @@ describe("InboxPage — deleting a filtered tag reconciles the filter", () => {
 		await screen.findByRole("heading", { name: "Inbox" });
 		await waitFor(() => expect(listCalls().length).toBeGreaterThan(0));
 
+		// Open the (collapsed) Filters panel — the tag/status chips live there now.
+		await user.click(screen.getByRole("button", { name: /filters/i }));
+
 		// Click the "Billing" tag chip → it becomes the active filter and the list
 		// refetches scoped to it.
 		await user.click(await screen.findByRole("button", { name: "Billing" }));

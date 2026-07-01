@@ -79,8 +79,7 @@ export default function RootLayout({
 				<PostHogProvider>
 					<ThemeProvider
 						attribute="class"
-						defaultTheme="light"
-						enableSystem
+						forcedTheme="light"
 						disableTransitionOnChange
 					>
 						<QueryProvider>

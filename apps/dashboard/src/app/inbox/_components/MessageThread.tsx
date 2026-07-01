@@ -60,26 +60,28 @@ function RatingIndicator({ rating }: { rating: Message["rating"] }) {
 	);
 }
 
-// "Agent" (the AI support agent), never "Bot"; "You" for the human teammate's
-// own reply. `tone` maps to the ds Bubble variants.
+// Chatbase-style sides: the AI "Agent" sits on the LEFT (gray bubble + sparkle
+// avatar), the "Visitor" (the person being helped) on the RIGHT (black bubble),
+// and the human teammate's own reply ("You", never "Bot") on the right as a
+// bordered card. `tone` maps to the ds Bubble variants.
 const ROLE = {
 	user: {
-		side: "left",
+		side: "right",
 		tone: "visitor",
 		label: "Visitor",
 		labelClass: "text-ck-faint",
 	},
 	assistant: {
-		side: "right",
+		side: "left",
 		tone: "agent",
 		label: "Agent",
-		labelClass: "text-ck-muted",
+		labelClass: "text-ck-text",
 	},
 	admin: {
 		side: "right",
 		tone: "admin",
 		label: "You",
-		labelClass: "text-ck-accent",
+		labelClass: "text-ck-muted",
 	},
 } as const;
 
@@ -109,15 +111,21 @@ function MessageBubble({
 			data-search-hit={firstHit ? "true" : undefined}
 			className={cn("flex flex-col gap-1", right ? "items-end" : "items-start")}
 		>
-			<span
-				className={cn(
-					"inline-flex items-center gap-1 px-1 text-[11px] font-semibold",
-					labelClass,
-				)}
-			>
-				{message.role === "assistant" && <Sparkles className="size-3" />}
-				{label}
-			</span>
+			{message.role === "assistant" ? (
+				// Chatbase-style AI header: sparkle avatar + agent name.
+				<span className="inline-flex items-center gap-1.5 px-1">
+					<span className="flex size-5 items-center justify-center rounded-full bg-ck-chip text-ck-text">
+						<Sparkles className="size-3" />
+					</span>
+					<span className="text-[11px] font-semibold text-ck-text">
+						{label}
+					</span>
+				</span>
+			) : (
+				<span className={cn("px-1 text-[11px] font-semibold", labelClass)}>
+					{label}
+				</span>
+			)}
 			<Bubble side={side} tone={tone}>
 				<Highlighted text={message.content} query={search} />
 			</Bubble>

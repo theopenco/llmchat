@@ -9,11 +9,7 @@ import { useSignOut } from "@/lib/use-sign-out";
 import { AccountMenu } from "./account-menu";
 
 const signOut = vi.fn();
-const setTheme = vi.fn();
 vi.mock("@/lib/use-sign-out", () => ({ useSignOut: vi.fn() }));
-vi.mock("next-themes", () => ({
-	useTheme: () => ({ theme: "dark", setTheme }),
-}));
 vi.mock("@/lib/account", () => ({
 	ACCOUNT_KEY: ["account"],
 	fetchAccount: vi.fn(),
@@ -41,7 +37,7 @@ beforeEach(() => {
 });
 
 describe("AccountMenu", () => {
-	it("opens to Account / Billing / Appearance / Sign out and NO Settings entry", async () => {
+	it("opens to Account / Billing / Sign out and NO Settings or Appearance entry", async () => {
 		const user = userEvent.setup();
 		renderMenu();
 		await user.click(screen.getByRole("button", { name: /account menu/i }));
@@ -56,26 +52,14 @@ describe("AccountMenu", () => {
 		expect(
 			screen.getByRole("menuitem", { name: /sign out/i }),
 		).toBeInTheDocument();
-		// Appearance section keeps the theme switcher working.
-		expect(
-			screen.getByRole("menuitem", { name: /light/i }),
-		).toBeInTheDocument();
-		expect(
-			screen.getByRole("menuitem", { name: /system/i }),
-		).toBeInTheDocument();
+		// Light-only now (Chatbase-style): no appearance switcher.
+		expect(screen.queryByRole("menuitem", { name: /^light$/i })).toBeNull();
+		expect(screen.queryByRole("menuitem", { name: /^system$/i })).toBeNull();
 		// No dead "Settings" / workspace-management duplicate here.
 		expect(screen.queryByRole("menuitem", { name: /^settings$/i })).toBeNull();
 		expect(
 			screen.queryByRole("menuitem", { name: /manage workspaces/i }),
 		).toBeNull();
-	});
-
-	it("flips the theme from the Appearance section", async () => {
-		const user = userEvent.setup();
-		renderMenu();
-		await user.click(screen.getByRole("button", { name: /account menu/i }));
-		await user.click(await screen.findByRole("menuitem", { name: /light/i }));
-		expect(setTheme).toHaveBeenCalledWith("light");
 	});
 
 	it("signs out", async () => {
