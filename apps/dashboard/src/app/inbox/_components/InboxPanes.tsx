@@ -67,12 +67,14 @@ export function InboxPanes({
 	detailsEmptyState,
 }: InboxPanesProps) {
 	return (
-		<div className="flex min-h-0 flex-1">
+		// White content surface (Chatbase): the panes sit on white with hairline
+		// dividers, against the gray nav rail + frame behind them.
+		<div className="flex min-h-0 flex-1 bg-ck-card">
 			{/* Left — conversation list (full-width on mobile, fixed rail from md) */}
 			<div
 				data-pane="list"
 				className={cn(
-					"min-h-0 flex-col border-r border-ck-border md:w-80 md:shrink-0",
+					"min-h-0 flex-col border-r border-ck-border md:w-[360px] md:shrink-0 lg:w-[370px]",
 					hasSelection ? "hidden md:flex" : "flex w-full",
 				)}
 			>
@@ -128,7 +130,7 @@ export function InboxPanes({
 			{/* Right — details aside (desktop only) */}
 			<aside
 				data-pane="details"
-				className="hidden w-72 shrink-0 border-l border-ck-border lg:flex lg:flex-col"
+				className="hidden w-[300px] shrink-0 border-l border-ck-border lg:flex lg:flex-col"
 			>
 				{details ?? detailsEmptyState}
 			</aside>

@@ -44,6 +44,8 @@ const config: Config = {
 						DEFAULT: "rgb(var(--ck-accent) / <alpha-value>)",
 						hover: "rgb(var(--ck-accent-hover) / <alpha-value>)",
 					},
+					good: "rgb(var(--ck-good) / <alpha-value>)",
+					link: "rgb(var(--ck-link) / <alpha-value>)",
 					warn: "rgb(var(--ck-warn) / <alpha-value>)",
 				},
 				background: "hsl(var(--background))",

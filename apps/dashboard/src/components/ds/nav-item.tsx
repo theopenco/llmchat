@@ -15,7 +15,7 @@ export interface NavItemProps extends React.HTMLAttributes<HTMLElement> {
 /**
  * Design-system sidebar nav row for the Clanker restyle. Generic + token-driven:
  * icon · label · optional trailing slot, with active/inactive states from the ck
- * scale (active = solid accent; inactive = muted, hover surface). `asChild` lets
+ * scale (active = raised white card; inactive = muted, hover surface). `asChild` lets
  * a Next <Link> own the anchor while keeping the styling here. Shared by the
  * shell and any future nav.
  */
@@ -28,7 +28,7 @@ export const NavItem = React.forwardRef<HTMLElement, NavItemProps>(
 			"flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-[13.5px] font-medium transition-colors",
 			"[&_svg]:size-[18px] [&_svg]:shrink-0",
 			active
-				? "bg-ck-accent text-white [&_svg]:text-white"
+				? "border border-ck-border bg-ck-card text-ck-text shadow-sm [&_svg]:text-ck-text"
 				: "text-ck-muted hover:bg-ck-navhover hover:text-ck-text [&_svg]:text-ck-muted",
 			className,
 		);

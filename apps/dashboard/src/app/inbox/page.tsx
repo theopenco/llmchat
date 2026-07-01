@@ -41,6 +41,7 @@ import {
 } from "./_components/format";
 import { InboxPanes } from "./_components/InboxPanes";
 import { InboxSkeleton } from "./_components/InboxSkeleton";
+import { InboxStats } from "./_components/InboxStats";
 import { ListFilters } from "./_components/ListFilters";
 import { LoadMore } from "./_components/LoadMore";
 import { MessageThread } from "./_components/MessageThread";
@@ -625,6 +626,10 @@ export default function InboxPage() {
 							onManageTags={
 								canManage ? () => setManageTagsOpen(true) : undefined
 							}
+							onRefresh={() => {
+								void listQuery.refetch();
+								void statsQuery.refetch();
+							}}
 						/>
 						{listQuery.isLoading ? (
 							<ConversationListSkeleton />
@@ -736,8 +741,13 @@ export default function InboxPage() {
 					) : null
 				}
 				emptyState={
-					<div className="flex flex-1 items-center justify-center text-sm text-ck-faint">
-						Select a conversation
+					<div className="flex flex-1 flex-col items-center justify-center gap-6 px-6">
+						{statsQuery.data && (
+							<div className="w-full max-w-md">
+								<InboxStats stats={statsQuery.data} />
+							</div>
+						)}
+						<p className="text-sm text-ck-faint">Select a conversation</p>
 					</div>
 				}
 				detailsEmptyState={
