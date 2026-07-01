@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
+import { adminUrl } from "@/lib/admin";
 import { createAuthRateLimitStorage } from "@/lib/auth-rate-limit-storage";
 import { db } from "@/lib/db";
 import { isAllowedOrigin } from "@/lib/origins";
@@ -139,15 +140,17 @@ export function buildAuthOptions(env: Env) {
 			const dash = env.vars.DASHBOARD_URL;
 			const mkt = env.vars.MARKETING_URL || "http://localhost:3002";
 			const showcase = env.vars.SHOWCASE_URL || "http://localhost:3003";
+			const admin = adminUrl(env);
 			if (
 				origin &&
 				(isAllowedOrigin(origin, dash) ||
 					isAllowedOrigin(origin, mkt) ||
-					isAllowedOrigin(origin, showcase))
+					isAllowedOrigin(origin, showcase) ||
+					isAllowedOrigin(origin, admin))
 			) {
 				return [origin];
 			}
-			return [dash, mkt, showcase];
+			return [dash, mkt, showcase, admin];
 		},
 	} satisfies Parameters<typeof betterAuth>[0];
 }

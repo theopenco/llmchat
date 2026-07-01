@@ -17,8 +17,12 @@
 --
 -- All statements are INSERT OR IGNORE: applying repeatedly is a no-op.
 
-INSERT OR IGNORE INTO `user` (`id`, `name`, `email`, `email_verified`)
-VALUES ('dev-admin', 'Local Admin', 'admin@example.com', 1);
+-- role = 'admin' makes the seeded user a PLATFORM admin, so the local admin
+-- dashboard (apps/admin, admin.clankersupport.com in prod) works out of the box
+-- with these credentials (email_verified = 1 satisfies the admin verified-email
+-- gate). Distinct from the workspace-scoped owner membership below.
+INSERT OR IGNORE INTO `user` (`id`, `name`, `email`, `email_verified`, `role`)
+VALUES ('dev-admin', 'Local Admin', 'admin@example.com', 1, 'admin');
 
 INSERT OR IGNORE INTO `account` (`id`, `user_id`, `account_id`, `provider_id`, `password`)
 VALUES (

@@ -25,6 +25,13 @@ declare module "@meetploy/nextjs" {
 			STRIPE_PRICE_SCALE_OVERAGE?: string;
 			STRIPE_METER_EVENT?: string;
 			INTERNAL_ACCOUNT_EMAILS?: string;
+			// Comma-separated emails granted PLATFORM-admin access (the internal
+			// admin dashboard). Bootstrap allowlist alongside the DB `user.role`.
+			ADMIN_EMAILS?: string;
+			// Canonical origin of the admin dashboard (admin.clankersupport.com),
+			// used for /admin/* CORS + Better Auth trust. Optional: falls back to
+			// http://localhost:3004 in dev.
+			ADMIN_URL?: string;
 			RESEND_API_KEY: string;
 			RESEND_INBOUND_WEBHOOK_SECRET?: string;
 			TRUSTED_CLIENT_IP_HEADER?: string;
@@ -64,6 +71,13 @@ declare global {
 			STRIPE_PRICE_SCALE_OVERAGE?: string;
 			STRIPE_METER_EVENT?: string;
 			INTERNAL_ACCOUNT_EMAILS?: string;
+			// Comma-separated emails granted PLATFORM-admin access (the internal
+			// admin dashboard). Bootstrap allowlist alongside the DB `user.role`.
+			ADMIN_EMAILS?: string;
+			// Canonical origin of the admin dashboard (admin.clankersupport.com),
+			// used for /admin/* CORS + Better Auth trust. Optional: falls back to
+			// http://localhost:3004 in dev.
+			ADMIN_URL?: string;
 			RESEND_API_KEY: string;
 			RESEND_INBOUND_WEBHOOK_SECRET?: string;
 			TRUSTED_CLIENT_IP_HEADER?: string;

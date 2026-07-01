@@ -130,6 +130,11 @@ export const billing = new Hono<AppContext>()
 				if (!customerId) {
 					const owner = await db(c.env).query.user.findFirst({
 						where: (u, { eq: e }) => e(u.id, userId),
+						// Only the email is used below. Scoping the projection keeps this
+						// off a `SELECT *` of the user row — important now that `user`
+						// carries columns (e.g. `role`) that may not exist in a preview DB
+						// that skipped migrations (see preview-deploys-skip-migrations).
+						columns: { email: true },
 					});
 					const customer = await createCustomer(STRIPE_SECRET_KEY, {
 						email: owner?.email,

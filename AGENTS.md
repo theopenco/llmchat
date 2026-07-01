@@ -6,11 +6,11 @@ This file is the shared guidance for AI coding agents (Claude Code, Codex, etc.)
 
 **Clanker Support** is an open-source ([`theopenco/llmchat`](https://github.com/theopenco/llmchat)), self-hostable, embeddable AI customer-support widget. You drop a single `<script>` on your site; the widget answers visitor questions from your knowledge base (docs URLs, text snippets, hand-written Q&A) using **LLM Gateway** models, escalates to a human (email + Slack) when needed, and operators triage every conversation in a dashboard inbox. Replies by email thread back into the conversation. Billing is metered per AI response via Stripe.
 
-Production domains: `clankersupport.com` (marketing), `app.clankersupport.com` (dashboard), `api.clankersupport.com` (api), `showcase.clankersupport.com` (live demo).
+Production domains: `clankersupport.com` (marketing), `app.clankersupport.com` (dashboard), `api.clankersupport.com` (api), `showcase.clankersupport.com` (live demo), `admin.clankersupport.com` (internal admin console).
 
 ## Repo layout
 
-pnpm workspaces + Turborepo. Four apps, three packages:
+pnpm workspaces + Turborepo. Five apps, three packages:
 
 | Path              | Name                 | What                                                             | Dev port |
 | ----------------- | -------------------- | ---------------------------------------------------------------- | -------- |
@@ -18,6 +18,7 @@ pnpm workspaces + Turborepo. Four apps, three packages:
 | `apps/dashboard`  | `@llmchat/dashboard` | Next.js 15 operator console (inbox, projects, billing)           | 3001     |
 | `apps/marketing`  | `@llmchat/marketing` | Next.js 15 marketing site + MDX/JSON content + SEO               | 3002     |
 | `apps/showcase`   | `@llmchat/showcase`  | Next.js 15 first-party "live demo" embedding the real widget     | 3003     |
+| `apps/admin`      | `@llmchat/admin`     | Next.js 15 internal admin console (signups / revenue / subs)     | 3004     |
 | `packages/db`     | `@llmchat/db`        | Drizzle schema; emits SQL migrations into `apps/api/migrations/` | —        |
 | `packages/shared` | `@llmchat/shared`    | Zod schemas, analytics taxonomy, billing tiers, consent, models  | —        |
 | `packages/widget` | `@llmchat/widget`    | Vite IIFE widget bundle, embedded into the api as `/widget.js`   | —        |
@@ -28,7 +29,7 @@ pnpm workspaces + Turborepo. Four apps, three packages:
 
 - pnpm workspaces + Turborepo. Node >=22, TypeScript 5.9, strict mode (see `tsconfig.base.json`). pnpm@10.
 - **api** runs on **workerd** via the **Ploy** platform (https://docs.meetploy.com), declared `kind: dynamic`. Each project has its own `ploy.yaml`; the repo root has a `ploy-workspace.yaml`.
-- **dashboard**, **marketing**, and **showcase** are Next.js 15 / React 19 apps, declared `kind: nextjs`. Note: Ploy 1.35 workspace mode only launches `worker | dynamic | nextjs` — Vite apps are skipped, so anything that needs `pnpm dev` integration has to be Next.js.
+- **dashboard**, **marketing**, **showcase**, and **admin** are Next.js 15 / React 19 apps, declared `kind: nextjs`. Note: Ploy 1.35 workspace mode only launches `worker | dynamic | nextjs` — Vite apps are skipped, so anything that needs `pnpm dev` integration has to be Next.js.
 - **db** is a single Ploy `db:` binding (D1-compatible SQLite). Migrations live at `apps/api/migrations/` (Ploy auto-discovers and applies them on `ploy dev` and deploy). The Drizzle schema is in `packages/db/src/schema.ts` and emits SQL into that directory via `packages/db/drizzle.config.ts` (`out: ../../apps/api/migrations`).
 - **cache / rate-limit** uses a Ploy `state:` binding (KV-compatible API: `get`/`put`/`delete`/`list`).
 - Inference uses **LLM Gateway** via `@llmgateway/ai-sdk-provider` + `ai` (Vercel AI SDK v6 — `streamText`, `UIMessage`, `convertToModelMessages`).
@@ -187,6 +188,15 @@ Next.js 15 / React 19 operator console. Auth via the Better Auth client (`src/li
 ### Showcase app (`apps/showcase`)
 
 A first-party **"live demo · real widget"** page — not a fake third-party site. The bottom-right bubble is the actual widget in **live** mode, mounted into a shadow DOM by `WidgetMount.tsx` + `src/lib/shadow-mount.tsx`, pinned to `NEXT_PUBLIC_WIDGET_KEY` (`local-dev-key` in dev) and the API. There's also an `InlineShowcaseChat` (showcase mode — canned replies, local state). The demo project it talks to is the seeded "Acme Tools (demo)" persona. The public prod widget key and PostHog key are committed in `apps/showcase/.env.production` (same convention as a public embed key).
+
+### Admin app (`apps/admin`)
+
+Internal **operations console** (`admin.clankersupport.com`) for the Clanker Support team — cross-tenant metrics: signups, revenue/subscriptions, workspaces, users. Dark-only "console" aesthetic (deliberately unlike the customer dashboard), Next.js 15 / React 19, `kind: nextjs`, dev port **3004**. Reuses the dashboard's auth-client + `credentials: "include"` fetch pattern, but the fetch wrapper sends **no `x-workspace-id`** (the admin routes are global, not workspace-scoped). Charts are hand-rolled SVG/CSS (no chart lib) to keep the bundle lean.
+
+- **Global admin role.** A platform role lives in the DB on `user.role` (`'user' | 'admin'`), distinct from the workspace-scoped `member.role`. Migration `0017_user_role.sql` adds the column (NOT NULL default `'user'`); the dev seed marks `admin@example.com` as `'admin'`. Crucially it is **not** modeled on the Drizzle `user` table in `schema.ts`: Better Auth's adapter loads the session user with an **unprojected** `select().from(user)` on every request, so declaring the column there would reference a column a preview DB (which skips migrations) lacks and **500 all authenticated requests**. Instead `/admin/*` reads `role` via an explicit `sql` projection — the only query that names the column — wrapped so a missing column degrades to non-admin, not a 500. A later phase can fold `role` into the schema once prod has the column (mirrors the 0014/0015 migrate-before-serve split).
+- **Access.** `requireGlobalAdmin` (`apps/api/src/middleware/admin.ts`, pure decision in `isAdminGranted`) grants access only to a **verified** session email that is either on the `ADMIN_EMAILS` allowlist (bootstrap, mirrors `INTERNAL_ACCOUNT_EMAILS`) **or** has `user.role === 'admin'`. The verified-email requirement blocks self-registration privilege-escalation (email/password sign-up is unverified + auto-signed-in, so an email match alone must never grant admin). Set `ADMIN_EMAILS` in Ploy prod to onboard the first operators without a DB write.
+- **API.** `apps/api/src/routes/admin.ts` mounts `/admin/*`: `GET /admin/me` (ungated identity probe → `{ isAdmin }` for the frontend gate), plus admin-gated `GET /admin/overview` (headline metrics + 30-day signup/usage series + subscription breakdown; est. MRR from `BILLING_TIERS` monthly prices), `GET /admin/workspaces`, `GET /admin/users`. Pure metric helpers (MRR, day-bucketing) live in `apps/api/src/lib/admin-metrics.ts` and are unit-tested. CORS for `/admin/*` is pinned to `ADMIN_URL`; the admin origin is also added to `/api/auth/*` CORS + Better Auth `trustedOrigins`.
+- **Env.** `ADMIN_URL` (origin, optional — defaults to `http://localhost:3004`) and `ADMIN_EMAILS` (comma-separated bootstrap admins) — both in `apps/api/ploy.yaml` + `.env.example`.
 
 ### Analytics (PostHog)
 

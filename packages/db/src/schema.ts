@@ -28,6 +28,16 @@ export const user = sqliteTable("user", {
 	email: text().notNull().unique(),
 	emailVerified: integer({ mode: "boolean" }).notNull().default(false),
 	image: text(),
+	// NOTE: the PLATFORM-admin role column (migration 0017_user_role.sql) is
+	// deliberately NOT modeled on this Drizzle table. Better Auth's Drizzle
+	// adapter loads the session user with an UNPROJECTED `select().from(user)`
+	// (every column of this table object) on every getSession, so declaring
+	// `role` here would make that auth hot-path query reference a column a preview
+	// DB — which skips migrations — does not have, 500-ing ALL authenticated
+	// requests. The /admin/* routes read `role` via an explicit `sql` projection
+	// instead (fault-tolerant), so it's the only query that ever names the column.
+	// (Distinct from the workspace-scoped `member.role`.) A future phase can fold
+	// it into this table once prod has the column. See preview-deploys-skip-migrations.
 	createdAt: createdAt(),
 	updatedAt: timestamp()
 		.notNull()
