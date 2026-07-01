@@ -37,7 +37,9 @@ function currentTimeZone(): string {
  * call, no geo-IP). When the zone can't be read we assume consent is required —
  * the conservative, privacy-protective default.
  */
-export function isConsentRequiredRegion(timeZone: string = currentTimeZone()): boolean {
+export function isConsentRequiredRegion(
+	timeZone: string = currentTimeZone(),
+): boolean {
 	if (!timeZone) return true;
 	if (timeZone.startsWith("Europe/")) return true;
 	return CONSENT_REQUIRED_EXTRA_ZONES.has(timeZone);
