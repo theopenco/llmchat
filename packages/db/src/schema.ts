@@ -28,6 +28,17 @@ export const user = sqliteTable("user", {
 	email: text().notNull().unique(),
 	emailVerified: integer({ mode: "boolean" }).notNull().default(false),
 	image: text(),
+	// PLATFORM-level role (distinct from the workspace-scoped `member.role`).
+	// "user" = an ordinary customer; "admin" = a Clanker Support operator who may
+	// access the internal admin dashboard (cross-tenant metrics: signups,
+	// revenue, subscriptions). Deliberately NOT registered as a Better Auth
+	// additionalField, so Better Auth never SELECTs it on the auth hot path —
+	// only the /admin/* routes read it, via an explicit column projection. Admin
+	// access can also be granted by the ADMIN_EMAILS env allowlist (bootstrap,
+	// mirrors INTERNAL_ACCOUNT_EMAILS), so the very first admin needs no DB write.
+	role: text({ enum: ["user", "admin"] })
+		.notNull()
+		.default("user"),
 	createdAt: createdAt(),
 	updatedAt: timestamp()
 		.notNull()

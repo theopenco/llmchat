@@ -88,6 +88,25 @@ describe("production migrations", () => {
 		db.close();
 	});
 
+	it("adds the user.role column, NOT NULL defaulting to 'user' (0017)", () => {
+		// The platform-admin role gate. Every existing user backfills to the
+		// least-privileged 'user'; only an explicit 'admin' (or the ADMIN_EMAILS
+		// allowlist) unlocks the internal admin dashboard.
+		const db = migratedDb();
+		const cols = db.prepare("PRAGMA table_info('user')").all() as {
+			name: string;
+			type: string;
+			notnull: number;
+			dflt_value: string | null;
+		}[];
+		const role = cols.find((c) => c.name === "role");
+		expect(role, "role column").toBeTruthy();
+		expect(role!.type.toUpperCase()).toContain("TEXT");
+		expect(role!.notnull, "role NOT NULL").toBe(1);
+		expect(role!.dflt_value).toContain("user");
+		db.close();
+	});
+
 	it("contain no seed file (the dev seed lives outside migrations/)", () => {
 		const offending = readdirSync(MIGRATIONS_DIR)
 			.filter((f) => f.endsWith(".sql"))
@@ -115,6 +134,14 @@ describe("dev seed", () => {
 			email: ADMIN,
 			email_verified: 1,
 		});
+
+		// Platform role: the seeded admin is a platform admin so the local admin
+		// dashboard works out of the box. Distinct from the workspace membership
+		// role asserted just below.
+		const platform = db
+			.prepare("SELECT role FROM user WHERE email = ?")
+			.get(ADMIN) as { role: string };
+		expect(platform.role).toBe("admin");
 
 		const member = db
 			.prepare("SELECT role FROM member WHERE user_id = ? AND workspace_id = ?")

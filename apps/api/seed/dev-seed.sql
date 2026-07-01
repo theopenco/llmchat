@@ -17,8 +17,13 @@
 --
 -- All statements are INSERT OR IGNORE: applying repeatedly is a no-op.
 
-INSERT OR IGNORE INTO `user` (`id`, `name`, `email`, `email_verified`)
-VALUES ('dev-admin', 'Local Admin', 'admin@example.com', 1);
+-- role = 'admin' makes the seeded user a PLATFORM admin, so the local admin
+-- dashboard (apps/admin, admin.clankersupport.com in prod) works out of the box
+-- with these credentials. Distinct from the workspace-scoped owner membership
+-- below. (ADMIN_EMAILS in apps/api/.env.example also lists this address, so the
+-- env-allowlist path works locally too.)
+INSERT OR IGNORE INTO `user` (`id`, `name`, `email`, `email_verified`, `role`)
+VALUES ('dev-admin', 'Local Admin', 'admin@example.com', 1, 'admin');
 
 INSERT OR IGNORE INTO `account` (`id`, `user_id`, `account_id`, `provider_id`, `password`)
 VALUES (

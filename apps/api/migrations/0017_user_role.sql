@@ -1,0 +1,16 @@
+-- Platform-level admin role on the user table. This is the GLOBAL role that
+-- gates the internal admin dashboard (admin.clankersupport.com) — cross-tenant
+-- metrics (signups, revenue, subscriptions). It is distinct from the
+-- workspace-scoped `member.role` (owner|admin|agent), which only governs
+-- permissions WITHIN a single workspace.
+--
+-- Additive ADD COLUMN with a NOT NULL DEFAULT, matching the 0004 idiom: every
+-- existing user backfills to the least-privileged 'user'. Ploy's ledger applies
+-- each migration file once, in filename order.
+--
+-- Preview-safety: the running Worker never does a `SELECT *` of the user row
+-- (Better Auth reads only its own fields; the two remaining app-level user
+-- lookups are scoped to `columns: { email }`), so a preview DB that skips this
+-- migration will not 500 the hot auth path. Only the new /admin/* routes read
+-- `role`, and admin access also falls back to the ADMIN_EMAILS env allowlist.
+ALTER TABLE `user` ADD COLUMN `role` text DEFAULT 'user' NOT NULL;
