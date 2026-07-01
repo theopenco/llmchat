@@ -790,17 +790,26 @@ export const widgetStyles = `
 	word-break: break-word;
 }
 
-/* ── Privacy consent notice (above the composer, until first message) ── */
+/* ── Privacy consent notice — full-width bar above the composer, until first
+   message. Left-aligned text, dismiss × on the right, own top divider. ── */
 .llmchat-privacy {
 	margin: 0;
 	flex-shrink: 0;
-	padding: 0.5rem 0.875rem;
-	font-size: 0.72rem;
-	line-height: 1.4;
-	text-align: center;
-	color: #6b7280;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 0.5rem 0.5rem 0.875rem;
 	background: #fff;
 	border-top: 1px solid #e5e7eb;
+}
+.llmchat-privacy-text {
+	margin: 0;
+	flex: 1;
+	min-width: 0;
+	font-size: 0.72rem;
+	line-height: 1.4;
+	text-align: left;
+	color: #6b7280;
 }
 .llmchat-privacy a {
 	color: var(--brand);
@@ -810,8 +819,40 @@ export const widgetStyles = `
 .llmchat-privacy a:hover {
 	text-decoration: none;
 }
+/* Dismiss × — muted to sit on the white bar (the header close is white-on-brand,
+   so it can't share that treatment). Hiding the bar never withdraws consent. */
+.llmchat-privacy-dismiss {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.5rem;
+	height: 1.5rem;
+	padding: 0;
+	border: none;
+	border-radius: 0.375rem;
+	background: transparent;
+	color: #9ca3af;
+	cursor: pointer;
+	transition:
+		background 0.15s ease,
+		color 0.15s ease;
+}
+.llmchat-privacy-dismiss:hover {
+	background: #f3f4f6;
+	color: #4b5563;
+}
+.llmchat-privacy-dismiss:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.llmchat-privacy-dismiss-icon {
+	width: 0.8rem;
+	height: 0.8rem;
+}
 /* When the notice is present it owns the divider above the composer, so the
-   composer drops its own top border to avoid a double line. */
+   composer drops its own top border to avoid a double line. Once dismissed the
+   bar is gone and the composer's own border-top returns — no layout gap. */
 .llmchat-privacy + .llmchat-input {
 	border-top: none;
 }
