@@ -1,0 +1,16 @@
+{
+	"branches": ["main"],
+	"tagFormat": "@clankersupport/widget-rsc@${version}",
+	"extends": "semantic-release-monorepo",
+	"plugins": [
+		"@semantic-release/commit-analyzer",
+		"@semantic-release/release-notes-generator",
+		[
+			"@semantic-release/exec",
+			{
+				"prepareCmd": "npm pkg set version=${nextRelease.version}",
+				"publishCmd": "npm publish --provenance --access public"
+			}
+		]
+	]
+}

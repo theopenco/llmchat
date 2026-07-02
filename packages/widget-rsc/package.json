@@ -1,6 +1,6 @@
 {
 	"name": "@clankersupport/widget-rsc",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"description": "Embed the Clanker Support AI chat widget in a React Server Components app — one component in your Next.js root layout, with headless primitives and hooks when you want to bring your own UI.",
 	"keywords": [
 		"ai",
@@ -18,7 +18,7 @@
 		"url": "git+https://github.com/theopenco/llmchat.git",
 		"directory": "packages/widget-rsc"
 	},
-	"license": "SEE LICENSE IN LICENSE",
+	"license": "MIT",
 	"type": "module",
 	"sideEffects": false,
 	"main": "./dist/index.js",
