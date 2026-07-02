@@ -175,12 +175,6 @@
 		font-size: 0.82em;
 		line-height: 1.7;
 	}
-	.prose-editorial img {
-		display: block;
-		max-width: 100%;
-		border-radius: 12px;
-		border: 1px solid rgb(var(--rule));
-	}
 
 	/* Range slider for the free tools — accent fill up to --fill (set inline). */
 	.tool-range {
