@@ -33,7 +33,10 @@ cpSync(pluginDir, join(stageDir, "clanker-support"), { recursive: true });
 try {
 	execFileSync("zip", ["-rq", zipPath, "clanker-support"], { cwd: stageDir });
 } catch {
-	execFileSync("bsdtar", ["-a", "-cf", zipPath, "clanker-support"], {
+	// bsdtar ships as tar.exe on Windows. The output path must be relative:
+	// bsdtar parses the `C:` in an absolute Windows path as a remote host.
+	const bsdtar = process.platform === "win32" ? "tar" : "bsdtar";
+	execFileSync(bsdtar, ["-a", "-cf", `../${zipName}`, "clanker-support"], {
 		cwd: stageDir,
 	});
 }
