@@ -1,0 +1,138 @@
+.clanker-support-wrap {
+	max-width: 1060px;
+}
+
+.clanker-support-header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 12px 0 20px;
+}
+
+.clanker-support-header h1 {
+	margin: 0;
+	padding: 0;
+}
+
+.clanker-support-mark {
+	display: inline-flex;
+	width: 36px;
+	height: 36px;
+}
+
+.clanker-support-mark svg {
+	width: 100%;
+	height: 100%;
+	border-radius: 8px;
+}
+
+.clanker-support-version {
+	color: #646970;
+	font-size: 12px;
+}
+
+.clanker-support-status {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
+}
+
+.clanker-support-status--connected {
+	background: #edfaef;
+	color: #00721c;
+	border: 1px solid #9ae6a8;
+}
+
+.clanker-support-status--invalid_key {
+	background: #fcf0f1;
+	color: #8a1f11;
+	border: 1px solid #ffabaf;
+}
+
+.clanker-support-status--unreachable {
+	background: #fcf9e8;
+	color: #6e5305;
+	border: 1px solid #f5e6ab;
+}
+
+.clanker-support-status--unconfigured {
+	background: #f0f0f1;
+	color: #50575e;
+	border: 1px solid #dcdcde;
+}
+
+.clanker-support-recheck {
+	font-size: 12px;
+}
+
+.clanker-support-columns {
+	display: flex;
+	gap: 20px;
+	align-items: flex-start;
+	flex-wrap: wrap;
+}
+
+.clanker-support-main {
+	flex: 1 1 560px;
+	min-width: 0;
+}
+
+.clanker-support-sidebar {
+	flex: 0 1 300px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.clanker-support-card {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	padding: 4px 20px 16px;
+	margin-bottom: 20px;
+}
+
+.clanker-support-sidebar .clanker-support-card {
+	margin-bottom: 0;
+}
+
+.clanker-support-card h2 {
+	font-size: 14px;
+	margin: 16px 0 4px;
+}
+
+.clanker-support-card .form-table {
+	margin-top: 0;
+}
+
+.clanker-support-code {
+	display: block;
+	padding: 8px 10px;
+	margin: 8px 0;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	font-size: 12px;
+	overflow-x: auto;
+	white-space: nowrap;
+}
+
+.clanker-support-steps {
+	margin: 8px 0 8px 18px;
+}
+
+.clanker-support-steps li {
+	margin-bottom: 6px;
+}
+
+.clanker-support-links {
+	margin: 8px 0;
+}
+
+.clanker-support-links li {
+	margin-bottom: 4px;
+}
