@@ -1,0 +1,14 @@
+{
+	"name": "@clankersupport/wordpress-plugin",
+	"version": "1.0.0",
+	"private": true,
+	"description": "WordPress plugin that embeds the Clanker Support widget — thin injector around the public widget.js script embed.",
+	"scripts": {
+		"format": "prettier --write .",
+		"lint": "prettier --check .",
+		"package": "node scripts/build-zip.mjs"
+	},
+	"devDependencies": {
+		"prettier": "^3.6.2"
+	}
+}
