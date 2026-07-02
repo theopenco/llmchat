@@ -217,4 +217,26 @@ describe("pageMeta", () => {
 			publishedTime: "2026-05-01",
 		});
 	});
+
+	it("threads a cover image into the OG and Twitter cards", () => {
+		const m = pageMeta({
+			title: "Post",
+			description: "d",
+			path: "/blog/x",
+			type: "article",
+			image: "/blog/cover.jpg",
+		});
+		expect(m.openGraph).toMatchObject({
+			images: [{ url: "/blog/cover.jpg" }],
+		});
+		// @ts-expect-error twitter card shape is a union; assert the field directly
+		expect(m.twitter?.images).toEqual(["/blog/cover.jpg"]);
+	});
+
+	it("omits image fields entirely when no cover is set", () => {
+		const m = pageMeta({ title: "T", description: "d", path: "/p" });
+		expect(m.openGraph && "images" in m.openGraph).toBe(false);
+		// @ts-expect-error twitter card shape is a union; assert the field directly
+		expect(m.twitter && "images" in m.twitter).toBe(false);
+	});
 });
