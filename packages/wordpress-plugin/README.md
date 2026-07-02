@@ -1,68 +1,100 @@
-# Clanker Support — WordPress plugin
+=== Clanker Support — AI Chat & Customer Support Widget ===
+Contributors: bidbogs
+Tags: ai, chatbot, live chat, customer support, helpdesk
+Requires at least: 5.8
+Tested up to: 7.0
+Requires PHP: 7.4
+Stable tag: 1.0.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-The official WordPress plugin for [Clanker Support](https://clankersupport.com), structured for distribution through the [wordpress.org plugin directory](https://wordpress.org/plugins/). It wraps the public `widget.js` embed: a Settings → Clanker Support page in wp-admin, a front-end enqueue of `<api_url>/widget.js` with the same `data-*` attributes the dashboard embed snippet generates, and a `[clanker_support]` inline-iframe shortcode.
+AI customer support widget — streaming answers from your knowledge base, human handoff, and live operator replies from your inbox.
 
-## Layout
+== Description ==
 
-```
-clanker-support/            The plugin itself (this folder is what ships in the zip / SVN trunk)
-├── clanker-support.php     Bootstrap: plugin header, constants, requires, activation hook
-├── includes/               Classes: core, settings (option + sanitize), admin page, frontend
-├── admin/                  Settings page template + admin CSS
-├── languages/              Translation template (clanker-support.pot)
-├── readme.txt              wordpress.org readme (description, FAQ, screenshots, changelog)
-└── uninstall.php           Deletes the option + status transient
-.wordpress-org/             Directory listing assets (SVN /assets, NOT shipped in the zip)
-├── icon.svg / icon-*.png   Plugin icon (128 + 256)
-├── banner.svg / banner-*.png  Listing banner (772x250 + 1544x500)
-└── (screenshot-N.png)      TODO: capture from a live wp-admin before submission —
-                            numbering must match readme.txt == Screenshots ==
-scripts/build-zip.mjs       Packages dist/clanker-support-<version>.zip
-```
+[Clanker Support](https://clankersupport.com) puts an AI support agent on your WordPress site. Visitors get streaming answers sourced from your knowledge base, can escalate to a human when the AI isn't enough, and replies you send from the dashboard inbox (or by email) appear in the widget live.
 
-## What the plugin does
+= Features =
 
-- **Settings → Clanker Support** (`manage_options`): project key, floating-bubble toggle, brand color, escalation threshold, and a self-host API URL — stored in a single `clanker_support_settings` option.
-- **Connection check**: the settings page verifies the key server-side against `GET <api_url>/v1/config/<key>` (200 = connected, 404 = invalid key) and shows a status pill; the result is cached in a 5-minute transient that saving clears.
-- **Front end**: when enabled and configured, enqueues `<api_url>/widget.js` in the footer and filters the printed tag to add `async` plus `data-project` / `data-api` / `data-brand` / `data-escalation-threshold` — the exact contract `packages/widget/src/config.ts` reads. The script version is `null` on purpose: the file is evergreen on the API origin.
-- **`[clanker_support width="400" height="600"]`**: inline chat via the API's CSP-hardened `/embed/<key>` page in an iframe; independent of the floating-bubble toggle.
+* **One-minute setup** — install, paste your project key under Settings → Clanker Support, done. The launcher bubble appears on every page.
+* **Answers from your knowledge base** — feed it docs URLs, text snippets, and hand-written Q&A in the dashboard; the AI answers with that context.
+* **Human handoff** — configure how many messages a visitor sends before "Talk to a human" appears; escalations notify you by email and Slack.
+* **Live operator replies** — answer from the dashboard inbox or simply reply to the notification email; either way the visitor sees it in the widget.
+* **Floating bubble or inline** — use the site-wide bubble, the `[clanker_support]` shortcode to embed the chat inside a page (e.g. Contact), or both.
+* **Brand color** — match the launcher and chat bubbles to your site, straight from the settings page.
+* **Connection check** — the settings page verifies your project key against the API and tells you when something is misconfigured.
+* **Open source & self-hostable** — the whole platform is open source ([theopenco/llmchat](https://github.com/theopenco/llmchat)); point the API URL setting at your own deployment if you self-host.
 
-## Development
+= External services =
 
-There is no build step — the plugin is plain PHP. To hack on it against a real site, map the plugin folder into a local WordPress (e.g. [wp-env](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-env/) or LocalWP):
+This plugin is a connector for the Clanker Support service. When enabled, it loads the widget script from your configured Clanker Support API origin (`https://api.clankersupport.com` by default) on your site's public pages, and messages that visitors type into the widget are sent to that service to generate answers and manage conversations. The settings page additionally makes a server-side request to the same API origin to verify your project key. No visitor data is sent until a visitor interacts with the widget.
 
-```sh
-npx @wordpress/env start   # with .wp-env.json mapping ./clanker-support to wp-content/plugins/clanker-support
-```
+* Service: [Clanker Support](https://clankersupport.com)
+* [Terms of use](https://clankersupport.com/terms-of-use)
+* [Privacy policy](https://clankersupport.com/privacy-policy)
 
-Point the API URL setting at `http://localhost:8787` and use the seeded `local-dev-key` project (see the repo root README / `pnpm seed`).
+If you self-host Clanker Support, all of the above requests go to your own deployment instead.
 
-Before submitting, run the official [Plugin Check](https://wordpress.org/plugins/plugin-check/) plugin against it — that's what the wordpress.org review team runs first.
+== Installation ==
 
-## Packaging
+= From the plugin directory =
 
-```sh
-pnpm --filter @clankersupport/wordpress-plugin package
-# → dist/clanker-support-<version>.zip
-```
+1. In your WordPress admin, go to Plugins → Add New and search for "Clanker Support".
+2. Install and activate the plugin.
+3. In your [Clanker Support dashboard](https://app.clankersupport.com), copy your project's public key (Project → Embed).
+4. In WordPress, go to Settings → Clanker Support, paste the key, and save.
 
-The zip contains a single `clanker-support/` folder at its root, ready for Plugins → Add New → Upload Plugin or for the wordpress.org submission form.
+= Manual installation =
 
-## wordpress.org submission
+1. Download the plugin ZIP.
+2. In your WordPress admin, go to Plugins → Add New → Upload Plugin, choose the ZIP, and activate.
+3. Configure it under Settings → Clanker Support as above.
 
-1. Create/sign in to a wordpress.org account (its username must be listed under `Contributors:` in `readme.txt` — update it if it isn't `clankersupport`).
-2. Validate `readme.txt` with the [readme validator](https://wordpress.org/plugins/developers/readme-validator/) and the zip with Plugin Check.
-3. Submit the zip at [wordpress.org/plugins/developers/add](https://wordpress.org/plugins/developers/add/). Review typically takes days–weeks; the "External services" section in the readme covers the SaaS-connector disclosure reviewers ask for.
-4. Once approved you get SVN access:
-   - `trunk/` ← contents of `clanker-support/`
-   - `tags/<version>/` ← copy of trunk per release
-   - `assets/` ← contents of `.wordpress-org/` (icons, banners, `screenshot-N.png`)
-5. Capture real screenshots (settings page, bubble, inline shortcode, dashboard inbox) as `screenshot-1.png` … `screenshot-4.png` in `assets/`, matching the `== Screenshots ==` numbering in `readme.txt`.
+The support bubble now shows on every page. To embed the chat inline instead, add the `[clanker_support]` shortcode to any page or post (optional attributes: `width`, `height`).
 
-## Releasing a new version
+== Frequently Asked Questions ==
 
-Bump the version in **three** places, then re-package and (post-approval) `svn cp trunk tags/<version>`:
+= Do I need a Clanker Support account? =
 
-1. `clanker-support/clanker-support.php` — the `Version:` header **and** the `CLANKER_SUPPORT_VERSION` constant
-2. `clanker-support/readme.txt` — `Stable tag:` + a new `== Changelog ==` entry
-3. `package.json` — `version`
+Yes — the plugin connects your site to a Clanker Support project. Create one at [clankersupport.com](https://clankersupport.com) (there's a free way to try it), or self-host the open-source platform and point the plugin at your own deployment.
+
+= Is the project key secret? =
+
+No — it is the same public key the script embed uses and is safe to expose in your site's HTML.
+
+= Can I use my own self-hosted deployment? =
+
+Yes. Clanker Support is open source. Set the API URL under Settings → Clanker Support to your own deployment's API origin.
+
+= Does the widget slow my site down? =
+
+No. The script loads asynchronously and renders after the page is interactive, so it does not block rendering. Nothing loads in the admin area.
+
+= Can I put the chat inside a page instead of the floating bubble? =
+
+Yes — add the `[clanker_support]` shortcode to any page or post. It accepts optional `width` and `height` attributes and works even when the site-wide floating bubble is turned off.
+
+= Where do escalated conversations go? =
+
+Escalations notify the email address and/or Slack webhook configured on your project in the dashboard. Replying to the notification email threads your answer straight back into the visitor's widget.
+
+= What data does the plugin store in WordPress? =
+
+Only its settings (one option) and a short-lived connection-status cache (one transient). Conversations live in your Clanker Support project, not in your WordPress database. Uninstalling removes both stored values.
+
+== Screenshots ==
+
+1. Settings → Clanker Support: connection status, widget appearance, and self-hosting options.
+2. The floating support bubble answering a visitor from the knowledge base.
+3. Inline chat embedded in a page with the [clanker_support] shortcode.
+4. The dashboard inbox where escalated conversations land.
+
+== Changelog ==
+
+= 1.0.0 =
+* Initial release: floating widget bubble, `[clanker_support]` inline shortcode, brand color, escalation threshold, self-host API URL, and a live connection check on the settings page.
+
+== Upgrade Notice ==
+
+= 1.0.0 =
+Initial release.

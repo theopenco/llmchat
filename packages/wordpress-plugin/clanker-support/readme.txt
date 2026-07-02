@@ -1,5 +1,5 @@
 === Clanker Support — AI Chat & Customer Support Widget ===
-Contributors: clankersupport
+Contributors: bidbogs
 Tags: ai, chatbot, live chat, customer support, helpdesk
 Requires at least: 5.8
 Tested up to: 7.0

@@ -1,0 +1,4 @@
+# README.md is a byte-for-byte mirror of clanker-support/readme.txt (WordPress
+# readme format, not Markdown) so the wordpress.org readme validator can be
+# pointed at it — Prettier must not reformat it.
+README.md
