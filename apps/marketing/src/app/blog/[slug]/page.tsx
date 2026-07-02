@@ -28,6 +28,7 @@ export async function generateMetadata({
 		path: `/blog/${slug}`,
 		type: "article",
 		publishedTime: post.date,
+		image: post.cover,
 	});
 }
 
@@ -132,6 +133,21 @@ export default async function PostPage({
 							<span className="h-px w-8 bg-rule" />
 						</div>
 					</header>
+
+					{/* Cover (plain <img>, not next/image — Ploy's deploy esbuild
+					    re-processes Next output, so we keep media tags simple). */}
+					{post.cover && (
+						<figure className="mx-auto mt-14 max-w-4xl">
+							{/* eslint-disable-next-line @next/next/no-img-element */}
+							<img
+								src={post.cover}
+								alt={post.coverAlt ?? ""}
+								className="w-full rounded-2xl border border-rule shadow-sm"
+								loading="eager"
+								fetchPriority="high"
+							/>
+						</figure>
+					)}
 
 					{/* Body */}
 					<div

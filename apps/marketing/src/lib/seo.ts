@@ -15,8 +15,18 @@ export function pageMeta(opts: {
 	type?: "website" | "article";
 	/** ISO date for article OG (blog posts). */
 	publishedTime?: string;
+	/** Root-relative OG/Twitter card image (e.g. "/blog/foo.jpg") —
+	 * metadataBase resolves it to an absolute URL. */
+	image?: string;
 }): Metadata {
-	const { title, description, path, type = "website", publishedTime } = opts;
+	const {
+		title,
+		description,
+		path,
+		type = "website",
+		publishedTime,
+		image,
+	} = opts;
 	return {
 		title,
 		description,
@@ -28,8 +38,14 @@ export function pageMeta(opts: {
 			description,
 			siteName: "Clanker Support",
 			...(publishedTime ? { publishedTime } : {}),
+			...(image ? { images: [{ url: image }] } : {}),
 		},
-		twitter: { card: "summary_large_image", title, description },
+		twitter: {
+			card: "summary_large_image",
+			title,
+			description,
+			...(image ? { images: [image] } : {}),
+		},
 	};
 }
 

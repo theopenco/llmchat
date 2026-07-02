@@ -158,6 +158,23 @@
 		border-radius: 4px;
 		color: rgb(var(--ink-soft));
 	}
+	.prose-editorial pre {
+		background-color: rgb(var(--paper-raise));
+		border: 1px solid rgb(var(--rule));
+		border-radius: 12px;
+		padding: 1.1em 1.3em;
+		overflow-x: auto;
+	}
+	/* Fenced blocks: the wrapping <pre> owns the chrome; undo the inline-code
+	   pill so nested <code> doesn't render a border-in-border. */
+	.prose-editorial pre code {
+		display: block;
+		background-color: transparent;
+		border: 0;
+		padding: 0;
+		font-size: 0.82em;
+		line-height: 1.7;
+	}
 
 	/* Range slider for the free tools — accent fill up to --fill (set inline). */
 	.tool-range {
