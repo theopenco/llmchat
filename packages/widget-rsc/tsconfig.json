@@ -1,0 +1,11 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"lib": ["DOM", "DOM.Iterable", "ES2023"],
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"types": ["vitest/globals"]
+	},
+	"include": ["src", "vitest.setup.ts"]
+}
