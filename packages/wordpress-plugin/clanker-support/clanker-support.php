@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Clanker Support
- * Plugin URI:        https://clankersupport.com
+ * Plugin URI:        https://github.com/theopenco/llmchat/tree/main/packages/wordpress-plugin
  * Description:       AI customer support widget — streaming answers from your knowledge base, human handoff, and live operator replies from your inbox.
  * Version:           1.0.0
  * Requires at least: 5.8
