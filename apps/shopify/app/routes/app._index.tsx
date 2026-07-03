@@ -92,8 +92,15 @@ export default function Index() {
 	const fetcher = useFetcher<typeof action>();
 	const shopify = useAppBridge();
 	const [key, setKey] = useState("");
-	const busy = fetcher.state !== "idle";
 	const result = fetcher.data;
+
+	// Attribute the spinner to the control that was actually clicked — three
+	// submit paths share one fetcher.
+	const busy = fetcher.state !== "idle";
+	const savingAnyway = busy && fetcher.formData?.get("saveAnyway") === "true";
+	const disconnecting =
+		busy && fetcher.formData?.get("intent") === "disconnect";
+	const connecting = busy && !savingAnyway && !disconnecting;
 
 	useEffect(() => {
 		if (result?.status === "connected") {
@@ -149,6 +156,10 @@ export default function Index() {
 							The embed is enabled <s-text type="strong">per theme</s-text> — if
 							you publish a different theme, click Enable again.
 						</s-paragraph>
+						<s-paragraph>
+							Already added Clanker to your theme by hand? Remove that snippet —
+							the app replaces it.
+						</s-paragraph>
 						<s-stack direction="inline" gap="base">
 							<s-button variant="primary" onClick={openThemeEditor}>
 								Enable on your store
@@ -157,7 +168,8 @@ export default function Index() {
 								variant="tertiary"
 								tone="critical"
 								onClick={disconnect}
-								{...(busy ? { loading: true } : {})}
+								{...(disconnecting ? { loading: true } : {})}
+								{...(busy && !disconnecting ? { disabled: true } : {})}
 							>
 								Disconnect
 							</s-button>
@@ -202,6 +214,8 @@ export default function Index() {
 								<s-button
 									slot="secondary-actions"
 									onClick={() => connect(true)}
+									{...(savingAnyway ? { loading: true } : {})}
+									{...(busy && !savingAnyway ? { disabled: true } : {})}
 								>
 									Save anyway
 								</s-button>
@@ -224,8 +238,10 @@ export default function Index() {
 							<s-button
 								variant="primary"
 								onClick={() => connect(false)}
-								{...(busy ? { loading: true } : {})}
-								{...(key.trim() === "" ? { disabled: true } : {})}
+								{...(connecting ? { loading: true } : {})}
+								{...(key.trim() === "" || (busy && !connecting)
+									? { disabled: true }
+									: {})}
 							>
 								Connect
 							</s-button>
