@@ -4,6 +4,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { adminUrl } from "@/lib/admin";
 import { createAuthRateLimitStorage } from "@/lib/auth-rate-limit-storage";
 import { db } from "@/lib/db";
+import { notifyUserSignup } from "@/lib/discord";
 import { isAllowedOrigin } from "@/lib/origins";
 import { defaultWorkspaceName, provisionWorkspace } from "@/lib/provisioning";
 import { trustedIpHeaders } from "@/lib/request";
@@ -129,6 +130,10 @@ export function buildAuthOptions(env: Env) {
 						} catch (err) {
 							console.error("sign-up: workspace provisioning failed", err);
 						}
+						// Operator ping for every new account (email and OAuth sign-ups
+						// both insert a user row). No-ops when the webhook env is unset
+						// and never throws, so it can't break sign-up.
+						await notifyUserSignup(env, createdUser);
 					},
 				},
 			},

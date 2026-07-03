@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { createAuth } from "@/auth";
 import { adminUrl } from "@/lib/admin";
 import { isAllowedOrigin } from "@/lib/origins";
+import { periodForCron, runTrafficReport } from "@/lib/traffic-report";
 import { account } from "@/routes/account";
 import { admin } from "@/routes/admin";
 import { billing } from "@/routes/billing";
@@ -26,7 +27,7 @@ import { workspaces } from "@/routes/workspaces";
 
 import type { AppContext } from "@/env";
 
-const app = new Hono<AppContext>();
+export const app = new Hono<AppContext>();
 
 app.use(
 	"/api/*",
@@ -122,4 +123,20 @@ app.route("/", embed);
 
 app.get("/", (c) => c.json({ name: "llmchat-api", ok: true }));
 
-export default app;
+/** Cron trigger payload Ploy delivers (Cloudflare ScheduledController shape). */
+interface ScheduledEvent {
+	cron: string;
+	scheduledTime: number;
+	noRetry(): void;
+}
+
+// The worker export: Hono handles requests; `scheduled` receives the Ploy cron
+// triggers declared in ploy.yaml (the weekly/monthly traffic report). The
+// report is awaited — not waitUntil'd — so a failed run marks the cron
+// execution failed in the Ploy dashboard instead of vanishing.
+export default {
+	fetch: app.fetch,
+	async scheduled(event: ScheduledEvent, env: PloyEnv) {
+		await runTrafficReport(env, periodForCron(event.cron));
+	},
+};

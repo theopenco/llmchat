@@ -37,6 +37,17 @@ declare module "@meetploy/nextjs" {
 			TRUSTED_CLIENT_IP_HEADER?: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;
+			// Discord incoming-webhook URLs: operator notifications (signups,
+			// subscription lifecycle) and the traffic report. Optional — all
+			// notifications no-op when unset.
+			DISCORD_NOTIFICATION_URL?: string;
+			DISCORD_TRAFFIC_NOTIFICATION_URL?: string;
+			// PostHog HogQL query credentials for the traffic-report cron: a
+			// personal API key (phx_, read scope — NOT the phc_ ingestion key),
+			// the numeric project id, and the app host (defaults to EU cloud).
+			POSTHOG_PERSONAL_API_KEY?: string;
+			POSTHOG_PROJECT_ID?: string;
+			POSTHOG_QUERY_HOST?: string;
 			GOOGLE_CLIENT_ID?: string;
 			GOOGLE_CLIENT_SECRET?: string;
 			GITHUB_CLIENT_ID?: string;
@@ -83,6 +94,17 @@ declare global {
 			TRUSTED_CLIENT_IP_HEADER?: string;
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;
+			// Discord incoming-webhook URLs: operator notifications (signups,
+			// subscription lifecycle) and the traffic report. Optional — all
+			// notifications no-op when unset.
+			DISCORD_NOTIFICATION_URL?: string;
+			DISCORD_TRAFFIC_NOTIFICATION_URL?: string;
+			// PostHog HogQL query credentials for the traffic-report cron: a
+			// personal API key (phx_, read scope — NOT the phc_ ingestion key),
+			// the numeric project id, and the app host (defaults to EU cloud).
+			POSTHOG_PERSONAL_API_KEY?: string;
+			POSTHOG_PROJECT_ID?: string;
+			POSTHOG_QUERY_HOST?: string;
 			GOOGLE_CLIENT_ID?: string;
 			GOOGLE_CLIENT_SECRET?: string;
 			GITHUB_CLIENT_ID?: string;
