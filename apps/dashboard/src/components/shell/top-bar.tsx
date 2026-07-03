@@ -10,6 +10,7 @@ import {
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ds";
 import { AccountMenu } from "@/components/shell/account-menu";
+import { NotificationBell } from "@/components/shell/notification-bell";
 import { ProjectSwitcher } from "@/components/shell/project-switcher";
 import { WorkspaceSwitcher } from "@/components/shell/workspace-switcher";
 
@@ -80,6 +81,8 @@ export function TopBar({
 			>
 				<Search className="size-5" />
 			</Button>
+
+			<NotificationBell />
 
 			<Button
 				variant="outline"
