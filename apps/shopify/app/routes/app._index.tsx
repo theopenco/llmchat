@@ -1,249 +1,251 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type {
 	ActionFunctionArgs,
 	HeadersFunction,
 	LoaderFunctionArgs,
 } from "react-router";
-import { useFetcher } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { authenticate } from "../shopify.server";
+import {
+	clearProjectKey,
+	getConnection,
+	maskKey,
+	themeEditorDeepLink,
+	validateProjectKey,
+	writeProjectKey,
+} from "../lib/clanker.server";
+
+/**
+ * The one settings page (docs/shopify-app-plan.md §5): a single card with
+ * three states — not connected (paste key), couldn't-verify (offer
+ * save-anyway), connected (masked key + theme-editor deep link).
+ *
+ * Status honesty: we do NOT claim to know whether the merchant toggled the
+ * embed on in the theme editor — detecting that needs read_themes and
+ * settings_data.json parsing (v1.1 candidate). The copy tells them what to do;
+ * it never pretends to verify they did it.
+ */
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-	await authenticate.admin(request);
-
-	return null;
-};
-
-export const action = async ({ request }: ActionFunctionArgs) => {
-	const { admin } = await authenticate.admin(request);
-	const color = ["Red", "Orange", "Yellow", "Green"][
-		Math.floor(Math.random() * 4)
-	];
-	const response = await admin.graphql(
-		`#graphql
-      mutation populateProduct($product: ProductCreateInput!) {
-        productCreate(product: $product) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-          }
-        }
-      }`,
-		{
-			variables: {
-				product: {
-					title: `${color} Snowboard`,
-				},
-			},
-		},
-	);
-	const responseJson = await response.json();
-
-	const product = responseJson.data!.productCreate!.product!;
-	const variantId = product.variants.edges[0]!.node!.id!;
-
-	const variantResponse = await admin.graphql(
-		`#graphql
-    mutation shopifyReactRouterTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          price
-          barcode
-          createdAt
-        }
-      }
-    }`,
-		{
-			variables: {
-				productId: product.id,
-				variants: [{ id: variantId, price: "100.00" }],
-			},
-		},
-	);
-
-	const variantResponseJson = await variantResponse.json();
-
+	const { admin, session } = await authenticate.admin(request);
+	// A null projectKey is first-run BY DEFINITION — including after a
+	// reinstall. Metafield survival across uninstall/reinstall is undocumented;
+	// we never assume the key is still there (plan §6).
+	const { projectKey } = await getConnection(admin);
 	return {
-		product: responseJson!.data!.productCreate!.product,
-		variant:
-			variantResponseJson!.data!.productVariantsBulkUpdate!.productVariants,
+		connected: projectKey !== null && projectKey !== "",
+		maskedKey: projectKey ? maskKey(projectKey) : null,
+		enableUrl: themeEditorDeepLink(
+			session.shop,
+			process.env.SHOPIFY_API_KEY || "",
+		),
 	};
 };
 
-export default function Index() {
-	const fetcher = useFetcher<typeof action>();
+export type ConnectActionResult =
+	| { status: "connected" }
+	| { status: "disconnected" }
+	| { status: "invalid" }
+	| { status: "unverified"; key: string }
+	| { status: "error"; message: string };
 
+export const action = async ({
+	request,
+}: ActionFunctionArgs): Promise<ConnectActionResult> => {
+	const { admin } = await authenticate.admin(request);
+	const form = await request.formData();
+	const intent = form.get("intent");
+
+	if (intent === "disconnect") {
+		const { installationId } = await getConnection(admin);
+		const result = await clearProjectKey(admin, installationId);
+		return result.ok
+			? { status: "disconnected" }
+			: { status: "error", message: result.message };
+	}
+
+	const key = String(form.get("projectKey") ?? "").trim();
+	if (!key) {
+		return { status: "error", message: "Enter your Clanker project key." };
+	}
+
+	// Save-anyway is the merchant's explicit choice after a "couldn't verify":
+	// we write without re-validating (re-checking would just replay the flake).
+	const saveAnyway = form.get("saveAnyway") === "true";
+	if (!saveAnyway) {
+		const verdict = await validateProjectKey(key);
+		if (verdict === "invalid") return { status: "invalid" };
+		if (verdict === "unverified") return { status: "unverified", key };
+	}
+
+	const { installationId } = await getConnection(admin);
+	const result = await writeProjectKey(admin, installationId, key);
+	return result.ok
+		? { status: "connected" }
+		: { status: "error", message: result.message };
+};
+
+export default function Index() {
+	const { connected, maskedKey, enableUrl } = useLoaderData<typeof loader>();
+	const fetcher = useFetcher<typeof action>();
 	const shopify = useAppBridge();
-	const isLoading =
-		["loading", "submitting"].includes(fetcher.state) &&
-		fetcher.formMethod === "POST";
+	const [key, setKey] = useState("");
+	const busy = fetcher.state !== "idle";
+	const result = fetcher.data;
 
 	useEffect(() => {
-		if (fetcher.data?.product?.id) {
-			shopify.toast.show("Product created");
+		if (result?.status === "connected") {
+			shopify.toast.show("Clanker project connected");
+			setKey("");
 		}
-	}, [fetcher.data?.product?.id, shopify]);
+		if (result?.status === "disconnected") {
+			shopify.toast.show("Project disconnected");
+		}
+	}, [result, shopify]);
 
-	const generateProduct = () => fetcher.submit({}, { method: "POST" });
+	const connect = (saveAnyway: boolean) =>
+		fetcher.submit(
+			{
+				intent: "connect",
+				// The unverified banner resubmits the exact key the server saw, so
+				// an edit made after the banner appeared can't silently diverge.
+				projectKey:
+					saveAnyway && result?.status === "unverified" ? result.key : key,
+				...(saveAnyway ? { saveAnyway: "true" } : {}),
+			},
+			{ method: "POST" },
+		);
+
+	const disconnect = () =>
+		fetcher.submit({ intent: "disconnect" }, { method: "POST" });
+
+	// Opened TOP-LEVEL: App Bridge routes window.open(url, "_top") out of the
+	// embedded iframe; a plain location assignment would navigate the iframe
+	// only and trap the theme editor inside the admin frame.
+	const openThemeEditor = () => window.open(enableUrl, "_top");
 
 	return (
-		<s-page heading="Shopify app template">
-			<s-button slot="primary-action" onClick={generateProduct}>
-				Generate a product
-			</s-button>
-
-			<s-section heading="Congrats on creating a new Shopify app 🎉">
-				<s-paragraph>
-					This embedded app template uses{" "}
-					<s-link
-						href="https://shopify.dev/docs/apps/tools/app-bridge"
-						target="_blank"
-					>
-						App Bridge
-					</s-link>{" "}
-					interface examples like an{" "}
-					<s-link href="/app/additional">additional page in the app nav</s-link>
-					, as well as an{" "}
-					<s-link
-						href="https://shopify.dev/docs/api/admin-graphql"
-						target="_blank"
-					>
-						Admin GraphQL
-					</s-link>{" "}
-					mutation demo, to provide a starting point for app development.
-				</s-paragraph>
-			</s-section>
-			<s-section heading="Get started with products">
-				<s-paragraph>
-					Generate a product with GraphQL and get the JSON output for that
-					product. Learn more about the{" "}
-					<s-link
-						href="https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate"
-						target="_blank"
-					>
-						productCreate
-					</s-link>{" "}
-					mutation in our API references.
-				</s-paragraph>
-				<s-stack direction="inline" gap="base">
-					<s-button
-						onClick={generateProduct}
-						{...(isLoading ? { loading: true } : {})}
-					>
-						Generate a product
-					</s-button>
-					{fetcher.data?.product && (
-						<s-button
-							onClick={() => {
-								shopify.intents.invoke?.("edit:shopify/Product", {
-									value: fetcher.data?.product?.id,
-								});
-							}}
-							target="_blank"
-							variant="tertiary"
-						>
-							Edit product
-						</s-button>
-					)}
-				</s-stack>
-				{fetcher.data?.product && (
-					<s-section heading="productCreate mutation">
-						<s-stack direction="block" gap="base">
-							<s-box
-								padding="base"
-								borderWidth="base"
-								borderRadius="base"
-								background="subdued"
-							>
-								<pre style={{ margin: 0 }}>
-									<code>{JSON.stringify(fetcher.data.product, null, 2)}</code>
-								</pre>
-							</s-box>
-
-							<s-heading>productVariantsBulkUpdate mutation</s-heading>
-							<s-box
-								padding="base"
-								borderWidth="base"
-								borderRadius="base"
-								background="subdued"
-							>
-								<pre style={{ margin: 0 }}>
-									<code>{JSON.stringify(fetcher.data.variant, null, 2)}</code>
-								</pre>
-							</s-box>
+		<s-page heading="Clanker Support">
+			{connected ? (
+				<s-section heading="Your store is connected">
+					<s-stack direction="block" gap="base">
+						<s-stack direction="inline" gap="small-200">
+							<s-badge tone="success" icon="check-circle">
+								Connected
+							</s-badge>
+							<s-text color="subdued">Project key {maskedKey}</s-text>
 						</s-stack>
-					</s-section>
-				)}
-			</s-section>
+						<s-paragraph>
+							One step left: the widget ships as a theme app embed, and embeds
+							are off until you enable them.
+						</s-paragraph>
+						<s-paragraph>
+							Click Enable, then press <s-text type="strong">Save</s-text> in
+							the theme editor.
+						</s-paragraph>
+						<s-paragraph>
+							The embed is enabled <s-text type="strong">per theme</s-text> — if
+							you publish a different theme, click Enable again.
+						</s-paragraph>
+						<s-stack direction="inline" gap="base">
+							<s-button variant="primary" onClick={openThemeEditor}>
+								Enable on your store
+							</s-button>
+							<s-button
+								variant="tertiary"
+								tone="critical"
+								onClick={disconnect}
+								{...(busy ? { loading: true } : {})}
+							>
+								Disconnect
+							</s-button>
+						</s-stack>
+						{result?.status === "error" && (
+							<s-banner tone="critical" heading="Something went wrong">
+								<s-paragraph>{result.message}</s-paragraph>
+							</s-banner>
+						)}
+					</s-stack>
+				</s-section>
+			) : (
+				<s-section heading="Connect your Clanker project">
+					<s-stack direction="block" gap="base">
+						<s-paragraph>
+							Paste the project key from your Clanker Support dashboard
+							(Settings → Projects). Your storefront chat will answer from that
+							project&apos;s knowledge base.
+						</s-paragraph>
+						{result?.status === "invalid" && (
+							<s-banner
+								tone="critical"
+								heading="That key doesn't match any Clanker project"
+							>
+								<s-paragraph>
+									Check for typos, or copy it again from Settings → Projects in
+									your Clanker dashboard.
+								</s-paragraph>
+							</s-banner>
+						)}
+						{result?.status === "unverified" && (
+							<s-banner
+								tone="warning"
+								heading="We couldn't verify your key right now"
+							>
+								<s-paragraph>
+									Clanker&apos;s API didn&apos;t respond, so the key can&apos;t
+									be checked — that doesn&apos;t mean it&apos;s wrong. You can
+									save it anyway; the widget will use it as soon as the API is
+									reachable.
+								</s-paragraph>
+								<s-button
+									slot="secondary-actions"
+									onClick={() => connect(true)}
+								>
+									Save anyway
+								</s-button>
+							</s-banner>
+						)}
+						{result?.status === "error" && (
+							<s-banner tone="critical" heading="Something went wrong">
+								<s-paragraph>{result.message}</s-paragraph>
+							</s-banner>
+						)}
+						<s-text-field
+							label="Clanker project key"
+							name="projectKey"
+							value={key}
+							placeholder="pk_…"
+							details="Found in your Clanker dashboard under Settings → Projects."
+							onInput={(e) => setKey(e.currentTarget.value)}
+						/>
+						<s-stack direction="inline" gap="base">
+							<s-button
+								variant="primary"
+								onClick={() => connect(false)}
+								{...(busy ? { loading: true } : {})}
+								{...(key.trim() === "" ? { disabled: true } : {})}
+							>
+								Connect
+							</s-button>
+						</s-stack>
+					</s-stack>
+				</s-section>
+			)}
 
-			<s-section slot="aside" heading="App template specs">
+			<s-section slot="aside" heading="How it works">
 				<s-paragraph>
-					<s-text>Framework: </s-text>
-					<s-link href="https://reactrouter.com/" target="_blank">
-						React Router
-					</s-link>
+					Visitors chat with a bubble on your storefront. Answers come from your
+					Clanker project&apos;s knowledge base; conversations land in your
+					Clanker inbox, and anything the AI can&apos;t handle escalates to your
+					team.
 				</s-paragraph>
 				<s-paragraph>
-					<s-text>Interface: </s-text>
-					<s-link
-						href="https://shopify.dev/docs/api/app-home/using-polaris-components"
-						target="_blank"
-					>
-						Polaris web components
+					<s-link href="https://clankersupport.com" target="_blank">
+						Manage your project on clankersupport.com
 					</s-link>
 				</s-paragraph>
-				<s-paragraph>
-					<s-text>API: </s-text>
-					<s-link
-						href="https://shopify.dev/docs/api/admin-graphql"
-						target="_blank"
-					>
-						GraphQL
-					</s-link>
-				</s-paragraph>
-				<s-paragraph>
-					<s-text>Database: </s-text>
-					<s-link href="https://www.prisma.io/" target="_blank">
-						Prisma
-					</s-link>
-				</s-paragraph>
-			</s-section>
-
-			<s-section slot="aside" heading="Next steps">
-				<s-unordered-list>
-					<s-list-item>
-						Build an{" "}
-						<s-link
-							href="https://shopify.dev/docs/apps/getting-started/build-app-example"
-							target="_blank"
-						>
-							example app
-						</s-link>
-					</s-list-item>
-					<s-list-item>
-						Explore Shopify&apos;s API with{" "}
-						<s-link
-							href="https://shopify.dev/docs/apps/tools/graphiql-admin-api"
-							target="_blank"
-						>
-							GraphiQL
-						</s-link>
-					</s-list-item>
-				</s-unordered-list>
 			</s-section>
 		</s-page>
 	);
