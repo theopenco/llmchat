@@ -6,12 +6,6 @@
   competes with the storefront's own resources (Lighthouse guard).
   See docs/shopify-app-plan.md §4 for the rationale behind every choice.
 {%- endcomment -%}
-{%- comment -%}
-  SPIKE §9.0 — REMOVE BEFORE PHASE 2. Renders both metafield accessors as an
-  HTML comment so the day-0 dev-store check can read them via view-source:
-  ".value" is the documented accessor; the bare drop is known-unreliable.
-{%- endcomment -%}
-<!-- clanker-spike bare: {{ app.metafields.clanker.project_key | json }} | value: {{ app.metafields.clanker.project_key.value | json }} -->
 {%- assign clanker_key = block.settings.project_key_override | strip -%}
 {%- if clanker_key == blank -%}
   {%- assign clanker_key = app.metafields.clanker.project_key.value | strip -%}
