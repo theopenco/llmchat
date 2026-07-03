@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { resolveConfig } from "./config";
+import { createWidgetHost } from "./mount-host";
 import { Widget } from "./widget";
 import { widgetStyles } from "./styles";
 
@@ -12,8 +13,7 @@ const config = resolveConfig(
 );
 
 function mount() {
-	const host = document.createElement("div");
-	host.id = "llmchat-widget-root";
+	const host = createWidgetHost(document);
 	document.body.appendChild(host);
 	const shadow = host.attachShadow({ mode: "open" });
 
