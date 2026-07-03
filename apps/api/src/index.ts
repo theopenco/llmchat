@@ -11,6 +11,7 @@ import { chat } from "@/routes/chat";
 import { conversations } from "@/routes/conversations";
 import { embed } from "@/routes/embed";
 import { inboundEmail } from "@/routes/inbound-email";
+import { notifications } from "@/routes/notifications";
 import { oauthProviders } from "@/routes/oauth-providers";
 import { projects } from "@/routes/projects";
 import { search } from "@/routes/search";
@@ -112,6 +113,7 @@ app.route("/api", systemPrompts);
 app.route("/api", sources);
 app.route("/api", tags);
 app.route("/api", conversations);
+app.route("/api", notifications);
 app.route("/", admin);
 app.route("/", inboundEmail);
 // Billing mounts at root so the webhook is reachable at /billing/webhook
