@@ -76,6 +76,16 @@ describe("buildAuthOptions", () => {
 		});
 	});
 
+	it("requires email verification on the credential path and wires the verification email", () => {
+		const opts = buildAuthOptions(env());
+		expect(opts.emailAndPassword.requireEmailVerification).toBe(true);
+		expect(opts.emailVerification.sendOnSignUp).toBe(true);
+		expect(opts.emailVerification.autoSignInAfterVerification).toBe(true);
+		expect(typeof opts.emailVerification.sendVerificationEmail).toBe(
+			"function",
+		);
+	});
+
 	it("enables durable rate limiting backed by a customStorage (not secondaryStorage, so sessions stay in D1)", () => {
 		const rl = buildAuthOptions(env()).rateLimit;
 		expect(rl.enabled).toBe(true);

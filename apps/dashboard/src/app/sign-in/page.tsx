@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { signIn } from "@/lib/auth-client";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { fieldErrors, signInSchema } from "@/lib/auth-schema";
+import { useResendVerification } from "@/lib/use-resend-verification";
 
 export default function SignInPage() {
 	const [email, setEmail] = useState("");
@@ -21,6 +22,8 @@ export default function SignInPage() {
 	const [remember, setRemember] = useState(true);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [loading, setLoading] = useState(false);
+	const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+	const { resend, sending, cooldown } = useResendVerification();
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -38,6 +41,15 @@ export default function SignInPage() {
 		});
 		if (res.error) {
 			setLoading(false);
+			// Unverified email: Better Auth returns EMAIL_NOT_VERIFIED and has already
+			// auto-resent the link. Match on the stable `code` only — NOT status 403 —
+			// so a future error that also 403s can't be mistaken for "unverified"
+			// (bad credentials are 401). Worst case it degrades to the generic toast.
+			if (res.error.code === "EMAIL_NOT_VERIFIED") {
+				setUnverifiedEmail(parsed.data.email);
+				return;
+			}
+			setUnverifiedEmail(null);
 			toast.error("Sign in failed", {
 				description: res.error.message ?? undefined,
 			});
@@ -58,6 +70,31 @@ export default function SignInPage() {
 			heading={<>Welcome back 👋</>}
 			subheading="Sign in to your Clanker Support dashboard"
 		>
+			{unverifiedEmail && (
+				<div className="mb-4 flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3">
+					<div className="flex items-start gap-3">
+						<AlertCircle className="mt-0.5 size-4 shrink-0 text-primary" />
+						<p className="text-sm">
+							Verify your email to sign in. We re-sent a link to{" "}
+							<span className="font-medium break-all">{unverifiedEmail}</span>.
+						</p>
+					</div>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="self-start"
+						disabled={sending || cooldown > 0}
+						onClick={() => resend(unverifiedEmail)}
+					>
+						{cooldown > 0
+							? `Resend in ${cooldown}s`
+							: sending
+								? "Sending…"
+								: "Resend link"}
+					</Button>
+				</div>
+			)}
 			<form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
 				<FormField id="email" label="Email" error={errors.email}>
 					<div className="relative">

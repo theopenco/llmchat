@@ -4,6 +4,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { adminUrl } from "@/lib/admin";
 import { createAuthRateLimitStorage } from "@/lib/auth-rate-limit-storage";
 import { db } from "@/lib/db";
+import { buildVerificationEmail, sendEmail } from "@/lib/email";
 import { isAllowedOrigin } from "@/lib/origins";
 import { defaultWorkspaceName, provisionWorkspace } from "@/lib/provisioning";
 import { trustedIpHeaders } from "@/lib/request";
@@ -89,8 +90,30 @@ export function buildAuthOptions(env: Env) {
 			// rules. Better Auth hashes with scrypt.
 			minPasswordLength: 8,
 			maxPasswordLength: 128,
-			// Issue a session on sign-up so the user lands straight in onboarding.
+			// autoSignIn is inert while requireEmailVerification is on (sign-up
+			// returns no session until verified), kept for intent.
 			autoSignIn: true,
+			// SECURITY (account squatting): a new email/password user must prove they
+			// own the address before they get a session. Sign-up creates the row but
+			// issues NO session; sign-in is blocked (403 EMAIL_NOT_VERIFIED, BA
+			// auto-resends) until verified. This gates ONLY the credential path —
+			// OAuth (Google/GitHub) arrives emailVerified from the provider and is
+			// untouched (the callback issues a session with no verify step).
+			requireEmailVerification: true,
+		},
+		// Verification email transport. Sends on sign-up; clicking the link verifies
+		// + auto-signs-in. The link is built deterministically here with a fixed
+		// dashboard callbackURL (one trusted landing for both success and the
+		// ?error=... case), rather than relying on the per-trigger callbackURL.
+		emailVerification: {
+			sendOnSignUp: true,
+			autoSignInAfterVerification: true,
+			sendVerificationEmail: async ({ user: u, token }) => {
+				const callbackURL = `${env.vars.DASHBOARD_URL}/verify-email`;
+				const verifyUrl = `${env.vars.BETTER_AUTH_URL}/api/auth/verify-email?token=${token}&callbackURL=${encodeURIComponent(callbackURL)}`;
+				const { subject, html, text } = buildVerificationEmail(verifyUrl);
+				await sendEmail(env, { to: u.email, subject, html, text });
+			},
 		},
 		// Google + GitHub, included only when their env credentials are set (see
 		// buildSocialProviders). A social sign-up inserts a `user` row, which fires
