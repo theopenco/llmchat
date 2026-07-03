@@ -77,9 +77,16 @@ export default function RootLayout({
 					}}
 				/>
 				<PostHogProvider>
+					{/*
+					 * Light stays the default (Chatbase-style), but the theme is a
+					 * PREFERENCE again: enableSystem + the account-menu Appearance
+					 * switcher (Light/Dark/System) — both .dark token sets (shadcn +
+					 * --ck-*) shipped with the restyle and stay maintained.
+					 */}
 					<ThemeProvider
 						attribute="class"
-						forcedTheme="light"
+						defaultTheme="light"
+						enableSystem
 						disableTransitionOnChange
 					>
 						<QueryProvider>
