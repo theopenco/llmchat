@@ -1,0 +1,72 @@
+{%- comment -%}
+  Clanker Support app embed. The project key is written by the app's admin
+  page into an app-data metafield (invisible to the merchant); the block
+  setting is an advanced manual override only. No key -> render nothing.
+  The widget script is injected after window load + idle so it never
+  competes with the storefront's own resources (Lighthouse guard).
+  See docs/shopify-app-plan.md §4 for the rationale behind every choice.
+{%- endcomment -%}
+{%- comment -%}
+  SPIKE §9.0 — REMOVE BEFORE PHASE 2. Renders both metafield accessors as an
+  HTML comment so the day-0 dev-store check can read them via view-source:
+  ".value" is the documented accessor; the bare drop is known-unreliable.
+{%- endcomment -%}
+<!-- clanker-spike bare: {{ app.metafields.clanker.project_key | json }} | value: {{ app.metafields.clanker.project_key.value | json }} -->
+{%- assign clanker_key = block.settings.project_key_override | strip -%}
+{%- if clanker_key == blank -%}
+  {%- assign clanker_key = app.metafields.clanker.project_key.value | strip -%}
+{%- endif -%}
+{%- if clanker_key != blank -%}
+<script>
+	(function () {
+		if (window.__clankerSupportLoaded) return;
+		window.__clankerSupportLoaded = true;
+		function inject() {
+			// A store migrating from the manually pasted snippet may still have
+			// that <script> in its theme — it has already mounted by now (we run
+			// post-load). One bubble, never two.
+			if (document.getElementById("llmchat-widget-root")) return;
+			if (document.querySelector('script[data-project][src$="/widget.js"]')) return;
+			var s = document.createElement("script");
+			s.src = "https://api.clankersupport.com/widget.js";
+			s.async = true;
+			s.dataset.project = {{ clanker_key | json }};
+			{%- assign clanker_brand = block.settings.brand_color | append: "" | strip -%}
+			{%- if clanker_brand != blank and clanker_brand != "rgba(0,0,0,0)" %}
+			s.dataset.brand = {{ clanker_brand | json }};
+			{%- endif %}
+			document.body.appendChild(s);
+		}
+		function idle() {
+			if ("requestIdleCallback" in window) {
+				requestIdleCallback(inject, { timeout: 3000 });
+			} else {
+				setTimeout(inject, 200);
+			}
+		}
+		if (document.readyState === "complete") { idle(); }
+		else { window.addEventListener("load", idle); }
+	})();
+</script>
+{%- endif -%}
+
+{% schema %}
+{
+	"name": "Clanker Support",
+	"target": "body",
+	"settings": [
+		{
+			"type": "color",
+			"id": "brand_color",
+			"label": "Bubble color",
+			"info": "Optional. Leave unset to use the default."
+		},
+		{
+			"type": "text",
+			"id": "project_key_override",
+			"label": "Project key (advanced)",
+			"info": "Set automatically when you connect the app. Only fill this to override."
+		}
+	]
+}
+{% endschema %}
