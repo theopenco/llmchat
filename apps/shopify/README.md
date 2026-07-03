@@ -101,19 +101,19 @@ Build the app by running the command below with the package manager of your choi
 Using yarn:
 
 ```shell
-yarn build
+yarn build:app
 ```
 
 Using npm:
 
 ```shell
-npm run build
+npm run build:app
 ```
 
 Using pnpm:
 
 ```shell
-pnpm run build
+pnpm run build:app
 ```
 
 ## Hosting

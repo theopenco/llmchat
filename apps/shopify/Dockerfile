@@ -7,9 +7,13 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY package.json package-lock.json* ./
+# No npm lockfile exists here (pnpm monorepo — the lockfile lives at the repo
+# root), so `npm ci` can never succeed. `npm install` resolves from package.json.
+# TODO(hosting phase): switch to a pnpm-based multi-stage build pinned by the
+# root pnpm-lock.yaml before any real deploy.
+COPY package.json ./
 
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 COPY . .
 

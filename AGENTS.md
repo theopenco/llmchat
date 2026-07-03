@@ -10,7 +10,7 @@ Production domains: `clankersupport.com` (marketing), `app.clankersupport.com` (
 
 ## Repo layout
 
-pnpm workspaces + Turborepo. Five apps, three packages:
+pnpm workspaces + Turborepo. Six apps, three packages:
 
 | Path              | Name                 | What                                                             | Dev port |
 | ----------------- | -------------------- | ---------------------------------------------------------------- | -------- |
@@ -19,11 +19,14 @@ pnpm workspaces + Turborepo. Five apps, three packages:
 | `apps/marketing`  | `@llmchat/marketing` | Next.js 15 marketing site + MDX/JSON content + SEO               | 3002     |
 | `apps/showcase`   | `@llmchat/showcase`  | Next.js 15 first-party "live demo" embedding the real widget     | 3003     |
 | `apps/admin`      | `@llmchat/admin`     | Next.js 15 internal admin console (signups / revenue / subs)     | 3004     |
+| `apps/shopify`    | `@llmchat/shopify`   | Shopify App Store connector (React Router + theme app extension) | —        |
 | `packages/db`     | `@llmchat/db`        | Drizzle schema; emits SQL migrations into `apps/api/migrations/` | —        |
 | `packages/shared` | `@llmchat/shared`    | Zod schemas, analytics taxonomy, billing tiers, consent, models  | —        |
 | `packages/widget` | `@llmchat/widget`    | Vite IIFE widget bundle, embedded into the api as `/widget.js`   | —        |
 
 (`apps/marketing`'s standalone `next dev` script uses port 3000, but under `pnpm dev`/`ploy dev` it gets 3002 from its `ploy.yaml`.)
+
+`apps/shopify` is deliberately outside the Ploy/turbo-build world: no `ploy.yaml` (so `pnpm dev` ignores it), its build script is `build:app` (so `turbo run build` skips it — it ships via its own Dockerfile), and it runs with `cd apps/shopify && pnpm dev` (`shopify app dev`, needs a TTY — never under turbo). The api's workerd no-Node-deps constraint does NOT apply there (plain Node server). Plan: `docs/shopify-app-plan.md`.
 
 ## Stack & runtime
 

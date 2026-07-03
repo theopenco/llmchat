@@ -14,7 +14,7 @@
 		"format": "prettier --write .",
 		"generate": "shopify app generate",
 		"graphql-codegen": "graphql-codegen",
-		"lint": "prettier --check .",
+		"lint": "prettier --check . && react-router typegen && tsc --noEmit",
 		"prisma": "prisma",
 		"setup": "prisma generate && prisma migrate deploy",
 		"shopify": "shopify",
