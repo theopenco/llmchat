@@ -1,0 +1,14 @@
+{
+	"name": "@clankersupport/wordpress-plugin",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Official Clanker Support WordPress plugin — wordpress.org-ready structure wrapping the public widget.js embed.",
+	"scripts": {
+		"format": "prettier --write .",
+		"lint": "prettier --check .",
+		"package": "node scripts/build-zip.mjs"
+	},
+	"devDependencies": {
+		"prettier": "^3.6.2"
+	}
+}

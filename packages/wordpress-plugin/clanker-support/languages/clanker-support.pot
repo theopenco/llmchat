@@ -1,0 +1,173 @@
+# Copyright (C) 2026 Clanker Support
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Clanker Support 1.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/theopenco/llmchat/issues\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-07-03T00:00:00+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Domain: clanker-support\n"
+
+#. Plugin Name of the plugin
+#: clanker-support.php
+#: includes/class-clanker-support-admin.php:27
+#: includes/class-clanker-support-admin.php:28
+#: admin/partials/settings-page.php:34
+msgid "Clanker Support"
+msgstr ""
+
+#. Plugin URI and Author URI of the plugin
+#: clanker-support.php
+msgid "https://clankersupport.com"
+msgstr ""
+
+#. Description of the plugin
+#: clanker-support.php
+msgid "AI customer support widget — streaming answers from your knowledge base, human handoff, and live operator replies from your inbox."
+msgstr ""
+
+#: includes/class-clanker-support-frontend.php:98
+msgid "Support chat"
+msgstr ""
+
+#: includes/class-clanker-support-admin.php:70
+msgid "Settings"
+msgstr ""
+
+#: includes/class-clanker-support-admin.php:88
+msgid "Docs"
+msgstr ""
+
+#: includes/class-clanker-support-admin.php:93
+msgid "Source code"
+msgstr ""
+
+#: admin/partials/settings-page.php:15
+msgid "Not connected"
+msgstr ""
+
+#: admin/partials/settings-page.php:16
+msgid "Connected"
+msgstr ""
+
+#: admin/partials/settings-page.php:17
+msgid "Invalid project key"
+msgstr ""
+
+#: admin/partials/settings-page.php:18
+msgid "API unreachable"
+msgstr ""
+
+#: admin/partials/settings-page.php:40
+msgid "Re-check"
+msgstr ""
+
+#: admin/partials/settings-page.php:49
+msgid "Connection"
+msgstr ""
+
+#: admin/partials/settings-page.php:53
+msgid "Project key"
+msgstr ""
+
+#. translators: %s: link to the Clanker Support dashboard.
+#: admin/partials/settings-page.php:69
+msgid "Your project’s public widget key, from the %s under Project → Embed. This key is safe to expose publicly."
+msgstr ""
+
+#: admin/partials/settings-page.php:70
+msgid "dashboard"
+msgstr ""
+
+#: admin/partials/settings-page.php:80
+msgid "Widget"
+msgstr ""
+
+#: admin/partials/settings-page.php:83
+msgid "Floating widget"
+msgstr ""
+
+#: admin/partials/settings-page.php:92
+msgid "Show the floating support bubble on every page"
+msgstr ""
+
+#: admin/partials/settings-page.php:94
+msgid "The [clanker_support] shortcode keeps working when this is off."
+msgstr ""
+
+#: admin/partials/settings-page.php:99
+msgid "Brand color"
+msgstr ""
+
+#: admin/partials/settings-page.php:108
+msgid "Accent color for the launcher, header, and visitor message bubbles."
+msgstr ""
+
+#: admin/partials/settings-page.php:113
+msgid "Escalation threshold"
+msgstr ""
+
+#: admin/partials/settings-page.php:126
+msgid "Visitor messages before “Talk to a human” appears. Leave blank for the widget default."
+msgstr ""
+
+#: admin/partials/settings-page.php:133
+msgid "Self-hosting"
+msgstr ""
+
+#: admin/partials/settings-page.php:137
+msgid "API URL"
+msgstr ""
+
+#: admin/partials/settings-page.php:148
+msgid "Only change this when self-hosting Clanker Support — point it at your own deployment’s API origin."
+msgstr ""
+
+#: admin/partials/settings-page.php:159
+msgid "Inline chat"
+msgstr ""
+
+#: admin/partials/settings-page.php:160
+msgid "Embed the chat inside any page or post — for example a Contact page — with the shortcode:"
+msgstr ""
+
+#: admin/partials/settings-page.php:162
+msgid "Both attributes are optional. The inline chat works even when the floating bubble is turned off."
+msgstr ""
+
+#: admin/partials/settings-page.php:166
+msgid "How it works"
+msgstr ""
+
+#: admin/partials/settings-page.php:168
+msgid "Add your docs, snippets, and Q&A to the knowledge base in the dashboard."
+msgstr ""
+
+#: admin/partials/settings-page.php:169
+msgid "Visitors get streaming AI answers grounded in that knowledge."
+msgstr ""
+
+#: admin/partials/settings-page.php:170
+msgid "Escalations notify you by email and Slack; your replies appear in the widget live."
+msgstr ""
+
+#: admin/partials/settings-page.php:175
+msgid "Resources"
+msgstr ""
+
+#: admin/partials/settings-page.php:177
+msgid "Dashboard"
+msgstr ""
+
+#: admin/partials/settings-page.php:178
+msgid "Documentation"
+msgstr ""
+
+#: admin/partials/settings-page.php:179
+msgid "Source code (GitHub)"
+msgstr ""

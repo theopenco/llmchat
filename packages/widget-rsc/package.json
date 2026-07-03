@@ -1,0 +1,67 @@
+{
+	"name": "@clankersupport/widget-rsc",
+	"version": "1.0.0",
+	"description": "Embed the Clanker Support AI chat widget in a React Server Components app — one component in your Next.js root layout, with headless primitives and hooks when you want to bring your own UI.",
+	"keywords": [
+		"ai",
+		"customer-support",
+		"chat-widget",
+		"react",
+		"rsc",
+		"react-server-components",
+		"nextjs",
+		"headless"
+	],
+	"homepage": "https://clankersupport.com",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/theopenco/llmchat.git",
+		"directory": "packages/widget-rsc"
+	},
+	"license": "MIT",
+	"type": "module",
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./headless": {
+			"types": "./dist/headless.d.ts",
+			"default": "./dist/headless.js"
+		}
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"format": "prettier --write .",
+		"lint": "prettier --check .",
+		"test": "vitest run"
+	},
+	"peerDependencies": {
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0"
+	},
+	"devDependencies": {
+		"@testing-library/jest-dom": "^6.6.0",
+		"@testing-library/react": "^16.1.0",
+		"@testing-library/user-event": "^14.5.0",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"@vitejs/plugin-react": "^4.3.0",
+		"jsdom": "^26.0.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"typescript": "5.9.2",
+		"vitest": "^3.0.0"
+	}
+}

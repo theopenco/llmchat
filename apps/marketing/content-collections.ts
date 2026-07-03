@@ -21,6 +21,11 @@ const posts = defineCollection({
 		/** Optional named author. Falls back to the team byline + Organization
 		 * author in schema when unset. */
 		author: z.string().optional(),
+		/** Optional root-relative cover image (e.g. "/blog/foo.jpg") — rendered
+		 * as the article hero and used as the OG/Twitter card image. */
+		cover: z.string().optional(),
+		/** Alt text for the cover; required for a11y whenever `cover` is set. */
+		coverAlt: z.string().optional(),
 		category: z.enum(["Announcements", "Guides", "Engineering", "Changelog"]),
 		featured: z.boolean().default(false),
 	}),
