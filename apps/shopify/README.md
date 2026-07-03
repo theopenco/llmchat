@@ -38,9 +38,9 @@ To authenticate and query data you can use the `shopify` const that is exported 
 
 ```js
 export async function loader({ request }) {
-  const { admin } = await shopify.authenticate.admin(request);
+	const { admin } = await shopify.authenticate.admin(request);
 
-  const response = await admin.graphql(`
+	const response = await admin.graphql(`
     {
       products(first: 25) {
         nodes {
@@ -50,13 +50,13 @@ export async function loader({ request }) {
       }
     }`);
 
-  const {
-    data: {
-      products: { nodes },
-    },
-  } = await response.json();
+	const {
+		data: {
+			products: { nodes },
+		},
+	} = await response.json();
 
-  return nodes;
+	return nodes;
 }
 ```
 
