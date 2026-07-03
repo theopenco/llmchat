@@ -8,7 +8,7 @@
 	"bestFor": "Teams that need multi-channel AI support and have enterprise security requirements.",
 	"notFor": "Teams wanting a simple drop-in widget, or the freedom to run a custom or self-hosted model.",
 	"pricing": "Free plan (1 agent, basic models); paid from $40/mo (Hobby) to ~$500/mo (Pro), credit-based; Enterprise custom",
-	"heroSubtext": "Clanker Support is a single script tag that goes live in minutes — no platform onboarding, no SDK. Chatbase lets you pick from its supported models on higher-priced plans; Clanker Support runs any model or provider — including custom and self-hosted endpoints — on every plan, and you can self-host the whole stack.",
+	"heroSubtext": "Clanker Support is a single script tag that goes live in minutes — no platform onboarding, no SDK required (an official React SDK exists when you want one). Chatbase lets you pick from its supported models on higher-priced plans; Clanker Support runs any model or provider — including custom and self-hosted endpoints — on every plan, and you can self-host the whole stack.",
 	"heroBadges": [
 		"One script tag",
 		"Model-agnostic",
@@ -111,7 +111,7 @@
 			]
 		}
 	],
-	"tldr": "Clanker Support is a single script tag that goes live in minutes and lets you swap underlying AI models without touching your code. Chatbase is a full platform with stronger multi-channel support. Choose Clanker Support if you want simplicity and model flexibility. Choose Chatbase if you need WhatsApp, Slack, or Messenger support today.",
+	"tldr": "Clanker Support installs with a single script tag — or one React Server Component — goes live in minutes, and lets you swap underlying AI models without touching your code. Chatbase is a full platform with stronger multi-channel support. Choose Clanker Support if you want simplicity and model flexibility. Choose Chatbase if you need WhatsApp, Slack, or Messenger support today.",
 	"llmchatWins": [
 		"One script tag setup — live in under 5 minutes",
 		"Shadow DOM isolation — widget styles never bleed into your page",

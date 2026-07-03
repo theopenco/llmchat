@@ -4,6 +4,8 @@
 // skill (benefit-led headlines, a problem hook, outcome-focused highlights) and
 // every claim stays faithful to what the product actually does (see AGENTS.md).
 
+import { RSC_PACKAGE } from "./site-urls";
+
 export type Feature = {
 	/** URL slug — `/features/<slug>`. */
 	slug: string;
@@ -47,7 +49,7 @@ export const FEATURES: Feature[] = [
 		points: [
 			{
 				heading: "Install in one line",
-				body: "Drop a single script tag on any page or framework. No build step, no npm package, no SDK to wire up.",
+				body: `Drop a single script tag on any page or framework — no build step, nothing to wire up. Prefer a package? The official ${RSC_PACKAGE} npm SDK covers React 19 and Next.js.`,
 			},
 			{
 				heading: "Never breaks your design",
@@ -66,8 +68,7 @@ export const FEATURES: Feature[] = [
 		faqs: [
 			{
 				question: "How do I add the Clanker Support widget to my site?",
-				answer:
-					"Paste one script tag before the closing </body> tag. It works the same on Webflow, WordPress, Next.js, or plain HTML — no build step, no npm package, and no SDK to wire up. Most teams are live in about five minutes.",
+				answer: `Paste one script tag before the closing </body> tag. It works the same on Webflow, WordPress, Next.js, or plain HTML — no build step and nothing to wire up. React 19 and Next.js teams can use the official npm package, ${RSC_PACKAGE}, instead. Most teams are live in about five minutes.`,
 			},
 			{
 				question: "Will the widget conflict with my site's styles?",

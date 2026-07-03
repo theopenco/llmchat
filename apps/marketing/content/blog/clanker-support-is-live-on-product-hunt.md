@@ -14,7 +14,7 @@ So we built the opposite. Clanker Support answers from your docs, your help cent
 
 ## One script tag, then it's working
 
-Installation is one line of code before your closing `</body>` tag. No npm package, no build step, no framework to fight. The widget mounts in an isolated shadow DOM, so it inherits your brand color without your styles leaking in or out. Most teams are live in about five minutes.
+Installation is one line of code before your closing `</body>` tag. No build step, no framework to fight. (_Update, July 2026:_ prefer a package? There's now an official React SDK — `@clankersupport/widget-rsc` on npm.) The widget mounts in an isolated shadow DOM, so it inherits your brand color without your styles leaking in or out. Most teams are live in about five minutes.
 
 From there it reads from the knowledge you paste in and stays on topic. Ask it something off-script and it won't improvise — it raises its hand.
 

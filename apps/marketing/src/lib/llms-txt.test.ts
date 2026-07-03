@@ -1,6 +1,8 @@
+import { BILLING_TIERS } from "@llmchat/shared";
 import { describe, expect, it } from "vitest";
 
 import { buildLlmsTxt } from "./llms-txt";
+import { CANONICAL_SHOWCASE_URL } from "./site-urls";
 
 const BASE = "https://clankersupport.com";
 
@@ -62,6 +64,48 @@ describe("buildLlmsTxt", () => {
 	it("uses the 'support agent' positioning, never 'chatbot'", () => {
 		expect(out.toLowerCase()).toContain("support agent");
 		expect(out.toLowerCase()).not.toContain("chatbot");
+	});
+
+	it("presents both install paths: script tag AND the React SDK", () => {
+		expect(out).toContain("script tag");
+		expect(out).toContain("npm install @clankersupport/widget-rsc");
+		expect(out).toContain("Server Component");
+		expect(out).toContain("@clankersupport/widget-rsc/headless");
+		expect(out).toContain(".clanker-*");
+		expect(out).toContain(
+			"(https://www.npmjs.com/package/@clankersupport/widget-rsc)",
+		);
+	});
+
+	it("links the GitHub repo for the open-source / self-host story", () => {
+		expect(out).toContain("(https://github.com/theopenco/llmchat)");
+	});
+
+	it("links the live demo and the legal pages (Optional section)", () => {
+		expect(out).toContain(`(${CANONICAL_SHOWCASE_URL})`);
+		expect(out).toContain("## Optional");
+		expect(out).toContain(`(${BASE}/privacy-policy)`);
+		expect(out).toContain(`(${BASE}/terms-of-use)`);
+	});
+
+	it("derives prices from BILLING_TIERS so the summary can never drift", () => {
+		expect(out).toContain(`$${BILLING_TIERS.starter.priceUsdMonthly}/mo`);
+		expect(out).toContain(`$${BILLING_TIERS.growth.priceUsdMonthly}/mo`);
+		expect(out).toContain(`$${BILLING_TIERS.scale.priceUsdMonthly}/mo`);
+	});
+
+	// The WordPress plugin ships in-repo but is pending wordpress.org review —
+	// once the directory listing is live, drop that assertion and add the
+	// plugin as a third install path instead.
+	it("never mentions unshipped integrations in the static copy", () => {
+		const staticOnly = buildLlmsTxt(BASE, {
+			posts: [],
+			competitors: [],
+			migrations: [],
+			tools: [],
+		}).toLowerCase();
+		expect(staticOnly).not.toContain("wordpress");
+		expect(staticOnly).not.toContain("shopify");
 	});
 
 	it("ends with a single trailing newline and emits no empty links", () => {

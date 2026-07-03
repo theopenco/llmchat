@@ -8,7 +8,7 @@ import { FaqSection } from "@/components/FaqSection";
 import { FEATURES } from "@/lib/features";
 import { USE_CASES } from "@/lib/use-cases";
 import { faqPageLd, type Faq } from "@/lib/seo";
-import { CANONICAL_SITE_URL } from "@/lib/site-urls";
+import { CANONICAL_SITE_URL, RSC_PACKAGE } from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -53,13 +53,11 @@ const orgJsonLd = {
 const faqs: Faq[] = [
 	{
 		question: "What is Clanker Support?",
-		answer:
-			"Clanker Support is an AI-powered support agent you embed on any site with one script tag. It answers from your docs and sources, then hands off to your team the moment it can't — routing every escalation into a single inbox with the full conversation intact.",
+		answer: `Clanker Support is an AI-powered support agent you embed on any site with one script tag — or one React Server Component via the ${RSC_PACKAGE} npm package. It answers from your docs and sources, then hands off to your team the moment it can't — routing every escalation into a single inbox with the full conversation intact.`,
 	},
 	{
 		question: "How do I add Clanker Support to my site?",
-		answer:
-			"Paste one script tag before the closing </body> tag. The widget mounts in an isolated shadow DOM, inherits your brand color, and needs no build step or npm package. Most teams are live in about five minutes.",
+		answer: `Paste one script tag before the closing </body> tag — the widget mounts in an isolated shadow DOM, inherits your brand color, and needs no build step. On Next.js or any React 19 app, install the official ${RSC_PACKAGE} npm package instead — one component in your layout. Most teams are live in about five minutes.`,
 	},
 	{
 		question: "Which AI models does Clanker Support support?",

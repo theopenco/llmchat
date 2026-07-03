@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { allMigrations, matrix } from "content-collections";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -12,7 +13,15 @@ import {
 	pageMeta,
 	type Faq,
 } from "@/lib/seo";
-import { CANONICAL_SITE_URL } from "@/lib/site-urls";
+import { CANONICAL_SITE_URL, RSC_PACKAGE } from "@/lib/site-urls";
+
+function InlineCode({ children }: { children: ReactNode }) {
+	return (
+		<code className="rounded bg-paper-deep px-1.5 py-0.5 font-mono text-[0.8em]">
+			{children}
+		</code>
+	);
+}
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -27,8 +36,7 @@ export const metadata = pageMeta({
 const faqs: Faq[] = [
 	{
 		question: "How do I install Clanker Support?",
-		answer:
-			"Create a project in the dashboard to get your public key, then add a single script tag to your site anywhere before the closing </body> tag. There's no build step or npm package, and most teams are live in under five minutes.",
+		answer: `Create a project in the dashboard to get your public key, then add a single script tag to your site anywhere before the closing </body> tag — no build step required. On Next.js or any React 19 app, install the official ${RSC_PACKAGE} npm package instead — one component in your layout. Most teams are live in under five minutes.`,
 	},
 	{
 		question: "How do I train the bot on my own docs?",
@@ -180,10 +188,18 @@ export default function DocsPage() {
 					<p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-soft">
 						Create a project in the dashboard to get your public key, then add a
 						single script tag to your site — anywhere before the closing{" "}
-						<code className="rounded bg-paper-deep px-1.5 py-0.5 font-mono text-[0.8em]">
-							&lt;/body&gt;
-						</code>{" "}
-						tag. That&apos;s the whole integration.
+						<InlineCode>&lt;/body&gt;</InlineCode> tag. That&apos;s the whole
+						integration. Building with Next.js or another React Server
+						Components setup? Install the official{" "}
+						<InlineCode>{RSC_PACKAGE}</InlineCode> package instead — one Server
+						Component in your root layout, no script tag. See the{" "}
+						<Link
+							href="/blog/nextjs-ai-support-widget-server-component"
+							className="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+						>
+							Next.js tutorial
+						</Link>
+						.
 					</p>
 					<div className="mt-6">
 						<CodeBlock code={matrix.llmchatEmbed} label="index.html" />
