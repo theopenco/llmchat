@@ -17,7 +17,9 @@
 		"**/.next/**",
 		"**/.turbo/**",
 		"**/node_modules/**",
+		"**/.react-router/**",
 		"apps/api/src/generated/**",
+		"apps/shopify/build/**",
 		"**/components/ui/**",
 		".agents/**",
 		".claude/**"

@@ -4,9 +4,13 @@ packages:
 
 onlyBuiltDependencies:
   - "@parcel/watcher"
+  - "@prisma/client"
+  - "@prisma/engines"
+  - "@shopify/plugin-cloudflare"
   - "@tailwindcss/oxide"
   - better-sqlite3
   - core-js
   - esbuild
+  - prisma
   - sharp
   - workerd
