@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -17,9 +17,31 @@ beforeAll(() => {
 // Stable router.replace spy (hoisted with the mock) so the onboarding-redirect
 // guard can be asserted at the real incident call site.
 const routerReplace = vi.hoisted(() => vi.fn());
-vi.mock("next/navigation", () => ({
-	useRouter: () => ({ replace: routerReplace, push: vi.fn() }),
-}));
+// router.push + useSearchParams mirror the real App Router contract the page
+// relies on: a push to the same route only changes the query string, and
+// useSearchParams re-renders subscribers with the new params (no remount).
+const navListeners = vi.hoisted(() => new Set<() => void>());
+const navigate = vi.hoisted(() => (url: string) => {
+	window.history.pushState(null, "", url);
+	for (const l of navListeners) l();
+});
+vi.mock("next/navigation", async () => {
+	const { useSyncExternalStore } = await import("react");
+	return {
+		useRouter: () => ({ replace: routerReplace, push: navigate }),
+		useSearchParams: () => {
+			const search = useSyncExternalStore(
+				(cb: () => void) => {
+					navListeners.add(cb);
+					return () => navListeners.delete(cb);
+				},
+				() => window.location.search,
+				() => "",
+			);
+			return new URLSearchParams(search);
+		},
+	};
+});
 
 // Admin in a workspace with a project, so the inbox renders (not onboarding) and
 // the "Manage tags" affordance is available.
@@ -264,6 +286,29 @@ describe("InboxPage — ⌘K deep link", () => {
 			).toBe(true),
 		);
 		// The open conversation's name shows in the thread header.
+		expect(await screen.findAllByText("Bob")).not.toHaveLength(0);
+	});
+
+	it("a later ?project=&c= push (notification bell click) opens that thread without a remount", async () => {
+		renderInbox();
+		await screen.findByRole("heading", { name: "Inbox" });
+		await waitFor(() => expect(listCalls().length).toBeGreaterThan(0));
+
+		// Simulate the bell's router.push while the inbox is already mounted: a
+		// same-route navigation that only changes the query string.
+		act(() => navigate("/inbox?project=p1&c=c1"));
+
+		// The changed params select c1 → its windowed thread is fetched and the
+		// visitor name shows in the thread header.
+		await waitFor(() =>
+			expect(
+				calls.some(
+					(c) =>
+						c.method === "GET" &&
+						/^\/api\/projects\/p1\/conversations\/c1(\?|$)/.test(c.path),
+				),
+			).toBe(true),
+		);
 		expect(await screen.findAllByText("Bob")).not.toHaveLength(0);
 	});
 
