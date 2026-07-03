@@ -10,7 +10,7 @@ AI-first support widget + admin inbox. Standalone product built on LLM Gateway.
 - **Inference**: LLM Gateway (single backend, configured via `LLMGATEWAY_API_KEY`)
 - **Email**: Resend REST API (outbound) + inbound webhook
 - **Auth**: Better Auth (email + password)
-- **Billing**: Stripe (metered AI messages + seat-based)
+- **Billing**: Stripe (flat monthly tiers + metered overage; no per-seat fees)
 
 ## Layout
 

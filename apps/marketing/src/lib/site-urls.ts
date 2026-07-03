@@ -25,5 +25,7 @@ export const SALES_EMAIL =
  * GitHub repo doubles as the source for the live star count in the navbar. */
 export const GITHUB_REPO = "theopenco/llmchat";
 export const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
+export const RSC_PACKAGE = "@clankersupport/widget-rsc";
+export const RSC_NPM_URL = `https://www.npmjs.com/package/${RSC_PACKAGE}`;
 export const DISCORD_URL = "https://discord.gg/RnyjHWuTKP";
 export const X_URL = "https://x.com/ClankrSupport";
