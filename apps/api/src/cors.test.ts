@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import app from "./index";
+import { app } from "./index";
 
 const env = {
 	vars: { DASHBOARD_URL: "https://dash.example.com" },
