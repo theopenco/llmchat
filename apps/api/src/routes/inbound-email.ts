@@ -9,22 +9,42 @@ import { conversation, eq, message } from "@llmchat/db";
 import type { AppContext, Env } from "@/env";
 
 // Stopgap shared inbox: until a real team mailbox exists, mail the inbound
-// domain receives for the contact address is copied to these personal
-// addresses — always, before and regardless of conversation threading. Once
-// forwarded, the delivery is acknowledged with a 200 even when threading
-// fails: a non-2xx makes Resend retry, and every retry would re-forward a
-// duplicate copy.
-const FORWARD_INBOUND_TRIGGER = "contact@clankersupport.com";
+// domain receives for ANY team address — every local part that is not a
+// reply+ conversation address (contact@, support@, hello@, …) — is copied to
+// these personal addresses, always, before and regardless of conversation
+// threading. Once forwarded, the delivery is acknowledged with a 200 even
+// when threading fails: a non-2xx makes Resend retry, and every retry would
+// re-forward a duplicate copy.
+const FORWARD_INBOUND_DOMAIN = "clankersupport.com";
 const FORWARD_INBOUND_TO = [
 	"haythamchhilif@gmail.com",
 	"contact@luca-steeb.com",
 ];
 
-/** True when any recipient of the received email is the contact address. */
-function isForwardTrigger(to: string[] | undefined): boolean {
-	return (to ?? []).some(
-		(addr) => parseFromAddress(addr)?.toLowerCase() === FORWARD_INBOUND_TRIGGER,
-	);
+/**
+ * Every bare address the email was delivered to. `to` alone is not enough:
+ * Resend puts the actual envelope recipient in `received_for` (the only
+ * reliable field when the address was BCC'd), and `cc` can carry it too.
+ */
+function recipientAddresses(email: InboundEmail): string[] {
+	return [
+		...(email.to ?? []),
+		...(email.cc ?? []),
+		...(email.received_for ?? []),
+	]
+		.map(parseFromAddress)
+		.filter((a): a is string => a !== null);
+}
+
+/** True when any recipient is a team address on the inbound domain. */
+function isForwardTrigger(email: InboundEmail): boolean {
+	return recipientAddresses(email).some((addr) => {
+		const lower = addr.toLowerCase();
+		return (
+			lower.endsWith(`@${FORWARD_INBOUND_DOMAIN}`) &&
+			!lower.startsWith("reply+")
+		);
+	});
 }
 
 // Resend wraps inbound mail in an `{ type, data }` envelope; the parsed email
@@ -40,6 +60,8 @@ interface InboundEmail {
 	email_id?: string;
 	from?: string;
 	to?: string[];
+	cc?: string[];
+	received_for?: string[];
 	subject?: string;
 	text?: string;
 	html?: string;
@@ -190,10 +212,10 @@ export const inboundEmail = new Hono<AppContext>().post(
 			}
 		}
 
-		// Copy contact@ mail to the team's personal inboxes (stopgap until a
+		// Copy team-address mail to the team's personal inboxes (stopgap until a
 		// shared mailbox exists). This runs unconditionally, before any
-		// project/conversation matching — contact@ mail must always redirect.
-		const forwarded = isForwardTrigger(full.to);
+		// project/conversation matching — team mail must always redirect.
+		const forwarded = isForwardTrigger(full);
 		if (forwarded) {
 			await forwardInboundCopy(c.env, full);
 		}
@@ -205,7 +227,7 @@ export const inboundEmail = new Hono<AppContext>().post(
 				? c.json({ ok: true, forwarded: true, skipped: error })
 				: c.json({ error }, status);
 
-		const localPart = (full.to ?? [])
+		const localPart = recipientAddresses(full)
 			.map(parseInboundLocal)
 			.find((v): v is string => v !== null);
 		if (!localPart) {

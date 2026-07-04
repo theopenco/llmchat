@@ -263,9 +263,57 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 		}
 	});
 
-	it("does NOT forward mail addressed to other inbound addresses", async () => {
-		// Only contact@clankersupport.com triggers the stopgap forward — a
-		// visitor's reply+ conversation mail must not be copied to the team.
+	it("forwards mail to any non-reply+ team address (e.g. support@) and acks with 200", async () => {
+		// Regression: a prod test email to support@clankersupport.com was never
+		// forwarded (the trigger only matched contact@) and 400'd. Any local
+		// part on the domain except reply+ must redirect; the recipient may
+		// only appear in received_for (metadata-only webhook / BCC).
+		const fetchMock = vi
+			.fn()
+			.mockImplementation(() =>
+				Promise.resolve(new Response(JSON.stringify({ id: "email_5" }))),
+			);
+		vi.stubGlobal("fetch", fetchMock);
+		try {
+			const secret = `whsec_${btoa("inbound-webhook-signing-key-0001")}`;
+			const body = JSON.stringify({
+				type: "email.received",
+				data: {
+					to: ["support@clankersupport.com"],
+					received_for: ["support@clankersupport.com"],
+					from: "contact@polarlights.llc",
+					subject: "Test",
+					text: "hello",
+					headers: {},
+				},
+			});
+			const id = "msg_fwd_support";
+			const ts = String(Math.floor(Date.now() / 1000));
+			const signature = await signSvix(secret, id, ts, body);
+
+			const res = await post(
+				body,
+				{ "svix-id": id, "svix-timestamp": ts, "svix-signature": signature },
+				{
+					RESEND_INBOUND_WEBHOOK_SECRET: secret,
+					RESEND_API_KEY: "re_test_key",
+					RESEND_FROM_EMAIL: "noreply@clankersupport.com",
+				},
+			);
+			expect(res.status).toBe(200);
+			expect(
+				fetchMock.mock.calls.filter(
+					([url]) => url === "https://api.resend.com/emails",
+				),
+			).toHaveLength(2);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it("does NOT forward reply+ conversation mail", async () => {
+		// A visitor's reply+ conversation mail must not be copied to the team —
+		// only non-reply+ team addresses trigger the stopgap forward.
 		const fetchMock = vi
 			.fn()
 			.mockImplementation(() =>
@@ -280,7 +328,8 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 			const body = JSON.stringify({
 				type: "email.received",
 				data: {
-					to: ["reply+dev@clankersupport.com", "hello@clankersupport.com"],
+					to: ["reply+dev@clankersupport.com"],
+					received_for: ["reply+dev@clankersupport.com"],
 					from: "visitor@example.com",
 					subject: "re: my order",
 					text: "following up",
