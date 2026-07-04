@@ -2,6 +2,7 @@
 	"name": "llmchat",
 	"private": true,
 	"license": "MIT",
+	"version": "0.0.0",
 	"scripts": {
 		"build": "turbo run build",
 		"clean": "find . -path \"./node_modules\" -prune -o \\( -type d -name \"dist\" -o -name \".turbo\" -o -name \".next\" -o -name \".ploy\" \\) -exec rm -rf {} +",
