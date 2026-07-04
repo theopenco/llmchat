@@ -1,0 +1,10 @@
+kind: nextjs
+build: pnpm --filter @llmchat/docs build
+out: .next
+
+env:
+  NEXT_PUBLIC_DASHBOARD_URL: https://app.clankersupport.com
+  NEXT_PUBLIC_MARKETING_URL: https://clankersupport.com
+
+dev:
+  port: 3005

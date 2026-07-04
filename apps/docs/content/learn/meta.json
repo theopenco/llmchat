@@ -1,0 +1,22 @@
+{
+	"title": "Knowledge base",
+	"description": "Learn how to use the Clanker Support dashboard",
+	"icon": "BookOpen",
+	"pages": [
+		"index",
+		"inbox",
+		"conversations",
+		"resolving",
+		"escalation",
+		"notifications",
+		"search",
+		"tags",
+		"projects",
+		"project-settings",
+		"widget",
+		"sources",
+		"workspaces",
+		"account",
+		"billing"
+	]
+}
