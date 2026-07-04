@@ -3,17 +3,17 @@ import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData } from "react-router";
 
-import { login } from "../../shopify.server";
+import { getShopify } from "../../shopify.server";
 import { loginErrorMessage } from "./error.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-	const errors = loginErrorMessage(await login(request));
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+	const errors = loginErrorMessage(await getShopify(context).login(request));
 
 	return { errors };
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-	const errors = loginErrorMessage(await login(request));
+export const action = async ({ request, context }: ActionFunctionArgs) => {
+	const errors = loginErrorMessage(await getShopify(context).login(request));
 
 	return {
 		errors,

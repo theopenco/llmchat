@@ -1,6 +1,5 @@
 import type { ActionFunctionArgs } from "react-router";
-import { authenticate } from "../shopify.server";
-import db from "../db.server";
+import { getShopify } from "../shopify.server";
 
 /**
  * Multiplexed GDPR compliance route (docs/shopify-app-plan.md §7): all three
@@ -17,8 +16,9 @@ import db from "../db.server";
  * api.clankersupport.com directly, and merchants manage that data in their
  * Clanker dashboard.
  */
-export const action = async ({ request }: ActionFunctionArgs) => {
-	const { shop, topic, payload } = await authenticate.webhook(request);
+export const action = async ({ request, context }: ActionFunctionArgs) => {
+	const shopify = getShopify(context);
+	const { shop, topic, payload } = await shopify.authenticate.webhook(request);
 
 	console.log(`Received ${topic} webhook for ${shop}`);
 
@@ -30,12 +30,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			// dashboard for conversation exports/deletion.
 			break;
 		case "SHOP_REDACT": {
-			// Arrives ~48h after uninstall. Session rows are 100% of what we hold
+			// Arrives ~48h after uninstall. Sessions are 100% of what we hold
 			// for a shop; deleting them completes redaction well inside the
 			// 30-day window.
 			const shopDomain =
 				(payload as { shop_domain?: string }).shop_domain ?? shop;
-			await db.session.deleteMany({ where: { shop: shopDomain } });
+			const sessions =
+				(await shopify.sessionStorage.findSessionsByShop?.(shopDomain)) ?? [];
+			if (sessions.length > 0) {
+				await shopify.sessionStorage.deleteSessions?.(
+					sessions.map((s) => s.id),
+				);
+			}
 			break;
 		}
 		default:

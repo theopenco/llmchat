@@ -7,7 +7,7 @@ import type {
 import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { authenticate } from "../shopify.server";
+import { getShopify, getShopifyEnv } from "../shopify.server";
 import {
 	clearProjectKey,
 	getConnection,
@@ -28,8 +28,9 @@ import {
  * it never pretends to verify they did it.
  */
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-	const { admin, session } = await authenticate.admin(request);
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+	const { admin, session } =
+		await getShopify(context).authenticate.admin(request);
 	// A null projectKey is first-run BY DEFINITION — including after a
 	// reinstall. Metafield survival across uninstall/reinstall is undocumented;
 	// we never assume the key is still there (plan §6).
@@ -39,7 +40,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 		maskedKey: projectKey ? maskKey(projectKey) : null,
 		enableUrl: themeEditorDeepLink(
 			session.shop,
-			process.env.SHOPIFY_API_KEY || "",
+			getShopifyEnv(context).SHOPIFY_API_KEY || "",
 		),
 	};
 };
@@ -53,8 +54,9 @@ export type ConnectActionResult =
 
 export const action = async ({
 	request,
+	context,
 }: ActionFunctionArgs): Promise<ConnectActionResult> => {
-	const { admin } = await authenticate.admin(request);
+	const { admin } = await getShopify(context).authenticate.admin(request);
 	const form = await request.formData();
 	const intent = form.get("intent");
 
@@ -75,7 +77,14 @@ export const action = async ({
 	// we write without re-validating (re-checking would just replay the flake).
 	const saveAnyway = form.get("saveAnyway") === "true";
 	if (!saveAnyway) {
-		const verdict = await validateProjectKey(key);
+		// Origin comes from the request context (workerd env has no ambient
+		// process.env), falling back to the hosted default.
+		const verdict = await validateProjectKey(
+			key,
+			fetch,
+			getShopifyEnv(context).CLANKER_API_ORIGIN ||
+				"https://api.clankersupport.com",
+		);
 		if (verdict === "invalid") return { status: "invalid" };
 		if (verdict === "unverified") return { status: "unverified", key };
 	}

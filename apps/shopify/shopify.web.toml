@@ -3,5 +3,5 @@ roles = ["frontend", "backend"]
 webhooks_path = "/webhooks/app/uninstalled"
 
 [commands]
-predev = "pnpm exec prisma generate"
-dev = "pnpm exec prisma migrate deploy && pnpm exec react-router dev"
+# workerd port: sessions live in KV (prod) / memory (dev) — no prisma steps.
+dev = "pnpm exec react-router dev"

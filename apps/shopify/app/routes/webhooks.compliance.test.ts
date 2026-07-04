@@ -1,15 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { webhookMock, deleteManyMock } = vi.hoisted(() => ({
-	webhookMock: vi.fn(),
-	deleteManyMock: vi.fn(),
-}));
+const { webhookMock, findSessionsByShopMock, deleteSessionsMock } = vi.hoisted(
+	() => ({
+		webhookMock: vi.fn(),
+		findSessionsByShopMock: vi.fn(),
+		deleteSessionsMock: vi.fn(),
+	}),
+);
 
 vi.mock("../shopify.server", () => ({
-	authenticate: { webhook: (request: Request) => webhookMock(request) },
-}));
-vi.mock("../db.server", () => ({
-	default: { session: { deleteMany: deleteManyMock } },
+	getShopify: () => ({
+		authenticate: { webhook: (request: Request) => webhookMock(request) },
+		sessionStorage: {
+			findSessionsByShop: findSessionsByShopMock,
+			deleteSessions: deleteSessionsMock,
+		},
+	}),
 }));
 
 import { action } from "./webhooks.compliance";
@@ -25,7 +31,8 @@ const args = () => ({ request: req(), params: {}, context: {} }) as never;
 
 beforeEach(() => {
 	webhookMock.mockReset();
-	deleteManyMock.mockReset();
+	findSessionsByShopMock.mockReset();
+	deleteSessionsMock.mockReset();
 });
 
 describe("compliance webhook route (§7)", () => {
@@ -37,7 +44,8 @@ describe("compliance webhook route (§7)", () => {
 		});
 		const res = await action(args());
 		expect(res.status).toBe(200);
-		expect(deleteManyMock).not.toHaveBeenCalled();
+		expect(findSessionsByShopMock).not.toHaveBeenCalled();
+		expect(deleteSessionsMock).not.toHaveBeenCalled();
 	});
 
 	it("customers/redact: 200, touches nothing", async () => {
@@ -48,20 +56,22 @@ describe("compliance webhook route (§7)", () => {
 		});
 		const res = await action(args());
 		expect(res.status).toBe(200);
-		expect(deleteManyMock).not.toHaveBeenCalled();
+		expect(deleteSessionsMock).not.toHaveBeenCalled();
 	});
 
-	it("shop/redact: deletes the shop's Session rows keyed on payload.shop_domain", async () => {
+	it("shop/redact: deletes the shop's sessions keyed on payload.shop_domain", async () => {
 		webhookMock.mockResolvedValue({
 			shop: "shop.myshopify.com",
 			topic: "SHOP_REDACT",
 			payload: { shop_domain: "redacted-shop.myshopify.com" },
 		});
+		findSessionsByShopMock.mockResolvedValue([{ id: "a" }]);
 		const res = await action(args());
 		expect(res.status).toBe(200);
-		expect(deleteManyMock).toHaveBeenCalledExactlyOnceWith({
-			where: { shop: "redacted-shop.myshopify.com" },
-		});
+		expect(findSessionsByShopMock).toHaveBeenCalledExactlyOnceWith(
+			"redacted-shop.myshopify.com",
+		);
+		expect(deleteSessionsMock).toHaveBeenCalledExactlyOnceWith(["a"]);
 	});
 
 	it("shop/redact falls back to the authenticated shop when the payload lacks shop_domain", async () => {
@@ -70,10 +80,12 @@ describe("compliance webhook route (§7)", () => {
 			topic: "SHOP_REDACT",
 			payload: {},
 		});
+		findSessionsByShopMock.mockResolvedValue([{ id: "b" }]);
 		await action(args());
-		expect(deleteManyMock).toHaveBeenCalledExactlyOnceWith({
-			where: { shop: "shop.myshopify.com" },
-		});
+		expect(findSessionsByShopMock).toHaveBeenCalledExactlyOnceWith(
+			"shop.myshopify.com",
+		);
+		expect(deleteSessionsMock).toHaveBeenCalledExactlyOnceWith(["b"]);
 	});
 
 	it("invalid HMAC: authenticate.webhook's thrown 401 propagates untouched", async () => {
@@ -86,7 +98,7 @@ describe("compliance webhook route (§7)", () => {
 		}
 		expect(thrown).toBeInstanceOf(Response);
 		expect((thrown as Response).status).toBe(401);
-		expect(deleteManyMock).not.toHaveBeenCalled();
+		expect(deleteSessionsMock).not.toHaveBeenCalled();
 	});
 
 	it("unknown topics still 200 (Shopify retries anything else)", async () => {
@@ -97,6 +109,6 @@ describe("compliance webhook route (§7)", () => {
 		});
 		const res = await action(args());
 		expect(res.status).toBe(200);
-		expect(deleteManyMock).not.toHaveBeenCalled();
+		expect(deleteSessionsMock).not.toHaveBeenCalled();
 	});
 });

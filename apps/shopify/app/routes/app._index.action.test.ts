@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const adminMock = vi.fn();
 
 vi.mock("../shopify.server", () => ({
-	authenticate: { admin: (request: Request) => adminMock(request) },
+	getShopify: () => ({
+		authenticate: { admin: (request: Request) => adminMock(request) },
+	}),
+	// Empty env → the action falls back to the hosted default origin.
+	getShopifyEnv: () => ({}),
 }));
 
 import { action } from "./app._index";

@@ -1,5 +1,5 @@
 import { reactRouter } from "@react-router/dev/vite";
-import { defineConfig, type UserConfig } from "vite";
+import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 // Related: https://github.com/remix-run/remix/issues/2835#issuecomment-1144102176
@@ -35,7 +35,7 @@ if (host === "localhost") {
 	};
 }
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
 	server: {
 		allowedHosts: [host],
 		cors: {
@@ -52,7 +52,24 @@ export default defineConfig({
 	build: {
 		assetsInlineLimit: 0,
 	},
+	// workerd port: production SSR bundles must be self-contained (Ploy's
+	// deploy-time esbuild sets no resolve conditions, so any externalized dep
+	// would resolve to its Node build). Bundle everything with worker
+	// conditions at build time; dev (`shopify app dev` → react-router dev on
+	// Node) keeps vite's default externalized SSR so HMR stays fast.
+	...(command === "build"
+		? {
+				ssr: {
+					target: "webworker" as const,
+					noExternal: true,
+					resolve: {
+						conditions: ["workerd", "worker", "browser"],
+						externalConditions: ["workerd", "worker", "browser"],
+					},
+				},
+			}
+		: {}),
 	optimizeDeps: {
 		include: ["@shopify/app-bridge-react"],
 	},
-}) satisfies UserConfig;
+}));

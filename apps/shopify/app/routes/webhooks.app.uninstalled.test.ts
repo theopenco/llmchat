@@ -1,15 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { webhookMock, deleteManyMock } = vi.hoisted(() => ({
-	webhookMock: vi.fn(),
-	deleteManyMock: vi.fn(),
-}));
+const { webhookMock, findSessionsByShopMock, deleteSessionsMock } = vi.hoisted(
+	() => ({
+		webhookMock: vi.fn(),
+		findSessionsByShopMock: vi.fn(),
+		deleteSessionsMock: vi.fn(),
+	}),
+);
 
 vi.mock("../shopify.server", () => ({
-	authenticate: { webhook: (request: Request) => webhookMock(request) },
-}));
-vi.mock("../db.server", () => ({
-	default: { session: { deleteMany: deleteManyMock } },
+	getShopify: () => ({
+		authenticate: { webhook: (request: Request) => webhookMock(request) },
+		sessionStorage: {
+			findSessionsByShop: findSessionsByShopMock,
+			deleteSessions: deleteSessionsMock,
+		},
+	}),
 }));
 
 import { action } from "./webhooks.app.uninstalled";
@@ -26,7 +32,8 @@ const args = () =>
 
 beforeEach(() => {
 	webhookMock.mockReset();
-	deleteManyMock.mockReset();
+	findSessionsByShopMock.mockReset();
+	deleteSessionsMock.mockReset();
 });
 
 describe("app/uninstalled webhook (§7)", () => {
@@ -38,11 +45,13 @@ describe("app/uninstalled webhook (§7)", () => {
 			session: { id: "s1" },
 			topic: "APP_UNINSTALLED",
 		});
+		findSessionsByShopMock.mockResolvedValue([{ id: "s1" }, { id: "s2" }]);
 		const res = await action(args());
 		expect(res.status).toBe(200);
-		expect(deleteManyMock).toHaveBeenCalledExactlyOnceWith({
-			where: { shop: "shop.myshopify.com" },
-		});
+		expect(findSessionsByShopMock).toHaveBeenCalledExactlyOnceWith(
+			"shop.myshopify.com",
+		);
+		expect(deleteSessionsMock).toHaveBeenCalledExactlyOnceWith(["s1", "s2"]);
 	});
 
 	it("is idempotent: a redelivery after sessions are gone still 200s", async () => {
@@ -53,6 +62,7 @@ describe("app/uninstalled webhook (§7)", () => {
 		});
 		const res = await action(args());
 		expect(res.status).toBe(200);
-		expect(deleteManyMock).not.toHaveBeenCalled();
+		expect(findSessionsByShopMock).not.toHaveBeenCalled();
+		expect(deleteSessionsMock).not.toHaveBeenCalled();
 	});
 });
