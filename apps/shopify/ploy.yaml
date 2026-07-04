@@ -14,8 +14,11 @@ dev:
 # No compatibility_flags: Ploy injects nodejs_compat_v2 itself (adding
 # nodejs_compat here collides — "cannot be used together").
 compatibility_date: "2025-10-08"
-state:
-  SESSION_STORAGE: shopify_sessions
+# Sessions are durable source-of-truth (offline tokens) → a db: binding, per
+# the repo convention (state: is ephemeral-only). This is the app's OWN
+# database — never the api's llmchat_db. Ploy auto-applies migrations/*.sql.
+db:
+  SESSION_DB: shopify_sessions
 env:
   SHOPIFY_API_KEY: $SHOPIFY_API_KEY
   SHOPIFY_API_SECRET: $SHOPIFY_API_SECRET

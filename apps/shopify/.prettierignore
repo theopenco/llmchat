@@ -4,3 +4,4 @@ build
 .shopify
 prisma
 public
+wrangler.jsonc

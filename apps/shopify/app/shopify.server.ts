@@ -3,9 +3,10 @@ import {
 	AppDistribution,
 	shopifyApp,
 } from "@shopify/shopify-app-react-router/server";
-import { KVSessionStorage } from "@shopify/shopify-app-session-storage-kv";
+import { DrizzleSessionStorageSQLite } from "@shopify/shopify-app-session-storage-drizzle";
 import { MemorySessionStorage } from "@shopify/shopify-app-session-storage-memory";
-import { toSessionKvNamespace, type StateBindingLike } from "./lib/session-kv";
+import { drizzle, type AnyD1Database } from "drizzle-orm/d1";
+import { sessionTable } from "./db/session.server";
 
 /**
  * workerd port (Ploy spike): shopifyApp() is no longer a module-scope
@@ -31,8 +32,11 @@ export interface ShopifyEnv {
 	SCOPES?: string;
 	SHOP_CUSTOM_DOMAIN?: string;
 	CLANKER_API_ORIGIN?: string;
-	/** KV-compatible binding (Ploy `state:`) holding Shopify sessions. */
-	SESSION_STORAGE?: unknown;
+	/**
+	 * D1-compatible binding (Ploy `db:`) holding Shopify sessions — this app's
+	 * OWN database (`shopify_sessions`), never the api's `llmchat_db`.
+	 */
+	SESSION_DB?: unknown;
 }
 
 type CloudflareContext = {
@@ -47,13 +51,14 @@ function buildShopify(env: ShopifyEnv) {
 		scopes: env.SCOPES?.split(","),
 		appUrl: env.SHOPIFY_APP_URL || "",
 		authPathPrefix: "/auth",
-		// The facade tolerates both KV dialects — miniflare's real KV (put) and
-		// Ploy's deployed state binding (set, no put — see app/lib/session-kv.ts).
-		sessionStorage: env.SESSION_STORAGE
-			? new KVSessionStorage(
-					toSessionKvNamespace(
-						env.SESSION_STORAGE as StateBindingLike,
-					) as never,
+		// D1 via the official drizzle adapter: sessions are durable
+		// source-of-truth (offline tokens), which belongs on a `db:` binding —
+		// the `state:` KV binding is ephemeral-only by repo convention, and its
+		// deployed dialect isn't full KV (apps/api/src/lib/kv.ts).
+		sessionStorage: env.SESSION_DB
+			? new DrizzleSessionStorageSQLite(
+					drizzle(env.SESSION_DB as AnyD1Database),
+					sessionTable,
 				)
 			: new MemorySessionStorage(),
 		distribution: AppDistribution.AppStore,
