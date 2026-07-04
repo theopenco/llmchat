@@ -1,0 +1,43 @@
+---
+title: Welcome
+description: What Clanker Support is, how it fits together, and where to start in these docs
+icon: BookOpen
+---
+
+Clanker Support is an AI-powered support agent for your site. You install it with a single script tag (or the React SDK), point it at your knowledge base — website pages, text snippets, Q&A pairs — and it answers visitor questions in a chat widget on your site. When a visitor needs a person, the agent hands the conversation off to your team, and every conversation lands in a shared inbox at [app.clankersupport.com](https://app.clankersupport.com).
+
+Clanker Support is open source ([theopenco/llmchat](https://github.com/theopenco/llmchat), MIT). You can self-host the whole stack, or use the hosted service — see [pricing](https://clankersupport.com/pricing) for plans.
+
+## What you get
+
+- **A support agent on your site** — streamed answers grounded in the knowledge sources you add, with a welcome message and brand color you control.
+- **Escalation to humans** — the agent offers a handoff when it can't help; your team is notified by email (and Slack, if you add a webhook) and the agent stands down.
+- **A shared inbox** — search, filters, tags, and a reply composer; replies reach the visitor in the widget, and by email when they shared an address.
+- **Quality signals** — per-message thumbs up/down on answers, plus a separate 1–5 rating the visitor can leave for the conversation.
+- **Two install paths** — a one-line script tag, or the `@clankersupport/widget-rsc` React/Next.js SDK.
+
+## How it fits together
+
+A **workspace** is your team and billing account. Inside it you create **projects** — each project is one embedded widget with its own knowledge base, instructions, and AI model, so separate sites or products get separate agents. Every conversation a project's widget handles lands in the workspace's shared **inbox**, and when a visitor asks for a person, **escalation** notifies your team and hands the conversation to a human — the agent sends a brief holding note and goes silent once a teammate replies.
+
+## Install in one line
+
+Once you've created a project, the whole install is one script tag with your project's public key:
+
+```html
+<script
+	src="https://api.clankersupport.com/widget.js"
+	data-project="pk_…"
+	async
+></script>
+```
+
+Using React or Next.js? The `@clankersupport/widget-rsc` package gives you a `<ClankerSupport apiKey="pk_…" />` Server Component instead, restylable with CSS variables. Both paths — plus an inline iframe embed — are covered in [Getting started](/getting-started).
+
+## How these docs are organized
+
+- **[Getting started](/getting-started)** — create your account and workspace, build your first agent, and install the widget on your site.
+- **[Learn](/learn)** — working in the dashboard: the inbox, escalation, tags and search, projects and widget settings, workspaces, and billing.
+- **[Knowledge sources](/learn/sources)** — teach the agent: add website, text, and Q&A sources, keep them fresh with Recrawl, and promote inbox replies into knowledge.
+
+If you get stuck, the **Help** button in the dashboard's top bar brings you back here.

@@ -1,0 +1,56 @@
+---
+title: "Getting started"
+description: Go from a new account to a live support agent on your website in four steps
+icon: Rocket
+---
+
+Clanker Support puts an AI-powered support agent on your website: it answers visitor questions from your knowledge base, hands off to your team when needed, and every conversation lands in your dashboard inbox. Setup takes a few minutes — create an account, build your agent, and drop one script tag on your site.
+
+## 1. Create an account
+
+Sign up at [app.clankersupport.com/sign-up](https://app.clankersupport.com/sign-up) with an email and password, or continue with Google or GitHub.
+
+<ThemedImage alt="Sign up" basePath="/learn/sign-up" />
+
+## 2. Build your agent
+
+After signing up, onboarding walks you through two screens:
+
+**Pick a plan.** Choose Starter, Growth, or Scale, billed monthly or annually (annual gives you two months free) — see the [pricing page](https://clankersupport.com/pricing) for details. A card is required; subscribing unlocks the build screen.
+
+**Build the agent.** Fill in a few fields while the live preview on the right updates as you type:
+
+| Field                     | What it does                                                                 |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| **Agent name**            | How the agent introduces itself in the chat header                           |
+| **Welcome message**       | The first message visitors see when they open the chat                       |
+| **Brand color**           | Colors the launcher bubble and chat accents to match your site               |
+| **Website to learn from** | Optional — a URL the agent reads and adds to its knowledge as a first source |
+
+Click **Create my agent** to finish. You land on the new project's settings page.
+
+<ThemedImage alt="Onboarding" basePath="/learn/onboarding" />
+
+## 3. Install the widget
+
+Open your project's settings and switch to the **Widget** tab. The **Install** section holds a ready-made snippet with your project key filled in — copy it and paste it before the closing `</body>` tag on your site:
+
+<ThemedImage alt="Install the widget" basePath="/learn/embed-snippet" />
+
+```html
+<script
+	src="https://api.clankersupport.com/widget.js"
+	data-project="pk_your_project_key"
+	async
+></script>
+```
+
+The same section offers an **Inline embed** (an iframe you can place anywhere on a page) if you don't want a floating bubble. Building with React or Next.js? The `@clankersupport/widget-rsc` SDK installs the same agent as a single component — see [Widget](/learn/widget).
+
+## 4. Say hello
+
+Open your site. The launcher bubble sits in the bottom-right corner — click it, enter a name (email is optional), and ask a question. The agent streams an answer built from your knowledge sources.
+
+<ThemedImage alt="Widget" basePath="/learn/widget" />
+
+Back in the dashboard, open **Conversations** — your test chat is already in the inbox with an AI summary. Reply from the composer and your message appears in the widget on your site. From here, add more knowledge under **Sources**, tune the agent's instructions and escalation settings under **Settings → Behavior**, and invite your site's visitors to talk to it.
