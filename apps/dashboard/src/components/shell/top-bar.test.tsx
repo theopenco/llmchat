@@ -18,6 +18,9 @@ vi.mock("@/components/shell/project-switcher", () => ({
 vi.mock("@/components/shell/account-menu", () => ({
 	AccountMenu: () => <div data-testid="acct" />,
 }));
+vi.mock("@/components/shell/notification-bell", () => ({
+	NotificationBell: () => <div data-testid="bell" />,
+}));
 
 describe("TopBar — centered search trigger", () => {
 	it("renders the wide centered search box with the ⌘K hint and the design placeholder", () => {

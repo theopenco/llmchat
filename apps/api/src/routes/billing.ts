@@ -6,6 +6,10 @@ import type { Context } from "hono";
 import { planPrices } from "@/lib/billing-config";
 import { db } from "@/lib/db";
 import {
+	notifySubscriptionCancelled,
+	notifySubscriptionStarted,
+} from "@/lib/discord";
+import {
 	memberCount,
 	monthlyResponseCount,
 	projectCount,
@@ -71,6 +75,36 @@ function stripeFailure(c: Context<AppContext>, err: unknown) {
 		return c.json({ error: "stripe_error" }, 502);
 	}
 	throw err;
+}
+
+/** Run a best-effort side effect after the webhook response. Tests invoke
+ * routes without an ExecutionContext (accessing c.executionCtx throws there),
+ * so fall back to letting the promise float — notification tasks never reject. */
+function background(c: Context<AppContext>, task: Promise<unknown>) {
+	try {
+		c.executionCtx.waitUntil(task);
+	} catch {
+		void task;
+	}
+}
+
+/** Owner email + workspace name for the subscription Discord pings. Best-effort
+ * (runs detached inside waitUntil): a lookup miss just yields "Unknown" fields. */
+async function workspaceContact(
+	env: AppContext["Bindings"],
+	workspaceId: string,
+): Promise<{ email?: string | null; workspaceName?: string | null }> {
+	const ws = await db(env).query.workspace.findFirst({
+		where: (w, { eq: e }) => e(w.id, workspaceId),
+	});
+	if (!ws) {
+		return {};
+	}
+	const owner = await db(env).query.user.findFirst({
+		where: (u, { eq: e }) => e(u.id, ws.ownerId),
+		columns: { email: true },
+	});
+	return { email: owner?.email, workspaceName: ws.name };
 }
 
 /** Map a subscription's status + stamped plan to the tier we store. Paid-only:
@@ -248,6 +282,14 @@ export const billing = new Hono<AppContext>()
 							plan,
 						})
 						.where(eq(workspace.id, workspaceId));
+					if (plan !== "none") {
+						background(
+							c,
+							workspaceContact(c.env, workspaceId).then((contact) =>
+								notifySubscriptionStarted(c.env, { ...contact, plan }),
+							),
+						);
+					}
 				}
 				break;
 			}
@@ -265,12 +307,30 @@ export const billing = new Hono<AppContext>()
 			}
 			case "customer.subscription.deleted": {
 				const sub = event.data.object;
+				const customerId = sub.customer as string;
+				// Read the workspace BEFORE the downgrade so the cancellation ping can
+				// say which paid tier was lost (afterwards plan is already "none").
+				const ws = await d.query.workspace.findFirst({
+					where: (w, { eq: e }) => e(w.stripeCustomerId, customerId),
+				});
+				const priorPlan = ws?.plan;
 				// Subscription ended → back to no entitlement (blocked until they
 				// re-subscribe). Paid-only: there is no free fallback tier.
 				await d
 					.update(workspace)
 					.set({ plan: "none", stripeSubscriptionId: null })
-					.where(eq(workspace.stripeCustomerId, sub.customer as string));
+					.where(eq(workspace.stripeCustomerId, customerId));
+				if (ws && isPaidPlan(priorPlan)) {
+					background(
+						c,
+						workspaceContact(c.env, ws.id).then((contact) =>
+							notifySubscriptionCancelled(c.env, {
+								...contact,
+								plan: priorPlan,
+							}),
+						),
+					);
+				}
 				break;
 			}
 			default:

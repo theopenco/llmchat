@@ -14,6 +14,13 @@ vi.mock("@/lib/provisioning", async (orig) => ({
 	...(await orig<typeof import("@/lib/provisioning")>()),
 	provisionWorkspace: (...args: unknown[]) => provisionWorkspace(...args),
 }));
+// The signup Discord ping fires from the same create hook; stub it so the
+// wiring is assertable without network (the helper itself is unit-tested in
+// lib/discord.test.ts).
+const notifyUserSignup = vi.fn(async (..._args: unknown[]) => {});
+vi.mock("@/lib/discord", () => ({
+	notifyUserSignup: (...args: unknown[]) => notifyUserSignup(...args),
+}));
 
 function vars(overrides: Partial<Env["vars"]> = {}): Env["vars"] {
 	return {
@@ -133,6 +140,37 @@ describe("buildAuthOptions", () => {
 		await expect(
 			opts.databaseHooks.user.create.after({ id: "u", name: null } as never),
 		).resolves.toBeUndefined();
+		spy.mockRestore();
+	});
+
+	it("pings Discord for every new account from the same create hook", async () => {
+		notifyUserSignup.mockClear();
+		const opts = buildAuthOptions(env());
+
+		await opts.databaseHooks.user.create.after({
+			id: "user-9",
+			name: "Ada",
+			email: "ada@example.com",
+		} as never);
+
+		expect(notifyUserSignup).toHaveBeenCalledTimes(1);
+		expect(notifyUserSignup).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({ email: "ada@example.com", name: "Ada" }),
+		);
+	});
+
+	it("still pings Discord when provisioning fails (never lose the signal)", async () => {
+		notifyUserSignup.mockClear();
+		provisionWorkspace.mockRejectedValueOnce(new Error("db down"));
+		const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		await buildAuthOptions(env()).databaseHooks.user.create.after({
+			id: "u",
+			name: null,
+		} as never);
+
+		expect(notifyUserSignup).toHaveBeenCalledTimes(1);
 		spy.mockRestore();
 	});
 });

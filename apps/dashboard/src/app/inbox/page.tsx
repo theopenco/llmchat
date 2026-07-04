@@ -6,8 +6,8 @@ import {
 	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { ApiError, api, describeApiError } from "@/lib/api";
@@ -60,7 +60,17 @@ import type { ProjectOption } from "./_components/ProjectSwitcher";
 
 const PAGE_SIZE = 30;
 
+// useSearchParams requires a Suspense boundary (same pattern as the billing
+// and onboarding pages); the inbox skeleton doubles as the fallback.
 export default function InboxPage() {
+	return (
+		<Suspense fallback={<InboxSkeleton />}>
+			<InboxPageInner />
+		</Suspense>
+	);
+}
+
+function InboxPageInner() {
 	const {
 		workspaces,
 		workspaceId,
@@ -69,6 +79,7 @@ export default function InboxPage() {
 	} = useWorkspace();
 	const qc = useQueryClient();
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const [projectId, setProjectId] = useState<string | null>(null);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [reply, setReply] = useState("");
@@ -78,26 +89,6 @@ export default function InboxPage() {
 	const [manageTagsOpen, setManageTagsOpen] = useState(false);
 	// Contact-details sheet (mobile/tablet); on desktop details are a permanent aside.
 	const [detailsOpen, setDetailsOpen] = useState(false);
-
-	// One-time ?project=&c= deep link (from the ⌘K palette or a shared thread
-	// URL). Read once on mount; applied after projects load (below) so the
-	// project-resolver effect can't clobber it. The thread endpoint re-validates
-	// tenancy server-side, so a forged/foreign id just yields an empty thread —
-	// never a cross-tenant leak.
-	const deepLinkRef = useRef<{
-		project: string | null;
-		conversation: string | null;
-	}>(undefined as never);
-	if (deepLinkRef.current === undefined) {
-		deepLinkRef.current =
-			typeof window === "undefined"
-				? { project: null, conversation: null }
-				: {
-						project: new URLSearchParams(window.location.search).get("project"),
-						conversation: new URLSearchParams(window.location.search).get("c"),
-					};
-	}
-	const deepLinkConsumed = useRef(false);
 
 	const projects = useQuery({
 		queryKey: ["projects", workspaceId],
@@ -122,25 +113,36 @@ export default function InboxPage() {
 	useEffect(() => {
 		const available = projects.data?.projects ?? [];
 		if (available.length === 0) return;
-
-		// One-time: honor the ?project=&c= deep link before the normal resolver, if
-		// the project is one the caller can actually see in this workspace.
-		if (!deepLinkConsumed.current) {
-			deepLinkConsumed.current = true;
-			const dl = deepLinkRef.current!;
-			if (dl.project && available.some((p) => p.id === dl.project)) {
-				setProjectId(dl.project);
-				if (dl.conversation) setSelectedId(dl.conversation);
-				return;
-			}
-		}
-
 		const next = resolveSelectedId(projectId, available);
 		if (next !== projectId) {
 			setProjectId(next);
 			setSelectedId(null);
 		}
 	}, [projects.data, projectId]);
+
+	// ?project=&c= deep links (⌘K palette, notification bell, shared thread
+	// URLs). Applied whenever the search params change — not just on mount,
+	// because clicking a notification while already on /inbox is a same-route
+	// navigation that only changes the query string (the page never remounts).
+	// Declared AFTER the resolver above so on first load its selection wins the
+	// batch. The mirror effect below echoes the selection back into the URL;
+	// re-applying that echo sets the same values, so the two never fight. The
+	// thread endpoint re-validates tenancy server-side, so a forged/foreign id
+	// just yields an empty thread — never a cross-tenant leak.
+	const deepLinkSearch = searchParams.toString();
+	useEffect(() => {
+		const available = projects.data?.projects ?? [];
+		if (available.length === 0) return;
+		const params = new URLSearchParams(deepLinkSearch);
+		const project = params.get("project");
+		const conversationId = params.get("c");
+		// Only honor complete links to a project the caller can actually see in
+		// this workspace.
+		if (!project || !conversationId) return;
+		if (!available.some((p) => p.id === project)) return;
+		setProjectId(project);
+		setSelectedId(conversationId);
+	}, [deepLinkSearch, projects.data]);
 
 	// Mirror the open conversation into the URL (?project=&c=) so a thread is
 	// shareable and the ⌘K deep link round-trips. history.replaceState — not the

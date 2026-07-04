@@ -44,10 +44,11 @@ The Ploy yaml schema only accepts the fields documented in `packages/tools/src/p
 
 - Top-level: `kind` (`worker` | `dynamic` | `nextjs` | `static`), `name`, `build`, `out`, `main`, `base`, `dev: { port?, host? }`, `compatibility_date`, `compatibility_flags`, `agentSDK`, `ai`.
 - Bindings (each is a binding-name → resource-name map; binding names UPPER_SNAKE, resource names lower_snake): `db`, `state`, `queue`, `workflow`, `cron`, `timer`, `fs`, `env`. There is **no `kv:` field** — KV is `state:`. There is **no `routes:` or `secrets:` field** — domains are dashboard-managed and secrets come from `.env` (interpolated via `$VAR` references inside the `env:` block).
+- **Exception — `cron:` maps binding name → cron EXPRESSION** (not a resource name): `TRAFFIC_REPORT_WEEKLY: "0 8 * * 1"` (5-field, validated). Ploy delivers triggers by calling the worker default export's `scheduled(event, env, ctx)` (Cloudflare shape; `event.cron` is the fired expression), so the default export must be `{ fetch, scheduled }` — a bare Hono app would 404 cron triggers. The dev emulator fires them on schedule (15s poll, per-minute dedupe) and the Ploy dashboard can trigger/inspect them (`POST /api/cron/:binding/trigger`).
 - `ploy-workspace.yaml` accepts `exclude`, `env`, `ports.worker.from`, `dashboard.port`. Nothing else.
 - Migrations: there is no `migrations:` field. The Ploy build/emulator scans `<project>/migrations/` and applies `*.sql` files to all DB bindings (or `<project>/migrations/<BINDING>/*.sql` for a specific binding).
 
-`apps/api/ploy.yaml` binds `DB → llmchat_db`, `STATE → llmchat_state`, and a large `env:` block (LLM Gateway, Better Auth + OAuth, Resend, Stripe price ids, PostHog — all `$VAR` interpolated from `.env`). Its `build:` builds the widget **before** the api (`pnpm --filter @llmchat/widget build && pnpm --filter @llmchat/api build`) so `/widget.js` is fresh. The Next.js apps each bind only public `NEXT_PUBLIC_*` env.
+`apps/api/ploy.yaml` binds `DB → llmchat_db`, `STATE → llmchat_state`, two `cron:` triggers (the weekly/monthly traffic report — expressions must stay in sync with `TRAFFIC_CRON_*` in `src/lib/traffic-report.ts`), and a large `env:` block (LLM Gateway, Better Auth + OAuth, Resend, Stripe price ids, PostHog, Discord webhooks — all `$VAR` interpolated from `.env`). Its `build:` builds the widget **before** the api (`pnpm --filter @llmchat/widget build && pnpm --filter @llmchat/api build`) so `/widget.js` is fresh. The Next.js apps each bind only public `NEXT_PUBLIC_*` env.
 
 `ploy dev` from the repo root runs **workspace mode**: starts every project (worker, dynamic, and Next.js), allocates ports per each `dev: { port }` in their ploy.yaml, and serves a shared Ploy dashboard on 9787. As of `@meetploy/cli@1.35.0`, Next.js apps are included.
 
@@ -158,6 +159,13 @@ Fixed-window counters in the `STATE` binding (JSON buckets, read-modify-write �
 
 `/v1/escalate` writes a `system` message, stamps `conversation.escalatedAt`, emails `project.notifyEmail` (via Resend `fetch`, Reply-To `reply+<inboundEmailLocal>@<INBOUND_EMAIL_DOMAIN>`), and posts to `project.slackWebhookUrl` (best-effort). Inbound replies hit `/webhooks/inbound-email` (Svix-verified Resend webhook): the handler parses the `reply+<local>@…` address to find the project, matches the conversation by `In-Reply-To` (against `message.emailMessageId`) or falls back to the sender's latest conversation, and appends a visitor message.
 
+### Discord operator notifications & traffic report (`lib/discord.ts`, `lib/traffic-report.ts`)
+
+Ported from llmgateway's automations; plain `fetch` to Discord incoming webhooks (workerd-safe, no discord.js). Everything no-ops when its env is unset, so local dev and self-hosters need zero Discord/PostHog setup.
+
+- **Operator pings** → `DISCORD_NOTIFICATION_URL`: **new signup** (Better Auth `databaseHooks.user.create.after` — fires for email AND OAuth sign-ups, right after workspace provisioning), **new subscriber** (`checkout.session.completed` for a paid tier, with owner email + workspace name looked up detached), and **cancellation** (`customer.subscription.deleted`, reporting the tier held *before* the downgrade). `sendDiscordNotification` never throws; the Stripe-webhook pings run via waitUntil (with a test-friendly fallback when no ExecutionContext exists).
+- **Traffic report** → `DISCORD_TRAFFIC_NOTIFICATION_URL`: Ploy cron triggers (weekly Mon 08:00 UTC, monthly 1st 08:30 UTC — `cron:` block in `apps/api/ploy.yaml`, mapped back to a period by `periodForCron(event.cron)`) run five parallel HogQL queries against the clankersupport PostHog project — overview + per-product pageviews/visitors/sessions with prior-period deltas, taxonomy-event counts (names from `ANALYTICS_EVENTS`), top referrer sources, human/bot/AI mix — and post one digest embed. Needs `POSTHOG_PERSONAL_API_KEY` (phx\_ personal key, read scope — NOT the phc\_ ingestion key), the numeric `POSTHOG_PROJECT_ID`, and optionally `POSTHOG_QUERY_HOST` (defaults to the EU app host `https://eu.posthog.com`; the query API lives on the app host, not the `eu.i` ingest host). Skips with a log line when unconfigured; **throws** on query/post failure so the cron execution is recorded as failed. The worker's default export is `{ fetch: app.fetch, scheduled }` to receive the triggers.
+
 ### Path aliases & imports
 
 - `apps/api` uses `@/*` → `src/*` (see `apps/api/tsconfig.json`).
@@ -216,7 +224,7 @@ Event names live in `@llmchat/shared` (`ANALYTICS_EVENTS`, object-action / lower
 - Routes return `c.json({ error: "..." }, status)` on errors (often with a machine-readable `code`); each route file exports a `Hono` instance mounted in `apps/api/src/index.ts`.
 - The Ploy `db:` binding is the only database; the `state:` binding is for ephemeral data (rate limits, caches), not source-of-truth.
 - Resource names (right-hand side of binding maps) must be lowercase + underscores (e.g. `llmchat_db`, not `llmchat-db`). Ploy validation rejects hyphens.
-- Async/side-effect work in the api (DB writes after streaming, email, Slack, metering, analytics, summaries) runs inside `c.executionCtx.waitUntil(...)` — there are no cron/queue/workflow handlers.
+- Async/side-effect work in the api (DB writes after streaming, email, Slack, Discord, metering, analytics, summaries) runs inside `c.executionCtx.waitUntil(...)`. The only scheduled work is the traffic-report cron (`cron:` block in `apps/api/ploy.yaml` → the `scheduled` handler in `src/index.ts`); there are no queue/workflow handlers.
 
 ## Commit workflow
 

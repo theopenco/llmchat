@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
 import {
+	notifySubscriptionCancelled,
+	notifySubscriptionStarted,
+} from "@/lib/discord";
+import {
 	createCheckoutSession,
 	createCustomer,
 	createPortalSession,
@@ -24,6 +28,14 @@ vi.mock("@/auth", () => ({
 }));
 
 vi.mock("@/lib/db", () => ({ db: vi.fn() }));
+
+// The webhook's Discord pings; stubbed so the wiring (which events fire which
+// notification, with what details) is assertable without network. The embed
+// payloads themselves are unit-tested in lib/discord.test.ts.
+vi.mock("@/lib/discord", () => ({
+	notifySubscriptionStarted: vi.fn(async () => {}),
+	notifySubscriptionCancelled: vi.fn(async () => {}),
+}));
 
 // Mock only the Stripe HTTP calls; keep signature verification + hashing real.
 vi.mock("@/lib/stripe", async (orig) => ({
@@ -377,6 +389,98 @@ describe("POST /billing/webhook", () => {
 		const res = await post(body, await signed(body));
 		expect(res.status).toBe(200);
 		expect(state.workspace.plan).toBe("growth");
+	});
+
+	// Discord notification wiring: notifications run detached (waitUntil), so
+	// these tests pass an ExecutionContext and settle it before asserting.
+	function makeCtx() {
+		const pending: Promise<unknown>[] = [];
+		return {
+			ctx: {
+				waitUntil: (p: Promise<unknown>) => pending.push(Promise.resolve(p)),
+				passThroughOnException: () => {},
+				props: {},
+			} as unknown as Parameters<typeof billing.request>[3],
+			settle: () => Promise.allSettled(pending),
+		};
+	}
+
+	function postWithCtx(
+		body: string,
+		sig: string,
+		ctx: Parameters<typeof billing.request>[3],
+	) {
+		return billing.request(
+			"/billing/webhook",
+			{ method: "POST", headers: { "stripe-signature": sig }, body },
+			ENV,
+			ctx,
+		);
+	}
+
+	it("pings Discord with owner + workspace details when checkout completes on a paid tier", async () => {
+		mockDb({
+			workspace: { id: "ws_1", name: "Acme", ownerId: "u1", plan: "none" },
+			user: { email: "owner@example.com" },
+		});
+		const { ctx, settle } = makeCtx();
+		const body = completed("growth");
+		const res = await postWithCtx(body, await signed(body), ctx);
+		expect(res.status).toBe(200);
+		await settle();
+		expect(notifySubscriptionStarted).toHaveBeenCalledWith(expect.anything(), {
+			email: "owner@example.com",
+			workspaceName: "Acme",
+			plan: "growth",
+		});
+	});
+
+	it("does not ping Discord when the completed session resolves to no plan", async () => {
+		mockDb({ workspace: { id: "ws_1", plan: "none" } });
+		const { ctx, settle } = makeCtx();
+		const body = completed(); // no plan stamp → "none"
+		await postWithCtx(body, await signed(body), ctx);
+		await settle();
+		expect(notifySubscriptionStarted).not.toHaveBeenCalled();
+	});
+
+	it("pings Discord with the LOST tier when a paid subscription is deleted", async () => {
+		mockDb({
+			workspace: {
+				id: "ws_1",
+				name: "Acme",
+				ownerId: "u1",
+				plan: "scale",
+				stripeSubscriptionId: "sub_1",
+			},
+			user: { email: "owner@example.com" },
+		});
+		const { ctx, settle } = makeCtx();
+		const body = JSON.stringify({
+			id: "evt_3",
+			type: "customer.subscription.deleted",
+			data: { object: { id: "sub_1", customer: "cus_1" } },
+		});
+		await postWithCtx(body, await signed(body), ctx);
+		await settle();
+		// The plan reported is the tier they had BEFORE the downgrade to none.
+		expect(notifySubscriptionCancelled).toHaveBeenCalledWith(
+			expect.anything(),
+			{ email: "owner@example.com", workspaceName: "Acme", plan: "scale" },
+		);
+	});
+
+	it("does not ping cancellation for a workspace that had no paid plan", async () => {
+		mockDb({ workspace: { id: "ws_1", plan: "none" } });
+		const { ctx, settle } = makeCtx();
+		const body = JSON.stringify({
+			id: "evt_4",
+			type: "customer.subscription.deleted",
+			data: { object: { id: "sub_1", customer: "cus_1" } },
+		});
+		await postWithCtx(body, await signed(body), ctx);
+		await settle();
+		expect(notifySubscriptionCancelled).not.toHaveBeenCalled();
 	});
 
 	it("400s a tampered body, missing/wrong signature, or stale timestamp", async () => {
