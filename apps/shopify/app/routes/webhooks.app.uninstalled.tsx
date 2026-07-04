@@ -1,5 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { getShopify } from "../shopify.server";
+import { deleteShopSessions } from "../lib/sessions.server";
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
 	const shopify = getShopify(context);
@@ -10,11 +11,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 	// Webhook requests can trigger multiple times and after an app has already been uninstalled.
 	// If this webhook already ran, the session may have been deleted previously.
 	if (session) {
-		const sessions =
-			(await shopify.sessionStorage.findSessionsByShop?.(shop)) ?? [];
-		if (sessions.length > 0) {
-			await shopify.sessionStorage.deleteSessions?.(sessions.map((s) => s.id));
-		}
+		await deleteShopSessions(shopify, shop);
 	}
 
 	return new Response();

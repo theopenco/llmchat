@@ -18,8 +18,17 @@ export const METAFIELD_TYPE = "single_line_text_field";
 /** The block filename handle in extensions/clanker-widget/blocks/. */
 export const EMBED_BLOCK_HANDLE = "clanker-support";
 
-export function clankerApiOrigin(): string {
-	return process.env.CLANKER_API_ORIGIN || "https://api.clankersupport.com";
+export function clankerApiOrigin(env?: {
+	CLANKER_API_ORIGIN?: string;
+}): string {
+	return (
+		env?.CLANKER_API_ORIGIN ||
+		// Node dev path (`shopify app dev`); workerd callers pass env explicitly.
+		(typeof process !== "undefined"
+			? process.env.CLANKER_API_ORIGIN
+			: undefined) ||
+		"https://api.clankersupport.com"
+	);
 }
 
 export type KeyValidation = "valid" | "invalid" | "unverified";

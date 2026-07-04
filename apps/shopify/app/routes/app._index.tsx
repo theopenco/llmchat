@@ -9,6 +9,7 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { getShopify, getShopifyEnv } from "../shopify.server";
 import {
+	clankerApiOrigin,
 	clearProjectKey,
 	getConnection,
 	maskKey,
@@ -77,13 +78,12 @@ export const action = async ({
 	// we write without re-validating (re-checking would just replay the flake).
 	const saveAnyway = form.get("saveAnyway") === "true";
 	if (!saveAnyway) {
-		// Origin comes from the request context (workerd env has no ambient
-		// process.env), falling back to the hosted default.
+		// Origin resolves from the request context on workerd (no ambient
+		// process.env there); clankerApiOrigin owns the fallback chain.
 		const verdict = await validateProjectKey(
 			key,
 			fetch,
-			getShopifyEnv(context).CLANKER_API_ORIGIN ||
-				"https://api.clankersupport.com",
+			clankerApiOrigin(getShopifyEnv(context)),
 		);
 		if (verdict === "invalid") return { status: "invalid" };
 		if (verdict === "unverified") return { status: "unverified", key };

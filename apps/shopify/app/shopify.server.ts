@@ -5,6 +5,7 @@ import {
 } from "@shopify/shopify-app-react-router/server";
 import { KVSessionStorage } from "@shopify/shopify-app-session-storage-kv";
 import { MemorySessionStorage } from "@shopify/shopify-app-session-storage-memory";
+import { toSessionKvNamespace, type StateBindingLike } from "./lib/session-kv";
 
 /**
  * workerd port (Ploy spike): shopifyApp() is no longer a module-scope
@@ -46,8 +47,14 @@ function buildShopify(env: ShopifyEnv) {
 		scopes: env.SCOPES?.split(","),
 		appUrl: env.SHOPIFY_APP_URL || "",
 		authPathPrefix: "/auth",
+		// The facade tolerates both KV dialects — miniflare's real KV (put) and
+		// Ploy's deployed state binding (set, no put — see app/lib/session-kv.ts).
 		sessionStorage: env.SESSION_STORAGE
-			? new KVSessionStorage(env.SESSION_STORAGE as never)
+			? new KVSessionStorage(
+					toSessionKvNamespace(
+						env.SESSION_STORAGE as StateBindingLike,
+					) as never,
+				)
 			: new MemorySessionStorage(),
 		distribution: AppDistribution.AppStore,
 		future: {

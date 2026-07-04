@@ -1,5 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { getShopify } from "../shopify.server";
+import { deleteShopSessions } from "../lib/sessions.server";
 
 /**
  * Multiplexed GDPR compliance route (docs/shopify-app-plan.md §7): all three
@@ -35,13 +36,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 			// 30-day window.
 			const shopDomain =
 				(payload as { shop_domain?: string }).shop_domain ?? shop;
-			const sessions =
-				(await shopify.sessionStorage.findSessionsByShop?.(shopDomain)) ?? [];
-			if (sessions.length > 0) {
-				await shopify.sessionStorage.deleteSessions?.(
-					sessions.map((s) => s.id),
-				);
-			}
+			await deleteShopSessions(shopify, shopDomain);
 			break;
 		}
 		default:
