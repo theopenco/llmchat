@@ -10,8 +10,10 @@ import type { AppContext, Env } from "@/env";
 
 // Stopgap shared inbox: until a real team mailbox exists, mail the inbound
 // domain receives for the contact address is copied to these personal
-// addresses — including mail that matches no conversation (which the handler
-// otherwise drops with a 400/404 after threading fails).
+// addresses — always, before and regardless of conversation threading. Once
+// forwarded, the delivery is acknowledged with a 200 even when threading
+// fails: a non-2xx makes Resend retry, and every retry would re-forward a
+// duplicate copy.
 const FORWARD_INBOUND_TRIGGER = "contact@clankersupport.com";
 const FORWARD_INBOUND_TO = [
 	"haythamchhilif@gmail.com",
@@ -160,9 +162,6 @@ export const inboundEmail = new Hono<AppContext>().post(
 		if (!signed) {
 			return c.json({ error: "invalid signature" }, 401);
 		}
-		// TEMP debug: log the exact verified payload Resend sends so we can
-		// confirm its real shape (which 400 branch is firing below).
-		console.log("[inbound-email] raw payload:", rawBody);
 		let event: InboundEvent;
 		try {
 			event = JSON.parse(rawBody) as InboundEvent;
@@ -192,28 +191,39 @@ export const inboundEmail = new Hono<AppContext>().post(
 		}
 
 		// Copy contact@ mail to the team's personal inboxes (stopgap until a
-		// shared mailbox exists) — even though nothing below will match it.
-		if (isForwardTrigger(full.to)) {
+		// shared mailbox exists). This runs unconditionally, before any
+		// project/conversation matching — contact@ mail must always redirect.
+		const forwarded = isForwardTrigger(full.to);
+		if (forwarded) {
 			await forwardInboundCopy(c.env, full);
 		}
+		// Once forwarded, the delivery is fully handled no matter what the
+		// threading below decides — a non-2xx would make Resend retry, and every
+		// retry re-forwards a duplicate copy to the team.
+		const fail = (error: string, status: 400 | 404) =>
+			forwarded
+				? c.json({ ok: true, forwarded: true, skipped: error })
+				: c.json({ error }, status);
 
 		const localPart = (full.to ?? [])
 			.map(parseInboundLocal)
 			.find((v): v is string => v !== null);
 		if (!localPart) {
-			console.warn("[inbound-email] no matching local part; to=", full.to);
-			return c.json({ error: "no matching local part" }, 400);
+			if (!forwarded) {
+				console.warn("[inbound-email] no matching local part; to=", full.to);
+			}
+			return fail("no matching local part", 400);
 		}
 		const fromAddress = parseFromAddress(full.from);
 		if (!fromAddress) {
 			console.warn("[inbound-email] no sender address; from=", full.from);
-			return c.json({ error: "no sender address" }, 400);
+			return fail("no sender address", 400);
 		}
 		const proj = await db(c.env).query.project.findFirst({
 			where: (pt, { eq: e }) => e(pt.inboundEmailLocal, localPart),
 		});
 		if (!proj) {
-			return c.json({ error: "project not found" }, 404);
+			return fail("project not found", 404);
 		}
 
 		const inReplyTo = getHeader(full.headers, "In-Reply-To")?.replace(
@@ -249,7 +259,7 @@ export const inboundEmail = new Hono<AppContext>().post(
 		}
 
 		if (!conv) {
-			return c.json({ error: "conversation not found" }, 404);
+			return fail("conversation not found", 404);
 		}
 
 		const content = (full.text ?? full.html ?? "").trim();
@@ -258,7 +268,7 @@ export const inboundEmail = new Hono<AppContext>().post(
 				"[inbound-email] empty body; has text/html keys=",
 				Object.keys(full),
 			);
-			return c.json({ error: "empty body" }, 400);
+			return fail("empty body", 400);
 		}
 		const nextSeq = conv.messageCount + 1;
 		await db(c.env).insert(message).values({

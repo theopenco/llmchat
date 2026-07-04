@@ -104,11 +104,11 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 		expect(res.status).toBe(404);
 	});
 
-	it("forwards contact@ mail to the stopgap team inboxes", async () => {
-		// Mail to the contact address matches no conversation (no reply+ local
-		// part ⇒ the handler 400s afterwards) but must still be copied to the
-		// team. RFC-5322 display-name form and case differences must not defeat
-		// the trigger match.
+	it("forwards contact@ mail to the stopgap team inboxes and acks with 200", async () => {
+		// Mail to the contact address matches no conversation but must be copied
+		// to the team and then ACKNOWLEDGED — a non-2xx makes Resend retry, and
+		// every retry re-forwards a duplicate copy. RFC-5322 display-name form
+		// and case differences must not defeat the trigger match.
 		const fetchMock = vi
 			.fn()
 			.mockImplementation(() =>
@@ -140,7 +140,7 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 					RESEND_FROM_EMAIL: "noreply@clankersupport.com",
 				},
 			);
-			expect(res.status).toBe(400); // no reply+ local part — but forwarded first
+			expect(res.status).toBe(200); // forward-only mail is acked, not retried
 
 			const sends = fetchMock.mock.calls.filter(
 				([url]) => url === "https://api.resend.com/emails",
@@ -164,9 +164,10 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 		}
 	});
 
-	it("still forwards and threads when Resend rejects one forward recipient", async () => {
-		// A forward failure is logged, not fatal: the response must stay the
-		// handler's own status, and the second recipient still gets its copy.
+	it("still acks when Resend rejects one forward recipient", async () => {
+		// A forward failure is logged, not fatal: the delivery is still acked
+		// (retrying would duplicate the copy that DID send), and the second
+		// recipient still gets its copy.
 		const fetchMock = vi.fn().mockImplementation((_url, init) => {
 			const to = JSON.parse((init as RequestInit).body as string).to as string;
 			return to === "haythamchhilif@gmail.com"
@@ -199,7 +200,59 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 					RESEND_FROM_EMAIL: "noreply@clankersupport.com",
 				},
 			);
-			expect(res.status).toBe(400);
+			expect(res.status).toBe(200);
+			expect(
+				fetchMock.mock.calls.filter(
+					([url]) => url === "https://api.resend.com/emails",
+				),
+			).toHaveLength(2);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it("still forwards and acks contact@ mail when threading fails (mixed recipients)", async () => {
+		// Mail addressed to contact@ AND a reply+ address must forward and ack
+		// with 200 even when the reply+ threading dead-ends (no matching
+		// project here) — otherwise Resend retries and duplicates the forward.
+		const fetchMock = vi
+			.fn()
+			.mockImplementation(() =>
+				Promise.resolve(new Response(JSON.stringify({ id: "email_4" }))),
+			);
+		vi.stubGlobal("fetch", fetchMock);
+		try {
+			vi.mocked(db).mockReturnValue({
+				query: { project: { findFirst: async () => undefined } },
+			} as unknown as ReturnType<typeof db>);
+			const secret = `whsec_${btoa("inbound-webhook-signing-key-0001")}`;
+			const body = JSON.stringify({
+				type: "email.received",
+				data: {
+					to: [
+						"contact@clankersupport.com",
+						"reply+nosuchproject@clankersupport.com",
+					],
+					from: "someone@example.com",
+					subject: "hi",
+					text: "hello",
+					headers: {},
+				},
+			});
+			const id = "msg_fwd_mixed";
+			const ts = String(Math.floor(Date.now() / 1000));
+			const signature = await signSvix(secret, id, ts, body);
+
+			const res = await post(
+				body,
+				{ "svix-id": id, "svix-timestamp": ts, "svix-signature": signature },
+				{
+					RESEND_INBOUND_WEBHOOK_SECRET: secret,
+					RESEND_API_KEY: "re_test_key",
+					RESEND_FROM_EMAIL: "noreply@clankersupport.com",
+				},
+			);
+			expect(res.status).toBe(200); // forwarded ⇒ acked despite the dead-end
 			expect(
 				fetchMock.mock.calls.filter(
 					([url]) => url === "https://api.resend.com/emails",
