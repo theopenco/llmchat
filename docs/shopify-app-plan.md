@@ -297,6 +297,27 @@ Prereqs: Partner org + dev store; **storefront password protection disabled** (O
 10. **Uninstall:** storefront bubble gone without touching the theme; `app/uninstalled` received; sessions cleared; simulate `shop/redact` → Session rows deleted.
 11. **Reinstall:** no redirect loop; page treats it as first-run (don't assume the metafield survived); reconnect works.
 
+### §9 results — executed 2026-07-03/04 on `clankersupport.myshopify.com`: ALL PASSED
+
+- **0 (spike)**: zero-scope install + `metafieldsSet` + Liquid `.value` read — GO (both accessors render; bare access works too, `.value` kept as the documented form).
+- **1–2**: boot + embedded auth incl. incognito. Zero-scope install shows **no permission screen at all** on a dev store (nothing to consent to).
+- **3**: invalid key → inline invalid; real key → Connected; metafield verified via GraphiQL.
+- **4**: deep link opens top-level on the **current published theme** with the embed pre-activated; editor preview shows the bubble.
+- **5**: storefront chat streams from prod; conversation landed in the operator inbox under the right project.
+- **6**: `brand_color` override verified (#FF00F6). Collision: classic snippet present first → app embed stood down → exactly one bubble (snippet's default color, since the snippet carries no `data-brand`).
+- **7 (hard gate)**: Lighthouse mobile, widget-blocked vs live on the dev preview — Home 93→95, Product 66→66, Collection 74→85. Zero degradation.
+- **8**: all three compliance topics delivered + handled; garbage-HMAC POST → 401. (`shopify app webhook trigger` needs `--api-version unstable` — release-candidate versions aren't in its list.)
+- **9**: published a second theme (Savor) → bubble gone silently (risk #6, now empirical) → deep-link re-enable → back, **key intact from the metafield** (no re-entry).
+- **10**: embed auto-removed from the storefront on uninstall (no theme edit); `APP_UNINSTALLED` received; handler cleared the Session rows.
+- **11**: reinstall = fresh installation id, first-run connect state (the app-data metafield is deleted with the old installation — by design); reconnect rewrites it.
+
+**Findings beyond the plan:**
+
+1. **`shopify app deploy` snapshots the TOML `application_url` into the released config.** Deploying with the scaffold placeholder pointed the app home *and* all declarative webhooks at `shopify.dev/apps/default-app-home` — an `APP_UNINSTALLED` delivery was silently lost this way (relative webhook URIs re-resolve against the current app URL, so fixing the URL restores future deliveries, not lost ones). **Phase 3 must set the real production URL in the TOML before the first deploy.**
+2. **Two real widget bugs surfaced and were shipped to prod** during testing — Dawn's `div:empty { display: none }` hid the `:empty` shadow host (inline `display:block !important` on the host, PR #111), and `rem` units resolving against Dawn's 62.5% root font-size rendered the widget at 10/16 scale (all rem→px, PR #113). Both fixes apply to every embed, not just Shopify.
+3. **Uninstall/reinstall severs the CLI dev-preview session** — afterwards the admin shows the released (placeholder) app home until `shopify app dev` is restarted to re-prepare the preview.
+4. Storefront password protection doesn't block server-side checks (curl with the password cookie), but the prereq to disable it stands for browser/Lighthouse work.
+
 ## 10. Honest review-risk list
 
 1. **Off-platform billing (req 1.2) — the gating risk.** No published connector exemption; "unless notified otherwise by Shopify" is the only door. Mitigation: written confirmation from Partner Support *before* submission (in progress, off-plan); listing discloses external charges in the designated field. Could block the listing entirely; zero code impact.
