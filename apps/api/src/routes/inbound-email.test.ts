@@ -104,9 +104,11 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 		expect(res.status).toBe(404);
 	});
 
-	it("forwards a copy of every received email to the stopgap team inboxes", async () => {
-		// Even mail that matches no conversation address (no reply+ local part ⇒
-		// the handler 400s afterwards) must still be copied to the team.
+	it("forwards contact@ mail to the stopgap team inboxes", async () => {
+		// Mail to the contact address matches no conversation (no reply+ local
+		// part ⇒ the handler 400s afterwards) but must still be copied to the
+		// team. RFC-5322 display-name form and case differences must not defeat
+		// the trigger match.
 		const fetchMock = vi
 			.fn()
 			.mockImplementation(() =>
@@ -118,7 +120,7 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 			const body = JSON.stringify({
 				type: "email.received",
 				data: {
-					to: ["hello@clankersupport.com"],
+					to: ["Clanker Support <Contact@ClankerSupport.com>"],
 					from: "WordPress.org <plugins@wordpress.org>",
 					subject: "Your plugin review",
 					text: "Hi, about your submission…",
@@ -177,7 +179,7 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 			const body = JSON.stringify({
 				type: "email.received",
 				data: {
-					to: ["hello@clankersupport.com"],
+					to: ["contact@clankersupport.com"],
 					from: "someone@example.com",
 					subject: "hi",
 					text: "hello",
@@ -203,6 +205,54 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 					([url]) => url === "https://api.resend.com/emails",
 				),
 			).toHaveLength(2);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it("does NOT forward mail addressed to other inbound addresses", async () => {
+		// Only contact@clankersupport.com triggers the stopgap forward — a
+		// visitor's reply+ conversation mail must not be copied to the team.
+		const fetchMock = vi
+			.fn()
+			.mockImplementation(() =>
+				Promise.resolve(new Response(JSON.stringify({ id: "email_3" }))),
+			);
+		vi.stubGlobal("fetch", fetchMock);
+		try {
+			vi.mocked(db).mockReturnValue({
+				query: { project: { findFirst: async () => undefined } },
+			} as unknown as ReturnType<typeof db>);
+			const secret = `whsec_${btoa("inbound-webhook-signing-key-0001")}`;
+			const body = JSON.stringify({
+				type: "email.received",
+				data: {
+					to: ["reply+dev@clankersupport.com", "hello@clankersupport.com"],
+					from: "visitor@example.com",
+					subject: "re: my order",
+					text: "following up",
+					headers: {},
+				},
+			});
+			const id = "msg_nofwd";
+			const ts = String(Math.floor(Date.now() / 1000));
+			const signature = await signSvix(secret, id, ts, body);
+
+			const res = await post(
+				body,
+				{ "svix-id": id, "svix-timestamp": ts, "svix-signature": signature },
+				{
+					RESEND_INBOUND_WEBHOOK_SECRET: secret,
+					RESEND_API_KEY: "re_test_key",
+					RESEND_FROM_EMAIL: "noreply@clankersupport.com",
+				},
+			);
+			expect(res.status).toBe(404); // proceeded to project lookup, no forward
+			expect(
+				fetchMock.mock.calls.filter(
+					([url]) => url === "https://api.resend.com/emails",
+				),
+			).toHaveLength(0);
 		} finally {
 			vi.unstubAllGlobals();
 		}

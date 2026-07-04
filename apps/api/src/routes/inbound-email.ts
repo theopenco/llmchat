@@ -8,14 +8,22 @@ import { conversation, eq, message } from "@llmchat/db";
 
 import type { AppContext, Env } from "@/env";
 
-// Stopgap shared inbox: until a real team mailbox exists, every email the
-// inbound domain receives is copied to these personal addresses — including
-// mail that matches no conversation (which the handler otherwise drops with a
-// 400/404 after threading fails).
+// Stopgap shared inbox: until a real team mailbox exists, mail the inbound
+// domain receives for the contact address is copied to these personal
+// addresses — including mail that matches no conversation (which the handler
+// otherwise drops with a 400/404 after threading fails).
+const FORWARD_INBOUND_TRIGGER = "contact@clankersupport.com";
 const FORWARD_INBOUND_TO = [
 	"haythamchhilif@gmail.com",
 	"contact@luca-steeb.com",
 ];
+
+/** True when any recipient of the received email is the contact address. */
+function isForwardTrigger(to: string[] | undefined): boolean {
+	return (to ?? []).some(
+		(addr) => parseFromAddress(addr)?.toLowerCase() === FORWARD_INBOUND_TRIGGER,
+	);
+}
 
 // Resend wraps inbound mail in an `{ type, data }` envelope; the parsed email
 // lives under `data`. `from` is an RFC-5322 string ("Name <a@b>" or "a@b"),
@@ -183,9 +191,11 @@ export const inboundEmail = new Hono<AppContext>().post(
 			}
 		}
 
-		// Copy every received email to the team's personal inboxes (stopgap until
-		// a shared mailbox exists) — even when nothing below matches it.
-		await forwardInboundCopy(c.env, full);
+		// Copy contact@ mail to the team's personal inboxes (stopgap until a
+		// shared mailbox exists) — even though nothing below will match it.
+		if (isForwardTrigger(full.to)) {
+			await forwardInboundCopy(c.env, full);
+		}
 
 		const localPart = (full.to ?? [])
 			.map(parseInboundLocal)
