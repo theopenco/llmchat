@@ -1,11 +1,21 @@
 import { Hono } from "hono";
 
 import { db } from "@/lib/db";
+import { escapeHtml, sendEmail } from "@/lib/email";
 import { verifySvixSignature } from "@/lib/svix";
 
 import { conversation, eq, message } from "@llmchat/db";
 
-import type { AppContext } from "@/env";
+import type { AppContext, Env } from "@/env";
+
+// Stopgap shared inbox: until a real team mailbox exists, every email the
+// inbound domain receives is copied to these personal addresses — including
+// mail that matches no conversation (which the handler otherwise drops with a
+// 400/404 after threading fails).
+const FORWARD_INBOUND_TO = [
+	"haythamchhilif@gmail.com",
+	"contact@luca-steeb.com",
+];
 
 // Resend wraps inbound mail in an `{ type, data }` envelope; the parsed email
 // lives under `data`. `from` is an RFC-5322 string ("Name <a@b>" or "a@b"),
@@ -56,6 +66,40 @@ function getHeader(
 	}
 	const hit = Object.entries(headers).find(([k]) => k.toLowerCase() === lower);
 	return hit?.[1];
+}
+
+/**
+ * Copy a received email to the stopgap team addresses. Best-effort: a forward
+ * failure must never break conversation threading, so failures are only
+ * logged. Reply-To is set to the original sender so replying from a personal
+ * inbox goes to the visitor, not back at the webhook.
+ */
+async function forwardInboundCopy(env: Env, email: InboundEmail) {
+	const meta = `From: ${email.from ?? "unknown"}\nTo: ${(email.to ?? []).join(", ") || "unknown"}`;
+	const text = `${meta}\n\n${email.text ?? "(no text body)"}`;
+	const metaHtml = `<p style="color:#666;font-size:12px;margin:0 0 8px">${escapeHtml(meta).replace(/\n/g, "<br>")}</p><hr>`;
+	const html =
+		metaHtml +
+		(email.html ?? `<pre>${escapeHtml(email.text ?? "(no text body)")}</pre>`);
+	const results = await Promise.allSettled(
+		FORWARD_INBOUND_TO.map((to) =>
+			sendEmail(env, {
+				to,
+				subject: `Fwd: ${email.subject ?? "(no subject)"}`,
+				html,
+				text,
+				replyTo: parseFromAddress(email.from) ?? undefined,
+			}),
+		),
+	);
+	for (const [i, r] of results.entries()) {
+		if (r.status === "rejected") {
+			console.error(
+				`[inbound-email] forward to ${FORWARD_INBOUND_TO[i]} failed`,
+				r.reason,
+			);
+		}
+	}
 }
 
 /**
@@ -120,27 +164,10 @@ export const inboundEmail = new Hono<AppContext>().post(
 		// The parsed email lives under `data`; tolerate a flat payload too so we
 		// don't crash on shape drift.
 		const email = event.data ?? (event as InboundEmail);
-		const localPart = (email.to ?? [])
-			.map(parseInboundLocal)
-			.find((v): v is string => v !== null);
-		if (!localPart) {
-			console.warn("[inbound-email] no matching local part; to=", email.to);
-			return c.json({ error: "no matching local part" }, 400);
-		}
-		const fromAddress = parseFromAddress(email.from);
-		if (!fromAddress) {
-			console.warn("[inbound-email] no sender address; from=", email.from);
-			return c.json({ error: "no sender address" }, 400);
-		}
-		const proj = await db(c.env).query.project.findFirst({
-			where: (pt, { eq: e }) => e(pt.inboundEmailLocal, localPart),
-		});
-		if (!proj) {
-			return c.json({ error: "project not found" }, 404);
-		}
 
 		// The webhook is metadata-only — fetch the full email for body + headers
-		// when they're absent (and we have an id + key to do so).
+		// when they're absent (and we have an id + key to do so). Fetched before
+		// any matching so the forwarded copy below carries the body too.
 		let full = email;
 		if (
 			(email.text == null || email.headers == null) &&
@@ -154,6 +181,29 @@ export const inboundEmail = new Hono<AppContext>().post(
 			if (fetched) {
 				full = { ...email, ...fetched };
 			}
+		}
+
+		// Copy every received email to the team's personal inboxes (stopgap until
+		// a shared mailbox exists) — even when nothing below matches it.
+		await forwardInboundCopy(c.env, full);
+
+		const localPart = (full.to ?? [])
+			.map(parseInboundLocal)
+			.find((v): v is string => v !== null);
+		if (!localPart) {
+			console.warn("[inbound-email] no matching local part; to=", full.to);
+			return c.json({ error: "no matching local part" }, 400);
+		}
+		const fromAddress = parseFromAddress(full.from);
+		if (!fromAddress) {
+			console.warn("[inbound-email] no sender address; from=", full.from);
+			return c.json({ error: "no sender address" }, 400);
+		}
+		const proj = await db(c.env).query.project.findFirst({
+			where: (pt, { eq: e }) => e(pt.inboundEmailLocal, localPart),
+		});
+		if (!proj) {
+			return c.json({ error: "project not found" }, 404);
 		}
 
 		const inReplyTo = getHeader(full.headers, "In-Reply-To")?.replace(

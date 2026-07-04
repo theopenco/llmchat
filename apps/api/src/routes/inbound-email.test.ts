@@ -104,6 +104,110 @@ describe("inbound-email webhook — signature required (fail-closed)", () => {
 		expect(res.status).toBe(404);
 	});
 
+	it("forwards a copy of every received email to the stopgap team inboxes", async () => {
+		// Even mail that matches no conversation address (no reply+ local part ⇒
+		// the handler 400s afterwards) must still be copied to the team.
+		const fetchMock = vi
+			.fn()
+			.mockImplementation(() =>
+				Promise.resolve(new Response(JSON.stringify({ id: "email_1" }))),
+			);
+		vi.stubGlobal("fetch", fetchMock);
+		try {
+			const secret = `whsec_${btoa("inbound-webhook-signing-key-0001")}`;
+			const body = JSON.stringify({
+				type: "email.received",
+				data: {
+					to: ["hello@clankersupport.com"],
+					from: "WordPress.org <plugins@wordpress.org>",
+					subject: "Your plugin review",
+					text: "Hi, about your submission…",
+					headers: {},
+				},
+			});
+			const id = "msg_fwd";
+			const ts = String(Math.floor(Date.now() / 1000));
+			const signature = await signSvix(secret, id, ts, body);
+
+			const res = await post(
+				body,
+				{ "svix-id": id, "svix-timestamp": ts, "svix-signature": signature },
+				{
+					RESEND_INBOUND_WEBHOOK_SECRET: secret,
+					RESEND_API_KEY: "re_test_key",
+					RESEND_FROM_EMAIL: "noreply@clankersupport.com",
+				},
+			);
+			expect(res.status).toBe(400); // no reply+ local part — but forwarded first
+
+			const sends = fetchMock.mock.calls.filter(
+				([url]) => url === "https://api.resend.com/emails",
+			);
+			const recipients = sends.map(
+				([, init]) => JSON.parse((init as RequestInit).body as string).to,
+			);
+			expect(recipients).toEqual(
+				expect.arrayContaining([
+					"haythamchhilif@gmail.com",
+					"contact@luca-steeb.com",
+				]),
+			);
+			const payload = JSON.parse(
+				(sends[0]![1] as RequestInit).body as string,
+			) as { subject: string; reply_to: string };
+			expect(payload.subject).toBe("Fwd: Your plugin review");
+			expect(payload.reply_to).toBe("plugins@wordpress.org");
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it("still forwards and threads when Resend rejects one forward recipient", async () => {
+		// A forward failure is logged, not fatal: the response must stay the
+		// handler's own status, and the second recipient still gets its copy.
+		const fetchMock = vi.fn().mockImplementation((_url, init) => {
+			const to = JSON.parse((init as RequestInit).body as string).to as string;
+			return to === "haythamchhilif@gmail.com"
+				? Promise.resolve(new Response("boom", { status: 500 }))
+				: Promise.resolve(new Response(JSON.stringify({ id: "email_2" })));
+		});
+		vi.stubGlobal("fetch", fetchMock);
+		try {
+			const secret = `whsec_${btoa("inbound-webhook-signing-key-0001")}`;
+			const body = JSON.stringify({
+				type: "email.received",
+				data: {
+					to: ["hello@clankersupport.com"],
+					from: "someone@example.com",
+					subject: "hi",
+					text: "hello",
+					headers: {},
+				},
+			});
+			const id = "msg_fwd_fail";
+			const ts = String(Math.floor(Date.now() / 1000));
+			const signature = await signSvix(secret, id, ts, body);
+
+			const res = await post(
+				body,
+				{ "svix-id": id, "svix-timestamp": ts, "svix-signature": signature },
+				{
+					RESEND_INBOUND_WEBHOOK_SECRET: secret,
+					RESEND_API_KEY: "re_test_key",
+					RESEND_FROM_EMAIL: "noreply@clankersupport.com",
+				},
+			);
+			expect(res.status).toBe(400);
+			expect(
+				fetchMock.mock.calls.filter(
+					([url]) => url === "https://api.resend.com/emails",
+				),
+			).toHaveLength(2);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
 	it("does not crash on an envelope missing data.to — returns 400, not 500", async () => {
 		// Regression: the handler used to read top-level `payload.to` and call
 		// `.map` on it, throwing "Cannot read properties of undefined (reading
