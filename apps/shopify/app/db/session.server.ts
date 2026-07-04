@@ -19,6 +19,11 @@ export const sessionTable = sqliteTable("session", {
 	scope: text("scope"),
 	expires: text("expires"),
 	accessToken: text("accessToken").notNull(),
+	// Always NULL for this app (offline tokens only — the adapter writes it
+	// from onlineAccessInfo). If online tokens are ever enabled, verify the
+	// BLOB-bigint write path on REAL D1 first: drizzle emits a Node Buffer,
+	// and workerd's D1 has rejected typed-array views on some versions —
+	// the better-sqlite3-backed contract test cannot catch that.
 	userId: blob("userId", { mode: "bigint" }),
 	firstName: text("firstName"),
 	lastName: text("lastName"),
