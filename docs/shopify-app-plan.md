@@ -1,20 +1,20 @@
 # Shopify App — Architecture Plan (v1: free connector)
 
-_Status: PLAN ONLY — nothing built. Drafted 2026-07-03 from verified shopify.dev docs (fetched 2026-07-02/03) + the repo's actual widget/API contracts, then adversarially reviewed by three independent critics (Shopify-facts, repo-facts, completeness); all confirmed findings are folded in. All Shopify claims carry sources; all Clanker claims carry file:line._
+_Status: BUILT + VERIFIED — Phases 1–2 implemented, the full §9 dev-store test plan passed (see "§9 results"), Phase 3 hosting pieces in place (§12b); remaining: host go-live + App Store listing. Originally drafted 2026-07-03 from verified shopify.dev docs + the repo's actual widget/API contracts, then adversarially reviewed by three independent critics; all confirmed findings folded in. All Shopify claims carry sources; all Clanker claims carry file:line._
 
 ## 0. Executive decisions
 
-| Decision | Choice | One-line why |
-| --- | --- | --- |
-| Repo location | **`apps/shopify` in the monorepo** | The app's only real coupling is the widget embed contract — keep it where that contract is reviewed; CLI/pnpm blockers are fixed |
-| Scaffold | **Shopify CLI React Router template** (`shopify app init`, "Build a React Router app") | The Remix template is deprecated — Remix v7 *became* React Router; same architecture the brief verified, under its current name |
-| Storefront delivery | **Theme app extension → app embed block** (`target: body`), deactivated by default, activated via theme-editor deep link, auto-removed on uninstall | Verified platform behavior ([Help Center](https://help.shopify.com/en/manual/online-store/themes/customizing-themes/apps)); the chat-bubble pattern |
-| Project key storage | **App-data metafield** (owned by the app, on `AppInstallation`), written by the admin page; one advanced block-setting override as escape hatch | Single paste + live validation; invisible in merchant admin; read from Liquid via the `app` object — **read path is the plan's one RISKY dependency, verified by a day-0 spike (§9.0)** |
-| Key validation | **Existing `GET /v1/config/:key`** — 200 = valid, 404 = invalid, anything else = "couldn't verify" | CORS `*`, no rate limit, no cache; **zero Clanker-side changes needed** |
-| Auth | Shopify **managed installation + token exchange** (template default) | No OAuth code-grant redirects → no redirect loops; HMAC survives only on webhooks |
-| Sessions | Template default **Prisma + SQLite** (volume-backed in prod) | We only need tokens during admin-page requests; boring default wins |
-| Billing | **Free to install; NO Shopify Billing code** | Subscription stays on clankersupport.com; requirement 1.2 risk tracked in §10 — resolved with Shopify in parallel, not in code |
-| Widget changes | **None** — with one consciously declined exception (§4, double-mount guard lives in the Liquid instead) | The Liquid renders the exact same script contract the widget already parses (`packages/widget/src/config.ts:16-36`) |
+| Decision            | Choice                                                                                                                                              | One-line why                                                                                                                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repo location       | **`apps/shopify` in the monorepo**                                                                                                                  | The app's only real coupling is the widget embed contract — keep it where that contract is reviewed; CLI/pnpm blockers are fixed                                                        |
+| Scaffold            | **Shopify CLI React Router template** (`shopify app init`, "Build a React Router app")                                                              | The Remix template is deprecated — Remix v7 _became_ React Router; same architecture the brief verified, under its current name                                                         |
+| Storefront delivery | **Theme app extension → app embed block** (`target: body`), deactivated by default, activated via theme-editor deep link, auto-removed on uninstall | Verified platform behavior ([Help Center](https://help.shopify.com/en/manual/online-store/themes/customizing-themes/apps)); the chat-bubble pattern                                     |
+| Project key storage | **App-data metafield** (owned by the app, on `AppInstallation`), written by the admin page; one advanced block-setting override as escape hatch     | Single paste + live validation; invisible in merchant admin; read from Liquid via the `app` object — **read path is the plan's one RISKY dependency, verified by a day-0 spike (§9.0)** |
+| Key validation      | **Existing `GET /v1/config/:key`** — 200 = valid, 404 = invalid, anything else = "couldn't verify"                                                  | CORS `*`, no rate limit, no cache; **zero Clanker-side changes needed**                                                                                                                 |
+| Auth                | Shopify **managed installation + token exchange** (template default)                                                                                | No OAuth code-grant redirects → no redirect loops; HMAC survives only on webhooks                                                                                                       |
+| Sessions            | Template default **Prisma + SQLite** (volume-backed in prod)                                                                                        | We only need tokens during admin-page requests; boring default wins                                                                                                                     |
+| Billing             | **Free to install; NO Shopify Billing code**                                                                                                        | Subscription stays on clankersupport.com; requirement 1.2 risk tracked in §10 — resolved with Shopify in parallel, not in code                                                          |
+| Widget changes      | **None** — with one consciously declined exception (§4, double-mount guard lives in the Liquid instead)                                             | The Liquid renders the exact same script contract the widget already parses (`packages/widget/src/config.ts:16-36`)                                                                     |
 
 ## 1. Architecture overview
 
@@ -46,12 +46,14 @@ Two independent release actions, always: `shopify app deploy` publishes the exte
 ## 2. Repo location: `apps/shopify` in the monorepo — recommended
 
 **For monorepo:**
+
 - The one contract this app depends on is the widget script-tag contract (5 `data-*` attributes, `config.ts`). Colocation means a PR that changes that contract shows the Shopify Liquid in the same diff/review.
 - One PR flow, one CI, one set of conventions, no second-repo ops.
 - The historical CLI blockers are fixed: the pnpm-workspace package-manager detection bug (Shopify/cli#4028) was fixed ~CLI v3.61.2; `shopify app dev --path` is documented; deprecated `--skip-dependencies-installation` explicitly says "use workspaces instead".
 - Zero Ploy interference — verified against the installed CLI source, not just docs: `@meetploy/cli`'s `discoverProjects` walks the repo for files named exactly `ploy.yaml` and skips everything else. `apps/shopify` gets **no ploy.yaml** → invisible to `ploy dev`/`pnpm dev`. (`exclude` in ploy-workspace.yaml exists as belt-and-braces if one ever appears there.)
 
-**Monorepo mechanics (corrected by review — the package joins everything *automatically*):**
+**Monorepo mechanics (corrected by review — the package joins everything _automatically_):**
+
 - `pnpm-workspace.yaml` already globs `apps/*` — creating `apps/shopify/package.json` makes it a workspace member with **no yaml edit**. That means it joins the **turbo graph from the first commit**, not as an opt-in.
 - Therefore: **rename the template's `build` script to `build:app`** (the Dockerfile calls `react-router build` directly, so nothing breaks) so `turbo run build` skips it — the app deploys via Docker, not via `pnpm build`. Keep `lint`/`test` scripts so repo-wide gates cover it.
 - Lint/format friction is real, not automatic: add `.react-router/**` (generated types) — and, if the unvetted scaffold trips `correctness: error`, initially `apps/shopify/**` — to `.oxlintrc.json` ignorePatterns; plan a one-time `prettier --write` reformat commit of the scaffold (repo prettier is tabs; the template is 2-space).
@@ -99,13 +101,13 @@ apps/shopify/                          # @llmchat/shopify — auto-joins the pnp
 
 **Environment inventory (prod server):**
 
-| Var | Where set | Secret? | Notes |
-| --- | --- | --- | --- |
-| `SHOPIFY_API_KEY` | Host env (Fly secrets/Render) | No (public client_id, also in toml) | |
-| `SHOPIFY_API_SECRET` | Host env | **Yes** | HMAC + token exchange; never committed |
-| `SHOPIFY_APP_URL` | Host env | No | The app server's public URL |
-| `DATABASE_URL` | Host env | No | SQLite file on the mounted volume (or Postgres if host prefers) |
-| `CLANKER_API_ORIGIN` | Host env | No | Default `https://api.clankersupport.com`; server-side validation only. **Deliberate asymmetry:** the Liquid hardcodes the prod origin because Liquid cannot read env |
+| Var                  | Where set                     | Secret?                             | Notes                                                                                                                                                                |
+| -------------------- | ----------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SHOPIFY_API_KEY`    | Host env (Fly secrets/Render) | No (public client_id, also in toml) |                                                                                                                                                                      |
+| `SHOPIFY_API_SECRET` | Host env                      | **Yes**                             | HMAC + token exchange; never committed                                                                                                                               |
+| `SHOPIFY_APP_URL`    | Host env                      | No                                  | The app server's public URL                                                                                                                                          |
+| `DATABASE_URL`       | Host env                      | No                                  | SQLite file on the mounted volume (or Postgres if host prefers)                                                                                                      |
+| `CLANKER_API_ORIGIN` | Host env                      | No                                  | Default `https://api.clankersupport.com`; server-side validation only. **Deliberate asymmetry:** the Liquid hardcodes the prod origin because Liquid cannot read env |
 
 ## 4. The app embed block — exact Liquid
 
@@ -182,14 +184,14 @@ apps/shopify/                          # @llmchat/shopify — auto-joins the pnp
 Why each choice:
 
 - **`target: "body"`** — Shopify injects app embed blocks before `</body>`; the widget appends its own host `<div>` to `document.body`. Valid embed targets: `head`, `compliance_head`, `body` ([configuration docs](https://shopify.dev/docs/apps/build/online-store/theme-app-extensions/configuration)).
-- **Dynamic injection after `load` + idle, not a plain `<script async src>`** — the widget bundle is **~904 KB raw / ~271 KB gzipped** (measured from a fresh `pnpm --filter @llmchat/widget build`, 2026-07-03) — React + AI SDK in one IIFE. Deferring past `load`+idle keeps it out of the Lighthouse trace window and is the standard chat-widget pattern; the hard gate is **"must not reduce Lighthouse scores by more than 10 points"** ([performance docs](https://shopify.dev/docs/apps/build/performance)). If measurement (§9.7) still shows a delta, the fallback is inject-on-first-interaction (`pointermove`/`scroll`/`touchstart`), which Lighthouse never triggers. Note Shopify's *guidance* (not requirement) is a 10 KB entry loaded on interaction ([best practices](https://shopify.dev/docs/apps/build/performance/general-best-practices)) — we satisfy the letter, not the guidance; task #39 (slim bundle) is the structural fix and helps every embed.
+- **Dynamic injection after `load` + idle, not a plain `<script async src>`** — the widget bundle is **~904 KB raw / ~271 KB gzipped** (measured from a fresh `pnpm --filter @llmchat/widget build`, 2026-07-03) — React + AI SDK in one IIFE. Deferring past `load`+idle keeps it out of the Lighthouse trace window and is the standard chat-widget pattern; the hard gate is **"must not reduce Lighthouse scores by more than 10 points"** ([performance docs](https://shopify.dev/docs/apps/build/performance)). If measurement (§9.7) still shows a delta, the fallback is inject-on-first-interaction (`pointermove`/`scroll`/`touchstart`), which Lighthouse never triggers. Note Shopify's _guidance_ (not requirement) is a 10 KB entry loaded on interaction ([best practices](https://shopify.dev/docs/apps/build/performance/general-best-practices)) — we satisfy the letter, not the guidance; task #39 (slim bundle) is the structural fix and helps every embed.
 - **The contract survives dynamic injection** — per the WHATWG HTML spec's "execute the script element" algorithm, `document.currentScript` is set for **classic** scripts regardless of how they were inserted (null only for module scripts and shadow-root-hosted scripts — MDN doesn't cover the dynamic case; the spec does). `dataset.project` renders as `data-project`, and the API origin falls back to the injected `src`'s origin (`packages/widget/src/config.ts:18-20`). Two ways to break it, both avoided: a `type="module"` script, and appending inside a shadow root — we append a classic script to `document.body`.
-- **Double-mount guard** (review finding) — `mount.tsx:14-17` appends its root div unconditionally; the widget has no dedupe. A merchant migrating from the manually pasted snippet would get **two bubbles**. Since we inject post-load, the manual tag has already mounted — the `#llmchat-widget-root` check catches it (script-selector check as belt-and-braces). Admin-page copy adds: *"Already added Clanker to your theme by hand? Remove that snippet — the app replaces it."* A widget-side idempotence guard in `mount.tsx` would be the deeper fix but violates "zero widget changes" — **consciously declined for v1**, noted for #39.
+- **Double-mount guard** (review finding) — `mount.tsx:14-17` appends its root div unconditionally; the widget has no dedupe. A merchant migrating from the manually pasted snippet would get **two bubbles**. Since we inject post-load, the manual tag has already mounted — the `#llmchat-widget-root` check catches it (script-selector check as belt-and-braces). Admin-page copy adds: _"Already added Clanker to your theme by hand? Remove that snippet — the app replaces it."_ A widget-side idempotence guard in `mount.tsx` would be the deeper fix but violates "zero widget changes" — **consciously declined for v1**, noted for #39.
 - **Theme-editor preview (design mode): we render, deliberately.** The embed executes for real in the editor preview — that's the "toggle → see the bubble" confirmation moment, and skipping via `{% if request.design_mode %}` would make the activation flow feel broken. Cost, stated honestly: preview chats are **live and metered** (real conversations in the merchant's inbox, billed per response like any traffic). That's the merchant testing their own support agent — acceptable, and documented in the app's help copy. Revisit only if support tickets say otherwise.
 - **`{{ clanker_key | json }}`** — arbitrary text becomes a safely quoted JS string literal (no injection through a crafted override setting).
 - **No `data-api`** — the origin derives from the script src (same convention as our own `/embed/:key` page, `apps/api/src/lib/embed-page.ts:25-30`). Hosted Clanker only in v1.
 - **No `data-mode` / `data-escalation-threshold`** — bubble is the only sensible storefront mode; threshold has a widget-side default of 3 (`packages/widget/src/widget.tsx:94-106`).
-- **Two settings only.** `brand_color` because the config endpoint deliberately does *not* return brand color (it travels via `data-brand` in every embed) — a theme-editor color picker is the only zero-backend way to brand the bubble; the `blank`/`rgba(0,0,0,0)` double-guard handles Shopify's set-then-removed color literal, and the widget applies `data-brand` unvalidated, so this guard is the sanitation layer. `project_key_override` is the escape hatch if the metafield path ever fails. An activated-but-unconfigured embed renders nothing — inert, not broken.
+- **Two settings only.** `brand_color` because the config endpoint deliberately does _not_ return brand color (it travels via `data-brand` in every embed) — a theme-editor color picker is the only zero-backend way to brand the bubble; the `blank`/`rgba(0,0,0,0)` double-guard handles Shopify's set-then-removed color literal, and the widget applies `data-brand` unvalidated, so this guard is the sanitation layer. `project_key_override` is the escape hatch if the metafield path ever fails. An activated-but-unconfigured embed renders nothing — inert, not broken.
 
 ## 5. Admin settings page — one Polaris page
 
@@ -199,14 +201,14 @@ Flow (single card, three states):
 
 1. **Not connected** — text field "Clanker project key" + `Connect`. The action (server-side):
    - `validateProjectKey(key)`: `fetch(CLANKER_API_ORIGIN + "/v1/config/" + encodeURIComponent(key))`. **200 → valid; 404 → invalid** ("invalid project key", `apps/api/src/routes/widget-config.ts:23-25`); **anything else (5xx, network, a hypothetical future 429) → "couldn't verify" + offer save-anyway** — never map a non-404 to "invalid key". Mirrors the widget's own fail-safe consumption (`packages/widget/src/widget-config.ts:31-52`).
-   - On valid: `metafieldsSet` with `ownerId: <currentAppInstallation.id>`, `namespace: "clanker"`, `key: "project_key"`, `type: "single_line_text_field"` (the `type` field is **required** — we create no metafield definition). This is an **app-data metafield**: tied to the installation, hidden from the merchant admin, and — per the [ownership doc](https://shopify.dev/docs/apps/build/custom-data/ownership), verbatim — "the `$app` reserved namespace isn't required because the AppInstallation owner provides isolation". **Do not "fix" the namespace to `$app:clanker` later** — that's the *shared-resource* pattern and would surface in Liquid under `app--{id}--clanker` instead.
+   - On valid: `metafieldsSet` with `ownerId: <currentAppInstallation.id>`, `namespace: "clanker"`, `key: "project_key"`, `type: "single_line_text_field"` (the `type` field is **required** — we create no metafield definition). This is an **app-data metafield**: tied to the installation, hidden from the merchant admin, and — per the [ownership doc](https://shopify.dev/docs/apps/build/custom-data/ownership), verbatim — "the `$app` reserved namespace isn't required because the AppInstallation owner provides isolation". **Do not "fix" the namespace to `$app:clanker` later** — that's the _shared-resource_ pattern and would surface in Liquid under `app--{id}--clanker` instead.
 2. **Connected** — masked key (`pk_…a1b2`), "Connected" badge, `Disconnect`, and the primary CTA:
    - **"Enable on your store"** → theme-editor deep link, opened top-level with **App Bridge `open(url, '_top')`** (or `<a target="_top">`) — a plain `window.location` assignment would navigate only the iframe:
      ```
      https://{shop-domain}/admin/themes/current/editor?context=apps&template=${template}&activateAppId={client_id}/clanker-support
      ```
      `{client_id}` = the app's api_key from `shopify.app.toml` (the `uuid` form is deprecated); `clanker-support` = the block's filename handle; `template` omitted → index ([deep-linking docs](https://shopify.dev/docs/apps/build/online-store/theme-app-extensions/configuration)).
-   - Copy, verbatim: *"Click Enable, then press **Save** in the theme editor."* and *"The embed is enabled **per theme** — if you publish a different theme, click Enable again."* (Activation lives in each theme's `settings_data.json`; a theme switch silently deactivates — see risk #6.)
+   - Copy, verbatim: _"Click Enable, then press **Save** in the theme editor."_ and _"The embed is enabled **per theme** — if you publish a different theme, click Enable again."_ (Activation lives in each theme's `settings_data.json`; a theme switch silently deactivates — see risk #6.)
 3. **Status honesty** — we do **not** claim to detect whether the merchant toggled the embed on (needs `read_themes` + parsing `settings_data.json`; v1.1 candidate, and the mitigation for the per-theme risk).
 
 **Verdict on validation endpoint: `/v1/config/:key` suffices — zero Clanker-side changes.** Exact-match on `publicKey`, uncached, CORS `*` non-credentialed (`apps/api/src/index.ts:62-68`), and — verified — **no rate limit** (neither `rateLimit` nor `publicLookupRateLimit` is imported in `widget-config.ts`; the per-IP pre-lookup gate is per-route, applied on chat/escalate/resolve/messages only). It leaks nothing beyond what every widget embed already exposes (validity, `showBranding` plan hint, privacy URL — no project name, no brand color). A dedicated validate endpoint would only buy a prettier "Connected to {project name}" label — not worth a new public endpoint that leaks names to anyone holding a key. (Pre-existing, non-Shopify: the endpoint being unbounded is #115-adjacent hardening.)
@@ -215,17 +217,17 @@ Flow (single card, three states):
 
 ### Metafield vs block setting — why metafield wins (the brief's "lean metafield", justified)
 
-| | App-data metafield (chosen) | Block setting only |
-| --- | --- | --- |
-| Where merchant pastes | Admin page, once | Theme editor sidebar |
-| Live validation | Yes (200/404 at paste time) | None — a typo'd key mounts a widget whose every call 404s, silently |
-| Deep-link UX | Paste → click → toggle → Save | Paste *inside* the editor after the deep link — two contexts, no feedback |
-| Failure mode | Metafield write/read fails → override setting is the fallback | — |
-| Extra machinery | One GraphQL mutation + Liquid `app.metafields` read | Zero |
+|                       | App-data metafield (chosen)                                   | Block setting only                                                        |
+| --------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Where merchant pastes | Admin page, once                                              | Theme editor sidebar                                                      |
+| Live validation       | Yes (200/404 at paste time)                                   | None — a typo'd key mounts a widget whose every call 404s, silently       |
+| Deep-link UX          | Paste → click → toggle → Save                                 | Paste _inside_ the editor after the deep link — two contexts, no feedback |
+| Failure mode          | Metafield write/read fails → override setting is the fallback | —                                                                         |
+| Extra machinery       | One GraphQL mutation + Liquid `app.metafields` read           | Zero                                                                      |
 
 The block-setting-only design is genuinely simpler, but it forfeits the only moment we can tell the merchant "that key is wrong" — and silently-dead widgets are exactly the support burden this product exists to kill. The override setting keeps the simple path alive as the escape hatch.
 
-**⚠ The one RISKY dependency (adversarial-review finding):** the Liquid read path `app.metafields.clanker.project_key.value` is supported by doc prose ("can only be accessed by the owning app via GraphQL or through the `app` object in Liquid" — [app-data metafields](https://shopify.dev/docs/apps/build/custom-data/metafields/use-app-data-metafields)) but **no official end-to-end example exists**, and one unresolved community report (Oct 2025) describes exactly this pattern rendering empty — notably using *bare* access without `.value`, which is why `.value` (the documented accessor, [metafield object](https://shopify.dev/docs/api/liquid/objects/metafield)) is mandatory here. This is why §9.0 exists: **verify the read before building the admin page.** If it fails on a real dev store, the pivot is block-setting-only (right column above) — a UX downgrade, not an architecture change.
+**⚠ The one RISKY dependency (adversarial-review finding):** the Liquid read path `app.metafields.clanker.project_key.value` is supported by doc prose ("can only be accessed by the owning app via GraphQL or through the `app` object in Liquid" — [app-data metafields](https://shopify.dev/docs/apps/build/custom-data/metafields/use-app-data-metafields)) but **no official end-to-end example exists**, and one unresolved community report (Oct 2025) describes exactly this pattern rendering empty — notably using _bare_ access without `.value`, which is why `.value` (the documented accessor, [metafield object](https://shopify.dev/docs/api/liquid/objects/metafield)) is mandatory here. This is why §9.0 exists: **verify the read before building the admin page.** If it fails on a real dev store, the pivot is block-setting-only (right column above) — a UX downgrade, not an architecture change.
 
 ## 6. Auth, sessions, uninstall/reinstall robustness
 
@@ -238,11 +240,11 @@ The block-setting-only design is genuinely simpler, but it forfeits the only mom
 
 **Complete inventory of what this app stores, anywhere:**
 
-| Datum | Where | Personal data? |
-| --- | --- | --- |
-| Shop domain + access token(s) | Prisma `Session` table (our host) | Shop-level only |
-| Clanker project key | App-data metafield (on Shopify, hidden) | No |
-| — nothing else — | | |
+| Datum                         | Where                                   | Personal data?  |
+| ----------------------------- | --------------------------------------- | --------------- |
+| Shop domain + access token(s) | Prisma `Session` table (our host)       | Shop-level only |
+| Clanker project key           | App-data metafield (on Shopify, hidden) | No              |
+| — nothing else —              |                                         |                 |
 
 The app server is never in the chat path: storefront visitors talk browser→`api.clankersupport.com` directly. **End-user support conversations live in Clanker under the merchant's own account** — managed via the Clanker dashboard (and surfaced to visitors via `project.privacyPolicyUrl`). Our app's privacy policy must state this division explicitly; it is the honest answer reviewers will probe.
 
@@ -268,12 +270,12 @@ Relative URIs are documented-valid for compliance topics (["a relative path star
 
 Handlers (all: `authenticate.webhook()` → invalid HMAC returns **401**; valid → act → **200**):
 
-| Topic | What we do | Why that's the whole job |
-| --- | --- | --- |
-| `customers/data_request` | Log topic + shop; 200. Nothing to export. | We store zero customer data. Privacy policy directs merchants to their Clanker dashboard for conversation exports. |
-| `customers/redact` | Log topic + shop; 200. Nothing to delete. | Same — no customer data held. |
-| `shop/redact` (~48 h post-uninstall) | `DELETE FROM Session WHERE shop = payload.shop_domain`; 200. | That's 100 % of what we hold for a shop. Well inside the 30-day window. |
-| `app/uninstalled` | Mark/delete the shop's sessions. **No Admin API calls** — the token is already invalid at delivery. | Theme embed removal is automatic platform behavior; the metafield is inaccessible post-uninstall. Nothing else to clean. |
+| Topic                                | What we do                                                                                          | Why that's the whole job                                                                                                 |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `customers/data_request`             | Log topic + shop; 200. Nothing to export.                                                           | We store zero customer data. Privacy policy directs merchants to their Clanker dashboard for conversation exports.       |
+| `customers/redact`                   | Log topic + shop; 200. Nothing to delete.                                                           | Same — no customer data held.                                                                                            |
+| `shop/redact` (~48 h post-uninstall) | `DELETE FROM Session WHERE shop = payload.shop_domain`; 200.                                        | That's 100 % of what we hold for a shop. Well inside the 30-day window.                                                  |
+| `app/uninstalled`                    | Mark/delete the shop's sessions. **No Admin API calls** — the token is already invalid at delivery. | Theme embed removal is automatic platform behavior; the metafield is inaccessible post-uninstall. Nothing else to clean. |
 
 ## 8. Billing posture — free connector, and the honest risk
 
@@ -313,16 +315,16 @@ Prereqs: Partner org + dev store; **storefront password protection disabled** (O
 
 **Findings beyond the plan:**
 
-1. **`shopify app deploy` snapshots the TOML `application_url` into the released config.** Deploying with the scaffold placeholder pointed the app home *and* all declarative webhooks at `shopify.dev/apps/default-app-home` — an `APP_UNINSTALLED` delivery was silently lost this way (relative webhook URIs re-resolve against the current app URL, so fixing the URL restores future deliveries, not lost ones). **Phase 3 must set the real production URL in the TOML before the first deploy.**
+1. **`shopify app deploy` snapshots the TOML `application_url` into the released config.** Deploying with the scaffold placeholder pointed the app home _and_ all declarative webhooks at `shopify.dev/apps/default-app-home` — an `APP_UNINSTALLED` delivery was silently lost this way (relative webhook URIs re-resolve against the current app URL, so fixing the URL restores future deliveries, not lost ones). **Phase 3 must set the real production URL in the TOML before the first deploy.**
 2. **Two real widget bugs surfaced and were shipped to prod** during testing — Dawn's `div:empty { display: none }` hid the `:empty` shadow host (inline `display:block !important` on the host, PR #111), and `rem` units resolving against Dawn's 62.5% root font-size rendered the widget at 10/16 scale (all rem→px, PR #113). Both fixes apply to every embed, not just Shopify.
 3. **Uninstall/reinstall severs the CLI dev-preview session** — afterwards the admin shows the released (placeholder) app home until `shopify app dev` is restarted to re-prepare the preview.
 4. Storefront password protection doesn't block server-side checks (curl with the password cookie), but the prereq to disable it stands for browser/Lighthouse work.
 
 ## 10. Honest review-risk list
 
-1. **Off-platform billing (req 1.2) — the gating risk.** No published connector exemption; "unless notified otherwise by Shopify" is the only door. Mitigation: written confirmation from Partner Support *before* submission (in progress, off-plan); listing discloses external charges in the designated field. Could block the listing entirely; zero code impact.
+1. **Off-platform billing (req 1.2) — the gating risk.** No published connector exemption; "unless notified otherwise by Shopify" is the only door. Mitigation: written confirmation from Partner Support _before_ submission (in progress, off-plan); listing discloses external charges in the designated field. Could block the listing entirely; zero code impact.
 2. **Reviewer needs a working Clanker account.** Requirements 4.5.4/4.5.5: test credentials granting **full** access, explicitly including third-party platforms. Provision a demo workspace whose **owner** email is in prod `INTERNAL_ACCOUNT_EMAILS` (membership isn't enough — exemption keys on the owner) + screencast in the submission.
-3. **Storefront weight.** Widget is **~904 KB raw / ~271 KB gzip** — 90× Shopify's 10 KB *guidance* (not requirement); the enforced check is the 10-point Lighthouse delta, which post-load idle injection is designed to zero out, with inject-on-interaction as the measured fallback. A picky reviewer can still quote the guidance. Task #39 (slim bundle) is the structural fix and now has a business deadline attached.
+3. **Storefront weight.** Widget is **~904 KB raw / ~271 KB gzip** — 90× Shopify's 10 KB _guidance_ (not requirement); the enforced check is the 10-point Lighthouse delta, which post-load idle injection is designed to zero out, with inject-on-interaction as the measured fallback. A picky reviewer can still quote the guidance. Task #39 (slim bundle) is the structural fix and now has a business deadline attached.
 4. **Metafield → Liquid read path (RISKY).** Doc-prose-supported, no official end-to-end example, one unresolved community failure report. Hedged twice: day-0 spike (§9.0) and the override-setting escape hatch; explicit pivot defined (block-setting-only).
 5. **`scopes = ""` (UNVERIFIED, two-part).** Empty scopes accepted by managed install + zero-scope `metafieldsSet` on own installation. Fails loudly if wrong; day-0 spike covers both; fallback is a one-line toml change.
 6. **Per-theme activation = silent kill on theme publish.** A routine theme switch deactivates the widget with zero signal. Mitigated by explicit copy (§5) and empirical test (§9.9); the real fix is the v1.1 `read_themes` status check — this risk is the argument for building it.
@@ -337,6 +339,24 @@ Prereqs: Partner org + dev store; **storefront password protection disabled** (O
 - Widget changes — incl. bundle slimming and the mount idempotence guard (both #39) — and Clanker api/dashboard changes (none needed — verified).
 - Embed-activation status detection (`read_themes`) — v1.1 candidate, motivated by risk #6.
 - Self-hosted Clanker instances (needs a configurable API origin; hosted-only for v1).
+
+## 12b. Phase 3 — hosting (built 2026-07-04)
+
+`apps/shopify` is a **standalone pnpm workspace** (own `pnpm-lock.yaml`; excluded from the root workspace after its dep tree broke every Ploy preview deploy — see the AGENTS.md repo-layout note). Hosting pieces, all verified locally via the exact `docker-start` path (boot → `prisma migrate deploy` on a fresh DB → serve; `/` 200, `/auth/login` 302 to OAuth, unsigned webhook 400):
+
+- **Dockerfile**: multi-stage pnpm (node:22-alpine + openssl), `corepack prepare pnpm@10.0.0` baked at image-build time, `pnpm install --frozen-lockfile` → `prisma generate` + `react-router build` → `pnpm prune --prod`. Build from the app dir: `docker build -t clanker-shopify apps/shopify`.
+- **Database**: `datasource.url = env("DATABASE_URL")`. Dev: `.env` sets `file:dev.sqlite` (→ `prisma/dev.sqlite`; the Shopify CLI and Prisma both load `.env`). Prod: **must** be a volume-backed absolute path (`file:/data/prod.sqlite`) — ephemeral disk wipes every shop's session/token on redeploy. Migrations run on every boot (`docker-start` → `setup`).
+- **Env contract** (see `.env.example`): `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_APP_URL`, `SCOPES=""`, `DATABASE_URL`, optional `CLANKER_API_ORIGIN`/`PORT`. Get the secret via `shopify app env show`.
+- **TOML**: `application_url`/`redirect_urls` now point at `https://shopify.clankersupport.com` (the §9 finding-1 footgun — deploy snapshots them).
+
+**Go-live order** (single instance; SQLite forbids replicas — scale is a v2 problem):
+
+1. Host account + app created from the Dockerfile (Fly.io recommended: volume for `/data`, `fly deploy` from `apps/shopify`). Set the env contract as host secrets.
+2. DNS: `shopify.clankersupport.com` → the host.
+3. Verify `https://shopify.clankersupport.com/` responds and `/auth/login?shop=<devstore>` 302s.
+4. `shopify app deploy` — NOW the released config carries the real URLs; webhooks + app home resolve correctly without a dev tunnel.
+5. Install on the dev store from the released app (no CLI running) and re-run a §9 smoke: connect key → enable embed → storefront chat → uninstall webhook arrives at the host.
+6. Only then: App Store listing (assets §10.9, billing-exemption answer §10.1).
 
 ## 12. Open items for Omar
 

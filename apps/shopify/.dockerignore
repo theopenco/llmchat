@@ -6,7 +6,16 @@ node_modules
 # local session data.
 .env
 .env.*
+!.env.example
 .react-router
 .shopify
 prisma/*.sqlite
 prisma/*.sqlite-journal
+Dockerfile
+.dockerignore
+# The theme app extension ships via `shopify app deploy`, not this image.
+extensions
+# Tests never run in the image.
+**/*.test.ts
+**/*.test.tsx
+vitest.config.ts

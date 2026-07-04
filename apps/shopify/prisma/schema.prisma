@@ -10,13 +10,11 @@ generator client {
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
   provider = "sqlite"
-  // TODO(hosting phase): switch to env("DATABASE_URL") + a volume-backed path
-  // before any real deploy — this hardcoded file lives on the container's
-  // ephemeral disk, so every redeploy wipes all shops' sessions/tokens
-  // (docs/shopify-app-plan.md §3/§6). Kept hardcoded for now so
-  // `shopify app dev` works with zero env setup (the CLI never sets
-  // DATABASE_URL).
-  url      = "file:dev.sqlite"
+  // Relative paths resolve against this schema's directory: dev uses
+  // "file:dev.sqlite" (= prisma/dev.sqlite, via .env); production must point
+  // at a volume-backed absolute path (e.g. "file:/data/prod.sqlite") or every
+  // redeploy wipes all shops' sessions/tokens (docs/shopify-app-plan.md §3/§6).
+  url      = env("DATABASE_URL")
 }
 
 model Session {
