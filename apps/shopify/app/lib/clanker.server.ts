@@ -163,8 +163,7 @@ export async function getConnection(
 }
 
 export type MetafieldWriteResult =
-	| { ok: true }
-	| { ok: false; message: string };
+	{ ok: true } | { ok: false; message: string };
 
 export async function writeProjectKey(
 	admin: AdminGraphqlClient,

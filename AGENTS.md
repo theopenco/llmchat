@@ -10,7 +10,7 @@ Production domains: `clankersupport.com` (marketing), `app.clankersupport.com` (
 
 ## Repo layout
 
-pnpm workspaces + Turborepo. Six apps, three packages:
+pnpm workspaces + Turborepo. Six apps, three packages (`apps/shopify` is a standalone pnpm workspace, see below):
 
 | Path              | Name                 | What                                                             | Dev port |
 | ----------------- | -------------------- | ---------------------------------------------------------------- | -------- |
@@ -26,7 +26,7 @@ pnpm workspaces + Turborepo. Six apps, three packages:
 
 (`apps/marketing`'s standalone `next dev` script uses port 3000, but under `pnpm dev`/`ploy dev` it gets 3002 from its `ploy.yaml`.)
 
-`apps/shopify` is deliberately outside the Ploy/turbo-build world: no `ploy.yaml` (so `pnpm dev` ignores it), its build script is `build:app` (so `turbo run build` skips it — it ships via its own Dockerfile), and it runs with `cd apps/shopify && pnpm dev` (`shopify app dev`, needs a TTY — never under turbo). The api's workerd no-Node-deps constraint does NOT apply there (plain Node server). Plan: `docs/shopify-app-plan.md`.
+`apps/shopify` is deliberately outside the Ploy/turbo/pnpm-workspace world entirely: it is its **own pnpm workspace** (own `pnpm-workspace.yaml` + `pnpm-lock.yaml`; excluded via `!apps/shopify` in the root `pnpm-workspace.yaml`), because its dep tree (prisma engines, `@shopify/cli`) must not bleed into the other apps' resolution (pnpm `dedupePeerDependents` injected `@prisma/client` into the api's `better-auth` and broke all Ploy deploys) or into Ploy's deploy install. Consequences: run `cd apps/shopify && pnpm install` separately; **root `pnpm test`/`lint`/`format`/`build` do NOT cover it** — run `pnpm test`/`pnpm lint` inside the directory; no `ploy.yaml` (`pnpm dev` ignores it); it ships via its own Dockerfile and runs with `cd apps/shopify && pnpm dev` (`shopify app dev`, needs a TTY). Its build-script approvals live in its `package.json` `pnpm.onlyBuiltDependencies` (pnpm 10.0 ignores the field in `pnpm-workspace.yaml`). The api's workerd no-Node-deps constraint does NOT apply there (plain Node server). Plan: `docs/shopify-app-plan.md`.
 
 ## Stack & runtime
 
