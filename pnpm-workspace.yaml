@@ -1,5 +1,10 @@
 packages:
   - apps/*
+  # apps/shopify is its own pnpm workspace (own lockfile): it shares no code
+  # with the monorepo and its dep tree (prisma engines, @shopify/cli) must not
+  # bleed into the other apps' resolution (pnpm dedupePeerDependents) or into
+  # Ploy's deploy install.
+  - "!apps/shopify"
   - packages/*
 
 onlyBuiltDependencies:

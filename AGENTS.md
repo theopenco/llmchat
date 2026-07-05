@@ -10,7 +10,7 @@ Production domains: `clankersupport.com` (marketing), `app.clankersupport.com` (
 
 ## Repo layout
 
-pnpm workspaces + Turborepo. Five apps, three packages:
+pnpm workspaces + Turborepo. Seven apps, three packages (`apps/shopify` is a standalone pnpm workspace, see below):
 
 | Path              | Name                 | What                                                             | Dev port |
 | ----------------- | -------------------- | ---------------------------------------------------------------- | -------- |
@@ -20,11 +20,14 @@ pnpm workspaces + Turborepo. Five apps, three packages:
 | `apps/showcase`   | `@llmchat/showcase`  | Next.js 15 first-party "live demo" embedding the real widget     | 3003     |
 | `apps/admin`      | `@llmchat/admin`     | Next.js 15 internal admin console (signups / revenue / subs)     | 3004     |
 | `apps/docs`       | `@llmchat/docs`      | Fumadocs product docs / knowledge base (dashboard screenshots)   | 3005     |
+| `apps/shopify`    | `@llmchat/shopify`   | Shopify App Store connector (React Router + theme app extension) | 3006     |
 | `packages/db`     | `@llmchat/db`        | Drizzle schema; emits SQL migrations into `apps/api/migrations/` | —        |
 | `packages/shared` | `@llmchat/shared`    | Zod schemas, analytics taxonomy, billing tiers, consent, models  | —        |
 | `packages/widget` | `@llmchat/widget`    | Vite IIFE widget bundle, embedded into the api as `/widget.js`   | —        |
 
 (`apps/marketing`'s standalone `next dev` script uses port 3000, but under `pnpm dev`/`ploy dev` it gets 3002 from its `ploy.yaml`.)
+
+`apps/shopify` is its **own pnpm workspace** (own `pnpm-workspace.yaml` + `pnpm-lock.yaml`; excluded via `!apps/shopify` in the root `pnpm-workspace.yaml`), because its dep tree must not bleed into the other apps' resolution (pnpm `dedupePeerDependents` injected `@prisma/client` into the api's `better-auth` and broke all Ploy deploys). Consequences: run `cd apps/shopify && pnpm install` separately; **root `pnpm test`/`lint`/`format`/`build` do NOT cover it** — run `pnpm test`/`pnpm lint` inside the directory; build-script approvals live in its `package.json` `pnpm.onlyBuiltDependencies` (pnpm 10.0 ignores the field in `pnpm-workspace.yaml`). Since the workerd port (Ploy pivot), it **deploys to Ploy** like the api: `ploy.yaml` (`kind: dynamic`, dev port 3006, `db: SESSION_DB → shopify_sessions` — the app's OWN D1 database, never the api's `llmchat_db`), `wrangler.jsonc` (used verbatim by `ploy dev`; local workerd boot via `pnpm exec wrangler dev`, after `wrangler d1 migrations apply SESSION_DB --local`; strict-JSON only — Ploy's CLI strips comments but rejects trailing commas, so it's prettierignored), worker entry `workers/app.ts` over the built server bundle. Sessions use `@shopify/shopify-app-session-storage-drizzle` over the hand-authored `migrations/0001_create_session.sql` (drizzle twin in `app/db/session.server.ts`; camelCase columns are the adapter's contract — don't snake_case them). The api's workerd no-Node-deps constraint now APPLIES to its runtime code. `cd apps/shopify && pnpm dev` (`shopify app dev`, needs a TTY) remains the theme-extension dev loop — it runs react-router dev on Node with in-memory sessions. The Fly/Docker fallback lives intact on `feat/shopify-hosting` (PR #118). Plan: `docs/shopify-app-plan.md`.
 
 ## Stack & runtime
 

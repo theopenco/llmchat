@@ -1,0 +1,6 @@
+node_modules
+build
+.react-router
+.shopify
+public
+wrangler.jsonc

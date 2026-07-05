@@ -1,0 +1,7 @@
+name = "React Router"
+roles = ["frontend", "backend"]
+webhooks_path = "/webhooks/app/uninstalled"
+
+[commands]
+# workerd port: sessions live in D1 (prod) / memory (dev) — no db setup steps.
+dev = "pnpm exec react-router dev"

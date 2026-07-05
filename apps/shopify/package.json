@@ -1,0 +1,64 @@
+{
+	"name": "@llmchat/shopify",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build:app": "react-router build",
+		"config:link": "shopify app config link",
+		"config:use": "shopify app config use",
+		"deploy": "shopify app deploy",
+		"dev": "shopify app dev",
+		"env": "shopify app env",
+		"format": "prettier --write .",
+		"generate": "shopify app generate",
+		"graphql-codegen": "graphql-codegen",
+		"lint": "prettier --check . && react-router typegen && tsc --noEmit",
+		"shopify": "shopify",
+		"test": "vitest run",
+		"typecheck": "react-router typegen && tsc --noEmit",
+		"vite": "vite"
+	},
+	"engines": {
+		"node": ">=20.19 <22 || >=22.12"
+	},
+	"dependencies": {
+		"@react-router/dev": "^7.12.0",
+		"@react-router/fs-routes": "^7.12.0",
+		"@react-router/node": "^7.12.0",
+		"@shopify/app-bridge-react": "^4.2.4",
+		"@shopify/shopify-app-react-router": "^1.1.0",
+		"@shopify/shopify-app-session-storage-drizzle": "^4.0.1",
+		"@shopify/shopify-app-session-storage-memory": "^5.0.0",
+		"drizzle-orm": "^0.45.0",
+		"isbot": "^5.1.31",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"react-router": "^7.12.0",
+		"vite-tsconfig-paths": "^6.0.4"
+	},
+	"devDependencies": {
+		"@shopify/api-codegen-preset": "^2.0.0",
+		"@shopify/cli": "^4.3.0",
+		"@shopify/polaris-types": "^1.0.7",
+		"@types/better-sqlite3": "^7.6.0",
+		"@types/node": "^25.5.2",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"better-sqlite3": "^12.0.0",
+		"graphql-config": "^5.1.1",
+		"prettier": "^3.6.2",
+		"typescript": "^5.9.3",
+		"vite": "^7.3.1",
+		"vitest": "^3.0.0",
+		"wrangler": "^4.0.0"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"@parcel/watcher",
+			"@shopify/plugin-cloudflare",
+			"better-sqlite3",
+			"esbuild"
+		]
+	}
+}
