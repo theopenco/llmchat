@@ -1,0 +1,110 @@
+---
+title: "Widget & embedding"
+description: Style the chat widget and add it to your site with a script tag, an inline iframe, or the React SDK
+icon: Code
+---
+
+The widget is the chat bubble visitors use to talk to your support agent. Each project has its own widget: style it on the **Widget** tab of your project's settings, then install it with one of the options below.
+
+<ThemedImage alt="Project Widget tab" basePath="/learn/project-widget" />
+
+## Appearance
+
+| Field                  | What it does                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| **Brand color**        | The widget's accent color — pick from the swatch or enter a hex value                            |
+| **Welcome message**    | The first message visitors see when they open the chat                                           |
+| **Privacy policy URL** | Linked from the privacy notice shown to visitors; leave blank to use the Clanker Support default |
+
+The live preview beside the form updates as you type; use the save bar to apply your changes. The launcher sits in the bottom-right corner — position options are marked coming soon in the UI.
+
+## Install options
+
+The **Install** section on the same tab generates copy-paste code with your project's public key already filled in. Toggle between **Floating bubble** (recommended) and **Inline embed**.
+
+### Floating bubble (script tag)
+
+One script tag adds the launcher to every page it's on. Paste it just before the closing `</body>` tag:
+
+```html
+<script
+	src="https://api.clankersupport.com/widget.js"
+	data-project="pk_your_project_key"
+	data-api="https://api.clankersupport.com"
+	data-brand="#6366f1"
+	async
+></script>
+```
+
+| Attribute      | Required | What it does                                                              |
+| -------------- | -------- | ------------------------------------------------------------------------- |
+| `data-project` | Yes      | Your project's public key — safe to expose, it only identifies the widget |
+| `data-api`     | No       | API origin; defaults to the origin the script was loaded from             |
+| `data-brand`   | No       | Accent color; the dashboard snippet fills in your project's brand color   |
+
+### Inline embed (iframe)
+
+To fix the chat in a specific spot instead — a contact page, a help center — use the iframe embed:
+
+```html
+<iframe
+	src="https://api.clankersupport.com/embed/pk_your_project_key"
+	width="400"
+	height="600"
+	title="Support chat"
+	style="border: 0; border-radius: 12px;"
+	allow="clipboard-write"
+	loading="lazy"
+></iframe>
+```
+
+The `src` is the **Embed URL** shown next to the snippet: a full-page chat you can also open directly (**Open preview**) to try your agent before installing anything.
+
+### React / Next.js SDK
+
+For React apps, install the official SDK — it requires React 19 (Next.js 15+ App Router, or any RSC framework):
+
+```sh
+npm install @clankersupport/widget-rsc
+```
+
+Add one Server Component to your root layout:
+
+```tsx
+import { ClankerSupport } from "@clankersupport/widget-rsc";
+
+export default function RootLayout({ children }) {
+	return (
+		<html lang="en">
+			<body>
+				{children}
+				<ClankerSupport apiKey="pk_your_project_key" />
+			</body>
+		</html>
+	);
+}
+```
+
+The component prefetches your widget config on the server and streams in without blocking the page. It renders plain, namespaced markup — no shadow DOM — so you can restyle it from your own stylesheet via the `.clanker-*` classes and `--clanker-*` CSS variables:
+
+```css
+.clanker-root {
+	--clanker-brand: #16a34a;
+	--clanker-surface: #0b0f14;
+}
+```
+
+For a fully custom UI, `@clankersupport/widget-rsc/headless` exports unstyled primitives (`Root`, `Trigger`, `Panel`, `Messages`, `Composer`, `EscalateButton`, …) and a `useClankerSupport()` hook that exposes the whole conversation — messages, streaming status, `send()`, escalation, ratings. The same entry also ships a client-rendered `ClankerSupportWidget`, the identical styled widget for Client Components and non-RSC React apps.
+
+## What visitors experience
+
+<ThemedImage
+	alt="The chat widget as visitors see it"
+	basePath="/learn/widget"
+/>
+
+- Visitors give a name before chatting; sharing an email is optional, but with one your team's replies also reach them by email.
+- Answers stream in from your knowledge base, with markdown formatting and a thumbs up/down on each AI answer.
+- When a visitor asks for a human, the widget shows a recap of the handoff and the agent stands down — it sends a brief holding note, then goes quiet once a human replies. See [Escalation](./escalation).
+- Replies your team sends from the inbox appear in the widget automatically.
+- Visitors can mark their own conversation resolved, and can leave a 1–5 rating when closing the chat.

@@ -18,6 +18,8 @@
 		"**/.turbo/**",
 		"**/node_modules/**",
 		"**/.react-router/**",
+		"**/.source/**",
+		"**/.next-dev/**",
 		"apps/api/src/generated/**",
 		"apps/shopify/build/**",
 		"**/components/ui/**",

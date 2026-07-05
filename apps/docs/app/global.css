@@ -1,0 +1,19 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+/* Clanker Support brand accent (indigo) on top of the neutral preset. */
+:root {
+	--fd-layout-width: 1400px;
+	--color-fd-primary: oklch(51% 0.23 277deg);
+}
+
+.dark {
+	--color-fd-primary: oklch(72% 0.16 277deg);
+}
+
+pre,
+code {
+	-moz-tab-size: 2;
+	tab-size: 2;
+}
