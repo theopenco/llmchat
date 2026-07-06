@@ -8,7 +8,12 @@ import { ShineBorder } from "@/components/magicui/shine-border";
  */
 const TIERS = [
 	{ plan: "starter" as const, name: "Starter", blurb: "For a first project" },
-	{ plan: "growth" as const, name: "Growth", blurb: "For growing teams", featured: true },
+	{
+		plan: "growth" as const,
+		name: "Growth",
+		blurb: "For growing teams",
+		featured: true,
+	},
 	{ plan: "scale" as const, name: "Scale", blurb: "For serious volume" },
 ];
 
@@ -56,8 +61,8 @@ export function PricingTeaser() {
 								</div>
 								<p className="mt-2 text-sm text-muted">{t.blurb}</p>
 								<p className="mt-4 text-sm text-ink-soft">
-									{tier.maxResponsesPerMonth.toLocaleString("en-US")} AI responses
-									/ month included
+									{tier.maxResponsesPerMonth.toLocaleString("en-US")} AI
+									responses / month included
 								</p>
 							</div>
 						);

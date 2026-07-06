@@ -24,7 +24,10 @@ export function InstallTerminal() {
 				<TypingAnimation duration={18} className="text-muted">
 					{`$ cat index.html   # before </body>`}
 				</TypingAnimation>
-				<AnimatedSpan delay={1400} className="whitespace-pre-wrap break-all text-accent-soft">
+				<AnimatedSpan
+					delay={1400}
+					className="whitespace-pre-wrap break-all text-accent-soft"
+				>
 					{SNIPPET}
 				</AnimatedSpan>
 				<AnimatedSpan delay={2200} className="text-emerald-500">

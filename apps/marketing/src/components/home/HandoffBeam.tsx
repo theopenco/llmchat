@@ -32,7 +32,9 @@ function Node({
 				className,
 			)}
 		>
-			<span className="font-display text-sm font-semibold text-ink">{label}</span>
+			<span className="font-display text-sm font-semibold text-ink">
+				{label}
+			</span>
 			<span className="text-[0.7rem] leading-snug text-muted">{sub}</span>
 		</div>
 	);
@@ -51,7 +53,11 @@ export function HandoffBeam() {
 				ref={containerRef}
 				className="relative mx-auto flex w-full max-w-3xl items-center justify-between gap-4 rounded-3xl border border-rule bg-paper-deep/50 px-5 py-14 sm:px-10 sm:py-16"
 			>
-				<Node nodeRef={visitorRef} label="Your visitor" sub="asks on your site" />
+				<Node
+					nodeRef={visitorRef}
+					label="Your visitor"
+					sub="asks on your site"
+				/>
 				<div className="flex flex-col items-center gap-8">
 					<Node
 						nodeRef={agentRef}
@@ -59,7 +65,11 @@ export function HandoffBeam() {
 						sub="answers instantly"
 						emphasis
 					/>
-					<Node nodeRef={docsRef} label="Your docs" sub="the only source it uses" />
+					<Node
+						nodeRef={docsRef}
+						label="Your docs"
+						sub="the only source it uses"
+					/>
 				</div>
 				<Node nodeRef={inboxRef} label="Team inbox" sub="humans take over" />
 

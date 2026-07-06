@@ -8,8 +8,11 @@ import { FaqSection } from "@/components/FaqSection";
 import { AnimatedGradientText } from "@/components/magicui/animated-gradient-text";
 import { BentoCard, BentoGrid } from "@/components/magicui/bento-grid";
 import { GridPattern } from "@/components/magicui/grid-pattern";
-import { HandoffBeam } from "@/components/home/HandoffBeam";
-import { InstallTerminal } from "@/components/home/InstallTerminal";
+import {
+	DeferredHandoffBeam,
+	DeferredInstallTerminal,
+} from "@/components/home/deferred";
+
 import { ProofSection } from "@/components/home/ProofSection";
 import { PricingTeaser } from "@/components/home/PricingTeaser";
 import { ShimmerCta } from "@/components/home/ShimmerCta";
@@ -178,7 +181,7 @@ export default function Home() {
 						</p>
 					</div>
 					<div className="mt-12">
-						<HandoffBeam />
+						<DeferredHandoffBeam />
 					</div>
 				</section>
 
@@ -191,7 +194,7 @@ export default function Home() {
 						</h2>
 
 						<div className="mt-12 grid items-start gap-10 lg:grid-cols-[1.4fr_1fr]">
-							<InstallTerminal />
+							<DeferredInstallTerminal />
 							<ol className="flex flex-col gap-6">
 								{steps.map((s) => (
 									<li key={s.title} className="flex gap-4">

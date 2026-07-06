@@ -26,7 +26,10 @@ interface BentoCardProps extends ComponentPropsWithoutRef<"div"> {
 const BentoGrid = ({ children, className, ...props }: BentoGridProps) => {
 	return (
 		<div
-			className={cn("grid w-full auto-rows-[20rem] grid-cols-3 gap-4", className)}
+			className={cn(
+				"grid w-full auto-rows-[20rem] grid-cols-3 gap-4",
+				className,
+			)}
 			{...props}
 		>
 			{children}
@@ -62,7 +65,9 @@ const BentoCard = ({
 				<h3 className="font-display mt-2 text-xl font-semibold tracking-tight-display text-ink">
 					{name}
 				</h3>
-				<p className="max-w-lg text-sm leading-relaxed text-muted">{description}</p>
+				<p className="max-w-lg text-sm leading-relaxed text-muted">
+					{description}
+				</p>
 			</div>
 
 			<div className="pointer-events-none flex w-full translate-y-0 transform-gpu flex-row items-center pt-3 transition-all duration-300 lg:hidden">

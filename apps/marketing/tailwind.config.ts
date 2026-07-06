@@ -75,7 +75,8 @@ const config: Config = {
 				"rise-in": "rise-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both",
 				"fade-in": "fade-in 0.9s ease both",
 				marquee: "marquee 28s linear infinite",
-				"shimmer-slide": "shimmer-slide var(--speed) ease-in-out infinite alternate",
+				"shimmer-slide":
+					"shimmer-slide var(--speed) ease-in-out infinite alternate",
 				"spin-around": "spin-around calc(var(--speed) * 2) infinite linear",
 				shine: "shine var(--duration) infinite linear",
 				gradient: "gradient 8s linear infinite",
