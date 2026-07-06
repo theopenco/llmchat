@@ -137,7 +137,7 @@ export function CsatCalculator() {
 									{rounded !== null && (
 										<div
 											aria-hidden
-											className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-paper bg-accent shadow-[0_0_8px_2px_rgba(99,102,241,0.5)]"
+											className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-paper bg-accent shadow-[0_0_8px_2px_rgba(46,107,255,0.5)]"
 											style={{ left: `${Math.min(rounded, 100)}%` }}
 										/>
 									)}

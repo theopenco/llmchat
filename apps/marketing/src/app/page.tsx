@@ -107,7 +107,7 @@ export default function Home() {
 					<div className="grid-backdrop pointer-events-none absolute inset-0" />
 					<div className="relative mx-auto flex max-w-3xl flex-col items-center px-6 pb-28 pt-24 text-center sm:pt-36">
 						<span className="animate-rise-in inline-flex items-center gap-2 rounded-full border border-rule bg-paper-card/60 px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted">
-							<span className="size-1.5 rounded-full bg-accent shadow-[0_0_10px_2px_rgba(99,102,241,0.7)]" />
+							<span className="size-1.5 rounded-full bg-accent shadow-[0_0_10px_2px_rgba(46,107,255,0.7)]" />
 							Simple monthly plans · Live in 30 seconds
 						</span>
 
@@ -130,7 +130,7 @@ export default function Home() {
 								href={dashboardUrl}
 								event={ANALYTICS_EVENTS.signupStarted}
 								eventProps={{ source: "home_hero" }}
-								className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-8px_rgba(99,102,241,0.7)] transition-colors hover:bg-accent-deep"
+								className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-colors hover:bg-accent-deep"
 							>
 								Get your support agent now
 								<span aria-hidden>→</span>
@@ -312,7 +312,7 @@ export default function Home() {
 									href={dashboardUrl}
 									event={ANALYTICS_EVENTS.signupStarted}
 									eventProps={{ source: "home_closing" }}
-									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(99,102,241,0.7)] transition-colors hover:bg-accent-deep"
+									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-colors hover:bg-accent-deep"
 								>
 									Get your support agent now
 									<span aria-hidden>→</span>

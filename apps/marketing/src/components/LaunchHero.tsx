@@ -9,7 +9,7 @@
 // links, aria-hidden) for use as a scaled thumbnail — see HeroThumbnail.
 
 const INK = "#0c0e1a";
-const ACCENT = "#8b8af5";
+const ACCENT = "#7CA2FF";
 const PRODUCT_HUNT_URL = "https://www.producthunt.com/products/clanker-support";
 
 const PILLS = ["One script tag", "Any model", "Open & self-hostable"];
@@ -31,7 +31,7 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 				className="pointer-events-none absolute -right-40 -top-52 h-[480px] w-[480px] rounded-full"
 				style={{
 					background:
-						"radial-gradient(circle, rgba(139,138,245,.20), transparent 68%)",
+						"radial-gradient(circle, rgba(124,162,255,.20), transparent 68%)",
 				}}
 			/>
 			<div
@@ -74,7 +74,7 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 						{preview ? (
 							<span
 								className="text-[13px] font-medium tracking-[0.16em]"
-								style={{ color: "#777ba8" }}
+								style={{ color: "#7E90C2" }}
 							>
 								FEATURED ON PRODUCT HUNT
 							</span>
@@ -83,8 +83,8 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 								href={PRODUCT_HUNT_URL}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="text-[13px] font-medium tracking-[0.16em] transition-colors hover:text-[#8b8af5]"
-								style={{ color: "#777ba8" }}
+								className="text-[13px] font-medium tracking-[0.16em] transition-colors hover:text-[#7CA2FF]"
+								style={{ color: "#7E90C2" }}
 							>
 								FEATURED ON PRODUCT HUNT ↗
 							</a>
@@ -185,7 +185,7 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 									className="text-[11px] font-medium"
 									style={{
 										fontFamily: "var(--font-mono), monospace",
-										color: "#7174b2",
+										color: "#5B7FD4",
 									}}
 								>
 									● powered by Clanker

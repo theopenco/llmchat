@@ -23,7 +23,7 @@ const config: Config = {
 				faint: "rgb(var(--faint) / <alpha-value>)", // faint / metadata
 				rule: "rgb(var(--rule) / <alpha-value>)", // borders
 				"rule-soft": "rgb(var(--rule-soft) / <alpha-value>)", // subtle borders
-				accent: "rgb(var(--accent) / <alpha-value>)", // indigo brand
+				accent: "rgb(var(--accent) / <alpha-value>)", // cobalt brand
 				"accent-soft": "rgb(var(--accent-soft) / <alpha-value>)",
 				"accent-deep": "rgb(var(--accent-deep) / <alpha-value>)",
 			},
@@ -34,7 +34,7 @@ const config: Config = {
 				prose: "42rem",
 			},
 			boxShadow: {
-				glow: "0 0 0 1px rgba(99,102,241,0.25), 0 20px 60px -20px rgba(99,102,241,0.35)",
+				glow: "0 0 0 1px rgba(46,107,255,0.25), 0 20px 60px -20px rgba(46,107,255,0.35)",
 				lift: "0 24px 60px -28px rgba(0,0,0,0.7)",
 			},
 			keyframes: {
