@@ -5,6 +5,7 @@
 	"tagline": "From a self-hosted Rails stack to serverless Clanker Support",
 	"estimatedTime": "~25 minutes",
 	"intro": "Both Chatwoot and Clanker Support can be self-hosted, but the stacks differ: Chatwoot is Ruby on Rails + PostgreSQL + Redis, while Clanker Support runs serverless on Cloudflare (D1, KV, workerd). Migrating means a widget swap plus a knowledge-base re-import — and, if you self-host, far less infrastructure to maintain afterward.",
+	"seoDescription": "How to migrate from Chatwoot to Clanker Support: swap the widget, re-import your knowledge base, and drop the Rails + PostgreSQL + Redis stack.",
 	"quickSummary": "Replace the Chatwoot SDK loader with the Clanker Support script tag and re-import your knowledge base. If you self-host, you can decommission the Rails/PostgreSQL stack once you're live on Clanker Support.",
 	"oldEmbedLabel": "Remove the Chatwoot SDK",
 	"oldEmbed": "<script>\n  (function(d,t) {\n    var BASE_URL = \"https://app.chatwoot.com\";\n    var g = d.createElement(t),\n        s = d.getElementsByTagName(t)[0];\n    g.src = BASE_URL + \"/packs/js/sdk.js\";\n    g.defer = true; g.async = true;\n    s.parentNode.insertBefore(g, s);\n    g.onload = function() {\n      window.chatwootSDK.run({\n        websiteToken: \"XXXXXXXX\",\n        baseUrl: BASE_URL,\n      });\n    };\n  })(document, \"script\");\n</script>",

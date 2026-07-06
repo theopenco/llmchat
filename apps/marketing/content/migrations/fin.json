@@ -5,6 +5,7 @@
 	"tagline": "From Fin (inside Intercom) to a standalone Clanker Support widget",
 	"estimatedTime": "~30 minutes",
 	"intro": "Fin runs inside Intercom or your existing helpdesk, so moving to Clanker Support means adopting a standalone widget and inbox rather than swapping just the AI layer. The upside: predictable flat monthly pricing with no per-outcome fees, and a model you control.",
+	"seoDescription": "How to migrate from Intercom Fin to Clanker Support: a standalone widget and inbox with flat monthly pricing — no per-outcome fees.",
 	"quickSummary": "Stand up an Clanker Support project, recreate your answer content, and replace the Intercom/Fin messenger embed with the Clanker Support script tag. Your existing helpdesk data stays where it is.",
 	"oldEmbedLabel": "Remove the Intercom / Fin messenger",
 	"oldEmbed": "<script>\n  window.intercomSettings = {\n    api_base: \"https://api-iam.intercom.io\",\n    app_id: \"XXXXXXXX\",\n  };\n</script>\n<script>\n  // Intercom messenger loader (Fin runs inside this)\n  (function(){ /* … intercom snippet … */ })();\n</script>",

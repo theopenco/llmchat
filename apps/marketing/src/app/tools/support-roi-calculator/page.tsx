@@ -9,7 +9,7 @@ const tool = getTool("support-roi-calculator");
 
 export const metadata = tool
 	? pageMeta({
-			title: `${tool.seoTitle} — Clanker Support`,
+			title: tool.seoTitle,
 			description: tool.seoDescription,
 			path: `/tools/${tool.slug}`,
 		})

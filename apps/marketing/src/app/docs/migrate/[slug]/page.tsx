@@ -27,7 +27,7 @@ export async function generateMetadata({
 	if (!guide) return {};
 	return pageMeta({
 		title: `Migrate from ${guide.name} to Clanker Support`,
-		description: guide.intro,
+		description: guide.seoDescription,
 		path: `/docs/migrate/${slug}`,
 	});
 }

@@ -112,6 +112,7 @@
 		}
 	],
 	"tldr": "Clanker Support installs with a single script tag — or one React Server Component — goes live in minutes, and lets you swap underlying AI models without touching your code. Chatbase is a full platform with stronger multi-channel support. Choose Clanker Support if you want simplicity and model flexibility. Choose Chatbase if you need WhatsApp, Slack, or Messenger support today.",
+	"seoDescription": "Clanker Support vs Chatbase: one script tag or React component, swappable AI models, and flat pricing vs a broader multi-channel platform. Full comparison.",
 	"llmchatWins": [
 		"One script tag setup — live in under 5 minutes",
 		"Shadow DOM isolation — widget styles never bleed into your page",

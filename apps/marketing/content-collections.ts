@@ -14,6 +14,9 @@ const posts = defineCollection({
 	schema: z.object({
 		title: z.string(),
 		description: z.string(),
+		/** Optional ≤160-char meta description when `description` (the visible
+		 * standfirst) runs long — SERPs truncate past ~160 characters. */
+		seoDescription: z.string().optional(),
 		date: z.string(),
 		/** Optional ISO date the post was last revised — drives the visible
 		 * "Last updated" line and BlogPosting.dateModified (freshness signal). */
@@ -70,6 +73,9 @@ const competitors = defineCollection({
 			z.object({ heading: z.string(), rows: z.array(vsRow) }),
 		),
 		tldr: z.string(),
+		/** ≤160-char meta description — the `tldr` is page copy and runs 300+
+		 * chars, which SERPs truncate or rewrite. */
+		seoDescription: z.string(),
 		llmchatWins: z.array(z.string()),
 		competitorWins: z.array(z.string()),
 		llmchatBestFor: z.array(z.string()),
@@ -100,6 +106,9 @@ const migrations = defineCollection({
 		tagline: z.string(),
 		estimatedTime: z.string(),
 		intro: z.string(),
+		/** ≤160-char meta description — the `intro` is page copy and runs 260+
+		 * chars, which SERPs truncate or rewrite. */
+		seoDescription: z.string(),
 		quickSummary: z.string(),
 		oldEmbed: z.string(),
 		oldEmbedLabel: z.string(),

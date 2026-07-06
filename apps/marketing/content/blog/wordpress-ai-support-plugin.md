@@ -1,6 +1,7 @@
 ---
 title: "The Clanker Support WordPress plugin is approved — here's how it was built"
 description: "Clanker Support is now an approved WordPress.org plugin. The story of building it, getting through the plugin review (including the zip that was secretly a tar), and how to put an AI support agent on your WordPress site in under a minute."
+seoDescription: "Clanker Support is now an approved WordPress.org plugin. How it was built, surviving plugin review, and adding AI support to your site in a minute."
 date: "2026-07-06"
 category: "Announcements"
 featured: false

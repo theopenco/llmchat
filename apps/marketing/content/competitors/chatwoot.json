@@ -102,6 +102,7 @@
 		}
 	],
 	"tldr": "Both Clanker Support and Chatwoot are self-hostable. The difference is scope and stack: Chatwoot is a full multi-channel platform running on Rails + PostgreSQL; Clanker Support is a focused widget running serverless on Cloudflare's edge. Choose Chatwoot for open-source, multi-channel coverage. Choose Clanker Support for a lighter setup and model-agnostic AI.",
+	"seoDescription": "Clanker Support vs Chatwoot: both self-hostable — a focused serverless AI widget vs a full Rails multi-channel platform. See the full comparison.",
 	"llmchatWins": [
 		"Lighter self-hosting — serverless on Cloudflare, no database to manage",
 		"Model-agnostic AI — swap LLMs per project without code changes",

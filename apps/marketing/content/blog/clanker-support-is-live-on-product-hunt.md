@@ -1,6 +1,7 @@
 ---
 title: "Clanker Support is live — and we're on Product Hunt today"
 description: "Clanker Support is officially live and featured on Product Hunt. Here's what we built: an AI support agent that answers from your docs and hands off to a human the moment it can't."
+seoDescription: "Clanker Support is live and featured on Product Hunt — an AI support agent that answers from your docs and hands off to a human the moment it can't."
 date: "2026-06-30"
 category: "Announcements"
 featured: true

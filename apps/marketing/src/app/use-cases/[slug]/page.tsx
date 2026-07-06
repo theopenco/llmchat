@@ -28,7 +28,7 @@ export async function generateMetadata({
 	if (!useCase) return {};
 	return pageMeta({
 		title: `AI support for ${useCase.name} — Clanker Support`,
-		description: useCase.lead,
+		description: useCase.seoDescription ?? useCase.lead,
 		path: `/use-cases/${useCase.slug}`,
 	});
 }

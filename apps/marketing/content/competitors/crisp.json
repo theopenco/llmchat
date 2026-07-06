@@ -102,6 +102,7 @@
 		}
 	],
 	"tldr": "Crisp is an all-in-one support + CRM platform with flat pricing and European hosting. Clanker Support is a focused drop-in widget with model-agnostic AI and self-hosting. Choose Crisp if you need CRM features, omnichannel, or EU data residency. Choose Clanker Support if you want the simplest possible setup and model flexibility.",
+	"seoDescription": "Clanker Support vs Crisp: a drop-in AI widget with model choice and self-hosting vs an all-in-one support + CRM platform. See the full comparison.",
 	"llmchatWins": [
 		"One script tag setup — no platform to configure",
 		"Model-agnostic — swap AI models per project without code changes",

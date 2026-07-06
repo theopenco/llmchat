@@ -1,6 +1,7 @@
 ---
 title: "Add AI customer support to your Next.js app with one Server Component"
 description: "A step-by-step tutorial for @clankersupport/widget-rsc: install the SDK, drop one component into your root layout, then restyle it with CSS or rebuild the UI entirely with headless primitives."
+seoDescription: "Add AI support to Next.js with one Server Component: install @clankersupport/widget-rsc, drop it in your root layout, restyle or go headless."
 date: "2026-07-02"
 category: "Guides"
 featured: false

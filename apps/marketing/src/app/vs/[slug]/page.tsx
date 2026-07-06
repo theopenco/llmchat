@@ -29,7 +29,7 @@ export async function generateMetadata({
 	if (!c) return {};
 	return pageMeta({
 		title: `Why choose Clanker Support over ${c.name}? — Comparison`,
-		description: c.tldr,
+		description: c.seoDescription,
 		path: `/vs/${slug}`,
 	});
 }

@@ -19,6 +19,9 @@ export type UseCase = {
 	headline: string;
 	/** Hero subtext (1–2 sentences). */
 	lead: string;
+	/** Optional ≤160-char meta description when `lead` runs long — SERPs
+	 * truncate past ~160 characters. Falls back to `lead`. */
+	seoDescription?: string;
 	/** One-sentence problem hook — the pain this industry feels. */
 	problem: string;
 	/** Intro paragraphs. */
@@ -40,6 +43,8 @@ export const USE_CASES: UseCase[] = [
 			"Answer shipping, returns, and sizing questions instantly — and hand the tricky orders to your team.",
 		headline: "Answer the questions that flood every store's inbox.",
 		lead: "Shoppers ask the same things before and after they buy. Clanker Support answers them from your policies and product info around the clock, and escalates real order problems to your team.",
+		seoDescription:
+			"Answer shipping, returns, and sizing questions from your policies 24/7 — and escalate real order problems to your team with full context.",
 		problem:
 			"Most store support is the same handful of questions — shipping, returns, sizing — arriving at all hours and drowning your inbox.",
 		body: [

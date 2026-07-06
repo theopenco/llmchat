@@ -5,6 +5,7 @@
 	"tagline": "From the Intercom platform to a focused Clanker Support widget",
 	"estimatedTime": "~30 minutes",
 	"intro": "Intercom is a full platform — support, sales, and marketing. If you only use it for the support widget, Clanker Support replaces that piece at a fraction of the cost. If you rely on Intercom's CRM, campaigns, or product tours, plan to keep those or find replacements; Clanker Support is support-only by design.",
+	"seoDescription": "How to migrate from Intercom to Clanker Support: replace the support widget at a fraction of the cost, step by step — and what doesn't transfer.",
 	"quickSummary": "Create an Clanker Support project, recreate your help content, and swap the Intercom messenger embed for the Clanker Support script tag. Move your team to the Clanker Support inbox for support conversations.",
 	"oldEmbedLabel": "Remove the Intercom messenger",
 	"oldEmbed": "<script>\n  window.intercomSettings = { app_id: \"XXXXXXXX\" };\n</script>\n<script>\n  (function(){\n    var w=window;var ic=w.Intercom;\n    // … standard Intercom loader …\n  })();\n</script>",
