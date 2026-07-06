@@ -20,6 +20,20 @@ const input = {
 	migrations: [
 		{ slug: "intercom", name: "Intercom", tagline: "Move in an afternoon." },
 	],
+	features: [
+		{
+			slug: "drop-in-widget",
+			name: "Drop-in widget",
+			tagline: "One script tag.",
+		},
+	],
+	useCases: [
+		{
+			slug: "ecommerce",
+			name: "E-commerce stores",
+			tagline: "Answer shipping questions instantly.",
+		},
+	],
 	tools: [
 		{
 			slug: "csat-calculator",
@@ -58,6 +72,17 @@ describe("buildLlmsTxt", () => {
 		expect(out).toContain("## Free tools");
 		expect(out).toContain(
 			`[CSAT calculator](${BASE}/tools/csat-calculator): Score your support in seconds.`,
+		);
+	});
+
+	it("enumerates the features and use-cases", () => {
+		expect(out).toContain("## Features");
+		expect(out).toContain(
+			`[Drop-in widget](${BASE}/features/drop-in-widget): One script tag.`,
+		);
+		expect(out).toContain("## Use cases");
+		expect(out).toContain(
+			`[AI support for E-commerce stores](${BASE}/use-cases/ecommerce): Answer shipping questions instantly.`,
 		);
 	});
 
@@ -102,6 +127,8 @@ describe("buildLlmsTxt", () => {
 			posts: [],
 			competitors: [],
 			migrations: [],
+			features: [],
+			useCases: [],
 			tools: [],
 		}).toLowerCase();
 		expect(staticOnly).not.toContain("wordpress");

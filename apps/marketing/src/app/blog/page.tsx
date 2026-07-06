@@ -3,8 +3,10 @@ import { allPosts } from "content-collections";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { HeroThumbnail } from "@/components/HeroThumbnail";
+import { JsonLd } from "@/components/JsonLd";
 import { categories, formatDateShort, type CategoryFilter } from "@/lib/format";
-import { pageMeta } from "@/lib/seo";
+import { breadcrumbLd, pageMeta } from "@/lib/seo";
+import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 export const metadata = pageMeta({
 	title: "AI Support Blog & Guides — Clanker Support",
@@ -12,6 +14,28 @@ export const metadata = pageMeta({
 		"Field notes on AI support: announcements, guides, and engineering from the Clanker Support team.",
 	path: "/blog",
 });
+
+// schema.org `Blog` listing every post — built from the full set (not the
+// ?category= filtered view) so the markup is stable across filter URLs.
+const blogLd = {
+	"@context": "https://schema.org",
+	"@type": "Blog",
+	name: "Clanker Support Journal",
+	url: `${CANONICAL_SITE_URL}/blog`,
+	publisher: {
+		"@type": "Organization",
+		name: "Clanker Support",
+		url: CANONICAL_SITE_URL,
+	},
+	blogPost: allPosts
+		.toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+		.map((p) => ({
+			"@type": "BlogPosting",
+			headline: p.title,
+			datePublished: p.date,
+			url: `${CANONICAL_SITE_URL}/blog/${p.slug}`,
+		})),
+};
 
 export default async function BlogPage({
 	searchParams,
@@ -36,6 +60,13 @@ export default async function BlogPage({
 
 	return (
 		<>
+			<JsonLd data={blogLd} />
+			<JsonLd
+				data={breadcrumbLd(CANONICAL_SITE_URL, [
+					{ name: "Home", path: "/" },
+					{ name: "Journal", path: "/blog" },
+				])}
+			/>
 			<SiteHeader active="resources" />
 
 			<main className="mx-auto max-w-6xl px-6">

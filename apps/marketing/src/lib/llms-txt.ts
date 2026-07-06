@@ -24,6 +24,8 @@ export interface LlmsTxtInput {
 	posts: { slug: string; title: string; description: string }[];
 	competitors: { id: string; name: string; tldr: string }[];
 	migrations: { slug: string; name: string; tagline: string }[];
+	features: { slug: string; name: string; tagline: string }[];
+	useCases: { slug: string; name: string; tagline: string }[];
 	tools: { slug: string; name: string; tagline: string }[];
 }
 
@@ -64,6 +66,22 @@ export function buildLlmsTxt(siteUrl: string, input: LlmsTxtInput): string {
 		`- [Compare](${siteUrl}/compare): How Clanker Support compares to other AI support tools.`,
 		`- [Pricing](${siteUrl}/pricing.md): Machine-readable plans — self-host free; hosted Starter $${STARTER}/mo, Growth $${GROWTH}/mo, Scale $${SCALE}/mo${TWO_MONTHS_FREE ? " (annual = two months free)" : ""}.`,
 	];
+
+	if (input.features.length) {
+		lines.push("", "## Features");
+		for (const f of input.features) {
+			lines.push(`- [${f.name}](${siteUrl}/features/${f.slug}): ${f.tagline}`);
+		}
+	}
+
+	if (input.useCases.length) {
+		lines.push("", "## Use cases");
+		for (const u of input.useCases) {
+			lines.push(
+				`- [AI support for ${u.name}](${siteUrl}/use-cases/${u.slug}): ${u.tagline}`,
+			);
+		}
+	}
 
 	if (input.tools.length) {
 		lines.push("", "## Free tools");

@@ -176,66 +176,65 @@ export interface SitemapInput {
  * Build the full sitemap entry list — static routes plus every dynamic
  * blog/comparison/migration page — as absolute URLs. Pure (data in, entries
  * out) so it's unit-tested without the content-collections build or Next.
+ *
+ * Only blog entries carry `lastModified` (from real post dates). The rest
+ * deliberately omit it: the previous build-time stamp claimed every page
+ * changed on every deploy, which teaches crawlers to distrust the field.
  */
 export function buildSitemap(
 	base: string,
 	input: SitemapInput,
-	now: Date,
 ): MetadataRoute.Sitemap {
 	const url = (path: string) => `${base}${path}`;
 
 	const staticEntries: MetadataRoute.Sitemap = [
 		{
 			url: url("/"),
-			lastModified: now,
 			changeFrequency: "weekly",
 			priority: 1,
 		},
 		{
 			url: url("/pricing"),
-			lastModified: now,
 			changeFrequency: "weekly",
 			priority: 0.9,
 		},
 		{
+			url: url("/features"),
+			changeFrequency: "monthly",
+			priority: 0.8,
+		},
+		{
 			url: url("/compare"),
-			lastModified: now,
 			changeFrequency: "weekly",
 			priority: 0.8,
 		},
 		{
 			url: url("/docs"),
-			lastModified: now,
 			changeFrequency: "weekly",
 			priority: 0.8,
 		},
 		{
 			url: url("/blog"),
-			lastModified: now,
 			changeFrequency: "daily",
 			priority: 0.7,
 		},
 		{
 			url: url("/use-cases"),
-			lastModified: now,
 			changeFrequency: "monthly",
 			priority: 0.7,
 		},
 		{
 			url: url("/tools"),
-			lastModified: now,
 			changeFrequency: "monthly",
 			priority: 0.8,
 		},
 		{
 			url: url("/privacy-policy"),
-			lastModified: now,
 			changeFrequency: "yearly",
 			priority: 0.3,
 		},
 		{
 			url: url("/terms-of-use"),
-			lastModified: now,
 			changeFrequency: "yearly",
 			priority: 0.3,
 		},
@@ -250,35 +249,30 @@ export function buildSitemap(
 
 	const vs: MetadataRoute.Sitemap = input.competitors.map((c) => ({
 		url: url(`/vs/${c.id}`),
-		lastModified: now,
 		changeFrequency: "monthly",
 		priority: 0.7,
 	}));
 
 	const migrate: MetadataRoute.Sitemap = input.migrations.map((m) => ({
 		url: url(`/docs/migrate/${m.slug}`),
-		lastModified: now,
 		changeFrequency: "monthly",
 		priority: 0.6,
 	}));
 
 	const features: MetadataRoute.Sitemap = input.features.map((f) => ({
 		url: url(`/features/${f.slug}`),
-		lastModified: now,
 		changeFrequency: "monthly",
 		priority: 0.7,
 	}));
 
 	const useCases: MetadataRoute.Sitemap = input.useCases.map((u) => ({
 		url: url(`/use-cases/${u.slug}`),
-		lastModified: now,
 		changeFrequency: "monthly",
 		priority: 0.7,
 	}));
 
 	const tools: MetadataRoute.Sitemap = input.tools.map((t) => ({
 		url: url(`/tools/${t.slug}`),
-		lastModified: now,
 		changeFrequency: "monthly",
 		priority: 0.7,
 	}));

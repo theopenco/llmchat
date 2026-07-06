@@ -8,16 +8,12 @@ import { TOOLS } from "@/lib/tools";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-	return buildSitemap(
-		CANONICAL_SITE_URL,
-		{
-			posts: allPosts.map((p) => ({ slug: p.slug, date: p.date })),
-			competitors: allCompetitors.map((c) => ({ id: c.id })),
-			migrations: allMigrations.map((m) => ({ slug: m.slug })),
-			features: FEATURES.map((f) => ({ slug: f.slug })),
-			useCases: USE_CASES.map((u) => ({ slug: u.slug })),
-			tools: TOOLS.map((t) => ({ slug: t.slug })),
-		},
-		new Date(),
-	);
+	return buildSitemap(CANONICAL_SITE_URL, {
+		posts: allPosts.map((p) => ({ slug: p.slug, date: p.date })),
+		competitors: allCompetitors.map((c) => ({ id: c.id })),
+		migrations: allMigrations.map((m) => ({ slug: m.slug })),
+		features: FEATURES.map((f) => ({ slug: f.slug })),
+		useCases: USE_CASES.map((u) => ({ slug: u.slug })),
+		tools: TOOLS.map((t) => ({ slug: t.slug })),
+	});
 }

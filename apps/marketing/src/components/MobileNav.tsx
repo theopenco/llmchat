@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 type NavKey = "features" | "resources" | "compare" | "pricing";
 
 const links: { label: string; href: string; active?: NavKey }[] = [
-	{ label: "Features", href: "/#features", active: "features" },
+	{ label: "Features", href: "/features", active: "features" },
 	{ label: "Docs", href: "/docs", active: "resources" },
 	{ label: "Use cases", href: "/use-cases", active: "resources" },
 	{ label: "Free tools", href: "/tools", active: "resources" },

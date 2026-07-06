@@ -10,7 +10,6 @@ import {
 	webApplicationLd,
 } from "./seo";
 
-const NOW = new Date("2026-06-20T00:00:00.000Z");
 const BASE = "https://clankersupport.com";
 
 const input = {
@@ -26,7 +25,7 @@ const input = {
 };
 
 describe("buildSitemap", () => {
-	const entries = buildSitemap(BASE, input, NOW);
+	const entries = buildSitemap(BASE, input);
 	const urls = entries.map((e) => e.url);
 
 	it("includes the core static routes as absolute URLs", () => {
@@ -34,6 +33,7 @@ describe("buildSitemap", () => {
 			expect.arrayContaining([
 				`${BASE}/`,
 				`${BASE}/pricing`,
+				`${BASE}/features`,
 				`${BASE}/compare`,
 				`${BASE}/docs`,
 				`${BASE}/blog`,
@@ -76,8 +76,15 @@ describe("buildSitemap", () => {
 		expect(post?.lastModified).toEqual(new Date("2026-05-01"));
 	});
 
-	it("counts = 9 static + posts + competitors + migrations + features + use cases + tools", () => {
-		expect(entries).toHaveLength(9 + 2 + 2 + 1 + 2 + 2 + 2);
+	it("omits lastModified everywhere else — a build-time stamp would claim every page changed on every deploy", () => {
+		for (const e of entries) {
+			if (e.url.includes("/blog/")) continue;
+			expect(e.lastModified).toBeUndefined();
+		}
+	});
+
+	it("counts = 10 static + posts + competitors + migrations + features + use cases + tools", () => {
+		expect(entries).toHaveLength(10 + 2 + 2 + 1 + 2 + 2 + 2);
 	});
 });
 

@@ -49,9 +49,9 @@ export function SiteFooter() {
 						<h3 className={colHead}>Product</h3>
 						<ul className="mt-4 space-y-2.5">
 							<li>
-								<a href="/#features" className={colLink}>
+								<Link href="/features" className={colLink}>
 									Features
-								</a>
+								</Link>
 							</li>
 							<li>
 								<Link href="/docs" className={colLink}>

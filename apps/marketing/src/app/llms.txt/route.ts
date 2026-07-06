@@ -1,6 +1,8 @@
 import { allCompetitors, allMigrations, allPosts } from "content-collections";
 
 import { buildLlmsTxt } from "@/lib/llms-txt";
+import { FEATURES } from "@/lib/features";
+import { USE_CASES } from "@/lib/use-cases";
 import { TOOLS } from "@/lib/tools";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
@@ -23,6 +25,16 @@ export function GET() {
 			slug: m.slug,
 			name: m.name,
 			tagline: m.tagline,
+		})),
+		features: FEATURES.map((f) => ({
+			slug: f.slug,
+			name: f.name,
+			tagline: f.tagline,
+		})),
+		useCases: USE_CASES.map((u) => ({
+			slug: u.slug,
+			name: u.name,
+			tagline: u.tagline,
 		})),
 		tools: TOOLS.map((t) => ({
 			slug: t.slug,

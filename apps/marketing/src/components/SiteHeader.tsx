@@ -27,12 +27,12 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 				<nav className="flex items-center gap-3 sm:gap-5">
 					{/* Primary navigation */}
 					<div className="hidden items-center gap-7 sm:flex">
-						<a
-							href="/#features"
+						<Link
+							href="/features"
 							className={active === "features" ? navLinkActive : navLink}
 						>
 							Features
-						</a>
+						</Link>
 
 						{/* Resources dropdown — CSS hover, no JS */}
 						<div className="group relative">

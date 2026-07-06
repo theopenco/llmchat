@@ -59,7 +59,7 @@ export default async function FeaturePage({
 			<JsonLd
 				data={breadcrumbLd(CANONICAL_SITE_URL, [
 					{ name: "Home", path: "/" },
-					{ name: "Features", path: "/#features" },
+					{ name: "Features", path: "/features" },
 					{ name: feature.name, path: `/features/${feature.slug}` },
 				])}
 			/>
@@ -69,7 +69,7 @@ export default async function FeaturePage({
 				{/* Breadcrumb */}
 				<div className="pt-10">
 					<Link
-						href="/#features"
+						href="/features"
 						className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-faint transition-colors hover:text-accent"
 					>
 						← All features
