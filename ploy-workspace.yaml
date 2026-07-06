@@ -3,6 +3,14 @@
 # Next.js, marketing Next.js). Per-project ports come from each ploy.yaml's
 # `dev:` block.
 
+# apps/shopify is its OWN pnpm workspace (see AGENTS.md): bundling it from the
+# root resolves react-router against the root node_modules while its deps
+# (cookie, set-cookie-parser) live only in its private tree — the emulator
+# build fails and takes the whole workspace boot down. Its dev loops are
+# `cd apps/shopify && pnpm dev` (theme extension) or `pnpm exec wrangler dev`.
+exclude:
+  - apps/shopify/**
+
 dashboard:
   port: 9787
 

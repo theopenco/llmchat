@@ -62,6 +62,55 @@ export async function validateProjectKey(
 	}
 }
 
+export type OrderActionsResult =
+	| { ok: true }
+	| { ok: false; reason: "invalid_code" | "error"; message: string };
+
+/**
+ * Redeem a one-time pairing code from the Clanker dashboard: pushes this
+ * shop's domain + offline Admin token to the Clanker API, which stores them as
+ * the project's Shopify integration — the agent can then look up orders and
+ * file returns for storefront visitors. The code is single-use and expires in
+ * 10 minutes; a 404 means expired/typo'd, anything else unexpected is a
+ * retryable error (the code may still be live).
+ */
+export async function registerOrderActions(
+	input: { code: string; shopDomain: string; accessToken: string },
+	fetchImpl: typeof fetch = fetch,
+	origin: string = clankerApiOrigin(),
+): Promise<OrderActionsResult> {
+	try {
+		const res = await fetchImpl(`${origin}/v1/integrations/shopify/register`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(input),
+		});
+		if (res.ok) return { ok: true };
+		if (res.status === 404) {
+			return {
+				ok: false,
+				reason: "invalid_code",
+				message:
+					"That code is invalid or expired — generate a fresh one in your Clanker dashboard (codes last 10 minutes).",
+			};
+		}
+		const body = (await res.json().catch(() => null)) as {
+			error?: string;
+		} | null;
+		return {
+			ok: false,
+			reason: "error",
+			message: body?.error ?? `Clanker responded with ${res.status}.`,
+		};
+	} catch {
+		return {
+			ok: false,
+			reason: "error",
+			message: "Clanker's API couldn't be reached — try again in a moment.",
+		};
+	}
+}
+
 /** `pk_…a1b2` — enough to recognize the key, never enough to reuse it. */
 export function maskKey(key: string): string {
 	if (key.length <= 8) return "••••";

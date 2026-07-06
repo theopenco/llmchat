@@ -27,7 +27,10 @@ const DELETE_OK = {
 	data: { metafieldsDelete: { deletedMetafields: [{}], userErrors: [] } },
 };
 
-function fakeAdmin(responses: unknown[]) {
+function fakeAdmin(
+	responses: unknown[],
+	session: Record<string, unknown> = { shop: "shop.myshopify.com" },
+) {
 	const calls: { query: string; variables?: Record<string, unknown> }[] = [];
 	const queue = [...responses];
 	adminMock.mockResolvedValue({
@@ -40,7 +43,7 @@ function fakeAdmin(responses: unknown[]) {
 				return { json: async () => queue.shift() };
 			},
 		},
-		session: { shop: "shop.myshopify.com" },
+		session,
 	});
 	return calls;
 }
@@ -164,5 +167,64 @@ describe("disconnect action", () => {
 		expect(calls).toHaveLength(2);
 		expect(calls[1]!.query).toContain("metafieldsDelete");
 		expect(fetchMock).not.toHaveBeenCalled();
+	});
+});
+
+describe("link-actions action — order-actions pairing", () => {
+	const SESSION = {
+		shop: "shop.myshopify.com",
+		accessToken: "shpat_offline_token",
+	};
+
+	it("rejects an empty code without calling Clanker", async () => {
+		fakeAdmin([], SESSION);
+		const result = await submit({ intent: "link-actions", pairCode: "  " });
+		expect(result).toMatchObject({ status: "error", from: "link-actions" });
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it("errors when the session has no offline token", async () => {
+		fakeAdmin([], { shop: "shop.myshopify.com" });
+		const result = await submit({
+			intent: "link-actions",
+			pairCode: "code1234",
+		});
+		expect(result).toMatchObject({ status: "error", from: "link-actions" });
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it("pushes shop domain + offline token to the register endpoint", async () => {
+		fakeAdmin([], SESSION);
+		fetchMock.mockResolvedValue(
+			new Response(JSON.stringify({ ok: true }), { status: 200 }),
+		);
+		const result = await submit({
+			intent: "link-actions",
+			pairCode: " code1234 ",
+		});
+		expect(result).toEqual({ status: "actions-linked" });
+		expect(fetchMock).toHaveBeenCalledWith(
+			"https://api.clankersupport.com/v1/integrations/shopify/register",
+			expect.objectContaining({ method: "POST" }),
+		);
+		const body = JSON.parse(
+			(fetchMock.mock.calls[0]![1] as RequestInit).body as string,
+		);
+		expect(body).toEqual({
+			code: "code1234",
+			shopDomain: "shop.myshopify.com",
+			accessToken: "shpat_offline_token",
+		});
+	});
+
+	it("maps a 404 to the expired-code message", async () => {
+		fakeAdmin([], SESSION);
+		fetchMock.mockResolvedValue(new Response("{}", { status: 404 }));
+		const result = await submit({
+			intent: "link-actions",
+			pairCode: "code1234",
+		});
+		expect(result).toMatchObject({ status: "error", from: "link-actions" });
+		expect((result as { message: string }).message).toMatch(/expired/i);
 	});
 });
