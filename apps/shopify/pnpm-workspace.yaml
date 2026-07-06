@@ -1,6 +1,0 @@
-# apps/shopify is a standalone pnpm workspace, deliberately outside the
-# monorepo's (see the root pnpm-workspace.yaml). Run pnpm from this directory.
-# Build-script approvals live in package.json ("pnpm.onlyBuiltDependencies") —
-# pnpm 10.0 does not read them from this file.
-packages:
-  - "."
