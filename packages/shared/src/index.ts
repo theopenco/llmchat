@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export * from "./analytics";
+export * from "./integrations";
 export {
 	CONSENT_STORAGE_KEY,
 	type ConsentValue,

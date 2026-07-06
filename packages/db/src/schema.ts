@@ -318,6 +318,29 @@ export const source = sqliteTable(
 	(t) => [index("source_project").on(t.projectId)],
 );
 
+// Third-party integrations the agent can ACT through (Cal.com scheduling,
+// Shopify order actions). One row per (project, kind); `config` is a JSON blob
+// validated by the kind's zod schema in @llmchat/shared (apiKey/eventTypeId for
+// calcom, shopDomain/accessToken for shopify). Credentials live server-side
+// only — the dashboard API returns a masked view, never the raw config.
+export const integration = sqliteTable(
+	"integration",
+	{
+		id: id(),
+		projectId: text()
+			.notNull()
+			.references(() => project.id, { onDelete: "cascade" }),
+		kind: text({ enum: ["calcom", "shopify"] }).notNull(),
+		enabled: integer({ mode: "boolean" }).notNull().default(true),
+		config: text().notNull().default("{}"),
+		createdAt: createdAt(),
+		updatedAt: timestamp()
+			.notNull()
+			.default(sql`(unixepoch())`),
+	},
+	(t) => [uniqueIndex("integration_project_kind").on(t.projectId, t.kind)],
+);
+
 export const message = sqliteTable(
 	"message",
 	{
