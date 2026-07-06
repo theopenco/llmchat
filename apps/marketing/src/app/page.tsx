@@ -5,6 +5,14 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
 import { JsonLd } from "@/components/JsonLd";
 import { FaqSection } from "@/components/FaqSection";
+import { AnimatedGradientText } from "@/components/magicui/animated-gradient-text";
+import { BentoCard, BentoGrid } from "@/components/magicui/bento-grid";
+import { GridPattern } from "@/components/magicui/grid-pattern";
+import { HandoffBeam } from "@/components/home/HandoffBeam";
+import { InstallTerminal } from "@/components/home/InstallTerminal";
+import { ProofSection } from "@/components/home/ProofSection";
+import { PricingTeaser } from "@/components/home/PricingTeaser";
+import { ShimmerCta } from "@/components/home/ShimmerCta";
 import { FEATURES } from "@/lib/features";
 import { USE_CASES } from "@/lib/use-cases";
 import { faqPageLd, type Faq } from "@/lib/seo";
@@ -94,6 +102,17 @@ const steps = [
 	},
 ];
 
+// Bento spans over the FEATURES order — the wide cells go to the two lead
+// stories (docs-grounded answers, human escalation).
+const BENTO_SPANS = [
+	"lg:col-span-1",
+	"lg:col-span-2",
+	"lg:col-span-2",
+	"lg:col-span-1",
+	"lg:col-span-1",
+	"lg:col-span-2",
+];
+
 export default function Home() {
 	return (
 		<>
@@ -102,13 +121,20 @@ export default function Home() {
 			<SiteHeader active="features" />
 
 			<main>
-				{/* ── Hero ─────────────────────────────────────────────── */}
+				{/* ── Hero — copy locked; no client JS added ───────────── */}
 				<section className="relative overflow-hidden">
-					<div className="grid-backdrop pointer-events-none absolute inset-0" />
+					<GridPattern
+						width={44}
+						height={44}
+						strokeDasharray="2 3"
+						className="pointer-events-none absolute inset-0 stroke-rule/60 [mask-image:radial-gradient(46rem_circle_at_50%_-4rem,white,transparent)]"
+					/>
 					<div className="relative mx-auto flex max-w-3xl flex-col items-center px-6 pb-28 pt-24 text-center sm:pt-36">
 						<span className="animate-rise-in inline-flex items-center gap-2 rounded-full border border-rule bg-paper-card/60 px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted">
 							<span className="size-1.5 rounded-full bg-accent shadow-[0_0_10px_2px_rgba(46,107,255,0.7)]" />
-							Simple monthly plans · Live in 30 seconds
+							<AnimatedGradientText colorFrom="#7CA2FF" colorTo="#2E6BFF">
+								Simple monthly plans · Live in 30 seconds
+							</AnimatedGradientText>
 						</span>
 
 						<h1 className="font-display animate-rise-in mt-7 text-balance text-5xl font-semibold leading-[1.02] tracking-tight-display text-ink [animation-delay:80ms] sm:text-7xl">
@@ -126,20 +152,68 @@ export default function Home() {
 						</p>
 
 						<div className="animate-rise-in mt-10 [animation-delay:200ms]">
-							<TrackedLink
+							<ShimmerCta
 								href={dashboardUrl}
 								event={ANALYTICS_EVENTS.signupStarted}
 								eventProps={{ source: "home_hero" }}
-								className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-colors hover:bg-accent-deep"
 							>
 								Get your support agent now
 								<span aria-hidden>→</span>
-							</TrackedLink>
+							</ShimmerCta>
 						</div>
 					</div>
 				</section>
 
-				{/* ── Features ─────────────────────────────────────────── */}
+				{/* ── The handoff — the thesis as a picture ────────────── */}
+				<section className="mx-auto max-w-6xl px-6 pb-24">
+					<div className="mx-auto max-w-2xl text-center">
+						<p className="kicker">The handoff</p>
+						<h2 className="font-display mt-3 text-3xl font-semibold leading-tight tracking-tight-display text-ink sm:text-4xl">
+							Answers when it can. Hands off when it can&apos;t.
+						</h2>
+						<p className="mt-3 text-sm leading-relaxed text-muted">
+							The agent only speaks from your knowledge base. The moment a
+							conversation needs a person, it lands in your inbox — full
+							context, nothing lost.
+						</p>
+					</div>
+					<div className="mt-12">
+						<HandoffBeam />
+					</div>
+				</section>
+
+				{/* ── Install — the one-script-tag moment ──────────────── */}
+				<section className="border-y border-rule bg-paper-deep/60">
+					<div className="mx-auto max-w-6xl px-6 py-24">
+						<p className="kicker">From zero to live</p>
+						<h2 className="font-display mt-3 max-w-2xl text-3xl font-semibold leading-tight tracking-tight-display text-ink sm:text-4xl">
+							One script tag. About five minutes.
+						</h2>
+
+						<div className="mt-12 grid items-start gap-10 lg:grid-cols-[1.4fr_1fr]">
+							<InstallTerminal />
+							<ol className="flex flex-col gap-6">
+								{steps.map((s) => (
+									<li key={s.title} className="flex gap-4">
+										<span className="font-mono mt-0.5 shrink-0 text-[0.68rem] uppercase tracking-[0.14em] text-accent-soft">
+											{s.k}
+										</span>
+										<div>
+											<h3 className="font-display text-lg font-semibold tracking-tight-display text-ink">
+												{s.title}
+											</h3>
+											<p className="mt-1 text-sm leading-relaxed text-muted">
+												{s.body}
+											</p>
+										</div>
+									</li>
+								))}
+							</ol>
+						</div>
+					</div>
+				</section>
+
+				{/* ── Features — bento over the same FEATURES source ───── */}
 				<section id="features" className="mx-auto max-w-6xl px-6 py-24">
 					<div className="flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
 						<div>
@@ -156,66 +230,34 @@ export default function Home() {
 						</Link>
 					</div>
 
-					<div className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
-						{FEATURES.map((f) => (
-							<Link
+					<BentoGrid className="mt-12 auto-rows-[15rem] lg:grid-cols-3">
+						{FEATURES.map((f, i) => (
+							<BentoCard
 								key={f.slug}
+								name={f.name}
+								eyebrow={f.num}
+								description={f.tagline}
 								href={`/features/${f.slug}`}
-								className="group flex flex-col bg-paper p-7 transition-colors hover:bg-paper-card"
-							>
-								<span className="font-mono text-xs font-medium text-faint transition-colors group-hover:text-accent-soft">
-									{f.num}
-								</span>
-								<h3 className="font-display mt-4 text-xl font-semibold tracking-tight-display text-ink">
-									{f.name}
-								</h3>
-								<p className="mt-2 text-sm leading-relaxed text-muted">
-									{f.tagline}
-								</p>
-								<span className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-accent-soft opacity-0 transition-opacity group-hover:opacity-100">
-									Learn more
-									<span aria-hidden>→</span>
-								</span>
-							</Link>
+								cta="Learn more"
+								className={BENTO_SPANS[i % BENTO_SPANS.length]}
+								background={
+									<div
+										aria-hidden
+										className="absolute inset-0 bg-[radial-gradient(24rem_10rem_at_80%_-20%,rgba(46,107,255,0.14),transparent_70%)] opacity-70 transition-opacity duration-300 group-hover:opacity-100"
+									/>
+								}
+							/>
 						))}
-					</div>
+					</BentoGrid>
 				</section>
 
-				{/* ── How it works ─────────────────────────────────────── */}
-				<section className="border-y border-rule bg-paper-deep/60">
-					<div className="mx-auto max-w-6xl px-6 py-24">
-						<p className="kicker">From zero to live</p>
-						<h2 className="font-display mt-3 max-w-2xl text-3xl font-semibold leading-tight tracking-tight-display text-ink sm:text-4xl">
-							Three steps. About five minutes.
-						</h2>
+				{/* ── Product proof — real screenshots, framed ─────────── */}
+				<ProofSection />
 
-						<div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule md:grid-cols-3">
-							{steps.map((s, i) => (
-								<div key={s.title} className="relative bg-paper p-8">
-									<span className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-accent-soft">
-										{s.k}
-									</span>
-									<h3 className="font-display mt-3 text-xl font-semibold tracking-tight-display text-ink">
-										{s.title}
-									</h3>
-									<p className="mt-2 text-sm leading-relaxed text-muted">
-										{s.body}
-									</p>
-									{i < steps.length - 1 && (
-										<span
-											aria-hidden
-											className="absolute right-5 top-8 hidden font-display text-2xl text-rule md:block"
-										>
-											→
-										</span>
-									)}
-								</div>
-							))}
-						</div>
-					</div>
-				</section>
+				{/* ── Pricing teaser — real tiers ──────────────────────── */}
+				<PricingTeaser />
 
-				{/* ── Use cases + resources ────────────────────────────── */}
+				{/* ── Use cases + compare band ─────────────────────────── */}
 				<section className="mx-auto max-w-6xl px-6 py-24">
 					<div className="flex flex-col rounded-3xl border border-rule bg-paper-card/50 p-8">
 						<div>
@@ -250,44 +292,27 @@ export default function Home() {
 						</Link>
 					</div>
 
-					<div className="mt-6 grid gap-6 lg:grid-cols-3">
-						<Link
-							href="/compare"
-							className="group flex flex-col justify-between rounded-3xl border border-rule bg-paper-card/50 p-8 transition-colors hover:border-accent/40 lg:col-span-2"
-						>
-							<div>
-								<p className="kicker">Compare</p>
-								<h3 className="font-display mt-3 text-2xl font-semibold tracking-tight-display text-ink">
-									Clanker Support vs. Chatbase, Fin, Intercom, Chatwoot & Crisp
-								</h3>
-								<p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
-									An honest, side-by-side breakdown across setup, AI,
-									escalation, channels, and pricing — including where the others
-									are stronger.
-								</p>
-							</div>
-							<span className="mt-6 text-sm font-medium text-accent-soft transition-colors group-hover:text-accent">
+					<div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-3xl border border-rule bg-paper-card/50 p-8 sm:flex-row sm:items-center">
+						<div>
+							<p className="kicker">Compare</p>
+							<h3 className="font-display mt-2 text-xl font-semibold tracking-tight-display text-ink">
+								vs. Chatbase, Fin, Intercom, Chatwoot &amp; Crisp — honestly.
+							</h3>
+						</div>
+						<div className="flex flex-wrap gap-4">
+							<Link
+								href="/compare"
+								className="text-sm font-medium text-accent-soft transition-colors hover:text-accent"
+							>
 								See the full matrix →
-							</span>
-						</Link>
-
-						<Link
-							href="/blog"
-							className="group flex flex-col justify-between rounded-3xl border border-rule bg-paper-card/50 p-8 transition-colors hover:border-accent/40"
-						>
-							<div>
-								<p className="kicker">The Journal</p>
-								<h3 className="font-display mt-3 text-2xl font-semibold tracking-tight-display text-ink">
-									Field notes on AI support
-								</h3>
-								<p className="mt-3 text-sm leading-relaxed text-muted">
-									Guides, announcements, and the engineering behind the product.
-								</p>
-							</div>
-							<span className="mt-6 text-sm font-medium text-accent-soft transition-colors group-hover:text-accent">
+							</Link>
+							<Link
+								href="/blog"
+								className="text-sm font-medium text-muted transition-colors hover:text-ink"
+							>
 								Read the blog →
-							</span>
-						</Link>
+							</Link>
+						</div>
 					</div>
 				</section>
 
@@ -299,7 +324,12 @@ export default function Home() {
 				{/* ── Closing CTA ──────────────────────────────────────── */}
 				<section className="mx-auto max-w-6xl px-6 pb-28 pt-24">
 					<div className="relative overflow-hidden rounded-[2rem] border border-accent/30 bg-gradient-to-b from-paper-card to-paper px-8 py-20 text-center shadow-glow">
-						<div className="grid-backdrop pointer-events-none absolute inset-0" />
+						<GridPattern
+							width={44}
+							height={44}
+							strokeDasharray="2 3"
+							className="pointer-events-none absolute inset-0 stroke-rule/60 [mask-image:radial-gradient(30rem_circle_at_50%_0%,white,transparent)]"
+						/>
 						<div className="relative">
 							<p className="kicker">Ship support today</p>
 							<h2 className="font-display mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight-display text-ink sm:text-6xl">

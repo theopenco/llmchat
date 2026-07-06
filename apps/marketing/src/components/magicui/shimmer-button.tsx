@@ -53,7 +53,7 @@ export const ShimmerButton = React.forwardRef<
         <div
           className={cn(
             "-z-30 blur-[2px]",
-            "@container-[size] absolute inset-0 overflow-visible"
+            "[container-type:size] absolute inset-0 overflow-visible"
           )}
         >
           {/* spark */}
@@ -85,7 +85,7 @@ export const ShimmerButton = React.forwardRef<
         {/* backdrop */}
         <div
           className={cn(
-            "absolute inset-(--cut) -z-20 [border-radius:var(--radius)] [background:var(--bg)]"
+            "absolute inset-[var(--cut)] -z-20 [border-radius:var(--radius)] [background:var(--bg)]"
           )}
         />
       </button>
