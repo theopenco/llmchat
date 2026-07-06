@@ -36,6 +36,10 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
 	title: "Clanker Support — dashboard",
+	// The dashboard is an authenticated app, not a marketing surface — keep
+	// sign-in/sign-up (and everything else) out of search results so they never
+	// compete with clankersupport.com for brand queries.
+	robots: { index: false, follow: false },
 	icons: {
 		icon: [
 			{ url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
