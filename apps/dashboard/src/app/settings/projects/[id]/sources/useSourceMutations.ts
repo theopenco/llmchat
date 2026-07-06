@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { api, describeApiError } from "@/lib/api";
 import { dropById, useOptimisticMutation } from "@/lib/optimistic";
 
@@ -29,6 +30,7 @@ export function useSourceMutations(id: string, workspaceId: string | null) {
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["sources", id] });
 			toast.success("Source added");
+			track(ANALYTICS_EVENTS.sourceAdded, { kind: "url" });
 		},
 		onError: (e) => toast.error(describeApiError(e, "Could not add source")),
 	});
@@ -44,6 +46,7 @@ export function useSourceMutations(id: string, workspaceId: string | null) {
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["sources", id] });
 			toast.success("Source added");
+			track(ANALYTICS_EVENTS.sourceAdded, { kind: "text" });
 		},
 		onError: (e) => toast.error(describeApiError(e, "Could not add source")),
 	});
@@ -60,6 +63,7 @@ export function useSourceMutations(id: string, workspaceId: string | null) {
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["sources", id] });
 			toast.success("Source added");
+			track(ANALYTICS_EVENTS.sourceAdded, { kind: "qa" });
 		},
 		onError: (e) => toast.error(describeApiError(e, "Could not add source")),
 	});

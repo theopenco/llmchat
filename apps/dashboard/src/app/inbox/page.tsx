@@ -491,6 +491,7 @@ function InboxPageInner() {
 		onSuccess: () => {
 			setReply("");
 			toast.success("Reply sent");
+			track(ANALYTICS_EVENTS.replySent);
 			// The reply bumps updatedAt + the preview. Revalidate the HEAD only (not
 			// the whole paginated list): the conversation jumps to the newest page,
 			// and the render merge re-sorts it to the top from there.

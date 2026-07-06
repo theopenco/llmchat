@@ -6,6 +6,7 @@ import { useState } from "react";
 import { BillingNotice } from "@/app/settings/billing/_components/BillingNotice";
 import { TierGrid } from "@/app/settings/billing/_components/TierGrid";
 import { BrandLogo } from "@/components/brand-logo";
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import {
 	fetchUsage,
 	isBillingNotConfigured,
@@ -45,7 +46,14 @@ export function OnboardingPaywall({
 			// Stripe session bills monthly/yearly and lands back on /onboarding.
 			startCheckout(workspaceId, plan, interval, "/onboarding"),
 		onMutate: () => setError(null),
-		onSuccess: (session) => void redirectToStripeCheckout(session),
+		onSuccess: (session, plan) => {
+			track(ANALYTICS_EVENTS.checkoutStarted, {
+				plan,
+				interval,
+				source: "onboarding",
+			});
+			void redirectToStripeCheckout(session);
+		},
 		onError: (e) =>
 			setError(
 				isBillingNotConfigured(e)

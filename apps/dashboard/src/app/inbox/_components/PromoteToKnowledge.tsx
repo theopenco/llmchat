@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { api, describeApiError } from "@/lib/api";
 
 export interface PromoteToKnowledgeProps {
@@ -67,6 +68,7 @@ export function PromoteToKnowledge({
 			setPromoted(true);
 			setOpen(false);
 			toast.success("Added to your agent's knowledge");
+			track(ANALYTICS_EVENTS.sourceAdded, { kind: "qa", source: "promote" });
 		},
 		onError: (e) =>
 			toast.error(describeApiError(e, "Couldn't add to knowledge")),

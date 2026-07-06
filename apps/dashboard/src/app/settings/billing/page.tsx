@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { PageContainer } from "@/components/page-container";
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import {
 	fetchUsage,
 	isBillingNotConfigured,
@@ -72,13 +73,23 @@ function BillingContent() {
 		mutationFn: (target: PaidPlan) =>
 			startCheckout(workspaceId!, target, interval),
 		onMutate: () => setError(null),
-		onSuccess: (session) => void redirectToStripeCheckout(session),
+		onSuccess: (session, target) => {
+			track(ANALYTICS_EVENTS.checkoutStarted, {
+				plan: target,
+				interval,
+				source: "billing",
+			});
+			void redirectToStripeCheckout(session);
+		},
 		onError: (e) => setError(errorMessage(e)),
 	});
 	const portal = useMutation({
 		mutationFn: () => openPortal(workspaceId!),
 		onMutate: () => setError(null),
-		onSuccess: redirect,
+		onSuccess: (data) => {
+			track(ANALYTICS_EVENTS.billingPortalOpened);
+			redirect(data);
+		},
 		onError: (e) => setError(errorMessage(e)),
 	});
 

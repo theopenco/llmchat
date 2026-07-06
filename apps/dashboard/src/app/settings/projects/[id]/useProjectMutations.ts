@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { api, describeApiError } from "@/lib/api";
 import { mapById, useOptimisticMutation } from "@/lib/optimistic";
 
@@ -29,7 +30,21 @@ export function useProjectMutations(id: string, workspaceId: string | null) {
 				body: input,
 				workspaceId: workspaceId!,
 			}),
-		onSuccess: () => toast.success("Project updated successfully"),
+		onSuccess: (_data, input) => {
+			toast.success("Project updated successfully");
+			track(ANALYTICS_EVENTS.projectSettingsSaved, {
+				fields: Object.keys(input).sort().join(","),
+			});
+			// Field-specific events answer their own questions (which models do
+			// operators pick? is the prompt/knowledge base actually edited?) — a
+			// save touching several fields legitimately fires more than one.
+			if (input.model !== undefined)
+				track(ANALYTICS_EVENTS.modelChanged, { model: input.model });
+			if (input.systemPrompt !== undefined)
+				track(ANALYTICS_EVENTS.systemPromptSaved);
+			if (input.knowledgeText !== undefined)
+				track(ANALYTICS_EVENTS.knowledgeBaseUpdated);
+		},
 		onError: (e) => toast.error(describeApiError(e, "Could not save project")),
 	});
 
