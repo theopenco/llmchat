@@ -13,10 +13,11 @@ import {
 	ESCALATED_HOLDING_MESSAGE,
 	holdingStreamResponse,
 } from "@/lib/holding";
+import { buildIntegrationTools } from "@/lib/integration-tools";
 import { publicLookupRateLimit, rateLimit, shouldSendHolding } from "@/lib/kv";
 import { streamChat, summarizeForVisitor } from "@/lib/llm";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
-import { captureEvent } from "@/lib/posthog";
+import { captureEvent, captureInBackground } from "@/lib/posthog";
 import { clientIp } from "@/lib/request";
 import { sendEscalationSlack } from "@/lib/slack";
 import { reportMeterEvent } from "@/lib/stripe";
@@ -287,6 +288,30 @@ export const chat = new Hono<AppContext>()
 				a(e(s.projectId, project.id), e(s.active, true)),
 		});
 
+		// Enabled integrations become agent tools (Cal.com scheduling, Shopify
+		// order actions). Null for the common no-integration case — the model
+		// call stays byte-identical to pre-integration behavior.
+		const integrationRows = await db(c.env).query.integration.findMany({
+			where: (i, { and: a, eq: e }) =>
+				a(e(i.projectId, project.id), e(i.enabled, true)),
+		});
+		const built = buildIntegrationTools({
+			rows: integrationRows,
+			identity: { name: conv.name, email: conv.email },
+			onAction: (kind, toolName, ok) =>
+				captureInBackground(c, {
+					event: ANALYTICS_EVENTS.integrationActionUsed,
+					distinctId: clientId,
+					properties: {
+						project_id: project.id,
+						workspace_id: project.workspaceId,
+						kind,
+						tool: toolName,
+						ok,
+					},
+				}),
+		});
+
 		// Guard the live bot against a project stuck on a model that's no longer
 		// a valid web-search model (e.g. a pre-web-search saved value): run the
 		// default for this request instead of letting the gateway call fail.
@@ -326,6 +351,9 @@ export const chat = new Hono<AppContext>()
 				// agent never re-asks for contact details on file. Anonymous (null/null)
 				// conversations inject nothing.
 				identity: { name: conv.name, email: conv.email },
+				...(built
+					? { tools: built.tools, actionsBlock: built.actionsBlock }
+					: {}),
 				messages: messages as UIMessage[],
 			});
 		} catch (err) {
@@ -340,7 +368,10 @@ export const chat = new Hono<AppContext>()
 			(async () => {
 				try {
 					const text = await result.text;
-					const usage = await result.usage;
+					// totalUsage sums every step — with integration tools a turn can
+					// span several model steps, and metering must count all of them.
+					// Identical to `usage` for the single-step (no-tools) path.
+					const usage = await result.totalUsage;
 					await db(c.env)
 						.insert(messageTable)
 						.values({

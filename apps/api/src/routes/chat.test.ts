@@ -65,10 +65,12 @@ function mockDb({
 	hasProject = true,
 	sources = [],
 	convRow = {},
+	integrations = [],
 }: {
 	hasProject?: boolean;
 	sources?: unknown[];
 	convRow?: Record<string, unknown>;
+	integrations?: unknown[];
 } = {}) {
 	const valuesResult = () =>
 		Object.assign(Promise.resolve([]), {
@@ -82,6 +84,7 @@ function mockDb({
 			},
 			source: { findMany: async () => sources },
 			systemPrompt: { findFirst: async () => undefined },
+			integration: { findMany: async () => integrations },
 		},
 		insert: () => ({ values: valuesResult }),
 		update: () => ({ set: () => ({ where: async () => [] }) }),
@@ -107,6 +110,9 @@ const streamOk = () =>
 	vi.mocked(streamChat).mockResolvedValue({
 		text: Promise.resolve("hello"),
 		usage: Promise.resolve({ inputTokens: 1, outputTokens: 2 }),
+		// Metering reads totalUsage (sums every tool-loop step); usage above is
+		// the final step only — keep both on the mock so the route reads real data.
+		totalUsage: Promise.resolve({ inputTokens: 1, outputTokens: 2 }),
 		toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	} as any);
@@ -217,6 +223,45 @@ describe("POST /v1/chat — paywall (build-first-then-pay)", () => {
 		expect(streamChat).toHaveBeenCalledTimes(1);
 		await settle();
 		expect(reportMeterEvent).not.toHaveBeenCalled(); // exempt → never billed
+	});
+});
+
+describe("POST /v1/chat — integration tools reach the model call", () => {
+	const calcomRow = {
+		kind: "calcom",
+		config: JSON.stringify({
+			apiKey: "cal_test_key",
+			eventTypeId: 42,
+			timeZone: "UTC",
+		}),
+	};
+
+	it("passes tools + the actions block to streamChat when an integration is enabled", async () => {
+		mockDb({ integrations: [calcomRow] });
+		setAccess({ plan: "starter" });
+		streamOk();
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(200);
+		const input = vi.mocked(streamChat).mock.calls[0]![1];
+		expect(Object.keys(input.tools ?? {})).toEqual([
+			"get_available_slots",
+			"book_meeting",
+		]);
+		expect(input.actionsBlock).toContain("# Actions");
+		await settle();
+	});
+
+	it("passes NO tools when the project has no enabled integration (regression)", async () => {
+		mockDb();
+		setAccess({ plan: "starter" });
+		streamOk();
+		const { ctx, settle } = makeCtx();
+		await send(validBody, ctx);
+		const input = vi.mocked(streamChat).mock.calls[0]![1];
+		expect(input.tools).toBeUndefined();
+		expect(input.actionsBlock).toBeUndefined();
+		await settle();
 	});
 });
 
@@ -405,6 +450,7 @@ describe("POST /v1/chat — escalation mutes the bot (Bug 3 holding message)", (
 				},
 				source: { findMany: async () => sources },
 				systemPrompt: { findFirst: async () => undefined },
+				integration: { findMany: async () => [] },
 				// The Problem-2 "has a human replied?" probe (role: admin). Defaults to
 				// no admin reply, so existing escalated tests keep hitting the ack path.
 				message: {

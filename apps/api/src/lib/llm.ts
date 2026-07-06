@@ -3,6 +3,8 @@ import {
 	streamText,
 	generateText,
 	convertToModelMessages,
+	stepCountIs,
+	type ToolSet,
 	type UIMessage,
 } from "ai";
 
@@ -19,6 +21,12 @@ export interface LlmCallInput {
 	 * absent/anonymous conversations inject nothing.
 	 */
 	identity?: { name?: string | null; email?: string | null };
+	/** Integration tools (Cal.com scheduling, Shopify order actions) — absent for
+	 * projects with no enabled integration, keeping the call byte-identical to
+	 * the pre-integrations behavior. */
+	tools?: ToolSet;
+	/** System-prompt "# Actions" block paired with `tools` (guardrails + usage). */
+	actionsBlock?: string;
 	messages: UIMessage[];
 }
 
@@ -100,6 +108,7 @@ export function buildSystem(
 	knowledgeText: string,
 	sources: { title: string; url: string; content: string }[] = [],
 	identity?: { name?: string | null; email?: string | null },
+	actionsBlock?: string,
 ) {
 	const parts: string[] = [systemPrompt];
 	if (knowledgeText.trim()) {
@@ -132,6 +141,11 @@ export function buildSystem(
 		);
 	}
 
+	// Actions before identity: tool guidance is system content like knowledge;
+	// identity keeps its most-recent slot (see below). Absent for projects with
+	// no enabled integration, keeping the assembled prompt byte-identical.
+	if (actionsBlock) parts.push(actionsBlock);
+
 	// Identity goes LAST — after the operator prompt, knowledge, and sources — so it is
 	// the most recent, trusted system content the model sees and overrides any earlier
 	// operator instruction to collect contact info. Null (anonymous) appends nothing.
@@ -155,11 +169,16 @@ export async function streamChat(env: Env, input: LlmCallInput) {
 			input.knowledgeText,
 			input.sources,
 			input.identity,
+			input.actionsBlock,
 		),
 		messages: await convertToModelMessages(input.messages),
 		// Cap a support reply's length — bounds per-response spend on the shared
 		// operator key regardless of prompt-injection ("write 5000 words…").
 		maxOutputTokens: MAX_CHAT_OUTPUT_TOKENS,
+		// Integration tools: allow a bounded tool loop (check slots → book →
+		// answer). stepCountIs(5) caps upstream calls per turn; without tools the
+		// default single step applies and behavior is unchanged.
+		...(input.tools ? { tools: input.tools, stopWhen: stepCountIs(5) } : {}),
 	});
 }
 
