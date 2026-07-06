@@ -257,6 +257,17 @@ function LiveWidget({
 			),
 		[serverMessages, messages, effective],
 	);
+	// The agent is mid-action (integration tool call streamed, no text yet) —
+	// e.g. booking a call or looking up an order. Drives the "Working on it…"
+	// hint so a multi-second tool round-trip doesn't read as a stall.
+	const lastStreamed = messages[messages.length - 1];
+	const acting =
+		loading &&
+		lastStreamed?.role === "assistant" &&
+		!getText(lastStreamed) &&
+		lastStreamed.parts.some(
+			(p) => p.type.startsWith("tool-") || p.type === "dynamic-tool",
+		);
 	const userMessageCount = displayMessages.filter(
 		(m) => m.role === "user",
 	).length;
@@ -401,6 +412,7 @@ function LiveWidget({
 						}
 						messages={displayMessages}
 						typing={loading}
+						acting={acting}
 						error={sendFailed ? SEND_ERROR : null}
 						onRate={conversationId ? rate : undefined}
 					/>

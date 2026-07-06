@@ -14,6 +14,24 @@ const assistant = (over: Partial<DisplayMessage> = {}): DisplayMessage => ({
 	...over,
 });
 
+describe("MessageList typing/acting indicator", () => {
+	it("shows plain typing dots while streaming (no acting label)", () => {
+		render(<MessageList greeting="hi" messages={[]} typing error={null} />);
+		expect(screen.getByLabelText("Assistant is typing")).toBeInTheDocument();
+		expect(screen.queryByText("Working on it…")).toBeNull();
+	});
+
+	it("upgrades to 'Working on it…' while an integration tool runs", () => {
+		render(
+			<MessageList greeting="hi" messages={[]} typing acting error={null} />,
+		);
+		expect(
+			screen.getByLabelText("Assistant is working on it"),
+		).toBeInTheDocument();
+		expect(screen.getByText("Working on it…")).toBeInTheDocument();
+	});
+});
+
 describe("MessageList rating", () => {
 	it("shows thumbs on a rateable assistant message reflecting current state", () => {
 		render(
