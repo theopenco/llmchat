@@ -29,7 +29,7 @@ export function AuthButton({
 
 	const base =
 		variant === "primary"
-			? "inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_-8px_rgba(99,102,241,0.6)] transition-colors hover:bg-accent-deep"
+			? "inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_-8px_rgba(46,107,255,0.6)] transition-colors hover:bg-accent-deep"
 			: "inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink";
 
 	return (

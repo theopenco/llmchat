@@ -20,11 +20,11 @@
 		--faint: 100 116 139;
 		--rule: 226 232 240;
 		--rule-soft: 241 245 249;
-		--accent: 99 102 241;
-		--accent-soft: 79 70 229;
-		--accent-deep: 67 56 202;
-		--aurora-1: rgba(99, 102, 241, 0.08);
-		--aurora-2: rgba(129, 140, 248, 0.06);
+		--accent: 46 107 255;
+		--accent-soft: 29 79 215;
+		--accent-deep: 23 64 184;
+		--aurora-1: rgba(46, 107, 255, 0.08);
+		--aurora-2: rgba(124, 162, 255, 0.06);
 		--grid-dot: rgba(15, 23, 42, 0.06);
 	}
 
@@ -40,11 +40,11 @@
 		--faint: 92 101 119;
 		--rule: 34 42 58;
 		--rule-soft: 26 33 48;
-		--accent: 99 102 241;
-		--accent-soft: 129 140 248;
-		--accent-deep: 79 70 229;
-		--aurora-1: rgba(99, 102, 241, 0.16);
-		--aurora-2: rgba(79, 70, 229, 0.1);
+		--accent: 46 107 255;
+		--accent-soft: 124 162 255;
+		--accent-deep: 30 86 230;
+		--aurora-1: rgba(46, 107, 255, 0.16);
+		--aurora-2: rgba(30, 86, 230, 0.1);
 		--grid-dot: rgba(255, 255, 255, 0.05);
 	}
 
@@ -72,7 +72,7 @@
 	}
 
 	::selection {
-		background-color: rgba(99, 102, 241, 0.35);
+		background-color: rgba(46, 107, 255, 0.35);
 		color: #ffffff;
 	}
 }
@@ -204,7 +204,7 @@
 		border: 3px solid rgb(var(--paper-card));
 		box-shadow:
 			0 0 0 1px rgb(var(--accent)),
-			0 4px 12px rgba(99, 102, 241, 0.5);
+			0 4px 12px rgba(46, 107, 255, 0.5);
 	}
 	.tool-range::-moz-range-thumb {
 		width: 18px;
@@ -214,7 +214,7 @@
 		border: 3px solid rgb(var(--paper-card));
 		box-shadow:
 			0 0 0 1px rgb(var(--accent)),
-			0 4px 12px rgba(99, 102, 241, 0.5);
+			0 4px 12px rgba(46, 107, 255, 0.5);
 	}
 
 	/* Drop cap for the first paragraph of an article. */
@@ -226,5 +226,19 @@
 		line-height: 0.82;
 		padding: 0.04em 0.12em 0 0;
 		color: rgb(var(--accent-soft));
+	}
+}
+
+/* Reduced-motion kill-switch for the vendored Magic UI animations (none of
+   them respect prefers-reduced-motion upstream). motion/react components are
+   covered separately by <MotionConfig reducedMotion="user">. */
+@media (prefers-reduced-motion: reduce) {
+	.animate-shimmer-slide,
+	.animate-spin-around,
+	.animate-shine,
+	.animate-gradient,
+	.animate-marquee,
+	.animate-rise-in {
+		animation: none !important;
 	}
 }
