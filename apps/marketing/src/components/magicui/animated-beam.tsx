@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, type RefObject } from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 
 import { cn } from "@/lib/utils";
 
@@ -49,6 +49,7 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
 	endYOffset = 0,
 }) => {
 	const id = useId();
+	const reducedMotion = useReducedMotion();
 	const [pathD, setPathD] = useState("");
 	const [svgDimensions, setSvgDimensions] = useState({ width: 0, height: 0 });
 
@@ -125,6 +126,7 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
 
 	return (
 		<svg
+			aria-hidden="true"
 			fill="none"
 			width={svgDimensions.width}
 			height={svgDimensions.height}
@@ -160,12 +162,16 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
 						y1: "0%",
 						y2: "0%",
 					}}
-					animate={{
-						x1: gradientCoordinates.x1,
-						x2: gradientCoordinates.x2,
-						y1: gradientCoordinates.y1,
-						y2: gradientCoordinates.y2,
-					}}
+					animate={
+						reducedMotion
+							? undefined
+							: {
+									x1: gradientCoordinates.x1,
+									x2: gradientCoordinates.x2,
+									y1: gradientCoordinates.y1,
+									y2: gradientCoordinates.y2,
+								}
+					}
 					transition={{
 						delay,
 						duration,

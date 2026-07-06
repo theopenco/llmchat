@@ -20,6 +20,8 @@ export function ProofSection() {
 
 			<div className="mt-12 grid items-start gap-8 lg:grid-cols-[1.6fr_1fr]">
 				<Safari
+					role="img"
+					aria-label="An escalated conversation open in the Clanker Support team inbox"
 					url="app.clankersupport.com/inbox"
 					imageSrc="/proof/inbox-escalation.webp"
 					className="size-full"
@@ -29,7 +31,7 @@ export function ProofSection() {
 						src="/proof/widget-live.webp"
 						alt="The Clanker Support widget answering a visitor question"
 						width={800}
-						height={1904}
+						height={1182}
 						className="h-auto w-full"
 					/>
 				</div>

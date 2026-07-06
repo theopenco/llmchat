@@ -81,7 +81,7 @@ const BentoCard = ({
 			</div>
 		</div>
 
-		<div className="pointer-events-none absolute bottom-0 hidden w-full translate-y-9 transform-gpu flex-row items-center p-6 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 lg:flex">
+		<div className="pointer-events-none absolute bottom-0 hidden w-full translate-y-9 transform-gpu flex-row items-center p-6 opacity-0 transition-all duration-300 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:translate-y-0 group-hover:opacity-100 lg:flex">
 			<Link
 				href={href}
 				className="pointer-events-auto inline-flex items-center gap-1 text-sm font-medium text-accent-soft transition-colors hover:text-accent"

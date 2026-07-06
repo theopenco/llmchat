@@ -20,11 +20,11 @@
 		--faint: 100 116 139;
 		--rule: 226 232 240;
 		--rule-soft: 241 245 249;
-		--accent: 99 102 241;
-		--accent-soft: 79 70 229;
-		--accent-deep: 67 56 202;
+		--accent: 46 107 255;
+		--accent-soft: 29 79 215;
+		--accent-deep: 23 64 184;
 		--aurora-1: rgba(46, 107, 255, 0.08);
-		--aurora-2: rgba(129, 140, 248, 0.06);
+		--aurora-2: rgba(124, 162, 255, 0.06);
 		--grid-dot: rgba(15, 23, 42, 0.06);
 	}
 
@@ -40,11 +40,11 @@
 		--faint: 92 101 119;
 		--rule: 34 42 58;
 		--rule-soft: 26 33 48;
-		--accent: 99 102 241;
-		--accent-soft: 129 140 248;
-		--accent-deep: 79 70 229;
+		--accent: 46 107 255;
+		--accent-soft: 124 162 255;
+		--accent-deep: 30 86 230;
 		--aurora-1: rgba(46, 107, 255, 0.16);
-		--aurora-2: rgba(79, 70, 229, 0.1);
+		--aurora-2: rgba(30, 86, 230, 0.1);
 		--grid-dot: rgba(255, 255, 255, 0.05);
 	}
 

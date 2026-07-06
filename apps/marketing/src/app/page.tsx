@@ -135,7 +135,7 @@ export default function Home() {
 					<div className="relative mx-auto flex max-w-3xl flex-col items-center px-6 pb-28 pt-24 text-center sm:pt-36">
 						<span className="animate-rise-in inline-flex items-center gap-2 rounded-full border border-rule bg-paper-card/60 px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted">
 							<span className="size-1.5 rounded-full bg-accent shadow-[0_0_10px_2px_rgba(46,107,255,0.7)]" />
-							<AnimatedGradientText colorFrom="#7CA2FF" colorTo="#2E6BFF">
+							<AnimatedGradientText className="[--color-from:#1D4FD7] [--color-to:#2E6BFF] dark:[--color-from:#7CA2FF] dark:[--color-to:#2E6BFF]">
 								Simple monthly plans · Live in 30 seconds
 							</AnimatedGradientText>
 						</span>

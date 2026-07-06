@@ -47,7 +47,7 @@ export function ShimmerCta({
 				href={href}
 				event={event}
 				eventProps={eventProps}
-				className="relative z-10 inline-flex items-center gap-2 px-8 py-4 text-base font-semibold text-white"
+				className="relative z-10 inline-flex items-center gap-2 rounded-full px-8 py-4 text-base font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-soft"
 			>
 				{children}
 			</TrackedLink>
