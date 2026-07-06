@@ -228,3 +228,17 @@
 		color: rgb(var(--accent-soft));
 	}
 }
+
+/* Reduced-motion kill-switch for the vendored Magic UI animations (none of
+   them respect prefers-reduced-motion upstream). motion/react components are
+   covered separately by <MotionConfig reducedMotion="user">. */
+@media (prefers-reduced-motion: reduce) {
+	.animate-shimmer-slide,
+	.animate-spin-around,
+	.animate-shine,
+	.animate-gradient,
+	.animate-marquee,
+	.animate-rise-in {
+		animation: none !important;
+	}
+}
