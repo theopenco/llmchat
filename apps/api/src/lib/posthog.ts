@@ -1,3 +1,5 @@
+import type { Context } from "hono";
+
 import type { AppContext } from "@/env";
 
 type Bindings = AppContext["Bindings"];
@@ -36,5 +38,23 @@ export async function captureEvent(
 		});
 	} catch {
 		// swallow — analytics failures must not affect the chat/escalation path
+	}
+}
+
+/**
+ * Capture without blocking the response. Uses `waitUntil` when the runtime
+ * provides an ExecutionContext; tests invoke routes without one (accessing
+ * `c.executionCtx` throws there — same posture as billing's `background`), so
+ * fall back to a floating promise. `captureEvent` never rejects.
+ */
+export function captureInBackground(
+	c: Context<AppContext>,
+	input: CaptureInput,
+): void {
+	const task = captureEvent(c.env, input);
+	try {
+		c.executionCtx.waitUntil(task);
+	} catch {
+		void task;
 	}
 }

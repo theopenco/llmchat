@@ -16,6 +16,7 @@ import {
 	resolveAccess,
 	startOfUtcMonth,
 } from "@/lib/plan";
+import { captureEvent } from "@/lib/posthog";
 import {
 	StripeError,
 	createCheckoutSession,
@@ -30,7 +31,7 @@ import {
 } from "@/middleware/session";
 
 import { eq, workspace } from "@llmchat/db";
-import { PAID_PLANS, isPaidPlan } from "@llmchat/shared";
+import { ANALYTICS_EVENTS, PAID_PLANS, isPaidPlan } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 import type { PaidPlan, Plan } from "@llmchat/shared";
@@ -289,6 +290,15 @@ export const billing = new Hono<AppContext>()
 								notifySubscriptionStarted(c.env, { ...contact, plan }),
 							),
 						);
+						// No user session in a webhook — the workspace is the actor.
+						background(
+							c,
+							captureEvent(c.env, {
+								event: ANALYTICS_EVENTS.subscriptionActivated,
+								distinctId: workspaceId,
+								properties: { plan, workspace_id: workspaceId },
+							}),
+						);
 					}
 				}
 				break;
@@ -329,6 +339,14 @@ export const billing = new Hono<AppContext>()
 								plan: priorPlan,
 							}),
 						),
+					);
+					background(
+						c,
+						captureEvent(c.env, {
+							event: ANALYTICS_EVENTS.subscriptionCancelled,
+							distinctId: ws.id,
+							properties: { plan: priorPlan, workspace_id: ws.id },
+						}),
 					);
 				}
 				break;

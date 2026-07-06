@@ -49,6 +49,8 @@ const EVENTS = [
 	{ event: ANALYTICS_EVENTS.widgetEmbedCopied, label: "Embeds copied" },
 	{ event: ANALYTICS_EVENTS.conversationStarted, label: "Conversations" },
 	{ event: ANALYTICS_EVENTS.conversationEscalated, label: "Escalations" },
+	{ event: ANALYTICS_EVENTS.checkoutStarted, label: "Checkouts started" },
+	{ event: ANALYTICS_EVENTS.subscriptionActivated, label: "Subscriptions" },
 	{ event: ANALYTICS_EVENTS.ctaClicked, label: "CTA clicks" },
 ] as const;
 

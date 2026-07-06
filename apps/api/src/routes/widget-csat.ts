@@ -4,9 +4,11 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/kv";
+import { captureInBackground } from "@/lib/posthog";
 import { clientIp } from "@/lib/request";
 
 import { conversation, eq } from "@llmchat/db";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 
@@ -72,6 +74,19 @@ export const widgetCsat = new Hono<AppContext>().post(
 			.update(conversation)
 			.set({ csatRating: rating })
 			.where(eq(conversation.id, conv.id));
+
+		// Only real scores are captured — clearing (null) is noise, not a signal.
+		if (rating !== null) {
+			captureInBackground(c, {
+				event: ANALYTICS_EVENTS.csatSubmitted,
+				distinctId: clientId,
+				properties: {
+					project_id: project.id,
+					workspace_id: project.workspaceId,
+					score: rating,
+				},
+			});
+		}
 
 		return c.json({ ok: true });
 	},

@@ -4,9 +4,11 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/kv";
+import { captureInBackground } from "@/lib/posthog";
 import { clientIp } from "@/lib/request";
 
 import { eq, message as messageTable } from "@llmchat/db";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 
@@ -86,6 +88,20 @@ export const widgetRating = new Hono<AppContext>().post(
 			.update(messageTable)
 			.set({ rating })
 			.where(eq(messageTable.id, msg.id));
+
+		// Only real votes are captured — clearing a rating (null) is noise, not a
+		// quality signal.
+		if (rating !== null) {
+			captureInBackground(c, {
+				event: ANALYTICS_EVENTS.messageRated,
+				distinctId: clientId,
+				properties: {
+					project_id: project.id,
+					workspace_id: project.workspaceId,
+					rating,
+				},
+			});
+		}
 
 		return c.json({ ok: true });
 	},

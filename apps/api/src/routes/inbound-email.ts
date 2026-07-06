@@ -2,9 +2,11 @@ import { Hono } from "hono";
 
 import { db } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
+import { captureInBackground } from "@/lib/posthog";
 import { verifySvixSignature } from "@/lib/svix";
 
 import { conversation, eq, message } from "@llmchat/db";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
 
 import type { AppContext, Env } from "@/env";
 
@@ -272,6 +274,7 @@ export const inboundEmail = new Hono<AppContext>().post(
 				})
 			: undefined;
 
+		const matchedByThread = !!conv;
 		if (!conv) {
 			conv = await db(c.env).query.conversation.findFirst({
 				where: (ct, { and, eq: e }) =>
@@ -303,6 +306,19 @@ export const inboundEmail = new Hono<AppContext>().post(
 			.update(conversation)
 			.set({ messageCount: nextSeq, updatedAt: new Date() })
 			.where(eq(conversation.id, conv.id));
+
+		// `matched` says whether In-Reply-To threading worked or the sender
+		// fallback caught it — a rising fallback share means clients are dropping
+		// our Message-ID and threading needs attention.
+		captureInBackground(c, {
+			event: ANALYTICS_EVENTS.inboundEmailReceived,
+			distinctId: conv.clientId,
+			properties: {
+				project_id: proj.id,
+				workspace_id: proj.workspaceId,
+				matched: matchedByThread ? "in_reply_to" : "sender_fallback",
+			},
+		});
 
 		return c.json({ ok: true });
 	},

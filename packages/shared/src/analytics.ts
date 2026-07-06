@@ -18,7 +18,6 @@ export const ANALYTICS_EVENTS = {
 	signedIn: "signed_in",
 	signedOut: "signed_out",
 	onboardingStarted: "onboarding_started",
-	onboardingStepCompleted: "onboarding_step_completed",
 	onboardingCompleted: "onboarding_completed",
 	projectCreated: "project_created",
 	projectDeleted: "project_deleted",
@@ -29,11 +28,25 @@ export const ANALYTICS_EVENTS = {
 	systemPromptSaved: "system_prompt_saved",
 	sourceAdded: "source_added",
 	conversationOpened: "conversation_opened",
+	replySent: "reply_sent",
+
+	// ── Billing funnel ──────────────────────────────────────────────
+	// checkout_started fires client-side (dashboard, before the Stripe
+	// redirect); the subscription_* pair fires server-side from the Stripe
+	// webhook with distinct_id = workspace id (no user session there).
+	checkoutStarted: "checkout_started",
+	billingPortalOpened: "billing_portal_opened",
+	subscriptionActivated: "subscription_activated",
+	subscriptionCancelled: "subscription_cancelled",
 
 	// ── Server / widget (captured in the API) ───────────────────────
 	conversationStarted: "conversation_started",
 	widgetMessageSent: "widget_message_sent",
 	conversationEscalated: "conversation_escalated",
+	conversationResolved: "conversation_resolved",
+	messageRated: "message_rated",
+	csatSubmitted: "csat_submitted",
+	inboundEmailReceived: "inbound_email_received",
 } as const;
 
 export type AnalyticsEventName =

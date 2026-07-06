@@ -647,5 +647,16 @@ export const chat = new Hono<AppContext>()
 			// re-polls /v1/messages and shows the escalated state.
 			return c.json({ ok: true, resolved: false, reason: "escalated" });
 		}
+		c.executionCtx.waitUntil(
+			captureEvent(c.env, {
+				event: ANALYTICS_EVENTS.conversationResolved,
+				distinctId: clientId,
+				properties: {
+					project_id: project.id,
+					workspace_id: project.workspaceId,
+					resolved_by: "visitor",
+				},
+			}),
+		);
 		return c.json({ ok: true, resolved: true });
 	});
