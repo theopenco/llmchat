@@ -1,0 +1,2 @@
+Ploy preview bisect — variant A (control): apps/shopify exactly as on main.
+Do not merge. Branch will be deleted after the experiment.
