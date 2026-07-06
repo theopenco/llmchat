@@ -29,9 +29,14 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+	metadataBase: new URL(
+		process.env.NEXT_PUBLIC_SHOWCASE_URL ??
+			"https://showcase.clankersupport.com",
+	),
 	title: "Clanker Support — live demo",
 	description:
 		"Try the Clanker Support widget live. Chat with the bubble, send a few messages, and watch it escalate to a human.",
+	alternates: { canonical: "/" },
 	icons: {
 		icon: [
 			{ url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
