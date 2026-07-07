@@ -8,6 +8,11 @@ env:
   # browser — used by @stripe/stripe-js to redirect to Checkout. The SECRET key
   # lives only in the api worker's env, never here.
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: $NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  # Analytics (PostHog EU). Public/write-only project key — safe to commit,
+  # same convention as apps/showcase/.env.production. Without these the prod
+  # build ships with analytics disabled (no key = provider no-ops).
+  NEXT_PUBLIC_POSTHOG_KEY: phc_ySVKqGDizuGXPiHXYLVnUXMnR28FNZu8PccWLt6BdbfH
+  NEXT_PUBLIC_POSTHOG_HOST: https://eu.i.posthog.com
 
 dev:
   port: 3001
