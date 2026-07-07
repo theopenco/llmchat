@@ -15,6 +15,7 @@ import { ResolveSection } from "./components/ResolveSection";
 import { WidgetFrame } from "./components/WidgetFrame";
 import { rateConversation, shouldPromptCsat } from "./csat";
 import { requestEscalation } from "./escalation";
+import { requestsHuman } from "./escalation-intent";
 import { requestResolve } from "./resolve";
 import {
 	getOrCreateClientId,
@@ -261,9 +262,21 @@ function LiveWidget({
 		(m) => m.role === "user",
 	).length;
 	const threshold = resolveEscalationThreshold(escalationThreshold);
+	// An explicit "I want a human" from the visitor overrides the message-count
+	// threshold — the CTA surfaces immediately instead of making them rephrase
+	// until they hit it.
+	const requestedHuman = useMemo(
+		() =>
+			displayMessages.some(
+				(m) => m.role === "user" && requestsHuman(m.content),
+			),
+		[displayMessages],
+	);
 	// Hide the escalate CTA once escalated OR resolved (resolved wins — terminal).
 	const showEscalation =
-		!escalated && !resolved && userMessageCount >= threshold;
+		!escalated &&
+		!resolved &&
+		(userMessageCount >= threshold || requestedHuman);
 
 	// A "real exchange" = at least one persisted visitor message and one bot
 	// reply. Only then (and only when not already rated) do we prompt on close.
