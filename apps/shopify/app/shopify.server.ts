@@ -39,9 +39,25 @@ export interface ShopifyEnv {
 	SESSION_DB?: unknown;
 }
 
+/**
+ * Ploy's prod runtime delivers PLAIN env vars nested under `env.vars`
+ * (resource bindings like SESSION_DB stay flat on `env`, and the values are
+ * also mirrored into process.env before user code evaluates) — same contract
+ * the api relies on with `c.env.vars.DASHBOARD_URL`. Local `wrangler dev` /
+ * `ploy dev` use wrangler.jsonc verbatim, where `vars` ARE flat on `env`.
+ * normalizeEnv folds both shapes into one flat ShopifyEnv.
+ */
+type PloyWorkerEnv = ShopifyEnv & {
+	vars?: Record<string, string>;
+} & Record<string, unknown>;
+
 type CloudflareContext = {
-	cloudflare?: { env?: ShopifyEnv & Record<string, unknown> };
+	cloudflare?: { env?: PloyWorkerEnv };
 };
+
+function normalizeEnv(raw: PloyWorkerEnv): ShopifyEnv {
+	return raw.vars ? ({ ...raw, ...raw.vars } as ShopifyEnv) : raw;
+}
 
 function buildShopify(env: ShopifyEnv) {
 	return shopifyApp({
@@ -76,19 +92,21 @@ export type Shopify = ReturnType<typeof buildShopify>;
 const perEnv = new WeakMap<object, Shopify>();
 let nodeFallback: Shopify | undefined;
 
-/** Resolve the raw env for a request — worker binding on Ploy, process.env under `shopify app dev`. */
+/** Resolve the flat env for a request — worker binding on Ploy (vars unnested), process.env under `shopify app dev`. */
 export function getShopifyEnv(context?: unknown): ShopifyEnv {
 	const env = (context as CloudflareContext | undefined)?.cloudflare?.env;
-	if (env) return env;
+	if (env) return normalizeEnv(env);
 	return process.env as ShopifyEnv;
 }
 
 export function getShopify(context?: unknown): Shopify {
 	const env = (context as CloudflareContext | undefined)?.cloudflare?.env;
 	if (env) {
+		// Memoize on the RAW env object (the runtime passes the same one to
+		// every request); build from the normalized flat view.
 		let instance = perEnv.get(env);
 		if (!instance) {
-			instance = buildShopify(env);
+			instance = buildShopify(normalizeEnv(env));
 			perEnv.set(env, instance);
 		}
 		return instance;
