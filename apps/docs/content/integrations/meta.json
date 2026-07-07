@@ -1,0 +1,6 @@
+{
+	"title": "Integrations",
+	"description": "Every way to put Clanker Support on your site",
+	"icon": "Blocks",
+	"pages": ["index", "widget", "react-sdk", "shopify", "wordpress"]
+}

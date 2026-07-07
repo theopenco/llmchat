@@ -1,0 +1,46 @@
+---
+title: Self-hosting
+description: Run the whole Clanker Support stack yourself — free, MIT-licensed, with your own keys
+icon: Server
+---
+
+Clanker Support is open source under the MIT license, and the entire product lives in one repository: [theopenco/llmchat](https://github.com/theopenco/llmchat). Self-hosting is free forever — you run the infrastructure, bring your own API keys, and pay your model provider directly. There is no feature-gated "community edition"; the code you deploy is the same code behind the hosted service.
+
+## What's in the box
+
+The monorepo contains everything the hosted service runs:
+
+- **API** — a Hono worker that serves the public chat endpoints, the dashboard API, webhooks, and the widget bundle itself at `/widget.js`.
+- **Dashboard** — the Next.js operator console: the shared inbox, project settings, knowledge sources, and billing.
+- **Marketing site** — the Next.js site behind [clankersupport.com](https://clankersupport.com), if you want it.
+- **Widget** — the embeddable script-tag bundle, built once and served by the API, so a self-hosted install still works with a one-line `<script>` tag pointed at your own API origin.
+- **Database** — a SQLite-compatible database (D1-style) with SQL migrations included; the deploy platform applies them automatically.
+
+One honest note on the runtime: the API is built to run on **workerd** via the [Ploy platform](https://docs.meetploy.com), not on a plain Node.js server. That's the deployment target the repo is set up for out of the box.
+
+## What you bring
+
+Three external services, only one of which is required:
+
+| Service         | Needed for                                           | Required?                        |
+| --------------- | ---------------------------------------------------- | -------------------------------- |
+| **LLM Gateway** | Inference — the API key the agent answers with       | Yes                              |
+| **Resend**      | Email — escalation notifications and reply threading | Only if you want email           |
+| **Stripe**      | Billing — metering and subscriptions                 | Only if you want to charge users |
+
+Inference goes through [LLM Gateway](https://llmgateway.io), so a single key gives your projects access to the model catalog, and usage is billed to your own account — Clanker Support takes no cut on a self-hosted install. Without Resend, chat and the inbox work fine; you just lose [escalation emails](/features/escalation) and [email threading](/features/email-threading). Stripe is entirely optional and only matters if you're running the stack as a service for others.
+
+## Self-host or hosted?
+
+Both run the same code; the difference is who operates it.
+
+- **Self-host** — free, MIT. You deploy and operate the stack, apply updates, and pay your model provider directly through your LLM Gateway key. Best when you want full control over data and infrastructure.
+- **Hosted** — we run everything at [app.clankersupport.com](https://app.clankersupport.com); you create a project and paste one script tag. Metered by AI responses, with unlimited human replies and no per-seat fees — see [Pricing](/pricing).
+
+Enterprise plans include a self-host support contract if you want the control of self-hosting with someone to call.
+
+## Setting it up
+
+The [GitHub README](https://github.com/theopenco/llmchat) is the canonical setup guide and stays current with the code — follow it rather than any copy of the steps here. In short, it walks you through installing dependencies, copying the example env file and filling in your keys, and starting the full stack with a single dev command; migrations apply automatically.
+
+Once your stack is up, everything in these docs applies unchanged — point the widget's `data-api` attribute (or the SDK's `apiUrl` prop) at your own API origin and continue with [Getting started](/getting-started) and the [dashboard guide](/learn).

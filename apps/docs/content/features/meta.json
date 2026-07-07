@@ -1,0 +1,15 @@
+{
+	"title": "Features",
+	"description": "What the support agent can do",
+	"icon": "Sparkles",
+	"pages": [
+		"index",
+		"ai-responses",
+		"knowledge-sources",
+		"escalation",
+		"email-threading",
+		"team-inbox",
+		"ratings-csat",
+		"self-hosting"
+	]
+}

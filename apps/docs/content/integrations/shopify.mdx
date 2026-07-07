@@ -1,0 +1,46 @@
+---
+title: Shopify
+description: Add the support agent to your storefront with a zero-permission theme app extension
+icon: ShoppingBag
+---
+
+The Clanker Support Shopify app is **coming soon to the Shopify App Store**. Until the listing is live, you can put the agent on any Shopify store today with the one-line script tag — see [Install today](#install-today-with-the-script-tag) below.
+
+## What the app does
+
+The app is a theme app extension: an **app embed** block that loads the widget on your storefront. Once it's available and installed, setup is two steps — no code, no theme edits.
+
+- **Zero permission scopes.** The app requests no access to your orders, customers, products, or anything else in your store. The only thing it stores is its own settings.
+- **Paste your project key.** Open the app in your Shopify admin and paste your project's public key on its settings page. That's the whole connection.
+- **Enable the app embed.** In the theme editor, open **App embeds**, switch on **Clanker Support**, and hit **Save**. App embeds are per theme, so enabling it on your live theme is one Save.
+- **The bubble appears on your storefront.** The widget script loads after the page has finished loading, so it never competes with your storefront's own resources or slows down what shoppers see first.
+- **Optional bubble color.** The embed block includes a bubble-color setting; leave it unset to use your project's default. (There's also an advanced project-key override, filled automatically when you connect the app.)
+- **Clean uninstall.** Removing the app removes the embed from your theme and clears the data the app stored.
+
+If you're already using the manual script tag when you switch to the app, the embed detects the existing snippet and won't mount a second bubble — one widget, never two.
+
+## Install today with the script tag
+
+Until the App Store listing is live, add the agent the same way as any other site: paste the script tag into your theme layout.
+
+1. In your Shopify admin, go to **Online Store → Themes**, open the **…** menu on your current theme, and choose **Edit code**.
+2. Open `layout/theme.liquid`.
+3. Paste the snippet just before the closing `</body>` tag, with your project's public key:
+
+```html
+<script
+	src="https://api.clankersupport.com/widget.js"
+	data-project="pk_…"
+	async
+></script>
+```
+
+4. Save. The bubble appears on every storefront page.
+
+The full attribute list — brand color, inline mode, escalation threshold — is on the [script tag](/integrations/widget) page.
+
+## Next steps
+
+- Don't have a project key yet? [Getting started](/getting-started) walks you through creating your first project.
+- Tune the agent's appearance — welcome message, brand color, position — in [widget settings](/learn/widget).
+- Teach the agent about your store by adding [knowledge sources](/features/knowledge-sources): your shipping and returns pages, product FAQs, and Q&A pairs.

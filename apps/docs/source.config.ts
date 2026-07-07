@@ -4,6 +4,9 @@ export const { docs, meta } = defineDocs({
 	dir: "content",
 	docs: {
 		schema: frontmatterSchema,
+		postprocess: {
+			includeProcessedMarkdown: true,
+		},
 	},
 	meta: {
 		schema: metaSchema,
