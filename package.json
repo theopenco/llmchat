@@ -16,7 +16,7 @@
 		"test": "turbo run test"
 	},
 	"devDependencies": {
-		"@meetploy/cli": "^1.42.0",
+		"@meetploy/cli": "^1.44.0",
 		"@semantic-release/exec": "^7.1.0",
 		"@semantic-release/npm": "^13.1.5",
 		"@types/node": "^22.10.0",
