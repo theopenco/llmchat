@@ -17,8 +17,8 @@ clanker-support/            The plugin itself (this folder is what ships in the 
 .wordpress-org/             Directory listing assets (SVN /assets, NOT shipped in the zip)
 ├── icon.svg / icon-*.png   Plugin icon (128 + 256)
 ├── banner.svg / banner-*.png  Listing banner (772x250 + 1544x500)
-└── (screenshot-N.png)      TODO: capture from a live wp-admin before submission —
-                            numbering must match readme.txt == Screenshots ==
+└── screenshot-1..4.png     Real captures (wp-admin settings, bubble, shortcode,
+                            inbox) — numbering must match readme.txt == Screenshots ==
 scripts/build-zip.mjs       Packages dist/clanker-support-<version>.zip
 ```
 
