@@ -209,11 +209,6 @@ export function buildSitemap(
 			priority: 0.8,
 		},
 		{
-			url: url("/docs"),
-			changeFrequency: "weekly",
-			priority: 0.8,
-		},
-		{
 			url: url("/blog"),
 			changeFrequency: "daily",
 			priority: 0.7,

@@ -2,7 +2,7 @@ import { BILLING_TIERS } from "@llmchat/shared";
 import { describe, expect, it } from "vitest";
 
 import { buildLlmsTxt } from "./llms-txt";
-import { CANONICAL_SHOWCASE_URL } from "./site-urls";
+import { CANONICAL_SHOWCASE_URL, DOCS_URL } from "./site-urls";
 
 const BASE = "https://clankersupport.com";
 
@@ -54,7 +54,8 @@ describe("buildLlmsTxt", () => {
 
 	it("links the core product pages with absolute URLs, incl. pricing.md", () => {
 		expect(out).toContain(`(${BASE}/)`);
-		expect(out).toContain(`(${BASE}/docs)`);
+		// Docs live on their own host (the Fumadocs app), not a marketing route.
+		expect(out).toContain(`(${DOCS_URL})`);
 		expect(out).toContain(`(${BASE}/compare)`);
 		expect(out).toContain(`(${BASE}/pricing.md)`);
 	});

@@ -8,7 +8,7 @@ import { CodeBlock } from "@/components/CodeBlock";
 import { TrackView } from "@/components/TrackView";
 import { JsonLd } from "@/components/JsonLd";
 import { breadcrumbLd, howToLd, pageMeta } from "@/lib/seo";
-import { CANONICAL_SITE_URL } from "@/lib/site-urls";
+import { CANONICAL_SITE_URL, DOCS_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -57,7 +57,6 @@ export default async function MigratePage({
 			<JsonLd
 				data={breadcrumbLd(CANONICAL_SITE_URL, [
 					{ name: "Home", path: "/" },
-					{ name: "Docs", path: "/docs" },
 					{
 						name: `Migrate from ${guide.name}`,
 						path: `/docs/migrate/${guide.slug}`,
@@ -73,8 +72,8 @@ export default async function MigratePage({
 			<main className="mx-auto max-w-3xl px-6">
 				{/* Breadcrumb */}
 				<div className="flex items-center gap-2 pt-10 font-mono text-[0.7rem] uppercase tracking-[0.14em]">
-					<Link href="/docs" className="text-faint hover:text-accent">
-						Docs
+					<Link href="/" className="text-faint hover:text-accent">
+						Home
 					</Link>
 					<span className="text-rule">/</span>
 					<span className="text-ink">Migrate · {guide.name}</span>
@@ -262,12 +261,12 @@ export default async function MigratePage({
 								From {m.name}
 							</Link>
 						))}
-						<Link
-							href="/docs"
+						<a
+							href={DOCS_URL}
 							className="rounded-full border border-rule px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] text-accent transition-colors hover:border-accent"
 						>
 							All docs →
-						</Link>
+						</a>
 					</div>
 				</section>
 			</main>

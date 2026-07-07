@@ -35,7 +35,6 @@ describe("buildSitemap", () => {
 				`${BASE}/pricing`,
 				`${BASE}/features`,
 				`${BASE}/compare`,
-				`${BASE}/docs`,
 				`${BASE}/blog`,
 				`${BASE}/privacy-policy`,
 				`${BASE}/terms-of-use`,
@@ -83,8 +82,10 @@ describe("buildSitemap", () => {
 		}
 	});
 
-	it("counts = 10 static + posts + competitors + migrations + features + use cases + tools", () => {
-		expect(entries).toHaveLength(10 + 2 + 2 + 1 + 2 + 2 + 2);
+	it("counts = 9 static + posts + competitors + migrations + features + use cases + tools", () => {
+		// /docs is deliberately absent: it 308-redirects to the docs app
+		// (next.config.ts) and redirecting URLs don't belong in a sitemap.
+		expect(entries).toHaveLength(9 + 2 + 2 + 1 + 2 + 2 + 2);
 	});
 });
 
@@ -197,15 +198,15 @@ describe("howToLd", () => {
 describe("pageMeta", () => {
 	it("sets a self-referencing canonical and an OG/Twitter block", () => {
 		const m = pageMeta({
-			title: "Docs — Clanker Support",
+			title: "Pricing — Clanker Support",
 			description: "Get started.",
-			path: "/docs",
+			path: "/pricing",
 		});
-		expect(m.alternates?.canonical).toBe("/docs");
-		expect(m.openGraph?.url).toBe("/docs");
+		expect(m.alternates?.canonical).toBe("/pricing");
+		expect(m.openGraph?.url).toBe("/pricing");
 		expect(m.openGraph).toMatchObject({
 			type: "website",
-			title: "Docs — Clanker Support",
+			title: "Pricing — Clanker Support",
 		});
 		// @ts-expect-error twitter card shape is a union; assert the field directly
 		expect(m.twitter?.card).toBe("summary_large_image");

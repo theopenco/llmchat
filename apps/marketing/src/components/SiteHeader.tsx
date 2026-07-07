@@ -5,7 +5,7 @@ import { GitHubStars } from "@/components/GitHubStars";
 import { MobileNav } from "@/components/MobileNav";
 import { DiscordIcon } from "@/components/SocialIcons";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { DISCORD_URL, GITHUB_URL } from "@/lib/site-urls";
+import { DISCORD_URL, DOCS_URL, GITHUB_URL } from "@/lib/site-urls";
 
 type NavKey = "features" | "resources" | "compare" | "pricing";
 
@@ -60,17 +60,17 @@ export function SiteHeader({ active }: { active?: NavKey }) {
 							</button>
 							<div className="invisible absolute left-1/2 top-full z-30 w-72 -translate-x-1/2 pt-3 opacity-0 transition duration-150 group-hover:visible group-hover:opacity-100">
 								<div className="overflow-hidden rounded-2xl border border-rule bg-paper-card/95 shadow-lift backdrop-blur-xl">
-									<Link
-										href="/docs"
+									<a
+										href={DOCS_URL}
 										className="block border-b border-rule-soft px-4 py-3.5 transition-colors hover:bg-paper-raise"
 									>
 										<span className="block text-sm font-medium text-ink">
 											Docs
 										</span>
 										<span className="mt-0.5 block text-xs text-faint">
-											Setup, widget config & migration guides
+											Setup, widget config & how-to guides
 										</span>
-									</Link>
+									</a>
 									<Link
 										href="/use-cases"
 										className="block border-b border-rule-soft px-4 py-3.5 transition-colors hover:bg-paper-raise"

@@ -5,7 +5,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { DiscordIcon, XIcon } from "@/components/SocialIcons";
 import { TrackedLink } from "@/components/TrackedLink";
 import { TOOLS } from "@/lib/tools";
-import { DISCORD_URL, X_URL } from "@/lib/site-urls";
+import { DISCORD_URL, DOCS_URL, X_URL } from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -54,9 +54,9 @@ export function SiteFooter() {
 								</Link>
 							</li>
 							<li>
-								<Link href="/docs" className={colLink}>
+								<a href={DOCS_URL} className={colLink}>
 									Docs
-								</Link>
+								</a>
 							</li>
 							<li>
 								<Link href="/use-cases" className={colLink}>
