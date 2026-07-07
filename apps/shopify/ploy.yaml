@@ -8,7 +8,15 @@
 kind: dynamic
 name: shopify
 build: pnpm install --frozen-lockfile && pnpm build:app
+# Deploy-side entrypoint + assets both require the Ploy builder to honor them
+# for simple workers (builder change shipped alongside this config): `main`
+# takes precedence over index.ts/src/index.ts detection, and
+# `assets.directory` uploads the react-router client bundle so /assets/* and
+# favicon are served from the deployment's asset prefix instead of 404ing
+# into the SSR handler.
 main: workers/app.ts
+assets:
+  directory: build/client
 dev:
   port: 3006
 # No compatibility_flags: Ploy injects nodejs_compat_v2 itself (adding
