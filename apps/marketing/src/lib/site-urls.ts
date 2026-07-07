@@ -21,6 +21,12 @@ export const CANONICAL_SITE_URL =
 export const SALES_EMAIL =
 	process.env.NEXT_PUBLIC_SALES_EMAIL ?? "sales@clankersupport.com";
 
+/** The product docs / knowledge base (the Fumadocs app) — its own host, not a
+ * marketing route. `/docs` on this site 308-redirects here (next.config.ts);
+ * internal links should point at this URL directly and skip the hop. */
+export const DOCS_URL =
+	process.env.NEXT_PUBLIC_DOCS_URL ?? "https://docs.clankersupport.com";
+
 /** Public community / social links surfaced in the header and footer. The
  * GitHub repo doubles as the source for the live star count in the navbar. */
 export const GITHUB_REPO = "theopenco/llmchat";

@@ -15,6 +15,7 @@ import { BILLING_TIERS } from "@llmchat/shared";
 
 import {
 	CANONICAL_SHOWCASE_URL,
+	DOCS_URL,
 	GITHUB_URL,
 	RSC_NPM_URL,
 	RSC_PACKAGE,
@@ -59,7 +60,7 @@ export function buildLlmsTxt(siteUrl: string, input: LlmsTxtInput): string {
 		"",
 		"## Product",
 		`- [Overview](${siteUrl}/): What Clanker Support is and how the drop-in agent works.`,
-		`- [Docs](${siteUrl}/docs): Quickstart (script tag or React SDK), training on your docs, escalation, and migration.`,
+		`- [Docs](${DOCS_URL}): The product docs and knowledge base — getting started plus a how-to guide for every dashboard page.`,
 		`- [React / Next.js SDK](${RSC_NPM_URL}): ${RSC_PACKAGE} on npm — the widget as one Server Component in your root layout, with a headless entry for custom UIs.`,
 		`- [GitHub](${GITHUB_URL}): The open-source (MIT) codebase — self-host the full stack with your own keys.`,
 		`- [Live demo](${CANONICAL_SHOWCASE_URL}): The real widget running on a first-party demo page — try it before installing.`,

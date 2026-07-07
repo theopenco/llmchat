@@ -13,7 +13,7 @@ import { TrackedLink } from "@/components/TrackedLink";
 import { FaqSection } from "@/components/FaqSection";
 import { JsonLd } from "@/components/JsonLd";
 import { breadcrumbLd, faqPageLd, pageMeta, type Faq } from "@/lib/seo";
-import { CANONICAL_SITE_URL, SALES_EMAIL } from "@/lib/site-urls";
+import { CANONICAL_SITE_URL, DOCS_URL, SALES_EMAIL } from "@/lib/site-urls";
 import { PricingPlans, type PlanCard } from "./PricingPlans";
 
 const dashboardUrl =
@@ -222,12 +222,12 @@ export default function PricingPage() {
 							from us.
 						</p>
 					</div>
-					<Link
-						href="/docs"
+					<a
+						href={DOCS_URL}
 						className="shrink-0 rounded-full bg-ink px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 					>
 						Read the docs →
-					</Link>
+					</a>
 				</section>
 
 				{/* Honesty note */}

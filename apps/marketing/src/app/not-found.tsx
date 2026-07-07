@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { DOCS_URL } from "@/lib/site-urls";
 
 // Next auto-emits <meta name="robots" content="noindex"> on not-found pages;
 // this file only replaces the unbranded default UI.
@@ -34,12 +35,12 @@ export default function NotFound() {
 								Back to the homepage
 								<span aria-hidden>→</span>
 							</Link>
-							<Link
-								href="/docs"
+							<a
+								href={DOCS_URL}
 								className="rounded-full border border-rule px-7 py-3.5 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
 							>
 								Browse the docs
-							</Link>
+							</a>
 						</div>
 					</div>
 				</section>

@@ -6,12 +6,13 @@ import Link from "next/link";
 
 import { DiscordIcon, GitHubIcon } from "@/components/SocialIcons";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { DOCS_URL } from "@/lib/site-urls";
 
 type NavKey = "features" | "resources" | "compare" | "pricing";
 
 const links: { label: string; href: string; active?: NavKey }[] = [
 	{ label: "Features", href: "/features", active: "features" },
-	{ label: "Docs", href: "/docs", active: "resources" },
+	{ label: "Docs", href: DOCS_URL, active: "resources" },
 	{ label: "Use cases", href: "/use-cases", active: "resources" },
 	{ label: "Free tools", href: "/tools", active: "resources" },
 	{ label: "Blog", href: "/blog", active: "resources" },
