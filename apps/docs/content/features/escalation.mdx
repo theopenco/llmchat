@@ -1,0 +1,42 @@
+---
+title: Escalation & human handoff
+description: When the agent can't help, a human takes over — with the full conversation already in front of them
+icon: LifeBuoy
+---
+
+The support agent handles the questions your knowledge base can answer. For everything else, the visitor hands the conversation to your team — and the agent gets out of the way. No ticket form, no starting over: your team picks up the same thread, with everything the visitor already said.
+
+## When the widget offers a human
+
+Each project sets its own threshold: after a number of visitor messages (default **3**), the widget shows a **Talk to a human** option. Set it low to route visitors to your team quickly; set it higher to let the agent try more answers first.
+
+A visitor who explicitly asks for a person doesn't wait for the threshold. When a message reads as a request for a human — "talk to a real person", "get me an agent", "escalate this" — the widget surfaces **Talk to a human** immediately, however early in the conversation it happens. Nobody has to argue with the agent to reach your team.
+
+Either way, escalating stays the visitor's choice: the option appears, and the visitor clicks it.
+
+## What the visitor sees
+
+When the visitor chooses **Talk to a human**, a short recap appears in the chat — a sentence or two summarizing what they asked about and what's been covered, so they know the handoff carries their context and they won't have to repeat themselves. The **Talk to a human** option then disappears; a conversation escalates once.
+
+## How your team finds out
+
+An escalation notifies your team through every channel the project has configured, plus the dashboard itself:
+
+- **Email** — sent to the project's notify address, when one is set.
+- **Slack** — posted via an incoming webhook to a channel of your choice, when one is set.
+- **Notification bell** — the escalation always appears in the dashboard's notification feed, and the conversation is flagged **Escalated** in the [team inbox](/features/team-inbox) so it stands out while triaging.
+
+## The agent stands down
+
+Escalation isn't just a notification — it changes who's answering:
+
+1. **While your team is on the way**, if the visitor sends another message, the agent replies only with a brief holding note saying a human will follow up. It doesn't attempt an answer.
+2. **Once a human replies**, the agent goes fully silent. Every later visitor message reaches only your team.
+
+The handoff is one-way by design: a conversation a human has taken over stays with humans. A visitor who asked for a person is never bounced back to the agent mid-conversation.
+
+From there it's a normal team conversation — replies from the inbox reach the visitor in the widget, and by email when they shared an address. See [Email threading](/features/email-threading) for how those replies stay in one thread.
+
+## Configuration
+
+The threshold, notify email, and Slack webhook all live on the project's **Behavior** tab. [Escalation in the dashboard](/learn/escalation) walks through each setting and how escalated conversations look in the inbox.

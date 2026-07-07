@@ -1,0 +1,50 @@
+---
+title: Pricing
+description: Hosted plans, what counts as a response, and what each tier includes
+icon: CreditCard
+---
+
+Hosted Clanker Support is usage-based and **paid-only** — there is no free hosted tier. You pay for what the agent actually does: every **AI response** it sends counts toward your plan's monthly quota. Replies your teammates send from the inbox are human replies — they are never metered — and there are no per-seat fees. Prefer to run it yourself? [Self-hosting](/features/self-hosting) is free.
+
+## What counts as a response
+
+- One AI-generated answer in the widget = **one response**, recorded the moment it's produced.
+- Human replies from the [team inbox](/features/team-inbox) are unlimited and never counted.
+- The counter resets at the start of each calendar month (UTC).
+
+## Plans
+
+| Plan        | Monthly | Annual    | AI responses/mo | Projects | Seats     | Models      | Branding                |
+| ----------- | ------- | --------- | --------------- | -------- | --------- | ----------- | ----------------------- |
+| **Starter** | $19     | $190/yr   | 2,000           | 2        | 3         | Basic class | "Powered by" badge      |
+| **Growth**  | $89     | $890/yr   | 12,000          | 5        | 10        | All models  | No badge                |
+| **Scale**   | $299    | $2,990/yr | 50,000          | 20       | Unlimited | All models  | Custom branding allowed |
+
+Annual billing is 10× the monthly price — **two months free**.
+
+**Model access:** every project picks from a curated set of web-search-capable models. Starter is limited to the lighter "basic" class (mini/nano/haiku/flash/lite/small-class models); Growth and Scale unlock the full catalog. See [AI responses](/features/ai-responses).
+
+## What happens past the quota
+
+- **Starter** hard-stops: once the 2,000 included responses are used, the agent stops answering until the next month or an upgrade. Human replies keep working.
+- **Growth and Scale** meter overage: responses beyond the included quota are billed per additional response through Stripe, so the agent never goes dark mid-month. Your usage — including how far over you are — is visible on the billing page.
+
+## Enterprise
+
+Enterprise is sold, not self-served — [contact us](https://clankersupport.com/pricing) if you need:
+
+- Everything in Scale
+- Custom response volume & pricing
+- Unlimited projects & seats
+- SSO/SAML, audit logs & DPA
+- SLA + dedicated support channel
+- White-glove onboarding & migration
+- Self-host support contract
+
+## Self-hosting is free
+
+The entire stack is open source (MIT, [theopenco/llmchat](https://github.com/theopenco/llmchat)). Self-host it with your own LLM Gateway key — you pay your model provider directly, and nothing is metered by us. See [Self-hosting](/features/self-hosting).
+
+## Managing your plan
+
+You choose a plan during onboarding and manage it from the dashboard — usage meter, plan changes, invoices, and the Stripe billing portal all live at **Settings → Billing**. See [Billing & usage](/learn/billing) for the walkthrough, and the full pricing page at [clankersupport.com/pricing](https://clankersupport.com/pricing).

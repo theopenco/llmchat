@@ -1,0 +1,97 @@
+---
+title: React SDK
+description: Embed the support agent as a single React Server Component, or build your own UI with the headless entry
+icon: Atom
+---
+
+`@clankersupport/widget-rsc` is the Clanker Support widget as an npm package for React and Next.js apps. It's MIT-licensed, has zero runtime dependencies (React 19 is the only peer), and ships two entries: a batteries-included Server Component, and a headless entry with primitives and a hook for building your own UI.
+
+```sh
+npm install @clankersupport/widget-rsc
+```
+
+## One line in your root layout
+
+Add the component once — every page gets the widget. Grab your project's public key from the dashboard (**Project → Embed**):
+
+```tsx
+import { ClankerSupport } from "@clankersupport/widget-rsc";
+
+export default function RootLayout({ children }) {
+	return (
+		<html lang="en">
+			<body>
+				{children}
+				<ClankerSupport apiKey="pk_your_project_key" />
+			</body>
+		</html>
+	);
+}
+```
+
+`ClankerSupport` is an async Server Component: it prefetches your widget config on the server (cached, revalidated every 5 minutes), so the client saves a round-trip and branding never flashes. The fetch is wrapped in Suspense and fails soft — a slow or unreachable API never blocks or breaks your page. The public key is safe to expose; it's the same key the script tag uses.
+
+Mounting from a Client Component instead? Import `ClankerSupportWidget` from the `/headless` entry — the identical widget, with the config fetched client-side.
+
+## Props
+
+| Prop                  | Type                              | Default                          | What it does                                                         |
+| --------------------- | --------------------------------- | -------------------------------- | -------------------------------------------------------------------- |
+| `apiKey`              | `string` (required)               | —                                | Your project's public widget key.                                    |
+| `apiUrl`              | `string`                          | `https://api.clankersupport.com` | API origin. Point at your own deployment when self-hosting.          |
+| `brandColor`          | `string`                          | `#111827`                        | Accent color for the launcher, header, and visitor bubbles.          |
+| `position`            | `"bottom-right" \| "bottom-left"` | `"bottom-right"`                 | Which corner the widget docks to.                                    |
+| `title`               | `string`                          | `"Support"`                      | Panel header title.                                                  |
+| `greeting`            | `string \| null`                  | `"Hi! How can I help?"`          | Greeting bubble copy. Pass `null` to hide it.                        |
+| `escalationThreshold` | `number`                          | `3`                              | Visitor messages before **Talk to a human** appears.                 |
+| `defaultOpen`         | `boolean`                         | `false`                          | Open the panel on mount.                                             |
+| `className`           | `string`                          | —                                | Extra class on the fixed container — handy for CSS-variable theming. |
+
+## Styling
+
+Unlike the script tag, the SDK does **not** use a shadow DOM. Everything is plain, namespaced CSS — `.clanker-*` classes driven by `--clanker-*` custom properties — so your stylesheet wins:
+
+```css
+.clanker-root {
+	--clanker-brand: #16a34a;
+	--clanker-surface: #0b0f14;
+	--clanker-text: #e5e7eb;
+}
+.clanker-panel {
+	border-radius: 8px;
+}
+```
+
+If re-theming isn't enough, go headless.
+
+## Headless: bring your own UI
+
+`@clankersupport/widget-rsc/headless` exports `ClankerSupportProvider` (aliased as `Root`), the `useClankerSupport()` hook, and unstyled primitives: `Trigger`, `Panel`, `Messages`, `Composer`, `Input`, `Submit`, `EscalateButton`, `ResolveButton`, and `Branding`. Primitives render semantic elements with `data-*` state attributes, forward native props, and interactive ones support `asChild` (Radix-style) so you can swap in your own components. The client-rendered `ClankerSupportWidget` lives here too.
+
+```tsx
+"use client";
+
+import * as SupportChat from "@clankersupport/widget-rsc/headless";
+
+export function HelpButton() {
+	return (
+		<SupportChat.Root apiKey="pk_your_project_key">
+			<SupportChat.Trigger>Need help?</SupportChat.Trigger>
+			<SupportChat.Panel>
+				<SupportChat.Messages />
+				<SupportChat.Composer>
+					<SupportChat.Input placeholder="Ask anything…" />
+					<SupportChat.Submit>Send</SupportChat.Submit>
+				</SupportChat.Composer>
+				<SupportChat.Branding />
+			</SupportChat.Panel>
+		</SupportChat.Root>
+	);
+}
+```
+
+Prefer no components at all? `useClankerSupport()` exposes the full surface — `messages`, `status`, `send()`, draft state, `escalate()` / `resolve()` with their eligibility flags, `rate()` for per-message thumbs, CSAT submission, visitor `identify()`, and panel open state — so you can drive everything yourself.
+
+## SDK or script tag?
+
+Use the SDK when your site is React or Next.js and you want server-side config prefetch, CSS-level restyling, or a fully custom UI. Use the [script tag](/integrations/widget) everywhere else — it's one line of HTML, needs no build step, and its shadow DOM keeps host-page CSS out. The two share storage keys, so switching from the script tag to the SDK keeps existing visitor conversations and identities.

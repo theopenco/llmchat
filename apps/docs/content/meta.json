@@ -1,4 +1,13 @@
 {
 	"title": "Clanker Support",
-	"pages": ["index", "getting-started", "learn"]
+	"pages": [
+		"---Documentation---",
+		"index",
+		"getting-started",
+		"pricing",
+		"features",
+		"integrations",
+		"---Knowledge base---",
+		"learn"
+	]
 }

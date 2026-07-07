@@ -1,12 +1,12 @@
 ---
-title: Welcome
+title: Introduction
 description: What Clanker Support is, how it fits together, and where to start in these docs
 icon: BookOpen
 ---
 
 Clanker Support is an AI-powered support agent for your site. You install it with a single script tag (or the React SDK), point it at your knowledge base — website pages, text snippets, Q&A pairs — and it answers visitor questions in a chat widget on your site. When a visitor needs a person, the agent hands the conversation off to your team, and every conversation lands in a shared inbox at [app.clankersupport.com](https://app.clankersupport.com).
 
-Clanker Support is open source ([theopenco/llmchat](https://github.com/theopenco/llmchat), MIT). You can self-host the whole stack, or use the hosted service — see [pricing](https://clankersupport.com/pricing) for plans.
+Clanker Support is open source ([theopenco/llmchat](https://github.com/theopenco/llmchat), MIT). You can self-host the whole stack for free with your own LLM Gateway key, or use the hosted service — see [Pricing](/pricing) for plans.
 
 ## What you get
 
@@ -14,7 +14,7 @@ Clanker Support is open source ([theopenco/llmchat](https://github.com/theopenco
 - **Escalation to humans** — the agent offers a handoff when it can't help; your team is notified by email (and Slack, if you add a webhook) and the agent stands down.
 - **A shared inbox** — search, filters, tags, and a reply composer; replies reach the visitor in the widget, and by email when they shared an address.
 - **Quality signals** — per-message thumbs up/down on answers, plus a separate 1–5 rating the visitor can leave for the conversation.
-- **Two install paths** — a one-line script tag, or the `@clankersupport/widget-rsc` React/Next.js SDK.
+- **Your choice of install path** — a one-line script tag, a React/Next.js SDK, and connectors for Shopify and WordPress.
 
 ## How it fits together
 
@@ -32,12 +32,21 @@ Once you've created a project, the whole install is one script tag with your pro
 ></script>
 ```
 
-Using React or Next.js? The `@clankersupport/widget-rsc` package gives you a `<ClankerSupport apiKey="pk_…" />` Server Component instead, restylable with CSS variables. Both paths — plus an inline iframe embed — are covered in [Getting started](/getting-started).
+Using React or Next.js? The `@clankersupport/widget-rsc` package gives you a `<ClankerSupport apiKey="pk_…" />` Server Component instead, restylable with CSS variables — see the [React SDK](/integrations/react-sdk).
+
+## Four ways to install
+
+- **[Script tag](/integrations/widget)** — one line, works on any site, no build step.
+- **[React SDK](/integrations/react-sdk)** — `@clankersupport/widget-rsc` on npm; a Server Component for the drop-in path, plus headless primitives when you want full control.
+- **[Shopify](/integrations/shopify)** — a theme app extension, coming soon to the Shopify App Store. Until then, Shopify merchants can paste the script tag into their theme.
+- **[WordPress](/integrations/wordpress)** — a plugin with a settings page and a `[clanker_support]` shortcode. The wordpress.org listing is on its way; today it installs as a manual plugin upload.
 
 ## How these docs are organized
 
 - **[Getting started](/getting-started)** — create your account and workspace, build your first agent, and install the widget on your site.
-- **[Learn](/learn)** — working in the dashboard: the inbox, escalation, tags and search, projects and widget settings, workspaces, and billing.
-- **[Knowledge sources](/learn/sources)** — teach the agent: add website, text, and Q&A sources, keep them fresh with Recrawl, and promote inbox replies into knowledge.
+- **[Pricing](/pricing)** — plans, included AI responses, overage, and what self-hosting costs (nothing).
+- **[Features](/features)** — what the product does: AI responses, knowledge sources, escalation, email threading, the team inbox, ratings, and self-hosting.
+- **[Integrations](/integrations)** — the four install paths in detail: script tag, React SDK, Shopify, and WordPress.
+- **[Dashboard](/learn)** — working in the dashboard: the inbox, escalation, tags and search, projects and widget settings, workspaces, and billing.
 
-If you get stuck, the **Help** button in the dashboard's top bar brings you back here.
+If you get stuck, use the **Help** button in the dashboard's top bar.

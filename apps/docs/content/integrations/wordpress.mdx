@@ -1,0 +1,63 @@
+---
+title: WordPress
+description: The official plugin adds the widget to every public page of your WordPress site, plus an inline chat shortcode
+icon: Globe
+---
+
+The official WordPress plugin puts the support agent on your site without touching theme code. It loads the same `widget.js` embed the [script tag](/integrations/widget) uses — configured from a settings page in wp-admin instead of HTML — and adds a `[clanker_support]` shortcode for embedding the chat inline in any page or post.
+
+The wordpress.org listing is on its way. Today the plugin installs as a manual upload: a zip built from the plugin package in the GitHub repo.
+
+## Install
+
+1. Build the zip from [`packages/wordpress-plugin`](https://github.com/theopenco/llmchat/tree/main/packages/wordpress-plugin) in the repo — `pnpm package` there emits `dist/clanker-support-<version>.zip`.
+2. In wp-admin, go to **Plugins → Add New → Upload Plugin**, choose the zip, and activate.
+3. Copy your project's public key from the dashboard (**Projects → your project → Embed**).
+4. Go to **Settings → Clanker Support**, paste the key, and save.
+
+The launcher bubble now appears on every public page. Nothing loads in the admin area.
+
+## Settings
+
+Everything lives under **Settings → Clanker Support**:
+
+| Setting                  | Default                          | What it does                                                                               |
+| ------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Floating bubble**      | on                               | Shows the launcher bubble on every public page                                             |
+| **Project key**          | —                                | Your project's public key — the same key the script tag uses, safe to expose               |
+| **API URL**              | `https://api.clankersupport.com` | Point it at your own deployment if you [self-host](/features/self-hosting)                 |
+| **Brand color**          | `#111827`                        | Accent color for the launcher and chat                                                     |
+| **Escalation threshold** | project default                  | Messages before **Talk to a human** is offered — leave blank to use your project's setting |
+
+The settings page includes a **live connection check**: it verifies your project key against the API and shows a status pill, so a wrong key or API URL is flagged right on the page. The result is cached briefly; saving the settings re-checks.
+
+Under the hood, the plugin enqueues `<API URL>/widget.js` asynchronously with the same `data-*` attributes the dashboard's embed snippet generates — so everything on the [script tag](/integrations/widget) page about widget behavior applies here too.
+
+## Inline chat with the shortcode
+
+Add the shortcode to any page or post to render the chat inline:
+
+```
+[clanker_support]
+```
+
+It embeds the API's full-page chat (`/embed/{projectKey}`) in an iframe. Optional `width` and `height` attributes control the size (default 400×600):
+
+```
+[clanker_support width="500" height="700"]
+```
+
+The shortcode works independently of the floating-bubble toggle — you can turn the site-wide bubble off and still offer the chat on a single Contact page.
+
+## Requirements
+
+- WordPress 5.8 or newer
+- PHP 7.4 or newer
+
+The plugin is licensed GPLv2 or later. It stores only its settings (one option) and a short-lived connection-status cache (one transient) in WordPress — conversations live in your Clanker Support project, not your WordPress database. Uninstalling removes both stored values.
+
+## Next steps
+
+- Tune the agent's instructions, model, and knowledge base in [project settings](/learn/project-settings) and [knowledge sources](/learn/sources).
+- See how the handoff to your team works in [escalation](/features/escalation).
+- Triage conversations from your site in the [team inbox](/features/team-inbox).

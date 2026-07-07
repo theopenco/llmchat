@@ -1,0 +1,41 @@
+---
+title: Integrations
+description: Every way to put the support agent on your site
+icon: Blocks
+---
+
+Every integration is a different way to install the same support agent. Whatever the path, the widget talks to the same project — the same knowledge base, instructions, and AI model — and every conversation lands in the same shared [inbox](/learn/inbox). Pick the path that matches your stack; you can switch later without losing anything, because the project key is all any of them need.
+
+## The four paths
+
+| Integration                                   | Best for                                                                                | Status                                         |
+| --------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| [Widget & iframe embed](/integrations/widget) | Any website — one script tag, no build step; iframe for site builders                   | Live                                           |
+| [React SDK](/integrations/react-sdk)          | React 19 / Next.js App Router apps that want a typed component and CSS-variable styling | Live on npm                                    |
+| [Shopify](/integrations/shopify)              | Shopify stores — app-embed block toggled on in the theme editor, zero permission scopes | Coming soon to the Shopify App Store           |
+| [WordPress](/integrations/wordpress)          | WordPress sites — settings-page install plus a shortcode for an inline chat             | Plugin ready; wordpress.org listing on its way |
+
+## Choosing a path
+
+- **Not sure? Start with the [script tag](/integrations/widget).** It works on any site that lets you add HTML, loads asynchronously, and renders in a shadow DOM so your site's CSS and the widget's never collide.
+- **On React or Next.js**, the [`@clankersupport/widget-rsc` SDK](/integrations/react-sdk) gives you a `<ClankerSupport apiKey="pk_…" />` Server Component for the root layout, plus headless primitives when you want to build your own chat UI.
+- **Can't add script tags at all?** The [iframe embed](/integrations/widget) serves the full chat as a page you can frame anywhere.
+- **On Shopify today**, paste the script tag into your theme — the app-embed install takes over once the App Store listing is live.
+- **On WordPress today**, install the plugin as a manual zip upload; the wordpress.org listing will make that one click.
+
+## The same agent, whichever path you pick
+
+The install path only changes how the widget gets onto the page. Everything the agent does is identical across all four:
+
+- **Answers** stream from the project's knowledge base and instructions — see [AI responses](/features/ai-responses) and [Knowledge sources](/features/knowledge-sources).
+- **Escalation** offers "Talk to a human" after the project's message threshold (or immediately when the visitor asks), notifies your team, and stands the agent down — see [Escalation](/features/escalation).
+- **Replies** from your team reach the visitor in the widget, and by email when they shared an address, with email replies threading back into the same conversation — see [Email threading](/features/email-threading).
+- **Quality signals** — per-message thumbs on answers and a separate 1–5 rating on the conversation — flow into the inbox either way; see [Ratings & CSAT](/features/ratings-csat).
+
+Branding follows the project too: brand color and welcome message are project settings. The script tag can override the brand color per page, and the React SDK can override both — the individual integration pages list the options.
+
+## What every path needs
+
+One thing: your project's **public key** (`pk_…`). You get it when you create a project, and it's always available under **Projects → your project → Widget** in the dashboard — see [Widget & embed settings](/learn/widget). The key is safe to expose in page source; it identifies the project, it doesn't grant dashboard access.
+
+Before installing, make sure the agent has something to answer from — add [knowledge sources](/learn/sources) and set the project's instructions. The [Getting started](/getting-started) guide walks through the whole flow from account to first conversation.
