@@ -8,7 +8,7 @@ import {
 } from "next/font/google";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { CANONICAL_SITE_URL } from "@/lib/site-urls";
+import { CANONICAL_SITE_URL, X_HANDLE } from "@/lib/site-urls";
 
 // Google Search Console ownership verification token (the value from the
 // "HTML tag" method). Hardcoded so it ships in every build's <head> with no
@@ -61,7 +61,10 @@ export const metadata: Metadata = {
 		],
 		apple: [{ url: "/favicon-180.png", sizes: "180x180", type: "image/png" }],
 	},
-	alternates: { canonical: "/" },
+	alternates: {
+		canonical: "/",
+		types: { "application/rss+xml": "/feed.xml" },
+	},
 	openGraph: {
 		type: "website",
 		url: "/",
@@ -72,6 +75,7 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
+		site: X_HANDLE,
 		title: TITLE,
 		description: DESCRIPTION,
 	},

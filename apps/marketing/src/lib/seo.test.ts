@@ -15,7 +15,11 @@ const BASE = "https://clankersupport.com";
 const input = {
 	posts: [
 		{ slug: "introducing-llmchat", date: "2026-05-01" },
-		{ slug: "setting-up-email-threading", date: "2026-05-10" },
+		{
+			slug: "setting-up-email-threading",
+			date: "2026-05-10",
+			updated: "2026-06-01",
+		},
 	],
 	competitors: [{ id: "intercom" }, { id: "fin" }],
 	migrations: [{ slug: "intercom" }],
@@ -68,16 +72,25 @@ describe("buildSitemap", () => {
 		expect(new Set(urls).size).toBe(urls.length);
 	});
 
-	it("dates blog entries from their post date", () => {
+	it("dates blog entries from their post date, preferring the revision date", () => {
 		const post = entries.find(
 			(e) => e.url === `${BASE}/blog/introducing-llmchat`,
 		);
 		expect(post?.lastModified).toEqual(new Date("2026-05-01"));
+		const revised = entries.find(
+			(e) => e.url === `${BASE}/blog/setting-up-email-threading`,
+		);
+		expect(revised?.lastModified).toEqual(new Date("2026-06-01"));
+	});
+
+	it("dates the /blog hub from the newest post activity", () => {
+		const hub = entries.find((e) => e.url === `${BASE}/blog`);
+		expect(hub?.lastModified).toEqual(new Date("2026-06-01"));
 	});
 
 	it("omits lastModified everywhere else — a build-time stamp would claim every page changed on every deploy", () => {
 		for (const e of entries) {
-			if (e.url.includes("/blog/")) continue;
+			if (e.url === `${BASE}/blog` || e.url.includes("/blog/")) continue;
 			expect(e.lastModified).toBeUndefined();
 		}
 	});
@@ -210,6 +223,15 @@ describe("pageMeta", () => {
 		});
 		// @ts-expect-error twitter card shape is a union; assert the field directly
 		expect(m.twitter?.card).toBe("summary_large_image");
+		// @ts-expect-error twitter card shape is a union; assert the field directly
+		expect(m.twitter?.site).toBe("@ClankrSupport");
+	});
+
+	it("re-declares the RSS alternate so the feed <link> survives Next's per-page alternates replacement", () => {
+		const m = pageMeta({ title: "T", description: "d", path: "/p" });
+		expect(m.alternates?.types).toEqual({
+			"application/rss+xml": "/feed.xml",
+		});
 	});
 
 	it("marks blog posts as articles with a published time", () => {

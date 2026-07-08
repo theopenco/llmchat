@@ -61,6 +61,8 @@ export default async function PostPage({
 		dateModified: post.updated ?? post.date,
 		url,
 		mainEntityOfPage: url,
+		// Google's Article rich result wants an image; the cover is the hero.
+		...(post.cover ? { image: `${CANONICAL_SITE_URL}${post.cover}` } : {}),
 		// A named author maps to a Person; otherwise the team byline is the
 		// Organization itself (honest default — no invented author identities).
 		author: post.author

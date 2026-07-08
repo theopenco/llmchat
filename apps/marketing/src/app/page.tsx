@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { allPosts } from "content-collections";
 import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -18,21 +19,32 @@ import { PricingTeaser } from "@/components/home/PricingTeaser";
 import { ShimmerCta } from "@/components/home/ShimmerCta";
 import { FEATURES } from "@/lib/features";
 import { USE_CASES } from "@/lib/use-cases";
+import { formatDateShort } from "@/lib/format";
 import { faqPageLd, type Faq } from "@/lib/seo";
 import {
 	CANONICAL_SITE_URL,
+	DISCORD_URL,
 	DOCS_URL,
+	GITHUB_URL,
 	RSC_PACKAGE,
 	WORDPRESS_PLUGIN_URL,
+	X_URL,
 } from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
-// Organization + WebSite structured data for the home page. No `sameAs` —
-// there are no official brand social profiles to point at yet (adding fake ones
-// would hurt, not help, entity trust). `contactPoint` uses the real support
-// address already published on the Terms page.
+// Latest three posts, surfaced on the home page so fresh content is one click
+// from the root — crawlers weight link depth heavily when scheduling crawls,
+// and posts linked only from /blog were sitting in "Discovered — not indexed".
+const latestPosts = allPosts
+	.toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+	.slice(0, 3);
+
+// Organization + WebSite structured data for the home page. `sameAs` lists the
+// official brand profiles (GitHub, X, Discord — all linked from the site
+// chrome) so entity resolvers can connect them. `contactPoint` uses the real
+// support address already published on the Terms page.
 const orgJsonLd = {
 	"@context": "https://schema.org",
 	"@graph": [
@@ -42,6 +54,7 @@ const orgJsonLd = {
 			name: "Clanker Support",
 			url: CANONICAL_SITE_URL,
 			logo: `${CANONICAL_SITE_URL}/logo.svg`,
+			sameAs: [GITHUB_URL, X_URL, DISCORD_URL],
 			email: "support@clankersupport.com",
 			foundingDate: "2026",
 			slogan: "AI support that actually escalates.",
@@ -383,6 +396,51 @@ export default function Home() {
 								Read the blog →
 							</Link>
 						</div>
+					</div>
+				</section>
+
+				{/* ── From the Journal — latest posts ──────────────────── */}
+				<section className="mx-auto max-w-6xl px-6 pb-24">
+					<div className="flex items-center justify-between gap-4">
+						<div>
+							<p className="kicker">From the Journal</p>
+							<h3 className="font-display mt-3 text-2xl font-semibold tracking-tight-display text-ink">
+								Field notes on AI support
+							</h3>
+						</div>
+						<Link
+							href="/blog"
+							className="shrink-0 text-sm font-medium text-accent-soft transition-colors hover:text-accent"
+						>
+							All posts →
+						</Link>
+					</div>
+					<div className="mt-8 grid gap-x-10 border-t border-rule sm:grid-cols-3">
+						{latestPosts.map((post) => (
+							<Link
+								key={post.slug}
+								href={`/blog/${post.slug}`}
+								className="group flex flex-col border-b border-rule py-8"
+							>
+								<div className="flex items-center gap-2.5 font-mono text-[0.68rem] uppercase tracking-[0.14em]">
+									<span className="text-accent">{post.category}</span>
+									<span className="text-rule">·</span>
+									<span className="text-faint">{post.readingTime} min</span>
+								</div>
+								<h4 className="font-display mt-4 text-xl font-semibold leading-snug tracking-tight-display text-ink transition-colors group-hover:text-accent">
+									{post.title}
+								</h4>
+								<p className="mt-3 flex-1 text-sm leading-relaxed text-muted">
+									{post.description}
+								</p>
+								<div className="mt-5 flex items-center justify-between font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
+									<span>{formatDateShort(post.date)}</span>
+									<span className="text-accent opacity-0 transition-opacity group-hover:opacity-100">
+										Read →
+									</span>
+								</div>
+							</Link>
+						))}
 					</div>
 				</section>
 

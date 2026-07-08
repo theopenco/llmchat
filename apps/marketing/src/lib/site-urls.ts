@@ -40,3 +40,5 @@ export const RSC_PACKAGE = "@clankersupport/widget-rsc";
 export const RSC_NPM_URL = `https://www.npmjs.com/package/${RSC_PACKAGE}`;
 export const DISCORD_URL = "https://discord.gg/RnyjHWuTKP";
 export const X_URL = "https://x.com/ClankrSupport";
+/** The X handle for Twitter-card attribution (`twitter:site`). */
+export const X_HANDLE = "@ClankrSupport";

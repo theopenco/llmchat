@@ -1,5 +1,7 @@
 import type { Metadata, MetadataRoute } from "next";
 
+import { X_HANDLE } from "./site-urls";
+
 /**
  * Per-page metadata with the SEO essentials wired consistently: a self-
  * referencing canonical, Open Graph, and a Twitter card. `path` is root-
@@ -30,7 +32,13 @@ export function pageMeta(opts: {
 	return {
 		title,
 		description,
-		alternates: { canonical: path },
+		// `types` re-declares the RSS alternate: Next replaces the layout's
+		// `alternates` object per page rather than merging it, so without this
+		// the feed <link> would only render on the home page.
+		alternates: {
+			canonical: path,
+			types: { "application/rss+xml": "/feed.xml" },
+		},
 		openGraph: {
 			type,
 			url: path,
@@ -42,6 +50,7 @@ export function pageMeta(opts: {
 		},
 		twitter: {
 			card: "summary_large_image",
+			site: X_HANDLE,
 			title,
 			description,
 			...(image ? { images: [image] } : {}),
@@ -164,7 +173,7 @@ export function itemListLd(
 }
 
 export interface SitemapInput {
-	posts: { slug: string; date: string }[];
+	posts: { slug: string; date: string; updated?: string }[];
 	competitors: { id: string }[];
 	migrations: { slug: string }[];
 	features: { slug: string }[];
@@ -177,15 +186,23 @@ export interface SitemapInput {
  * blog/comparison/migration page — as absolute URLs. Pure (data in, entries
  * out) so it's unit-tested without the content-collections build or Next.
  *
- * Only blog entries carry `lastModified` (from real post dates). The rest
- * deliberately omit it: the previous build-time stamp claimed every page
- * changed on every deploy, which teaches crawlers to distrust the field.
+ * Only blog entries and the /blog hub carry `lastModified` (from real post
+ * dates — `updated` when a post was revised, else the publish date; the hub
+ * takes the newest of those). The rest deliberately omit it: the previous
+ * build-time stamp claimed every page changed on every deploy, which teaches
+ * crawlers to distrust the field.
  */
 export function buildSitemap(
 	base: string,
 	input: SitemapInput,
 ): MetadataRoute.Sitemap {
 	const url = (path: string) => `${base}${path}`;
+
+	// Newest post activity — the /blog hub genuinely changes when a post lands.
+	const postDates = input.posts.map((p) =>
+		new Date(p.updated ?? p.date).getTime(),
+	);
+	const newestPost = postDates.length ? Math.max(...postDates) : undefined;
 
 	const staticEntries: MetadataRoute.Sitemap = [
 		{
@@ -210,6 +227,7 @@ export function buildSitemap(
 		},
 		{
 			url: url("/blog"),
+			...(newestPost ? { lastModified: new Date(newestPost) } : {}),
 			changeFrequency: "daily",
 			priority: 0.7,
 		},
@@ -237,7 +255,7 @@ export function buildSitemap(
 
 	const posts: MetadataRoute.Sitemap = input.posts.map((p) => ({
 		url: url(`/blog/${p.slug}`),
-		lastModified: new Date(p.date),
+		lastModified: new Date(p.updated ?? p.date),
 		changeFrequency: "monthly",
 		priority: 0.6,
 	}));

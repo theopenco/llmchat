@@ -78,6 +78,12 @@ export default function UseCasesPage() {
 								<p className="mt-2 text-sm leading-relaxed text-muted">
 									{u.tagline}
 								</p>
+								{/* The industry's pain hook — copy unique to this hub (the
+								    home page shows only name pills), so the page reads as a
+								    real resource rather than a thin duplicate of the nav. */}
+								<p className="mt-3 flex-1 text-sm italic leading-relaxed text-faint">
+									{u.problem}
+								</p>
 								<span className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-accent-soft opacity-0 transition-opacity group-hover:opacity-100">
 									See how
 									<span aria-hidden>→</span>
