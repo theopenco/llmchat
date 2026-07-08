@@ -22,7 +22,7 @@ As of July 2026, per [fin.ai/pricing](https://fin.ai/pricing):
 - **Human handoffs: free, mostly.** Per fin.ai/pricing: "You're not charged when a conversation is simply passed to your team without an outcome." The exception is a procedure you deliberately configured to end in a handoff — that is billable.
 - **Billed once per conversation.** However many questions Fin answers in one thread, it charges at most one outcome for it.
 - **No seat requirement for Fin itself.** Fin runs standalone on Zendesk, Salesforce, and other helpdesks without Intercom seats, with no setup or platform fees.
-- **Intercom seats (if you use their helpdesk): Essential $29** per seat per month billed annually ($39 monthly), **Advanced $85** ($99 monthly), **Expert $132** ($139 monthly), as of July 2026. The pricing page now routes you through a calculator rather than a flat price list, so confirm against your own configuration and [Intercom's pricing FAQs](https://www.intercom.com/help/en/articles/8344190-intercom-pricing-faqs).
+- **Intercom seats (if you use their helpdesk): Essential $29** per seat per month billed annually ($39 monthly), **Advanced $85** ($99 monthly), **Expert $132** ($139 monthly), as of July 2026. The pricing page now routes you through a calculator rather than a flat price list, so confirm against your own configuration on [Intercom's pricing page](https://www.intercom.com/pricing).
 
 ## What counts as a billable outcome — the fine print
 
@@ -85,7 +85,7 @@ The second-order problem is forecastability. Your bill is a function of ticket v
 
 ## The Salesforce acquisition: what it means if you're deciding now
 
-The corporate facts, since most pricing explainers bury them: Intercom renamed itself Fin earlier in 2026, and on June 15, 2026, [Salesforce signed a definitive agreement to acquire Fin](https://www.salesforce.com/news/press-releases/2026/06/15/salesforce-signs-definitive-agreement-to-acquire-fin/) for approximately $3.6 billion, as covered by [TechCrunch](https://techcrunch.com/2026/06/15/salesforce-acquires-ai-customer-service-platform-fin-for-3-6b/) among others. The deal is expected to close in the final quarter of Salesforce's fiscal 2027 — around the turn of the calendar year — pending regulatory clearance. Salesforce says Fin's team and technology will complement Agentforce, its AI-agent platform. Fin's CEO and co-founder Eoghan McCabe has said he will stay on and that little will change operationally for existing customers in the near term.
+The corporate facts, since most pricing explainers bury them: Intercom renamed itself Fin earlier in 2026, and on June 15, 2026, [Salesforce signed a definitive agreement to acquire Fin](https://www.salesforce.com/news/press-releases/2026/06/15/salesforce-signs-definitive-agreement-to-acquire-fin/) for approximately $3.6 billion, [confirmed on Intercom's own blog](https://www.intercom.com/blog/salesforce-signs-definitive-agreement-to-acquire-fin/). The deal is expected to close in the final quarter of Salesforce's fiscal 2027 — around the turn of the calendar year — pending regulatory clearance. Salesforce says Fin's team and technology will join Agentforce, its AI-agent platform. Fin's CEO and co-founder Eoghan McCabe said he will stay on and that, with Salesforce's resources, "little will practically change."
 
 We won't speculate beyond that, and you should be wary of competitors who do. But if you are signing a contract today, three questions are legitimately on the table, acquisition or not:
 
