@@ -19,7 +19,12 @@ import { ShimmerCta } from "@/components/home/ShimmerCta";
 import { FEATURES } from "@/lib/features";
 import { USE_CASES } from "@/lib/use-cases";
 import { faqPageLd, type Faq } from "@/lib/seo";
-import { CANONICAL_SITE_URL, RSC_PACKAGE } from "@/lib/site-urls";
+import {
+	CANONICAL_SITE_URL,
+	DOCS_URL,
+	RSC_PACKAGE,
+	WORDPRESS_PLUGIN_URL,
+} from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -68,7 +73,7 @@ const faqs: Faq[] = [
 	},
 	{
 		question: "How do I add Clanker Support to my site?",
-		answer: `Paste one script tag before the closing </body> tag — the widget mounts in an isolated shadow DOM, inherits your brand color, and needs no build step. On Next.js or any React 19 app, install the official ${RSC_PACKAGE} npm package instead — one component in your layout. Most teams are live in about five minutes.`,
+		answer: `Paste one script tag before the closing </body> tag — the widget mounts in an isolated shadow DOM, inherits your brand color, and needs no build step. On WordPress, skip the code entirely: install the official plugin from the WordPress.org directory and paste your project key under Settings. On Shopify, a zero-permission app embed is coming to the App Store — the script tag works on any storefront today. On Next.js or any React 19 app, use the official ${RSC_PACKAGE} npm package. Most teams are live in about five minutes.`,
 	},
 	{
 		question: "Which AI models does Clanker Support support?",
@@ -102,6 +107,38 @@ const steps = [
 		k: "Step 03",
 		title: "Watch it work",
 		body: "It answers from your docs, escalates when stuck, and routes every hand-off into a single team inbox.",
+	},
+];
+
+// Official platform installs surfaced under the snippet — WordPress and
+// Shopify visitors shouldn't have to infer that the script tag is for them.
+// Claims stay honest: the WP plugin is live on wordpress.org; the Shopify app
+// embed's App Store listing is pending, so it says "coming soon" and the docs
+// page explains the works-today script path.
+const platforms = [
+	{
+		name: "WordPress",
+		body: "Official plugin on WordPress.org. Install it, paste your project key under Settings — no code, and it survives theme changes.",
+		href: WORDPRESS_PLUGIN_URL,
+		cta: "Get the plugin",
+	},
+	{
+		name: "Shopify",
+		body: "A zero-permission app embed for your storefront — App Store listing coming soon. The script tag works on any store today.",
+		href: `${DOCS_URL}/integrations/shopify`,
+		cta: "See the Shopify guide",
+	},
+	{
+		name: "React & Next.js",
+		body: `One server component from the official ${RSC_PACKAGE} npm package — no script tag at all.`,
+		href: `${DOCS_URL}/integrations/react-sdk`,
+		cta: "Read the SDK docs",
+	},
+	{
+		name: "Everything else",
+		body: "Webflow, Framer, plain HTML — the script tag on the left works anywhere you can edit the page.",
+		href: `${DOCS_URL}/getting-started`,
+		cta: "Follow the setup guide",
 	},
 ];
 
@@ -212,6 +249,36 @@ export default function Home() {
 									</li>
 								))}
 							</ol>
+						</div>
+
+						{/* ── Official platform installs ─────────────────────── */}
+						<div className="mt-14 border-t border-rule pt-10">
+							<h3 className="font-display text-xl font-semibold tracking-tight-display text-ink">
+								On WordPress or Shopify? Skip the snippet.
+							</h3>
+							<p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+								Official integrations put the same agent on your site without
+								touching code.
+							</p>
+							<div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+								{platforms.map((p) => (
+									<a
+										key={p.name}
+										href={p.href}
+										className="group flex flex-col rounded-2xl border border-rule bg-paper-card/50 p-5 transition-colors hover:border-accent/40"
+									>
+										<h4 className="font-display text-base font-semibold tracking-tight-display text-ink">
+											{p.name}
+										</h4>
+										<p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
+											{p.body}
+										</p>
+										<span className="mt-4 text-sm font-medium text-accent-soft transition-colors group-hover:text-accent">
+											{p.cta} →
+										</span>
+									</a>
+								))}
+							</div>
 						</div>
 					</div>
 				</section>

@@ -27,6 +27,11 @@ export const SALES_EMAIL =
 export const DOCS_URL =
 	process.env.NEXT_PUBLIC_DOCS_URL ?? "https://docs.clankersupport.com";
 
+/** The approved wordpress.org plugin listing — the official no-code install
+ * for WordPress sites. */
+export const WORDPRESS_PLUGIN_URL =
+	"https://wordpress.org/plugins/clanker-support/";
+
 /** Public community / social links surfaced in the header and footer. The
  * GitHub repo doubles as the source for the live star count in the navbar. */
 export const GITHUB_REPO = "theopenco/llmchat";

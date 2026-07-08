@@ -5,7 +5,12 @@ import { BrandMark } from "@/components/BrandMark";
 import { DiscordIcon, XIcon } from "@/components/SocialIcons";
 import { TrackedLink } from "@/components/TrackedLink";
 import { TOOLS } from "@/lib/tools";
-import { DISCORD_URL, DOCS_URL, X_URL } from "@/lib/site-urls";
+import {
+	DISCORD_URL,
+	DOCS_URL,
+	WORDPRESS_PLUGIN_URL,
+	X_URL,
+} from "@/lib/site-urls";
 
 const dashboardUrl =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
@@ -56,6 +61,19 @@ export function SiteFooter() {
 							<li>
 								<a href={DOCS_URL} className={colLink}>
 									Docs
+								</a>
+							</li>
+							<li>
+								<a href={WORDPRESS_PLUGIN_URL} className={colLink}>
+									WordPress plugin
+								</a>
+							</li>
+							<li>
+								<a
+									href={`${DOCS_URL}/integrations/shopify`}
+									className={colLink}
+								>
+									Shopify app
 								</a>
 							</li>
 							<li>

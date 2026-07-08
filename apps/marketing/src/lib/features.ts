@@ -61,14 +61,14 @@ export const FEATURES: Feature[] = [
 			},
 		],
 		inPractice: [
-			"Paste the snippet once; it behaves the same on Webflow, WordPress, Next.js, or plain HTML.",
+			"Paste the snippet once; it behaves the same on Webflow, Shopify, Next.js, or plain HTML — and WordPress sites can skip it entirely with the official plugin.",
 			"Set your brand color in the dashboard and the widget matches automatically.",
 			"Nothing to maintain — the widget updates server-side without you touching the tag.",
 		],
 		faqs: [
 			{
 				question: "How do I add the Clanker Support widget to my site?",
-				answer: `Paste one script tag before the closing </body> tag. It works the same on Webflow, WordPress, Next.js, or plain HTML — no build step and nothing to wire up. React 19 and Next.js teams can use the official npm package, ${RSC_PACKAGE}, instead. Most teams are live in about five minutes.`,
+				answer: `Paste one script tag before the closing </body> tag. It works the same on Webflow, Shopify, Next.js, or plain HTML — no build step and nothing to wire up. WordPress sites can install the official plugin from the WordPress.org directory instead, and React 19 / Next.js teams can use the official npm package, ${RSC_PACKAGE}. Most teams are live in about five minutes.`,
 			},
 			{
 				question: "Will the widget conflict with my site's styles?",
