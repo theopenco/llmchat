@@ -4,7 +4,7 @@ Tags: ai, chatbot, live chat, customer support, helpdesk
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -91,10 +91,16 @@ Only its settings (one option) and a short-lived connection-status cache (one tr
 
 == Changelog ==
 
+= 1.0.1 =
+* Removed the manual load_plugin_textdomain() call — WordPress loads plugin translations automatically since 4.6.
+
 = 1.0.0 =
 * Initial release: floating widget bubble, `[clanker_support]` inline shortcode, brand color, escalation threshold, self-host API URL, and a live connection check on the settings page.
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Housekeeping release; no functional changes.
 
 = 1.0.0 =
 Initial release.

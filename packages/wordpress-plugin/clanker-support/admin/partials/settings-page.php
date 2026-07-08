@@ -25,11 +25,7 @@ $clanker_recheck_url   = wp_nonce_url(
 <div class="wrap clanker-support-wrap">
 	<div class="clanker-support-header">
 		<span class="clanker-support-mark" aria-hidden="true">
-			<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" focusable="false">
-				<rect width="512" height="512" rx="112" fill="#4f46e5" />
-				<path d="M256 118c-77 0-140 50-140 112 0 36 21 68 54 88l-14 54c-2 8 6 14 13 10l62-35c8 1 17 2 25 2 77 0 140-50 140-111S333 118 256 118z" fill="#fff" />
-				<path d="M276 158l-64 88h42l-22 70 70-96h-44l18-62z" fill="#4f46e5" />
-			</svg>
+			<img src="<?php echo esc_url( plugins_url( 'admin/img/clanker-mark.png', CLANKER_SUPPORT_PLUGIN_FILE ) ); ?>" alt="" width="36" height="36" />
 		</span>
 		<h1><?php esc_html_e( 'Clanker Support', 'clanker-support' ); ?></h1>
 		<span class="clanker-support-version">v<?php echo esc_html( CLANKER_SUPPORT_VERSION ); ?></span>

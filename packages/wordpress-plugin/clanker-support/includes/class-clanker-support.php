@@ -1,7 +1,6 @@
 <?php
 /**
- * Core plugin orchestrator: loads the text domain and wires the admin and
- * frontend components.
+ * Core plugin orchestrator: wires the admin and frontend components.
  *
  * @package Clanker_Support
  */
@@ -28,8 +27,6 @@ final class Clanker_Support {
 	}
 
 	private function __construct() {
-		add_action( 'init', array( $this, 'load_textdomain' ) );
-
 		new Clanker_Support_Frontend();
 		if ( is_admin() ) {
 			new Clanker_Support_Admin();
@@ -42,13 +39,5 @@ final class Clanker_Support {
 	 */
 	public static function activate() {
 		add_option( Clanker_Support_Settings::OPTION, Clanker_Support_Settings::defaults() );
-	}
-
-	public function load_textdomain() {
-		load_plugin_textdomain(
-			'clanker-support',
-			false,
-			dirname( plugin_basename( CLANKER_SUPPORT_PLUGIN_FILE ) ) . '/languages'
-		);
 	}
 }

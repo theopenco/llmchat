@@ -1,6 +1,6 @@
 {
 	"name": "@clankersupport/wordpress-plugin",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"private": true,
 	"description": "Official Clanker Support WordPress plugin — wordpress.org-ready structure wrapping the public widget.js embed.",
 	"scripts": {

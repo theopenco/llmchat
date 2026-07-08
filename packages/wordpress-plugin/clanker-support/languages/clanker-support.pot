@@ -2,7 +2,7 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Clanker Support 1.0.0\n"
+"Project-Id-Version: Clanker Support 1.0.1\n"
 "Report-Msgid-Bugs-To: https://github.com/theopenco/llmchat/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
