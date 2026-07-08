@@ -14,6 +14,13 @@ import {
 	DeferredInstallTerminal,
 } from "@/components/home/deferred";
 
+import {
+	CodeIcon,
+	NextJsIcon,
+	ReactIcon,
+	ShopifyIcon,
+	WordPressIcon,
+} from "@/components/PlatformIcons";
 import { ProofSection } from "@/components/home/ProofSection";
 import { PricingTeaser } from "@/components/home/PricingTeaser";
 import { ShimmerCta } from "@/components/home/ShimmerCta";
@@ -131,24 +138,28 @@ const steps = [
 const platforms = [
 	{
 		name: "WordPress",
+		icons: [WordPressIcon],
 		body: "Official plugin on WordPress.org. Install it, paste your project key under Settings — no code, and it survives theme changes.",
 		href: WORDPRESS_PLUGIN_URL,
 		cta: "Get the plugin",
 	},
 	{
 		name: "Shopify",
+		icons: [ShopifyIcon],
 		body: "A zero-permission app embed for your storefront — App Store listing coming soon. The script tag works on any store today.",
 		href: `${DOCS_URL}/integrations/shopify`,
 		cta: "See the Shopify guide",
 	},
 	{
 		name: "React & Next.js",
+		icons: [ReactIcon, NextJsIcon],
 		body: `One server component from the official ${RSC_PACKAGE} npm package — no script tag at all.`,
 		href: `${DOCS_URL}/integrations/react-sdk`,
 		cta: "Read the SDK docs",
 	},
 	{
 		name: "Everything else",
+		icons: [CodeIcon],
 		body: "Webflow, Framer, plain HTML — the script tag on the left works anywhere you can edit the page.",
 		href: `${DOCS_URL}/getting-started`,
 		cta: "Follow the setup guide",
@@ -280,7 +291,12 @@ export default function Home() {
 										href={p.href}
 										className="group flex flex-col rounded-2xl border border-rule bg-paper-card/50 p-5 transition-colors hover:border-accent/40"
 									>
-										<h4 className="font-display text-base font-semibold tracking-tight-display text-ink">
+										<div className="flex items-center gap-2.5 text-muted transition-colors group-hover:text-ink">
+											{p.icons.map((Icon, i) => (
+												<Icon key={i} className="size-6" />
+											))}
+										</div>
+										<h4 className="font-display mt-3 text-base font-semibold tracking-tight-display text-ink">
 											{p.name}
 										</h4>
 										<p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
