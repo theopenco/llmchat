@@ -66,3 +66,15 @@ export interface Message {
 	 * = unrated. Distinct from per-conversation CSAT. */
 	rating?: "up" | "down" | null;
 }
+
+/** A durable record of an action the AGENT took on this conversation (Cal.com
+ * booking, Shopify order lookup / return). Operator-visible audit trail so a
+ * mistaken or abusive action can be seen (and reversed in Shopify/Cal.com). */
+export interface AgentActionEntry {
+	id: string;
+	kind: "calcom" | "shopify";
+	tool: string;
+	ok: boolean;
+	detail: string | null;
+	createdAt: number;
+}

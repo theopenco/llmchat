@@ -63,6 +63,8 @@ interface State {
 	conv?: Row;
 	/** Rows the thread message window query returns (relational findMany). */
 	threadMessages?: Row[];
+	/** Agent-action audit rows the thread endpoint returns. */
+	agentActionRows?: Row[];
 	/** Batched per-page tag rows (conversation_tag ⨝ tag) for the list response. */
 	tagRows?: {
 		conversationId: string;
@@ -184,6 +186,9 @@ function mockDb(state: State) {
 			},
 			message: {
 				findMany: async () => state.threadMessages ?? [],
+			},
+			agentAction: {
+				findMany: async () => state.agentActionRows ?? [],
 			},
 			tag: {
 				findFirst: async () => state.tag,

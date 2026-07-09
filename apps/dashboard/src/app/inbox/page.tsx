@@ -707,6 +707,7 @@ function InboxPageInner() {
 					) : (
 						<MessageThread
 							messages={thread.messages}
+							agentActions={thread.agentActions}
 							search={debouncedSearch}
 							hasOlder={thread.hasOlder}
 							onLoadOlder={thread.loadOlder}

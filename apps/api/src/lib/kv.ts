@@ -75,6 +75,49 @@ export async function rateLimit(
 	}
 }
 
+// How long a reserved idempotency key blocks a repeat of the same action.
+const ONCE_TTL_SECONDS = 300; // ~5 min
+
+/**
+ * Single-flight reservation for a side-effecting action (create_return). Returns
+ * true the FIRST time a key is seen within the TTL window (and reserves it),
+ * false on any repeat — so a committed-but-lost response or a double-fire can't
+ * file the same return twice. Backed by STATE with value-tracked expiry, same
+ * get/set pattern as rateLimit. FAILS CLOSED (returns false) on a STATE outage:
+ * on a money-touching write path a possible duplicate must be blocked, not waved
+ * through.
+ */
+export async function reserveOnce(
+	env: Env,
+	key: string,
+	ttlSeconds: number = ONCE_TTL_SECONDS,
+): Promise<boolean> {
+	const cacheKey = `once:${key}`;
+	const now = Math.floor(Date.now() / 1000);
+	try {
+		const raw = await env.STATE.get(cacheKey);
+		if (raw) {
+			try {
+				const parsed = JSON.parse(raw) as { resetAt?: number };
+				if ((parsed.resetAt ?? 0) > now) return false; // still reserved
+			} catch {
+				// Malformed entry — treat as expired and re-reserve below.
+			}
+		}
+		await env.STATE.set(
+			cacheKey,
+			JSON.stringify({ resetAt: now + ttlSeconds }),
+		);
+		return true;
+	} catch (err) {
+		console.error(
+			"reserveOnce: state store unavailable, denying (fail-closed)",
+			err,
+		);
+		return false;
+	}
+}
+
 // One escalation "holding" acknowledgement per this window — so a waiting visitor
 // who sends several messages isn't spammed the same canned line each time.
 const HOLD_COOLDOWN_SECONDS = 300; // ~5 min

@@ -13,8 +13,14 @@ const API_VERSION = "2025-01";
 /** Upstream failure with a visitor-safe message (no token, no shop URLs). */
 export class ShopifyError extends Error {}
 
-function endpoint(cfg: ShopifyConfig): string {
-	const base = (cfg.apiBase ?? `https://${cfg.shopDomain}`).replace(/\/$/, "");
+// The endpoint host is ALWAYS derived from the regex-validated shopDomain — the
+// untrusted, admin-writable config can no longer smuggle an arbitrary host (the
+// old `apiBase` field that let a stored value exfiltrate the access token).
+// `baseOverride` is a TRUSTED, server-set value (a CALCOM_/SHOPIFY_API_BASE env
+// var or a unit-test argument) threaded from the worker — never from the config
+// blob — so tests and self-hosters keep a mock-upstream path with no SSRF hole.
+function endpoint(cfg: ShopifyConfig, baseOverride?: string): string {
+	const base = (baseOverride ?? `https://${cfg.shopDomain}`).replace(/\/$/, "");
 	return `${base}/admin/api/${API_VERSION}/graphql.json`;
 }
 
@@ -22,11 +28,12 @@ async function shopifyGraphql<T>(
 	cfg: ShopifyConfig,
 	query: string,
 	variables: Record<string, unknown>,
+	baseOverride?: string,
 ): Promise<T> {
 	// Typed off fetch itself — the workerd Response type and lib.dom's disagree.
 	let res: Awaited<ReturnType<typeof fetch>>;
 	try {
-		res = await fetch(endpoint(cfg), {
+		res = await fetch(endpoint(cfg, baseOverride), {
 			method: "POST",
 			headers: {
 				"content-type": "application/json",
@@ -110,6 +117,7 @@ function normalizeOrderNumber(orderNumber: string): string {
 export async function shopifyLookupOrder(
 	cfg: ShopifyConfig,
 	opts: { orderNumber: string; email: string },
+	baseOverride?: string,
 ): Promise<ShopifyOrderSummary | null> {
 	const num = normalizeOrderNumber(opts.orderNumber);
 	if (!num) return null;
@@ -138,7 +146,7 @@ export async function shopifyLookupOrder(
 				}[];
 			}[];
 		};
-	}>(cfg, ORDER_QUERY, { q });
+	}>(cfg, ORDER_QUERY, { q }, baseOverride);
 
 	const order = data.orders.nodes[0];
 	if (!order) return null;
@@ -203,6 +211,7 @@ const RETURNABLE_QUERY = /* GraphQL */ `
 export async function shopifyReturnableItems(
 	cfg: ShopifyConfig,
 	orderId: string,
+	baseOverride?: string,
 ): Promise<ReturnableItem[]> {
 	const data = await shopifyGraphql<{
 		returnableFulfillments: {
@@ -222,7 +231,7 @@ export async function shopifyReturnableItems(
 				};
 			}[];
 		};
-	}>(cfg, RETURNABLE_QUERY, { orderId });
+	}>(cfg, RETURNABLE_QUERY, { orderId }, baseOverride);
 
 	return data.returnableFulfillments.edges.flatMap((f) =>
 		f.node.returnableFulfillmentLineItems.edges.map((e) => ({
@@ -267,25 +276,31 @@ export async function shopifyCreateReturn(
 		items: { fulfillmentLineItemId: string; quantity: number }[];
 		reasonNote?: string;
 	},
+	baseOverride?: string,
 ): Promise<CreatedReturn> {
 	const data = await shopifyGraphql<{
 		returnCreate: {
 			return: { id: string; status: string; name?: string | null } | null;
 			userErrors: { field: string[] | null; message: string }[];
 		};
-	}>(cfg, RETURN_CREATE_MUTATION, {
-		returnInput: {
-			orderId: opts.orderId,
-			returnLineItems: opts.items.map((i) => ({
-				fulfillmentLineItemId: i.fulfillmentLineItemId,
-				quantity: i.quantity,
-				returnReason: "OTHER",
-				...(opts.reasonNote
-					? { returnReasonNote: opts.reasonNote.slice(0, 255) }
-					: {}),
-			})),
+	}>(
+		cfg,
+		RETURN_CREATE_MUTATION,
+		{
+			returnInput: {
+				orderId: opts.orderId,
+				returnLineItems: opts.items.map((i) => ({
+					fulfillmentLineItemId: i.fulfillmentLineItemId,
+					quantity: i.quantity,
+					returnReason: "OTHER",
+					...(opts.reasonNote
+						? { returnReasonNote: opts.reasonNote.slice(0, 255) }
+						: {}),
+				})),
+			},
 		},
-	});
+		baseOverride,
+	);
 
 	const err = data.returnCreate.userErrors[0];
 	if (err || !data.returnCreate.return) {

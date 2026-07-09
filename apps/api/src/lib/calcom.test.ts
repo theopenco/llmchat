@@ -62,11 +62,23 @@ describe("calcomGetSlots", () => {
 		]);
 	});
 
-	it("honors the apiBase override (tests / self-hosters)", async () => {
+	it("pins the host to api.cal.com — the config cannot redirect it (SSRF fix)", async () => {
+		// The stored config has no apiBase field any more; even a stray one is
+		// ignored, so the Bearer key can only ever be sent to api.cal.com.
 		const calls = stubFetch(200, { status: "success", data: {} });
 		await calcomGetSlots(
-			{ ...CFG, apiBase: "http://127.0.0.1:9099" },
+			{ ...CFG, apiBase: "http://evil.example" } as CalcomConfig,
 			{ start: "2026-07-07", end: "2026-07-08" },
+		);
+		expect(new URL(calls[0]!.url).origin).toBe("https://api.cal.com");
+	});
+
+	it("uses a TRUSTED baseOverride param (tests / self-hosters / demo mock)", async () => {
+		const calls = stubFetch(200, { status: "success", data: {} });
+		await calcomGetSlots(
+			CFG,
+			{ start: "2026-07-07", end: "2026-07-08" },
+			"http://127.0.0.1:9099",
 		);
 		expect(calls[0]!.url.startsWith("http://127.0.0.1:9099/v2/slots")).toBe(
 			true,

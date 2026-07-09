@@ -79,7 +79,7 @@ describe("calcom tools", () => {
 		const built = buildIntegrationTools({
 			rows: [CAL_ROW],
 			identity: IDENTITY,
-			onAction: (...a) => actions.push(a),
+			onAction: (r) => actions.push(r),
 			now: new Date("2026-07-06T00:00:00Z"),
 		});
 		const out = await toolOf(built, "get_available_slots").execute({
@@ -90,7 +90,12 @@ describe("calcom tools", () => {
 			timeZone: "UTC",
 			slots: ["2026-07-07T09:00:00.000Z"],
 		});
-		expect(actions).toEqual([["calcom", "get_available_slots", true]]);
+		expect(actions).toHaveLength(1);
+		expect(actions[0]).toMatchObject({
+			kind: "calcom",
+			tool: "get_available_slots",
+			ok: true,
+		});
 	});
 
 	it("book_meeting falls back to the conversation identity for name/email", async () => {
@@ -142,13 +147,18 @@ describe("calcom tools", () => {
 		const built = buildIntegrationTools({
 			rows: [CAL_ROW],
 			identity: IDENTITY,
-			onAction: (...a) => actions.push(a),
+			onAction: (r) => actions.push(r),
 		});
 		const out = await toolOf(built, "book_meeting").execute({
 			start: "2026-07-07T09:00:00.000Z",
 		});
 		expect(out).toEqual({ ok: false, error: "slot_taken" });
-		expect(actions).toEqual([["calcom", "book_meeting", false]]);
+		expect(actions).toHaveLength(1);
+		expect(actions[0]).toMatchObject({
+			kind: "calcom",
+			tool: "book_meeting",
+			ok: false,
+		});
 	});
 });
 

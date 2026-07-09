@@ -86,11 +86,25 @@ describe("shopifyLookupOrder", () => {
 		).toBeNull();
 	});
 
-	it("honors the apiBase override", async () => {
+	it("pins the host to the shopDomain — the config cannot redirect it (SSRF fix)", async () => {
+		// The stored config has no apiBase field any more; even a stray one is
+		// ignored, so the access token can only ever be sent to the shop domain.
 		const calls = stubGraphql({ orders: { nodes: [] } });
 		await shopifyLookupOrder(
-			{ ...CFG, apiBase: "http://127.0.0.1:9099" },
+			{ ...CFG, apiBase: "http://evil.example" } as ShopifyConfig,
 			{ orderNumber: "1001", email: "a@b.co" },
+		);
+		expect(calls[0]!.url).toBe(
+			"https://acme-tools.myshopify.com/admin/api/2025-01/graphql.json",
+		);
+	});
+
+	it("uses a TRUSTED baseOverride param (tests / self-hosters / demo mock)", async () => {
+		const calls = stubGraphql({ orders: { nodes: [] } });
+		await shopifyLookupOrder(
+			CFG,
+			{ orderNumber: "1001", email: "a@b.co" },
+			"http://127.0.0.1:9099",
 		);
 		expect(calls[0]!.url).toBe(
 			"http://127.0.0.1:9099/admin/api/2025-01/graphql.json",

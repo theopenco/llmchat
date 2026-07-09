@@ -42,6 +42,7 @@ function window(
 		messages,
 		hasOlder: false,
 		firstHitSequence: null,
+		agentActions: [],
 		...extra,
 	};
 }

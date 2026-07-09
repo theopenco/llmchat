@@ -151,6 +151,7 @@ export function useThreadMessages({
 	return {
 		conversation: data?.conversation ?? null,
 		messages: data?.messages ?? [],
+		agentActions: data?.agentActions ?? [],
 		hasOlder: data?.hasOlder ?? false,
 		loadOlder,
 		loadingOlder,

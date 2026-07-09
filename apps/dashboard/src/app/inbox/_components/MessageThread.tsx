@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { formatMessageTime } from "./format";
 import { Highlighted } from "./highlight";
 import { PromoteToKnowledge } from "./PromoteToKnowledge";
-import type { Message } from "./types";
+import type { AgentActionEntry, Message } from "./types";
 
 /** Context for the "Add to knowledge" action on admin replies. Absent (e.g. in
  * tests, or before a project/workspace resolves) ⇒ the action isn't rendered. */
@@ -191,6 +191,7 @@ function LoadOlder({
 
 export function MessageThread({
 	messages,
+	agentActions = [],
 	search = "",
 	hasOlder = false,
 	onLoadOlder,
@@ -198,6 +199,10 @@ export function MessageThread({
 	knowledge,
 }: {
 	messages: Message[];
+	/** Durable audit trail of actions the agent took on this conversation
+	 * (bookings, order lookups, returns) — operator visibility into what the bot
+	 * DID, so a mistaken/abusive action can be seen and reversed upstream. */
+	agentActions?: AgentActionEntry[];
 	/** Active inbox search term. When set, every occurrence is highlighted in the
 	 * thread and the first matching message is scrolled into view on open. */
 	search?: string;
@@ -285,6 +290,29 @@ export function MessageThread({
 					loading={loadingOlder}
 					scrollRef={containerRef}
 				/>
+			)}
+			{agentActions.length > 0 && (
+				<div className="rounded-md border border-ck-border/70 bg-ck-paper2/40 px-3 py-2 text-xs">
+					<div className="mb-1 font-medium text-ck-faint">
+						Agent actions ({agentActions.length})
+					</div>
+					<ul className="flex flex-col gap-0.5">
+						{agentActions.map((a) => (
+							<li key={a.id} className="flex items-baseline gap-2">
+								<span
+									aria-hidden
+									className={a.ok ? "text-ck-good" : "text-ck-warn"}
+								>
+									{a.ok ? "✓" : "✕"}
+								</span>
+								<span className="text-ck-muted">
+									<span className="font-mono">{a.tool}</span>
+									{a.detail ? ` — ${a.detail}` : ""}
+								</span>
+							</li>
+						))}
+					</ul>
+				</div>
 			)}
 			{messages.map((m) =>
 				m.role === "system" ? (

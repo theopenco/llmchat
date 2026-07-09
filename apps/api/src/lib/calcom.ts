@@ -13,8 +13,14 @@ const BOOKINGS_API_VERSION = "2024-08-13";
 /** Upstream failure with a visitor-safe message (no key material, no URLs). */
 export class CalcomError extends Error {}
 
-function base(cfg: CalcomConfig): string {
-	return (cfg.apiBase ?? DEFAULT_BASE).replace(/\/$/, "");
+// The host is pinned to api.cal.com. The old config-supplied `apiBase` was an
+// SSRF/key-exfiltration vector — a stored value chosen by a workspace admin sent
+// the raw Bearer key to any host. `baseOverride` is a TRUSTED, server-set value
+// (a CALCOM_API_BASE env var or a unit-test argument) threaded from the worker,
+// never from the untrusted config blob, so tests/self-hosters keep a mock path.
+function base(cfg: CalcomConfig, baseOverride?: string): string {
+	void cfg;
+	return (baseOverride ?? DEFAULT_BASE).replace(/\/$/, "");
 }
 
 async function calFetch(
@@ -22,11 +28,12 @@ async function calFetch(
 	path: string,
 	apiVersion: string,
 	init?: RequestInit,
+	baseOverride?: string,
 ): Promise<unknown> {
 	// Typed off fetch itself — the workerd Response type and lib.dom's disagree.
 	let res: Awaited<ReturnType<typeof fetch>>;
 	try {
-		res = await fetch(`${base(cfg)}${path}`, {
+		res = await fetch(`${base(cfg, baseOverride)}${path}`, {
 			...init,
 			headers: {
 				authorization: `Bearer ${cfg.apiKey}`,
@@ -66,6 +73,7 @@ export interface CalcomSlot {
 export async function calcomGetSlots(
 	cfg: CalcomConfig,
 	opts: { start: string; end: string; maxSlots?: number },
+	baseOverride?: string,
 ): Promise<CalcomSlot[]> {
 	const params = new URLSearchParams({
 		eventTypeId: String(cfg.eventTypeId),
@@ -73,7 +81,13 @@ export async function calcomGetSlots(
 		end: opts.end,
 		timeZone: cfg.timeZone,
 	});
-	const data = await calFetch(cfg, `/v2/slots?${params}`, SLOTS_API_VERSION);
+	const data = await calFetch(
+		cfg,
+		`/v2/slots?${params}`,
+		SLOTS_API_VERSION,
+		undefined,
+		baseOverride,
+	);
 	// Shape: { "2026-07-07": [{ start: "..." }, ...], ... }
 	const flat: CalcomSlot[] = [];
 	if (data && typeof data === "object") {
@@ -102,20 +116,29 @@ export interface CalcomBooking {
 export async function calcomCreateBooking(
 	cfg: CalcomConfig,
 	opts: { start: string; name: string; email: string; notes?: string },
+	baseOverride?: string,
 ): Promise<CalcomBooking> {
-	const data = (await calFetch(cfg, "/v2/bookings", BOOKINGS_API_VERSION, {
-		method: "POST",
-		body: JSON.stringify({
-			start: opts.start,
-			eventTypeId: cfg.eventTypeId,
-			attendee: {
-				name: opts.name,
-				email: opts.email,
-				timeZone: cfg.timeZone,
-			},
-			...(opts.notes ? { metadata: { notes: opts.notes.slice(0, 500) } } : {}),
-		}),
-	})) as {
+	const data = (await calFetch(
+		cfg,
+		"/v2/bookings",
+		BOOKINGS_API_VERSION,
+		{
+			method: "POST",
+			body: JSON.stringify({
+				start: opts.start,
+				eventTypeId: cfg.eventTypeId,
+				attendee: {
+					name: opts.name,
+					email: opts.email,
+					timeZone: cfg.timeZone,
+				},
+				...(opts.notes
+					? { metadata: { notes: opts.notes.slice(0, 500) } }
+					: {}),
+			}),
+		},
+		baseOverride,
+	)) as {
 		uid?: unknown;
 		status?: unknown;
 		start?: unknown;

@@ -48,6 +48,10 @@ env:
   POSTHOG_PERSONAL_API_KEY: $POSTHOG_PERSONAL_API_KEY
   POSTHOG_PROJECT_ID: $POSTHOG_PROJECT_ID
   POSTHOG_QUERY_HOST: $POSTHOG_QUERY_HOST
+  # TRUSTED integration upstream overrides (tests/self-host/demo mock). Leave
+  # unset in prod: Shopify pins to the shop domain, Cal.com to api.cal.com.
+  SHOPIFY_API_BASE: $SHOPIFY_API_BASE
+  CALCOM_API_BASE: $CALCOM_API_BASE
 
 # Traffic report crons (see src/lib/traffic-report.ts — the expressions MUST
 # stay in sync with TRAFFIC_CRON_WEEKLY / TRAFFIC_CRON_MONTHLY, which map the
