@@ -13,6 +13,7 @@ import {
 	clearProjectKey,
 	getConnection,
 	maskKey,
+	registerOrderActions,
 	themeEditorDeepLink,
 	validateProjectKey,
 	writeProjectKey,
@@ -51,15 +52,48 @@ export type ConnectActionResult =
 	| { status: "disconnected" }
 	| { status: "invalid" }
 	| { status: "unverified"; key: string }
-	| { status: "error"; message: string };
+	| { status: "actions-linked" }
+	// `from` attributes the failure to a page section (link-actions renders its
+	// own banner); absent = the connect/disconnect card owns it.
+	| { status: "error"; message: string; from?: "link-actions" };
 
 export const action = async ({
 	request,
 	context,
 }: ActionFunctionArgs): Promise<ConnectActionResult> => {
-	const { admin } = await getShopify(context).authenticate.admin(request);
+	const { admin, session } =
+		await getShopify(context).authenticate.admin(request);
 	const form = await request.formData();
 	const intent = form.get("intent");
+
+	// Order actions: redeem the dashboard's one-time pairing code with this
+	// shop's domain + offline Admin token so the Clanker agent can look up
+	// orders and file returns (needs the read_orders/write_returns scopes).
+	if (intent === "link-actions") {
+		const code = String(form.get("pairCode") ?? "").trim();
+		if (!code) {
+			return {
+				status: "error",
+				message: "Enter the pairing code.",
+				from: "link-actions",
+			};
+		}
+		if (!session.accessToken) {
+			return {
+				status: "error",
+				message: "No Admin API token on this session — reinstall the app.",
+				from: "link-actions",
+			};
+		}
+		const result = await registerOrderActions(
+			{ code, shopDomain: session.shop, accessToken: session.accessToken },
+			fetch,
+			clankerApiOrigin(getShopifyEnv(context)),
+		);
+		return result.ok
+			? { status: "actions-linked" }
+			: { status: "error", message: result.message, from: "link-actions" };
+	}
 
 	if (intent === "disconnect") {
 		const { installationId } = await getConnection(admin);
@@ -101,15 +135,17 @@ export default function Index() {
 	const fetcher = useFetcher<typeof action>();
 	const shopify = useAppBridge();
 	const [key, setKey] = useState("");
+	const [pairCode, setPairCode] = useState("");
 	const result = fetcher.data;
 
-	// Attribute the spinner to the control that was actually clicked — three
+	// Attribute the spinner to the control that was actually clicked — four
 	// submit paths share one fetcher.
 	const busy = fetcher.state !== "idle";
 	const savingAnyway = busy && fetcher.formData?.get("saveAnyway") === "true";
 	const disconnecting =
 		busy && fetcher.formData?.get("intent") === "disconnect";
-	const connecting = busy && !savingAnyway && !disconnecting;
+	const linking = busy && fetcher.formData?.get("intent") === "link-actions";
+	const connecting = busy && !savingAnyway && !disconnecting && !linking;
 
 	useEffect(() => {
 		if (result?.status === "connected") {
@@ -119,7 +155,14 @@ export default function Index() {
 		if (result?.status === "disconnected") {
 			shopify.toast.show("Project disconnected");
 		}
+		if (result?.status === "actions-linked") {
+			shopify.toast.show("Order actions enabled");
+			setPairCode("");
+		}
 	}, [result, shopify]);
+
+	const linkActions = () =>
+		fetcher.submit({ intent: "link-actions", pairCode }, { method: "POST" });
 
 	const connect = (saveAnyway: boolean) =>
 		fetcher.submit(
@@ -183,7 +226,7 @@ export default function Index() {
 								Disconnect
 							</s-button>
 						</s-stack>
-						{result?.status === "error" && (
+						{result?.status === "error" && !result.from && (
 							<s-banner tone="critical" heading="Something went wrong">
 								<s-paragraph>{result.message}</s-paragraph>
 							</s-banner>
@@ -230,7 +273,7 @@ export default function Index() {
 								</s-button>
 							</s-banner>
 						)}
-						{result?.status === "error" && (
+						{result?.status === "error" && !result.from && (
 							<s-banner tone="critical" heading="Something went wrong">
 								<s-paragraph>{result.message}</s-paragraph>
 							</s-banner>
@@ -253,6 +296,55 @@ export default function Index() {
 									: {})}
 							>
 								Connect
+							</s-button>
+						</s-stack>
+					</s-stack>
+				</s-section>
+			)}
+
+			{connected && (
+				<s-section heading="Order actions">
+					<s-stack direction="block" gap="base">
+						<s-paragraph>
+							Let the chat agent look up a shopper&apos;s own order and file
+							returns — always verified against the email on the order. In your
+							Clanker dashboard open{" "}
+							<s-text type="strong">
+								Project settings → Integrations → Shopify
+							</s-text>
+							, generate a pairing code, and paste it here.
+						</s-paragraph>
+						{result?.status === "actions-linked" && (
+							<s-banner tone="success" heading="Order actions enabled">
+								<s-paragraph>
+									The agent can now look up orders and file returns for this
+									store.
+								</s-paragraph>
+							</s-banner>
+						)}
+						{result?.status === "error" && result.from === "link-actions" && (
+							<s-banner tone="critical" heading="Couldn't enable order actions">
+								<s-paragraph>{result.message}</s-paragraph>
+							</s-banner>
+						)}
+						<s-text-field
+							label="Pairing code"
+							name="pairCode"
+							value={pairCode}
+							placeholder="Paste the code from your Clanker dashboard"
+							details="Codes are single-use and expire after 10 minutes."
+							onInput={(e) => setPairCode(e.currentTarget.value)}
+						/>
+						<s-stack direction="inline" gap="base">
+							<s-button
+								variant="primary"
+								onClick={linkActions}
+								{...(linking ? { loading: true } : {})}
+								{...(pairCode.trim() === "" || (busy && !linking)
+									? { disabled: true }
+									: {})}
+							>
+								Enable order actions
 							</s-button>
 						</s-stack>
 					</s-stack>

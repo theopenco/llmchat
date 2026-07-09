@@ -1,4 +1,4 @@
-import type { Conversation, Message } from "./types";
+import type { AgentActionEntry, Conversation, Message } from "./types";
 
 /** Page size for the message thread. Also the threshold: a conversation with
  * this many messages or fewer loads in one shot (hasOlder=false) and behaves
@@ -13,6 +13,9 @@ export interface ThreadResponse {
 	messages: Message[];
 	hasOlder: boolean;
 	firstHitSequence?: number | null;
+	/** Durable agent-action audit trail for this conversation (full set per
+	 * fetch, bounded server-side). Absent on older clients / empty conversations. */
+	agentActions?: AgentActionEntry[];
 }
 
 /** The contiguous window the inbox holds for the open conversation. */
@@ -23,6 +26,8 @@ export interface ThreadWindow {
 	/** Sequence of the first search hit (null = none / not searching). Preserved
 	 * across poll/load-older merges; only a fresh search fetch updates it. */
 	firstHitSequence: number | null;
+	/** Agent-action audit trail, refreshed from the latest fetch. */
+	agentActions: AgentActionEntry[];
 }
 
 function sortBySequence(messages: Message[]): Message[] {
@@ -51,6 +56,7 @@ export function toWindow(res: ThreadResponse): ThreadWindow {
 		messages: sortBySequence(res.messages),
 		hasOlder: res.hasOlder,
 		firstHitSequence: res.firstHitSequence ?? null,
+		agentActions: res.agentActions ?? [],
 	};
 }
 
@@ -67,6 +73,9 @@ export function appendNewer(
 		...prev,
 		conversation: res.conversation,
 		messages: unionById(prev.messages, res.messages),
+		// The endpoint returns the full per-conversation action set each fetch, so
+		// the newest poll response carries any action taken since the last tick.
+		agentActions: res.agentActions ?? prev.agentActions,
 	};
 }
 

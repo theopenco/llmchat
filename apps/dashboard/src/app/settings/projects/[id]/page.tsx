@@ -16,6 +16,7 @@ import { useWorkspace } from "@/lib/workspace";
 import { DeleteProjectDialog } from "../_components/DeleteProjectDialog";
 import { BehaviorTab } from "./_tabs/BehaviorTab";
 import { GeneralTab } from "./_tabs/GeneralTab";
+import { IntegrationsTab } from "./_tabs/IntegrationsTab";
 import { MembersTab } from "./_tabs/MembersTab";
 import { WidgetTab } from "./_tabs/WidgetTab";
 import { useProjectMutations } from "./useProjectMutations";
@@ -49,11 +50,12 @@ function toDraft(p: Project): ProjectDraft {
 	};
 }
 
-type Tab = "general" | "widget" | "behavior" | "members";
+type Tab = "general" | "widget" | "behavior" | "integrations" | "members";
 const TABS: { id: Tab; label: string }[] = [
 	{ id: "general", label: "General" },
 	{ id: "widget", label: "Widget" },
 	{ id: "behavior", label: "Behavior" },
+	{ id: "integrations", label: "Integrations" },
 	{ id: "members", label: "Members" },
 ];
 
@@ -165,6 +167,13 @@ export default function ProjectSettingsPage() {
 						<WidgetTab draft={draft} set={set} publicKey={project.publicKey} />
 					)}
 					{tab === "behavior" && <BehaviorTab draft={draft} set={set} />}
+					{tab === "integrations" && (
+						<IntegrationsTab
+							projectId={id}
+							workspaceId={workspaceId!}
+							canManage={role === "owner" || role === "admin"}
+						/>
+					)}
 					{tab === "members" && (
 						<MembersTab ownerEmail={accountQ.data?.email ?? null} role={role} />
 					)}

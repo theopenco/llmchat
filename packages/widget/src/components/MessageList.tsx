@@ -74,12 +74,17 @@ export function MessageList({
 	greeting,
 	messages,
 	typing,
+	acting = false,
 	error,
 	onRate,
 }: {
 	greeting: string;
 	messages: DisplayMessage[];
 	typing: boolean;
+	/** True while the assistant is running an integration tool (booking a call,
+	 * looking up an order) — upgrades the dots to a "Working on it…" hint so a
+	 * multi-second action doesn't read as a stall. */
+	acting?: boolean;
 	/** Friendly error line rendered under the messages, or null. */
 	error: string | null;
 	/** Rate an assistant message; omit to hide the thumbs (e.g. before a
@@ -144,11 +149,16 @@ export function MessageList({
 			{typing && (
 				<div
 					className="llmchat-msg llmchat-msg-assistant llmchat-typing"
-					aria-label="Assistant is typing"
+					aria-label={
+						acting ? "Assistant is working on it" : "Assistant is typing"
+					}
 				>
 					<span className="llmchat-dot" />
 					<span className="llmchat-dot" />
 					<span className="llmchat-dot" />
+					{acting && (
+						<span className="llmchat-typing-label">Working on it…</span>
+					)}
 				</div>
 			)}
 			{error !== null && (

@@ -29,6 +29,7 @@ export const ANALYTICS_EVENTS = {
 	sourceAdded: "source_added",
 	conversationOpened: "conversation_opened",
 	replySent: "reply_sent",
+	integrationConnected: "integration_connected",
 
 	// ── Billing funnel ──────────────────────────────────────────────
 	// checkout_started fires client-side (dashboard, before the Stripe
@@ -47,6 +48,9 @@ export const ANALYTICS_EVENTS = {
 	messageRated: "message_rated",
 	csatSubmitted: "csat_submitted",
 	inboundEmailReceived: "inbound_email_received",
+	// The agent performed a real-world action through an integration (booked a
+	// call, looked up an order, filed a return) — props: kind, tool, ok.
+	integrationActionUsed: "integration_action_used",
 } as const;
 
 export type AnalyticsEventName =

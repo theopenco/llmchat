@@ -10,10 +10,12 @@ application_url = "https://shopify.clankersupport.com"
 embedded = true
 
 [access_scopes]
-# Deliberately empty: the app's only Admin API use is app-data metafields on its
-# own installation, which need no scopes (docs/shopify-app-plan.md §5 — verified
-# by the §9.0 day-0 spike). Zero-scope install confirmed on the dev store.
-scopes = ""
+# read_orders + write_returns power the agent's order actions (lookup + file a
+# return via the dashboard pairing flow). App-data metafields (the project-key
+# connection) still need no scopes (docs/shopify-app-plan.md §5). Adding scopes
+# triggers a merchant re-consent prompt on next admin load; the app/scopes_update
+# webhook below already handles the grant notification.
+scopes = "read_orders,write_returns"
 
 [webhooks]
 api_version = "2026-10"

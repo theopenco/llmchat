@@ -653,6 +653,13 @@ export const widgetStyles = `
 .llmchat-dot:nth-child(3) {
 	animation-delay: 0.3s;
 }
+/* Shown next to the dots while an integration tool runs (booking, order
+   lookup) so a multi-second action doesn't read as a stall. */
+.llmchat-typing-label {
+	margin-left: 4px;
+	font-size: 12px;
+	color: #6b7280;
+}
 @keyframes llmchat-bounce {
 	0%,
 	60%,
