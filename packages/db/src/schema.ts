@@ -341,6 +341,38 @@ export const integration = sqliteTable(
 	(t) => [uniqueIndex("integration_project_kind").on(t.projectId, t.kind)],
 );
 
+// Durable, operator-visible audit trail of every action the AGENT took on a
+// visitor's behalf (Cal.com booking, Shopify order lookup / return). Append-only.
+// `params` is the sanitized tool input (order number, email, slot, item titles)
+// — NEVER credentials. `ok` records whether the upstream action succeeded; a
+// blocked/refused attempt is logged with ok=false so abuse is visible. Surfaced
+// in the dashboard conversation thread so a mistaken or abusive return/booking
+// can be seen (and reversed in Shopify/Cal.com) instead of being invisible.
+export const agentAction = sqliteTable(
+	"agent_action",
+	{
+		id: id(),
+		conversationId: text()
+			.notNull()
+			.references(() => conversation.id, { onDelete: "cascade" }),
+		projectId: text()
+			.notNull()
+			.references(() => project.id, { onDelete: "cascade" }),
+		workspaceId: text()
+			.notNull()
+			.references(() => workspace.id, { onDelete: "cascade" }),
+		kind: text({ enum: ["calcom", "shopify"] }).notNull(),
+		tool: text().notNull(),
+		ok: integer({ mode: "boolean" }).notNull(),
+		// Short human summary for the operator ("filed return #1001-R1 …").
+		detail: text(),
+		// Sanitized tool inputs as JSON — never secrets.
+		params: text().notNull().default("{}"),
+		createdAt: createdAt(),
+	},
+	(t) => [index("agent_action_conv").on(t.conversationId, t.createdAt)],
+);
+
 export const message = sqliteTable(
 	"message",
 	{

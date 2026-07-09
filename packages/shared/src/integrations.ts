@@ -27,8 +27,12 @@ export const calcomConfigSchema = z.object({
 	eventTypeId: z.number().int().positive(),
 	/** IANA time zone slots are quoted in (visitors see these times). */
 	timeZone: z.string().min(1).max(64).default("UTC"),
-	/** Override for tests/self-hosters — defaults to https://api.cal.com. */
-	apiBase: z.url().optional(),
+	// NOTE: there is deliberately NO `apiBase` here. A stored, admin-writable
+	// base URL is an SSRF + credential-exfiltration vector — the agent attaches
+	// the raw Bearer key to every request, so a config-supplied host could
+	// exfiltrate it. The Cal.com host is pinned to api.cal.com in calcom.ts; a
+	// trusted, server-set env override (CALCOM_API_BASE) exists for tests/
+	// self-hosters and is NOT part of this untrusted config blob.
 });
 export type CalcomConfig = z.infer<typeof calcomConfigSchema>;
 
@@ -49,8 +53,10 @@ export const shopifyConfigSchema = z.object({
 		),
 	/** Admin API access token (shpat_…/shpca_…) — server-side only. */
 	accessToken: z.string().min(6).max(256),
-	/** Override for tests — defaults to https://<shopDomain>. */
-	apiBase: z.url().optional(),
+	// NOTE: there is deliberately NO `apiBase` here. See calcomConfigSchema —
+	// same SSRF/token-exfiltration reasoning. The Shopify host is always derived
+	// from the regex-validated `shopDomain` (shopify-admin.ts); a trusted,
+	// server-set env override (SHOPIFY_API_BASE) exists for tests/self-hosters.
 });
 export type ShopifyConfig = z.infer<typeof shopifyConfigSchema>;
 

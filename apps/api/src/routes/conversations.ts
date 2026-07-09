@@ -456,11 +456,29 @@ export const conversations = new Hono<AppContext>()
 				firstHitSequence = hit?.sequence ?? null;
 			}
 
+			// Durable audit trail of agent-taken actions on this conversation
+			// (bookings, order lookups, returns) — operator visibility into what the
+			// bot DID, so a mistaken/abusive action can be seen and reversed upstream.
+			const actions = await db(c.env).query.agentAction.findMany({
+				where: (a, { eq: e }) => e(a.conversationId, id),
+				orderBy: (a, { asc: ascOp }) => ascOp(a.createdAt),
+				limit: 200,
+			});
+			const agentActions = actions.map((a) => ({
+				id: a.id,
+				kind: a.kind,
+				tool: a.tool,
+				ok: a.ok,
+				detail: a.detail,
+				createdAt: a.createdAt,
+			}));
+
 			return c.json({
 				conversation: conv,
 				messages,
 				hasOlder,
 				firstHitSequence,
+				agentActions,
 			});
 		},
 	)

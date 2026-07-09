@@ -1,8 +1,12 @@
 // Configure the seeded demo project's integrations THROUGH the real API
-// (sign in as the seeded admin, then PUT both integration configs with
-// apiBase pointed at the local mock upstream).
+// (sign in as the seeded admin, then PUT both integration configs).
+//
+// NOTE: the stored config no longer accepts an `apiBase` (that was an SSRF /
+// token-exfiltration vector). To point the agent's integration clients at the
+// local mock upstream, boot the api with the TRUSTED env overrides instead:
+//   SHOPIFY_API_BASE=http://127.0.0.1:9099 CALCOM_API_BASE=http://127.0.0.1:9099 pnpm dev
+// (see apps/api/.env.example). The mock still listens on 127.0.0.1:9099.
 const API = "http://localhost:8787";
-const MOCK = "http://127.0.0.1:9099";
 
 async function main() {
 	// Better Auth email+password sign-in → session cookie.
@@ -60,12 +64,10 @@ async function main() {
 		apiKey: "cal_demo_key",
 		eventTypeId: 42,
 		timeZone: "UTC",
-		apiBase: MOCK,
 	});
 	await putIntegration("shopify", {
 		shopDomain: "acme-tools.myshopify.com",
 		accessToken: "shpat_demo_token",
-		apiBase: MOCK,
 	});
 
 	const list = await (

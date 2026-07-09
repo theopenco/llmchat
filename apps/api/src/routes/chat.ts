@@ -14,7 +14,12 @@ import {
 	holdingStreamResponse,
 } from "@/lib/holding";
 import { buildIntegrationTools } from "@/lib/integration-tools";
-import { publicLookupRateLimit, rateLimit, shouldSendHolding } from "@/lib/kv";
+import {
+	publicLookupRateLimit,
+	rateLimit,
+	reserveOnce,
+	shouldSendHolding,
+} from "@/lib/kv";
 import { streamChat, summarizeForVisitor } from "@/lib/llm";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
 import { captureEvent, captureInBackground } from "@/lib/posthog";
@@ -23,6 +28,7 @@ import { sendEscalationSlack } from "@/lib/slack";
 import { reportMeterEvent } from "@/lib/stripe";
 
 import {
+	agentAction,
 	and as andWhere,
 	conversation,
 	eq,
@@ -99,6 +105,15 @@ const resolveBody = z.object({
 
 const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_WINDOW = 60 * 60;
+// Side-effecting agent actions (book_meeting, create_return) are more dangerous
+// than chat turns, so they get their OWN, tighter budget on top of the chat
+// limit: a per-(project,IP) hourly cap AND a per-project daily aggregate cap
+// (bounds a distributed/IP-rotating attacker — the gap tracked in task #114,
+// applied here at the action layer). Fail CLOSED (see the guard wiring).
+const ACTION_RATE_MAX = 8;
+const ACTION_RATE_WINDOW = 60 * 60;
+const ACTION_DAILY_MAX = 40;
+const ACTION_DAILY_WINDOW = 24 * 60 * 60;
 // Escalations trigger notification emails — keep the budget much tighter.
 const ESCALATE_RATE_LIMIT_MAX = 5;
 // Visitor-resolve is a cheap idempotent DB write (no email/Slack); modest cap.
@@ -202,6 +217,20 @@ export const chat = new Hono<AppContext>()
 				userAgent: c.req.header("user-agent") ?? "",
 			});
 
+		// Capture a first-seen email onto the conversation identity so an action
+		// bound to the on-file email (book_meeting) has it available. Only FILLS a
+		// null — never overwrites an established identity mid-conversation, so a
+		// visitor can't retarget an existing conversation's bound email.
+		if (email && !conv.email) {
+			conv.email = email;
+			c.executionCtx.waitUntil(
+				db(c.env)
+					.update(conversation)
+					.set({ email, updatedAt: new Date() })
+					.where(eq(conversation.id, conv.id)),
+			);
+		}
+
 		c.executionCtx.waitUntil(
 			(async () => {
 				if (convCreated) {
@@ -298,18 +327,70 @@ export const chat = new Hono<AppContext>()
 		const built = buildIntegrationTools({
 			rows: integrationRows,
 			identity: { name: conv.name, email: conv.email },
-			onAction: (kind, toolName, ok) =>
+			conversationId: conv.id,
+			// Trusted, server-set upstream base overrides for tests/self-hosters —
+			// NEVER from the untrusted stored config (that was the apiBase SSRF hole).
+			baseOverrides: {
+				calcom: c.env.vars.CALCOM_API_BASE,
+				shopify: c.env.vars.SHOPIFY_API_BASE,
+			},
+			// Action-scoped guards: a rate/quota bucket distinct from (and tighter
+			// than) the 20/hr chat limit, plus create_return idempotency — actions
+			// are more dangerous than messages.
+			guards: {
+				actionLimit: async () => {
+					const perProjectIp = await rateLimit(
+						c.env,
+						`action:${project.id}:${ip}`,
+						ACTION_RATE_MAX,
+						ACTION_RATE_WINDOW,
+						{ failClosed: true },
+					);
+					if (!perProjectIp.ok) return false;
+					const perProjectDaily = await rateLimit(
+						c.env,
+						`action-daily:${project.id}`,
+						ACTION_DAILY_MAX,
+						ACTION_DAILY_WINDOW,
+						{ failClosed: true },
+					);
+					return perProjectDaily.ok;
+				},
+				once: (key) => reserveOnce(c.env, key),
+			},
+			onAction: (record) => {
+				// (1) Durable, operator-visible audit row — the "what did the agent
+				// do, on whose behalf" record the inbox thread renders.
+				c.executionCtx.waitUntil(
+					db(c.env)
+						.insert(agentAction)
+						.values({
+							conversationId: conv.id,
+							projectId: project.id,
+							workspaceId: project.workspaceId,
+							kind: record.kind,
+							tool: record.tool,
+							ok: record.ok,
+							detail: record.detail ?? null,
+							params: JSON.stringify(record.params ?? {}),
+						})
+						.catch((err) =>
+							console.error("chat: agent_action persist failed", err),
+						),
+				);
+				// (2) Analytics (unchanged) — PII-free counters.
 				captureInBackground(c, {
 					event: ANALYTICS_EVENTS.integrationActionUsed,
 					distinctId: clientId,
 					properties: {
 						project_id: project.id,
 						workspace_id: project.workspaceId,
-						kind,
-						tool: toolName,
-						ok,
+						kind: record.kind,
+						tool: record.tool,
+						ok: record.ok,
 					},
-				}),
+				});
+			},
 		});
 
 		// Guard the live bot against a project stuck on a model that's no longer

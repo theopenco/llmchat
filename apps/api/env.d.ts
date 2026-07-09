@@ -52,6 +52,12 @@ declare module "@meetploy/nextjs" {
 			GOOGLE_CLIENT_SECRET?: string;
 			GITHUB_CLIENT_ID?: string;
 			GITHUB_CLIENT_SECRET?: string;
+			// TRUSTED upstream base-URL overrides for integration clients (tests /
+			// self-hosters / the demo mock). Server-set only — the untrusted stored
+			// integration config no longer carries an apiBase (SSRF fix). Unset in
+			// prod ⇒ Shopify is pinned to the shopDomain and Cal.com to api.cal.com.
+			SHOPIFY_API_BASE?: string;
+			CALCOM_API_BASE?: string;
 		};
 		DB: Database;
 		STATE: StateBinding;
@@ -109,6 +115,12 @@ declare global {
 			GOOGLE_CLIENT_SECRET?: string;
 			GITHUB_CLIENT_ID?: string;
 			GITHUB_CLIENT_SECRET?: string;
+			// TRUSTED upstream base-URL overrides for integration clients (tests /
+			// self-hosters / the demo mock). Server-set only — the untrusted stored
+			// integration config no longer carries an apiBase (SSRF fix). Unset in
+			// prod ⇒ Shopify is pinned to the shopDomain and Cal.com to api.cal.com.
+			SHOPIFY_API_BASE?: string;
+			CALCOM_API_BASE?: string;
 		};
 		DB: Database;
 		STATE: StateBinding;
