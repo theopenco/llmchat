@@ -21,7 +21,10 @@ vi.mock("./widget-config", () => ({
 	useWidgetConfig: () => ({
 		showBranding: false,
 		privacyPolicyUrl: null,
-		suggestedQuestions: ["What are your pricing plans?", "How do refunds work?"],
+		suggestedQuestions: [
+			"What are your pricing plans?",
+			"How do refunds work?",
+		],
 	}),
 }));
 
