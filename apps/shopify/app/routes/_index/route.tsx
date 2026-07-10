@@ -19,9 +19,11 @@ export default function App() {
 	return (
 		<div className={styles.index}>
 			<div className={styles.content}>
-				<h1 className={styles.heading}>A short heading about [your app]</h1>
+				<h1 className={styles.heading}>Clanker Support for Shopify</h1>
 				<p className={styles.text}>
-					A tagline about [your app] that describes your value proposition.
+					A support agent for your storefront — it answers customer questions
+					from your own docs and pages, and hands the conversation to your team
+					the moment it can&apos;t help.
 				</p>
 				{showForm && (
 					<Form className={styles.form} method="post" action="/auth/login">
@@ -37,16 +39,18 @@ export default function App() {
 				)}
 				<ul className={styles.list}>
 					<li>
-						<strong>Product feature</strong>. Some detail about your feature and
-						its benefit to your customer.
+						<strong>Answers from your knowledge base</strong>. Replies come from
+						the docs, pages, and Q&amp;A you connect — not canned scripts.
 					</li>
 					<li>
-						<strong>Product feature</strong>. Some detail about your feature and
-						its benefit to your customer.
+						<strong>Escalates to your team</strong>. Unresolved conversations
+						land in your inbox with full context, and your replies thread back
+						to the shopper by email.
 					</li>
 					<li>
-						<strong>Product feature</strong>. Some detail about your feature and
-						its benefit to your customer.
+						<strong>Order help, done safely</strong>. Shoppers can check their
+						own order or start a return — verified against the email on the
+						order, rate-limited, and every action logged for your team.
 					</li>
 				</ul>
 			</div>
