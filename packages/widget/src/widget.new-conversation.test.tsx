@@ -56,7 +56,9 @@ function mockFeed(opts: { csatRating?: number | null } = {}) {
 	});
 }
 
-async function mountIdentified(opts: {
+// The pre-chat form is opt-in (collectIdentity, off in the pinned config), so
+// the conversation surface renders straight away.
+async function mountLive(opts: {
 	csatRating?: number | null;
 	mode?: "inline" | "bubble";
 }) {
@@ -73,13 +75,11 @@ async function mountIdentified(opts: {
 	if (opts.mode === "bubble") {
 		await userEvent.click(screen.getByRole("button", { name: /open chat/i }));
 	}
-	await userEvent.type(screen.getByPlaceholderText(/your name/i), "Test");
-	await userEvent.click(screen.getByRole("button", { name: /start chat/i }));
 }
 
 describe("LiveWidget — closing the panel never prompts for feedback", () => {
 	it("closes on X without showing the CSAT step, even when eligible", async () => {
-		await mountIdentified({ mode: "bubble" });
+		await mountLive({ mode: "bubble" });
 		// The header X, not the launcher (both are labeled "Close chat" while open).
 		const panel = screen.getByRole("dialog", { name: /support chat/i });
 		await userEvent.click(
@@ -93,7 +93,7 @@ describe("LiveWidget — closing the panel never prompts for feedback", () => {
 
 describe("LiveWidget — start a new conversation", () => {
 	it("prompts for CSAT when ending an eligible conversation, then resets on skip", async () => {
-		await mountIdentified({});
+		await mountLive({});
 		const before = sessionStorage.getItem("llmchat_client_id");
 		await userEvent.click(
 			screen.getByRole("button", { name: /start a new conversation/i }),
@@ -112,7 +112,7 @@ describe("LiveWidget — start a new conversation", () => {
 	});
 
 	it("skips the CSAT prompt entirely when the conversation was already rated", async () => {
-		await mountIdentified({ csatRating: 5 });
+		await mountLive({ csatRating: 5 });
 		const before = sessionStorage.getItem("llmchat_client_id");
 		await userEvent.click(
 			screen.getByRole("button", { name: /start a new conversation/i }),
@@ -126,7 +126,7 @@ describe("LiveWidget — start a new conversation", () => {
 
 describe("LiveWidget — resolving ends the conversation", () => {
 	it("shows the CSAT prompt after the visitor marks the conversation resolved", async () => {
-		await mountIdentified({});
+		await mountLive({});
 		await userEvent.click(
 			screen.getByRole("button", { name: /mark resolved/i }),
 		);

@@ -21,7 +21,10 @@ vi.mock("./widget-config", () => ({
 	useWidgetConfig: () => ({
 		showBranding: false,
 		privacyPolicyUrl: null,
-		suggestedQuestions: ["What are your pricing plans?", "How do refunds work?"],
+		suggestedQuestions: [
+			"What are your pricing plans?",
+			"How do refunds work?",
+		],
 	}),
 }));
 
@@ -48,7 +51,9 @@ function mockFeed(messages: ServerMessage[]) {
 	});
 }
 
-async function mountIdentified(messages: ServerMessage[] = []) {
+// The pre-chat form is opt-in (collectIdentity, off in the pinned config), so
+// the widget opens straight into the chat — no identify step to walk through.
+function mountLive(messages: ServerMessage[] = []) {
 	mockFeed(messages);
 	render(
 		<Widget
@@ -59,13 +64,11 @@ async function mountIdentified(messages: ServerMessage[] = []) {
 			mode="inline"
 		/>,
 	);
-	await userEvent.type(screen.getByPlaceholderText(/your name/i), "Test");
-	await userEvent.click(screen.getByRole("button", { name: /start chat/i }));
 }
 
 describe("LiveWidget — suggested-question chips", () => {
 	it("offers the admin-defined questions before the first message and sends the picked one", async () => {
-		await mountIdentified();
+		mountLive();
 		const chip = screen.getByRole("button", {
 			name: "What are your pricing plans?",
 		});
@@ -78,8 +81,8 @@ describe("LiveWidget — suggested-question chips", () => {
 		});
 	});
 
-	it("hides the chips once the visitor has sent a message", async () => {
-		await mountIdentified([
+	it("hides the chips once the visitor has sent a message", () => {
+		mountLive([
 			{ id: "s1", role: "user", content: "hi", sequence: 1, createdAt: 1 },
 			{
 				id: "s2",

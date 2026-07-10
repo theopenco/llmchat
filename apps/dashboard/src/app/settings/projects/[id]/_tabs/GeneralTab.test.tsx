@@ -17,6 +17,7 @@ function draft(): ProjectDraft {
 		slackWebhookUrl: null,
 		privacyPolicyUrl: null,
 		suggestedQuestions: [],
+		collectIdentity: false,
 	};
 }
 

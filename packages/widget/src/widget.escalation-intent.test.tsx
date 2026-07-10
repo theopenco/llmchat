@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // Keep the live widget off the network/model: stub the chat transport + hook and
@@ -44,7 +43,9 @@ function mockFeed(content: string) {
 	});
 }
 
-async function mountIdentified(visitorMessage: string) {
+// The pre-chat form is opt-in (collectIdentity, off in the pinned config), so
+// the conversation surface renders straight away.
+function mountLive(visitorMessage: string) {
 	mockFeed(visitorMessage);
 	render(
 		<Widget
@@ -55,21 +56,18 @@ async function mountIdentified(visitorMessage: string) {
 			mode="inline"
 		/>,
 	);
-	// Pass the pre-chat IdentifyForm gate so the conversation surface renders.
-	await userEvent.type(screen.getByPlaceholderText(/your name/i), "Test");
-	await userEvent.click(screen.getByRole("button", { name: /start chat/i }));
 }
 
 describe("LiveWidget — explicit human request overrides the threshold", () => {
-	it("shows the CTA on the first message when the visitor asks for a human", async () => {
-		await mountIdentified("Can I talk to a human please?");
+	it("shows the CTA on the first message when the visitor asks for a human", () => {
+		mountLive("Can I talk to a human please?");
 		expect(
 			screen.getByRole("button", { name: /talk to a human/i }),
 		).toBeInTheDocument();
 	});
 
-	it("keeps the CTA hidden below the threshold for an ordinary question", async () => {
-		await mountIdentified("How do I add the widget to my website?");
+	it("keeps the CTA hidden below the threshold for an ordinary question", () => {
+		mountLive("How do I add the widget to my website?");
 		expect(
 			screen.queryByRole("button", { name: /talk to a human/i }),
 		).not.toBeInTheDocument();

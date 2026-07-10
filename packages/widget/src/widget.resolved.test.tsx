@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // Keep the live widget off the network/model: stub the chat transport + hook and
@@ -52,7 +51,9 @@ function mockFeed(archivedAt: string | null) {
 	});
 }
 
-async function mountIdentified(archivedAt: string | null) {
+// The pre-chat form is opt-in (collectIdentity, off in the pinned config), so
+// the conversation surface renders straight away.
+function mountLive(archivedAt: string | null) {
 	mockFeed(archivedAt);
 	render(
 		<Widget
@@ -63,14 +64,11 @@ async function mountIdentified(archivedAt: string | null) {
 			mode="inline"
 		/>,
 	);
-	// Pass the pre-chat IdentifyForm gate so the conversation surface renders.
-	await userEvent.type(screen.getByPlaceholderText(/your name/i), "Test");
-	await userEvent.click(screen.getByRole("button", { name: /start chat/i }));
 }
 
 describe("LiveWidget — resolved hydration (Bug 4)", () => {
-	it("hydrates resolved from the feed: hides the Resolve button and shows the notice", async () => {
-		await mountIdentified("2026-06-29T00:00:00.000Z");
+	it("hydrates resolved from the feed: hides the Resolve button and shows the notice", () => {
+		mountLive("2026-06-29T00:00:00.000Z");
 		// The button is hidden purely from the server archivedAt (resolvedLocal is
 		// false this session — the reload case), mirroring the escalation pattern.
 		expect(
@@ -83,8 +81,8 @@ describe("LiveWidget — resolved hydration (Bug 4)", () => {
 		).not.toBeDisabled();
 	});
 
-	it("a non-resolved feed with the same exchange DOES show the Resolve button", async () => {
-		await mountIdentified(null);
+	it("a non-resolved feed with the same exchange DOES show the Resolve button", () => {
+		mountLive(null);
 		expect(
 			screen.getByRole("button", { name: /mark resolved/i }),
 		).toBeInTheDocument();

@@ -66,6 +66,36 @@ export function BehaviorTab({
 				</div>
 			</Card>
 
+			{/* Pre-chat identity form — off by default: the widget opens straight
+			    into the conversation. On, visitors give a name (email optional)
+			    before chatting. */}
+			<Card className="flex items-start justify-between gap-4 p-5">
+				<div>
+					<h3 className="text-[15px] font-bold text-ck-text">Pre-chat form</h3>
+					<p className="mt-0.5 max-w-md text-sm text-ck-muted">
+						Ask visitors for their name and email before the conversation
+						starts. Off, the chat opens immediately and visitors stay anonymous
+						until they escalate.
+					</p>
+				</div>
+				<button
+					type="button"
+					role="switch"
+					aria-checked={draft.collectIdentity}
+					aria-label="Ask for name and email before chatting"
+					onClick={() => set("collectIdentity", !draft.collectIdentity)}
+					className={`relative mt-1 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+						draft.collectIdentity ? "bg-ck-accent" : "bg-ck-chip"
+					}`}
+				>
+					<span
+						className={`inline-block size-[18px] transform rounded-full bg-white shadow transition-transform ${
+							draft.collectIdentity ? "translate-x-[22px]" : "translate-x-[3px]"
+						}`}
+					/>
+				</button>
+			</Card>
+
 			{/* Escalation & handoff — newly exposed; all three fields are wired
 			    end-to-end (widget threshold, escalation email, Slack post). */}
 			<Card className="flex flex-col gap-5 p-5">

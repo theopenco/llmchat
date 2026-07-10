@@ -46,6 +46,7 @@ const projectCreateInput = z.object({
 	slackWebhookUrl: z.url().nullable().optional(),
 	privacyPolicyUrl: z.url().nullable().optional(),
 	suggestedQuestions: suggestedQuestionsInput.default([]),
+	collectIdentity: z.boolean().default(false),
 	favorite: z.boolean().optional(),
 	pinned: z.boolean().optional(),
 });
@@ -70,6 +71,7 @@ const projectUpdateInput = z.object({
 	slackWebhookUrl: z.url().nullable().optional(),
 	privacyPolicyUrl: z.url().nullable().optional(),
 	suggestedQuestions: suggestedQuestionsInput.optional(),
+	collectIdentity: z.boolean().optional(),
 	favorite: z.boolean().optional(),
 	pinned: z.boolean().optional(),
 });

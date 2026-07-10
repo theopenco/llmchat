@@ -189,18 +189,34 @@ function LiveWidget({
 	}, [projectKey]);
 
 	// Server decides whether the "Powered by" badge shows (plan-gated, tamper-
-	// proof) and supplies the project's privacy policy URL and admin-defined
-	// starter questions. Defaults to branded / built-in privacy link / no chips
+	// proof) and supplies the project's privacy policy URL, admin-defined
+	// starter questions, and whether to ask for the visitor's identity first.
+	// Defaults to branded / built-in privacy link / no chips / no identity form
 	// until the server says otherwise.
-	const { showBranding, privacyPolicyUrl, suggestedQuestions } =
-		useWidgetConfig(apiUrl, projectKey);
+	const {
+		showBranding,
+		privacyPolicyUrl,
+		suggestedQuestions,
+		collectIdentity,
+	} = useWidgetConfig(apiUrl, projectKey);
+	// The pre-chat name/email form is opt-in per project (collectIdentity).
+	// Off (the default), the widget opens straight into the conversation; a
+	// stored identity from a prior visit still skips the form when it's on.
+	const needsIdentity = collectIdentity && !identified;
 
 	const chat = useMemo(
 		() =>
 			new Chat({
 				transport: new DefaultChatTransport({
 					api: `${apiUrl}/v1/chat`,
-					body: { projectKey, clientId, name, email: email || undefined },
+					body: {
+						projectKey,
+						clientId,
+						// Blank when the identify form is off — omit, not "" (the inbox
+						// shows a null name as "Anonymous").
+						name: name || undefined,
+						email: email || undefined,
+					},
 				}),
 			}),
 		[apiUrl, projectKey, clientId, name, email],
@@ -218,7 +234,7 @@ function LiveWidget({
 		escalatedAt: serverEscalatedAt,
 		archivedAt: serverArchivedAt,
 		refresh,
-	} = useServerMessages(apiUrl, projectKey, clientId, open && identified);
+	} = useServerMessages(apiUrl, projectKey, clientId, open && !needsIdentity);
 	// Escalated this session OR per the server feed (hydrates on reload so the
 	// "Talk to a human" CTA can't reappear and re-fire /v1/escalate).
 	const escalated = deriveEscalated(escalatedLocal, serverEscalatedAt);
@@ -396,7 +412,7 @@ function LiveWidget({
 			const { summary } = await requestEscalation(apiUrl, {
 				projectKey,
 				clientId,
-				name,
+				name: name || undefined,
 				email: email || undefined,
 				messages: displayMessages.map(({ role, content }) => ({
 					role,
@@ -446,7 +462,7 @@ function LiveWidget({
 	// Header shortcut to end the current conversation and start fresh — only
 	// once there's a conversation worth leaving (or a terminal state to escape).
 	const canStartNew =
-		identified &&
+		!needsIdentity &&
 		csatStep === "hidden" &&
 		(hasRealExchange || resolved || escalated);
 
@@ -473,7 +489,7 @@ function LiveWidget({
 		>
 			{csatStep !== "hidden" ? (
 				<CsatStep step={csatStep} onRate={submitCsat} onSkip={skipCsat} />
-			) : !identified ? (
+			) : needsIdentity ? (
 				<IdentifyForm
 					name={name}
 					email={email}

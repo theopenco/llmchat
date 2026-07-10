@@ -22,6 +22,7 @@ export const widgetConfig = new Hono<AppContext>().get(
 				workspaceId: true,
 				privacyPolicyUrl: true,
 				suggestedQuestions: true,
+				collectIdentity: true,
 			},
 		});
 		if (!project) {
@@ -39,6 +40,9 @@ export const widgetConfig = new Hono<AppContext>().get(
 			suggestedQuestions: Array.isArray(project.suggestedQuestions)
 				? project.suggestedQuestions.filter((q) => typeof q === "string")
 				: [],
+			// Whether the widget asks for name/email before chatting. Off by
+			// default — the widget opens straight into the conversation.
+			collectIdentity: project.collectIdentity === true,
 		});
 	},
 );

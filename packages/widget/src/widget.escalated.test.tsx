@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // Keep the live widget off the network/model: stub the chat transport + hook and
@@ -48,7 +47,9 @@ function mockFeed(escalatedAt: string | null) {
 	});
 }
 
-async function mountIdentified(escalatedAt: string | null) {
+// The pre-chat form is opt-in (collectIdentity, off in the pinned config), so
+// the conversation surface renders straight away.
+function mountLive(escalatedAt: string | null) {
 	mockFeed(escalatedAt);
 	render(
 		<Widget
@@ -59,14 +60,11 @@ async function mountIdentified(escalatedAt: string | null) {
 			mode="inline"
 		/>,
 	);
-	// Pass the pre-chat IdentifyForm gate so the conversation surface renders.
-	await userEvent.type(screen.getByPlaceholderText(/your name/i), "Test");
-	await userEvent.click(screen.getByRole("button", { name: /start chat/i }));
 }
 
 describe("LiveWidget — escalation hydration (Bug 3)", () => {
-	it("hydrates escalated from the feed: hides the CTA, shows the notice, keeps the composer typeable", async () => {
-		await mountIdentified("2026-06-29T00:00:00.000Z");
+	it("hydrates escalated from the feed: hides the CTA, shows the notice, keeps the composer typeable", () => {
+		mountLive("2026-06-29T00:00:00.000Z");
 		// NN6: the CTA is hidden purely from the server escalatedAt (escalatedLocal is
 		// false this session — the reload case) so /v1/escalate can't be re-fired.
 		expect(
@@ -81,8 +79,8 @@ describe("LiveWidget — escalation hydration (Bug 3)", () => {
 		).not.toBeDisabled();
 	});
 
-	it("a non-escalated feed with the same message count DOES show the CTA (proves it's escalation that hides it)", async () => {
-		await mountIdentified(null);
+	it("a non-escalated feed with the same message count DOES show the CTA (proves it's escalation that hides it)", () => {
+		mountLive(null);
 		expect(
 			screen.getByRole("button", { name: /talk to a human/i }),
 		).toBeInTheDocument();

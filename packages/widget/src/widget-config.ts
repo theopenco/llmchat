@@ -10,6 +10,9 @@ export interface WidgetConfig {
 	/** Admin-defined starter questions offered as tappable chips before the
 	 * visitor's first message. Empty → no chips. */
 	suggestedQuestions: string[];
+	/** Whether the widget asks for the visitor's name/email before chatting.
+	 * Defaults to false: the widget opens straight into the conversation. */
+	collectIdentity: boolean;
 }
 
 /**
@@ -29,6 +32,7 @@ export function useWidgetConfig(
 		showBranding: true,
 		privacyPolicyUrl: null,
 		suggestedQuestions: [],
+		collectIdentity: false,
 	});
 	useEffect(() => {
 		let active = true;
@@ -40,6 +44,7 @@ export function useWidgetConfig(
 						showBranding?: unknown;
 						privacyPolicyUrl?: unknown;
 						suggestedQuestions?: unknown;
+						collectIdentity?: unknown;
 					} | null,
 				) => {
 					if (!active || !data) return;
@@ -57,6 +62,10 @@ export function useWidgetConfig(
 									(q): q is string => typeof q === "string" && q.trim() !== "",
 								)
 							: prev.suggestedQuestions,
+						collectIdentity:
+							typeof data.collectIdentity === "boolean"
+								? data.collectIdentity
+								: prev.collectIdentity,
 					}));
 				},
 			)

@@ -37,7 +37,31 @@ describe("GET /config/:key — public widget config", () => {
 			showBranding: true,
 			privacyPolicyUrl: null,
 			suggestedQuestions: ["Pricing?", "Refunds?"],
+			collectIdentity: false,
 		});
+	});
+
+	it("reports collectIdentity when the project enables the pre-chat form", async () => {
+		mockProject({
+			workspaceId: "ws1",
+			privacyPolicyUrl: null,
+			suggestedQuestions: [],
+			collectIdentity: true,
+		});
+		const res = await widgetConfig.request("/config/pk_x", {}, ENV);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({ collectIdentity: true });
+	});
+
+	it("defaults collectIdentity to false on a legacy row without the column", async () => {
+		mockProject({
+			workspaceId: "ws1",
+			privacyPolicyUrl: null,
+			suggestedQuestions: [],
+			collectIdentity: undefined,
+		});
+		const res = await widgetConfig.request("/config/pk_x", {}, ENV);
+		expect(await res.json()).toMatchObject({ collectIdentity: false });
 	});
 
 	it("degrades a malformed suggestions column to no chips, never a 500", async () => {

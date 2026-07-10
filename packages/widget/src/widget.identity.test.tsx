@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Keep the live widget off the network/model so we can assert purely on whether the
-// IdentifyForm gate is shown vs. skipped by the localStorage prefill.
+// IdentifyForm gate is shown vs. skipped by the config toggle + localStorage prefill.
 vi.mock("ai", () => ({ DefaultChatTransport: class {} }));
 vi.mock("@ai-sdk/react", () => ({
 	Chat: class {},
@@ -13,12 +13,19 @@ vi.mock("@ai-sdk/react", () => ({
 		error: null,
 	}),
 }));
-vi.mock("./widget-config", () => ({
-	useWidgetConfig: () => ({
+// Server-driven widget config, controllable per test. collectIdentity defaults
+// to false (the widget opens straight into the chat) — the identity-prefill
+// tests flip it on.
+const mockConfig = vi.hoisted(() => ({
+	current: {
 		showBranding: false,
-		privacyPolicyUrl: null,
-		suggestedQuestions: [],
-	}),
+		privacyPolicyUrl: null as string | null,
+		suggestedQuestions: [] as string[],
+		collectIdentity: false,
+	},
+}));
+vi.mock("./widget-config", () => ({
+	useWidgetConfig: () => mockConfig.current,
 }));
 
 import { setStoredIdentity } from "./lib";
@@ -30,6 +37,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 beforeEach(() => {
 	localStorage.clear();
 	sessionStorage.clear();
+	mockConfig.current = {
+		showBranding: false,
+		privacyPolicyUrl: null,
+		suggestedQuestions: [],
+		collectIdentity: false,
+	};
 	vi.spyOn(serverMessages, "useServerMessages").mockReturnValue({
 		serverMessages: [],
 		conversationId: null,
@@ -56,7 +69,25 @@ function mount(projectKey = "pk_a") {
 	);
 }
 
+describe("LiveWidget — pre-chat form is opt-in (collectIdentity)", () => {
+	it("opens straight into the chat by default (no name/email form)", () => {
+		mount();
+		expect(screen.queryByPlaceholderText(/your name/i)).not.toBeInTheDocument();
+		expect(screen.getByText(/Hi! How can I help/i)).toBeInTheDocument();
+	});
+
+	it("shows the IdentifyForm when the project enables collectIdentity", () => {
+		mockConfig.current.collectIdentity = true;
+		mount();
+		expect(screen.getByPlaceholderText(/your name/i)).toBeInTheDocument();
+	});
+});
+
 describe("LiveWidget — identity prefill on mount (Luca #5)", () => {
+	beforeEach(() => {
+		mockConfig.current.collectIdentity = true;
+	});
+
 	it("shows the IdentifyForm when no identity is stored", () => {
 		mount();
 		expect(screen.getByPlaceholderText(/your name/i)).toBeInTheDocument();

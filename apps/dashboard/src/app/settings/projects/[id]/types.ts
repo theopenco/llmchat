@@ -14,6 +14,9 @@ export interface Project {
 	privacyPolicyUrl: string | null;
 	/** Starter questions the widget offers as tappable chips (max 6). */
 	suggestedQuestions: string[];
+	/** Whether the widget asks for name/email before chatting (off = straight
+	 * into the conversation). */
+	collectIdentity: boolean;
 }
 
 export interface Source {
@@ -50,6 +53,7 @@ export type ProjectDraft = Pick<
 	| "slackWebhookUrl"
 	| "privacyPolicyUrl"
 	| "suggestedQuestions"
+	| "collectIdentity"
 >;
 
 /** Widget chip cap — mirrored by the API's validation. */

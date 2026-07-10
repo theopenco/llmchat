@@ -35,6 +35,7 @@ const EDITABLE_KEYS: (keyof ProjectDraft)[] = [
 	"slackWebhookUrl",
 	"privacyPolicyUrl",
 	"suggestedQuestions",
+	"collectIdentity",
 ];
 
 function toDraft(p: Project): ProjectDraft {
@@ -48,8 +49,9 @@ function toDraft(p: Project): ProjectDraft {
 		notifyEmail: p.notifyEmail,
 		slackWebhookUrl: p.slackWebhookUrl,
 		privacyPolicyUrl: p.privacyPolicyUrl,
-		// Fallback: a cached project fetched before the column existed.
+		// Fallbacks: a cached project fetched before these columns existed.
 		suggestedQuestions: p.suggestedQuestions ?? [],
+		collectIdentity: p.collectIdentity ?? false,
 	};
 }
 

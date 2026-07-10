@@ -50,6 +50,7 @@ const PROJECT: Project = {
 	slackWebhookUrl: null,
 	privacyPolicyUrl: null,
 	suggestedQuestions: [],
+	collectIdentity: false,
 };
 
 beforeEach(() => {

@@ -23,6 +23,7 @@ function draft(o: Partial<ProjectDraft> = {}): ProjectDraft {
 		slackWebhookUrl: null,
 		privacyPolicyUrl: null,
 		suggestedQuestions: [],
+		collectIdentity: false,
 		...o,
 	};
 }
@@ -70,5 +71,27 @@ describe("BehaviorTab — escalation exposure (newly LIVE)", () => {
 	it("shows the roadmap items as a dimmed note, not controls", () => {
 		render(<BehaviorTab draft={draft()} set={set} />);
 		expect(screen.getByText(/tone of voice.*coming/i)).toBeInTheDocument();
+	});
+});
+
+describe("BehaviorTab — pre-chat form toggle (collectIdentity)", () => {
+	it("renders off by default and turns the form on", async () => {
+		render(<BehaviorTab draft={draft()} set={set} />);
+		const toggle = screen.getByRole("switch", {
+			name: /ask for name and email/i,
+		});
+		expect(toggle).toHaveAttribute("aria-checked", "false");
+		await userEvent.setup().click(toggle);
+		expect(set).toHaveBeenCalledWith("collectIdentity", true);
+	});
+
+	it("turns the form off when enabled", async () => {
+		render(<BehaviorTab draft={draft({ collectIdentity: true })} set={set} />);
+		const toggle = screen.getByRole("switch", {
+			name: /ask for name and email/i,
+		});
+		expect(toggle).toHaveAttribute("aria-checked", "true");
+		await userEvent.setup().click(toggle);
+		expect(set).toHaveBeenCalledWith("collectIdentity", false);
 	});
 });

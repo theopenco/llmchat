@@ -173,6 +173,9 @@ export const project = sqliteTable(
 			.$type<string[]>()
 			.notNull()
 			.default([]),
+		// Whether the widget asks for the visitor's name/email before chatting.
+		// Off by default: the widget opens straight into the conversation.
+		collectIdentity: integer({ mode: "boolean" }).notNull().default(false),
 		// Local part for inbound email replies: reply+<inboundEmailLocal>@domain
 		inboundEmailLocal: text().notNull().unique(),
 		createdAt: createdAt(),
