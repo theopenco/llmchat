@@ -34,6 +34,7 @@ const EDITABLE_KEYS: (keyof ProjectDraft)[] = [
 	"notifyEmail",
 	"slackWebhookUrl",
 	"privacyPolicyUrl",
+	"suggestedQuestions",
 ];
 
 function toDraft(p: Project): ProjectDraft {
@@ -47,7 +48,18 @@ function toDraft(p: Project): ProjectDraft {
 		notifyEmail: p.notifyEmail,
 		slackWebhookUrl: p.slackWebhookUrl,
 		privacyPolicyUrl: p.privacyPolicyUrl,
+		// Fallback: a cached project fetched before the column existed.
+		suggestedQuestions: p.suggestedQuestions ?? [],
 	};
+}
+
+/** Draft-vs-saved equality; arrays (suggestedQuestions) compare by content,
+ * everything else by identity like before. */
+function sameValue(a: unknown, b: unknown): boolean {
+	if (Array.isArray(a) && Array.isArray(b)) {
+		return a.length === b.length && a.every((v, i) => v === b[i]);
+	}
+	return a === b;
 }
 
 type Tab = "general" | "widget" | "behavior" | "integrations" | "members";
@@ -110,7 +122,12 @@ export default function ProjectSettingsPage() {
 		setDraft((d) => (d ? { ...d, [key]: value } : d));
 	}
 
-	const dirtyKeys = EDITABLE_KEYS.filter((k) => draft![k] !== project![k]);
+	// Compare against the normalized saved state (toDraft) so a legacy cached
+	// project without suggestedQuestions doesn't read as permanently dirty.
+	const saved = toDraft(project);
+	const dirtyKeys = EDITABLE_KEYS.filter(
+		(k) => !sameValue(draft![k], saved[k]),
+	);
 	const dirty = dirtyKeys.length > 0;
 
 	function handleSave() {
@@ -118,6 +135,12 @@ export default function ProjectSettingsPage() {
 		const payload: Partial<Project> = {};
 		for (const k of dirtyKeys) {
 			(payload as Record<string, unknown>)[k] = draft[k];
+		}
+		// Drop blank chip rows (the editor allows an empty row while typing).
+		if (payload.suggestedQuestions) {
+			payload.suggestedQuestions = payload.suggestedQuestions
+				.map((q) => q.trim())
+				.filter(Boolean);
 		}
 		// Editing Instructions makes systemPrompt authoritative — clear any active
 		// library prompt that would override it.

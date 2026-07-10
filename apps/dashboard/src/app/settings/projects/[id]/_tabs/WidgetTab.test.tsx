@@ -16,6 +16,7 @@ function draft(o: Partial<ProjectDraft> = {}): ProjectDraft {
 		notifyEmail: null,
 		slackWebhookUrl: null,
 		privacyPolicyUrl: null,
+		suggestedQuestions: [],
 		...o,
 	};
 }
@@ -62,5 +63,49 @@ describe("WidgetTab", () => {
 		expect(
 			screen.getByText(/position options are coming/i),
 		).toBeInTheDocument();
+	});
+
+	it("adds a suggested-question row", async () => {
+		render(<WidgetTab draft={draft()} set={set} publicKey="pk_x" />);
+		await userEvent
+			.setup()
+			.click(screen.getByRole("button", { name: /add question/i }));
+		expect(set).toHaveBeenCalledWith("suggestedQuestions", [""]);
+	});
+
+	it("edits and removes an existing suggested question", async () => {
+		const user = userEvent.setup();
+		render(
+			<WidgetTab
+				draft={draft({ suggestedQuestions: ["Pricing?", "Refunds?"] })}
+				set={set}
+				publicKey="pk_x"
+			/>,
+		);
+		await user.type(
+			screen.getByRole("textbox", { name: /^suggested question 1$/i }),
+			"!",
+		);
+		expect(set).toHaveBeenCalledWith("suggestedQuestions", [
+			"Pricing?!",
+			"Refunds?",
+		]);
+		await user.click(
+			screen.getByRole("button", { name: /remove suggested question 2/i }),
+		);
+		expect(set).toHaveBeenCalledWith("suggestedQuestions", ["Pricing?"]);
+	});
+
+	it("caps the list at 6 questions (no Add button at the cap)", () => {
+		render(
+			<WidgetTab
+				draft={draft({ suggestedQuestions: ["a", "b", "c", "d", "e", "f"] })}
+				set={set}
+				publicKey="pk_x"
+			/>,
+		);
+		expect(
+			screen.queryByRole("button", { name: /add question/i }),
+		).not.toBeInTheDocument();
 	});
 });

@@ -49,6 +49,7 @@ const PROJECT: Project = {
 	notifyEmail: null,
 	slackWebhookUrl: null,
 	privacyPolicyUrl: null,
+	suggestedQuestions: [],
 };
 
 beforeEach(() => {
