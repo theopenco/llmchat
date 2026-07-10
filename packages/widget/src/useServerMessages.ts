@@ -30,6 +30,17 @@ export function useServerMessages(
 	const [archivedAt, setArchivedAt] = useState<string | number | null>(null);
 	const abortRef = useRef<AbortController | null>(null);
 
+	// A different clientId is a different conversation ("start a new
+	// conversation" rotates it) — drop the old feed immediately instead of
+	// showing stale messages until the first poll of the new id lands.
+	useEffect(() => {
+		setServerMessages([]);
+		setConversationId(null);
+		setCsatRating(null);
+		setEscalatedAt(null);
+		setArchivedAt(null);
+	}, [apiUrl, projectKey, clientId]);
+
 	const load = useCallback(async () => {
 		abortRef.current?.abort();
 		const controller = new AbortController();

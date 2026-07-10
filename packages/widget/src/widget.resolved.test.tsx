@@ -15,7 +15,11 @@ vi.mock("@ai-sdk/react", () => ({
 	}),
 }));
 vi.mock("./widget-config", () => ({
-	useWidgetConfig: () => ({ showBranding: false, privacyPolicyUrl: null }),
+	useWidgetConfig: () => ({
+		showBranding: false,
+		privacyPolicyUrl: null,
+		suggestedQuestions: [],
+	}),
 }));
 
 import * as serverMessages from "./useServerMessages";

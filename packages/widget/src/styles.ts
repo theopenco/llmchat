@@ -103,6 +103,15 @@ export const widgetStyles = `
 		0 0 0 1px rgba(0, 0, 0, 0.06);
 	z-index: 2147483647;
 	animation: llmchat-panel-in 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+	transition:
+		width 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+		height 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* Expanded (large) panel — bubble layout only. The base max-width/max-height
+   caps still apply, so small viewports simply fill the available space. */
+.llmchat-panel--expanded {
+	width: 680px;
+	height: 820px;
 }
 .llmchat-panel--closing {
 	animation: llmchat-panel-out 0.18s ease forwards;
@@ -177,8 +186,17 @@ export const widgetStyles = `
 	font-size: 15.2px;
 	letter-spacing: 0.01em;
 }
-.llmchat-icon-btn {
+/* Header buttons (new conversation / expand / close) grouped on the right.
+   The container owns the push-right so multiple buttons stay adjacent instead
+   of each fighting for margin-left: auto. */
+.llmchat-header-actions {
 	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex-shrink: 0;
+}
+.llmchat-icon-btn {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -684,8 +702,9 @@ export const widgetStyles = `
 	border-radius: 9999px;
 	padding: 2.4px 8px;
 }
-/* When the demo badge is present the close button shouldn't also push right. */
-.llmchat-demo-badge + .llmchat-icon-btn {
+/* When the demo badge is present it owns the push-right; the action buttons
+   just trail it with a small gap. */
+.llmchat-demo-badge + .llmchat-header-actions {
 	margin-left: 4px;
 }
 .llmchat-demo-note {
@@ -761,6 +780,33 @@ export const widgetStyles = `
 }
 .llmchat-escalated-notice {
 	margin: 0;
+}
+/* "Start a new conversation" inside the resolved band — same treatment as the
+   escalate CTA, scoped separately because it lives in .llmchat-escalated. */
+.llmchat-restart {
+	align-self: flex-start;
+	display: inline-flex;
+	align-items: center;
+	gap: 6.4px;
+	background: transparent;
+	color: var(--brand);
+	border: 1px solid color-mix(in srgb, var(--brand) 35%, transparent);
+	border-radius: 8px;
+	padding: 6.4px 12px;
+	font: inherit;
+	font-size: 13.6px;
+	font-weight: 600;
+	cursor: pointer;
+	transition:
+		background 0.15s ease,
+		border-color 0.15s ease;
+}
+.llmchat-restart:hover {
+	background: color-mix(in srgb, var(--brand) 8%, transparent);
+}
+.llmchat-restart:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 30%, transparent);
 }
 
 /* ── Escalation handoff summary card ───────────────────────────────── */
