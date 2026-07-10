@@ -167,6 +167,12 @@ export const project = sqliteTable(
 		// Absolute URL the widget's "agree to our privacy policy" notice links to.
 		// Null → the widget falls back to the Clanker Support default policy.
 		privacyPolicyUrl: text(),
+		// Admin-defined starter questions the widget offers as tappable chips
+		// before the visitor's first message. JSON array of strings.
+		suggestedQuestions: text({ mode: "json" })
+			.$type<string[]>()
+			.notNull()
+			.default([]),
 		// Local part for inbound email replies: reply+<inboundEmailLocal>@domain
 		inboundEmailLocal: text().notNull().unique(),
 		createdAt: createdAt(),

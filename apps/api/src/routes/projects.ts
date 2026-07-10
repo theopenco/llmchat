@@ -24,6 +24,13 @@ import {
 
 import type { AppContext } from "@/env";
 
+// Starter questions the widget shows as tappable chips. Bounded so a project
+// can't stuff the public config payload: at most 6 questions, 200 chars each,
+// blanks rejected after trimming.
+const suggestedQuestionsInput = z
+	.array(z.string().trim().min(1).max(200))
+	.max(6);
+
 // CREATE keeps the defaults so a project can be made from just `{ name }` — the
 // unspecified columns get sensible starting values on insert.
 const projectCreateInput = z.object({
@@ -38,6 +45,7 @@ const projectCreateInput = z.object({
 	notifyEmail: z.email().nullable().optional(),
 	slackWebhookUrl: z.url().nullable().optional(),
 	privacyPolicyUrl: z.url().nullable().optional(),
+	suggestedQuestions: suggestedQuestionsInput.default([]),
 	favorite: z.boolean().optional(),
 	pinned: z.boolean().optional(),
 });
@@ -61,6 +69,7 @@ const projectUpdateInput = z.object({
 	notifyEmail: z.email().nullable().optional(),
 	slackWebhookUrl: z.url().nullable().optional(),
 	privacyPolicyUrl: z.url().nullable().optional(),
+	suggestedQuestions: suggestedQuestionsInput.optional(),
 	favorite: z.boolean().optional(),
 	pinned: z.boolean().optional(),
 });
