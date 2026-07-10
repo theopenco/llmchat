@@ -1,10 +1,12 @@
 "use client";
 
-import { Card, dsInputClass, Field } from "@/components/ds";
+import { Plus, X } from "lucide-react";
+
+import { Button, Card, dsInputClass, Field } from "@/components/ds";
 import { EmbedSnippet } from "@/components/embed-snippet";
 
 import { ChatPreviewCard } from "../ChatPreviewCard";
-import type { ProjectDraft } from "../types";
+import { MAX_SUGGESTED_QUESTIONS, type ProjectDraft } from "../types";
 
 export function WidgetTab({
 	draft,
@@ -59,6 +61,66 @@ export function WidgetTab({
 					</Field>
 
 					<Field
+						label="Suggested questions"
+						hint="Tappable chips shown before the visitor's first message — great for FAQs. Up to 6."
+					>
+						{(id) => (
+							<div className="flex flex-col gap-2">
+								{draft.suggestedQuestions.map((q, i) => (
+									// Position-keyed on purpose: rows are editable in place, so
+									// content-keying would remount the input on every keystroke.
+									// eslint-disable-next-line react/no-array-index-key
+									<div key={i} className="flex items-center gap-2">
+										<input
+											id={i === 0 ? id : undefined}
+											className={dsInputClass}
+											value={q}
+											maxLength={200}
+											placeholder="e.g. What are your pricing plans?"
+											aria-label={`Suggested question ${i + 1}`}
+											onChange={(e) => {
+												const next = [...draft.suggestedQuestions];
+												next[i] = e.target.value;
+												set("suggestedQuestions", next);
+											}}
+										/>
+										<Button
+											variant="ghost"
+											size="sm"
+											className="shrink-0 text-ck-faint"
+											aria-label={`Remove suggested question ${i + 1}`}
+											onClick={() =>
+												set(
+													"suggestedQuestions",
+													draft.suggestedQuestions.filter((_, j) => j !== i),
+												)
+											}
+										>
+											<X className="size-4" />
+										</Button>
+									</div>
+								))}
+								{draft.suggestedQuestions.length < MAX_SUGGESTED_QUESTIONS && (
+									<Button
+										variant="outline"
+										size="sm"
+										className="self-start"
+										onClick={() =>
+											set("suggestedQuestions", [
+												...draft.suggestedQuestions,
+												"",
+											])
+										}
+									>
+										<Plus className="size-4" />
+										Add question
+									</Button>
+								)}
+							</div>
+						)}
+					</Field>
+
+					<Field
 						label="Privacy policy URL"
 						hint="Linked from the “you agree to our privacy policy” notice. Leave blank to use the Clanker Support default."
 					>
@@ -96,6 +158,7 @@ export function WidgetTab({
 					name={draft.name}
 					welcomeMessage={draft.welcomeMessage}
 					brandColor={draft.brandColor}
+					suggestedQuestions={draft.suggestedQuestions}
 				/>
 			</div>
 

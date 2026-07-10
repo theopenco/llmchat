@@ -12,6 +12,8 @@ export interface Project {
 	notifyEmail: string | null;
 	slackWebhookUrl: string | null;
 	privacyPolicyUrl: string | null;
+	/** Starter questions the widget offers as tappable chips (max 6). */
+	suggestedQuestions: string[];
 }
 
 export interface Source {
@@ -47,7 +49,11 @@ export type ProjectDraft = Pick<
 	| "notifyEmail"
 	| "slackWebhookUrl"
 	| "privacyPolicyUrl"
+	| "suggestedQuestions"
 >;
+
+/** Widget chip cap — mirrored by the API's validation. */
+export const MAX_SUGGESTED_QUESTIONS = 6;
 
 export const INSTRUCTION_TEMPLATES = {
 	support: `You are a helpful customer support assistant for our website. Answer questions based on the provided sources. Be friendly, concise and professional. If you don't know the answer, suggest contacting our support team.`,

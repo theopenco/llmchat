@@ -14,12 +14,15 @@ export function ChatPreviewCard({
 	name,
 	welcomeMessage,
 	brandColor,
+	suggestedQuestions = [],
 }: {
 	name: string;
 	welcomeMessage: string;
 	brandColor: string;
+	suggestedQuestions?: string[];
 }) {
 	const color = brandColor || "#000000";
+	const chips = suggestedQuestions.map((q) => q.trim()).filter(Boolean);
 
 	return (
 		<Card id="chat-preview" className="rounded-2xl shadow-sm">
@@ -59,6 +62,24 @@ export function ChatPreviewCard({
 									9:41 AM
 								</span>
 							</div>
+							{/* Suggested-question chips, mirroring the widget's starter chips. */}
+							{chips.length > 0 && (
+								<div className="flex flex-wrap gap-1.5 pt-1">
+									{chips.map((q) => (
+										<span
+											key={q}
+											className="rounded-full border px-2.5 py-1 text-xs font-medium"
+											style={{
+												borderColor: `${color}59`,
+												color,
+												backgroundColor: `${color}14`,
+											}}
+										>
+											{q}
+										</span>
+									))}
+								</div>
+							)}
 						</div>
 						{/* Input */}
 						<div className="flex items-center gap-2 border-t border-border px-4 py-3">

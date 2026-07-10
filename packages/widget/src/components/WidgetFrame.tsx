@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { ChatIcon, CloseIcon } from "./icons";
+import { ChatIcon, CloseIcon, CollapseIcon, ExpandIcon } from "./icons";
 
 import type { ReactNode } from "react";
 
@@ -16,8 +16,9 @@ function prefersReducedMotion(): boolean {
 /**
  * Shared chrome for every widget variant: the floating launcher bubble (in
  * bubble layout), the panel, and the branded header. Conversation behavior is
- * composed in via children. Owns the open/close transition, Esc-to-close, and
- * focus management; conversation logic stays in the variant components.
+ * composed in via children. Owns the open/close transition, the expanded
+ * (large-panel) toggle, Esc-to-close, and focus management; conversation logic
+ * stays in the variant components.
  */
 export function WidgetFrame({
 	inline,
@@ -25,6 +26,7 @@ export function WidgetFrame({
 	open,
 	onOpenChange,
 	badge,
+	actions,
 	footer,
 	children,
 }: {
@@ -34,6 +36,9 @@ export function WidgetFrame({
 	onOpenChange: (open: boolean) => void;
 	/** Optional header adornment, e.g. the showcase "Demo mode" pill. */
 	badge?: ReactNode;
+	/** Optional header buttons rendered before the expand/close controls,
+	 * e.g. the "Start a new conversation" action. */
+	actions?: ReactNode;
 	/** Optional panel footer below the conversation, e.g. the "Powered by" badge. */
 	footer?: ReactNode;
 	children: ReactNode;
@@ -43,6 +48,10 @@ export function WidgetFrame({
 	// Keep the panel mounted through its exit animation (bubble layout only).
 	const [mounted, setMounted] = useState(open);
 	const wasOpen = useRef(open);
+	// Large-panel toggle (bubble layout only — inline already fills its host).
+	// Deliberately kept across close/reopen within the session: re-expanding on
+	// every open would fight a visitor who prefers the big panel.
+	const [expanded, setExpanded] = useState(false);
 
 	useEffect(() => {
 		if (open) {
@@ -99,6 +108,7 @@ export function WidgetFrame({
 					className={[
 						"llmchat-panel",
 						inline ? "llmchat-panel-inline" : "",
+						!inline && expanded ? "llmchat-panel--expanded" : "",
 						closing ? "llmchat-panel--closing" : "",
 					]
 						.filter(Boolean)
@@ -118,16 +128,30 @@ export function WidgetFrame({
 							<span className="llmchat-header-text">Support</span>
 						</span>
 						{badge}
-						{!inline && (
-							<button
-								type="button"
-								className="llmchat-icon-btn"
-								onClick={() => onOpenChange(false)}
-								aria-label="Close chat"
-							>
-								<CloseIcon />
-							</button>
-						)}
+						<span className="llmchat-header-actions">
+							{actions}
+							{!inline && (
+								<button
+									type="button"
+									className="llmchat-icon-btn"
+									onClick={() => setExpanded((e) => !e)}
+									aria-label={expanded ? "Collapse chat" : "Expand chat"}
+									aria-pressed={expanded}
+								>
+									{expanded ? <CollapseIcon /> : <ExpandIcon />}
+								</button>
+							)}
+							{!inline && (
+								<button
+									type="button"
+									className="llmchat-icon-btn"
+									onClick={() => onOpenChange(false)}
+									aria-label="Close chat"
+								>
+									<CloseIcon />
+								</button>
+							)}
+						</span>
 					</header>
 					{children}
 					{footer}

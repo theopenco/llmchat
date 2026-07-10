@@ -6,12 +6,14 @@ import { Composer } from "./components/Composer";
 import { CsatStep } from "./components/CsatStep";
 import { EscalationNotice } from "./components/EscalationNotice";
 import { EscalationSection } from "./components/EscalationSection";
+import { ComposeIcon } from "./components/icons";
 import { IdentifyForm } from "./components/IdentifyForm";
 import { MessageList } from "./components/MessageList";
 import { PoweredBy } from "./components/PoweredBy";
 import { PrivacyNotice } from "./components/PrivacyNotice";
 import { ResolvedNotice } from "./components/ResolvedNotice";
 import { ResolveSection } from "./components/ResolveSection";
+import { SuggestedQuestions } from "./components/SuggestedQuestions";
 import { WidgetFrame } from "./components/WidgetFrame";
 import { rateConversation, shouldPromptCsat } from "./csat";
 import { requestEscalation } from "./escalation";
@@ -21,6 +23,7 @@ import {
 	getOrCreateClientId,
 	getStoredIdentity,
 	getText,
+	rotateClientId,
 	setStoredIdentity,
 } from "./lib";
 import { mergeMessages } from "./messages-sync";
@@ -31,7 +34,7 @@ import { useWidgetConfig } from "./widget-config";
 
 import type { Rating } from "./rating";
 
-/** How long the "Thanks!" screen shows before the panel closes. */
+/** How long the "Thanks!" screen shows before the conversation view returns. */
 const CSAT_THANKS_MS = 1200;
 
 /**
@@ -160,12 +163,16 @@ function LiveWidget({
 		null,
 	);
 	const [clientId, setClientId] = useState("");
-	// CSAT closing screen: "hidden" during chat, "prompt" on close (when
-	// eligible), "thanks" briefly after a rating.
+	// End-of-conversation CSAT screen: "hidden" during chat, "prompt" when the
+	// visitor ends a conversation (resolve / start-a-new-one — NEVER on merely
+	// closing the panel), "thanks" briefly after a rating.
 	const [csatStep, setCsatStep] = useState<"hidden" | "prompt" | "thanks">(
 		"hidden",
 	);
 	const [csatRated, setCsatRated] = useState(false);
+	// True while the CSAT prompt is the exit gate of "start a new conversation":
+	// once rated/skipped, the conversation resets to a fresh one.
+	const [pendingNew, setPendingNew] = useState(false);
 
 	useEffect(() => {
 		setClientId(getOrCreateClientId());
@@ -182,12 +189,11 @@ function LiveWidget({
 	}, [projectKey]);
 
 	// Server decides whether the "Powered by" badge shows (plan-gated, tamper-
-	// proof) and supplies the project's privacy policy URL. Defaults to branded /
-	// built-in privacy link until the server says otherwise.
-	const { showBranding, privacyPolicyUrl } = useWidgetConfig(
-		apiUrl,
-		projectKey,
-	);
+	// proof) and supplies the project's privacy policy URL and admin-defined
+	// starter questions. Defaults to branded / built-in privacy link / no chips
+	// until the server says otherwise.
+	const { showBranding, privacyPolicyUrl, suggestedQuestions } =
+		useWidgetConfig(apiUrl, projectKey);
 
 	const chat = useMemo(
 		() =>
@@ -303,15 +309,44 @@ function LiveWidget({
 		alreadyRated: csatRating != null || csatRated,
 	});
 
-	// Intercept close: when eligible, swap to the CSAT step instead of closing.
-	// A second close (X / Esc / Skip) always closes — never traps the visitor.
-	function handleOpenChange(next: boolean) {
-		if (!next && csatStep === "hidden" && csatEligible) {
+	// Reset to a brand-new conversation: rotate the client id (the old
+	// conversation stays intact server-side for the inbox) and clear every
+	// per-conversation flag. The fresh greeting + suggestion chips return.
+	function resetConversation() {
+		setPendingNew(false);
+		setCsatStep("hidden");
+		setCsatRated(false);
+		setEscalatedLocal(false);
+		setEscalateFailed(false);
+		setResolvedLocal(false);
+		setResolveFailed(false);
+		setEscalationSummary(null);
+		setText("");
+		setClientId(rotateClientId());
+	}
+
+	// The visitor wants a fresh conversation. Ending one is the CSAT moment —
+	// prompt when eligible (real exchange, not yet rated); otherwise reset
+	// immediately.
+	function startNewConversation() {
+		if (csatEligible) {
+			setPendingNew(true);
 			setCsatStep("prompt");
 			return;
 		}
+		resetConversation();
+	}
+
+	// Closing the panel just closes it — never a feedback ambush. If a CSAT
+	// prompt was pending (the visitor was mid "end conversation"), closing counts
+	// as skipping it: finish the reset so reopening starts fresh.
+	function handleOpenChange(next: boolean) {
 		if (!next) {
-			setCsatStep("hidden");
+			if (pendingNew) {
+				resetConversation();
+			} else {
+				setCsatStep("hidden");
+			}
 		}
 		setOpen(next);
 	}
@@ -319,7 +354,7 @@ function LiveWidget({
 	function submitCsat(rating: number) {
 		setCsatRated(true);
 		setCsatStep("thanks");
-		// Best-effort: a failed POST must never trap the visitor — we close anyway.
+		// Best-effort: a failed POST must never trap the visitor — we move on anyway.
 		if (conversationId) {
 			void rateConversation(apiUrl, {
 				projectKey,
@@ -328,15 +363,22 @@ function LiveWidget({
 				rating,
 			}).catch(() => {});
 		}
+		const startFresh = pendingNew;
 		setTimeout(() => {
-			setCsatStep("hidden");
-			setOpen(false);
+			if (startFresh) {
+				resetConversation();
+			} else {
+				setCsatStep("hidden");
+			}
 		}, CSAT_THANKS_MS);
 	}
 
 	function skipCsat() {
+		if (pendingNew) {
+			resetConversation();
+			return;
+		}
 		setCsatStep("hidden");
-		setOpen(false);
 	}
 
 	function handleSend() {
@@ -386,6 +428,12 @@ function LiveWidget({
 			// don't flip local resolved, just re-poll so the escalated state surfaces.
 			if (didResolve) {
 				setResolvedLocal(true);
+				// Resolving ends the conversation — that's the feedback moment
+				// (never the panel close). Prompt when eligible; rating/skip returns
+				// to the resolved view, it doesn't reset the conversation.
+				if (csatEligible) {
+					setCsatStep("prompt");
+				}
 			}
 			refresh();
 		} catch {
@@ -395,12 +443,32 @@ function LiveWidget({
 		}
 	}
 
+	// Header shortcut to end the current conversation and start fresh — only
+	// once there's a conversation worth leaving (or a terminal state to escape).
+	const canStartNew =
+		identified &&
+		csatStep === "hidden" &&
+		(hasRealExchange || resolved || escalated);
+
 	return (
 		<WidgetFrame
 			inline={inline}
 			brandColor={brandColor}
 			open={open}
 			onOpenChange={handleOpenChange}
+			actions={
+				canStartNew ? (
+					<button
+						type="button"
+						className="llmchat-icon-btn"
+						onClick={startNewConversation}
+						aria-label="Start a new conversation"
+						title="Start a new conversation"
+					>
+						<ComposeIcon />
+					</button>
+				) : undefined
+			}
 			footer={showBranding ? <PoweredBy /> : null}
 		>
 			{csatStep !== "hidden" ? (
@@ -436,6 +504,13 @@ function LiveWidget({
 							onEscalate={handleEscalate}
 						/>
 					)}
+					{/* Starter-question chips until the visitor's first message. */}
+					{userMessageCount === 0 && !loading && (
+						<SuggestedQuestions
+							questions={suggestedQuestions}
+							onPick={(q) => void sendMessage({ text: q })}
+						/>
+					)}
 					{showResolve && (
 						<ResolveSection
 							pending={resolving}
@@ -445,7 +520,7 @@ function LiveWidget({
 					)}
 					{/* Resolved wins (terminal) over the escalation notice. */}
 					{resolved ? (
-						<ResolvedNotice />
+						<ResolvedNotice onStartNew={startNewConversation} />
 					) : (
 						escalated && <EscalationNotice summary={escalationSummary} />
 					)}

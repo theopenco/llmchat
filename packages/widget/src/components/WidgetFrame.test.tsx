@@ -41,6 +41,25 @@ describe("WidgetFrame — floating bubble layout", () => {
 	});
 });
 
+describe("WidgetFrame — expand toggle", () => {
+	it("expands the panel and toggles back", async () => {
+		renderFrame({ open: true });
+		const panel = screen.getByRole("dialog", { name: /support chat/i });
+		expect(panel.className).not.toContain("llmchat-panel--expanded");
+		await userEvent.click(screen.getByRole("button", { name: /expand chat/i }));
+		expect(panel.className).toContain("llmchat-panel--expanded");
+		await userEvent.click(
+			screen.getByRole("button", { name: /collapse chat/i }),
+		);
+		expect(panel.className).not.toContain("llmchat-panel--expanded");
+	});
+
+	it("renders header actions passed by the conversation variant", () => {
+		renderFrame({ open: true, actions: <button type="button">act</button> });
+		expect(screen.getByRole("button", { name: "act" })).toBeInTheDocument();
+	});
+});
+
 describe("WidgetFrame — inline layout", () => {
 	it("has no launcher and always shows the panel", () => {
 		renderFrame({ inline: true, open: true });
@@ -48,5 +67,9 @@ describe("WidgetFrame — inline layout", () => {
 			screen.queryByRole("button", { name: /open chat/i }),
 		).not.toBeInTheDocument();
 		expect(screen.getByText("panel body")).toBeInTheDocument();
+		// Inline fills its host — no expand toggle.
+		expect(
+			screen.queryByRole("button", { name: /expand chat/i }),
+		).not.toBeInTheDocument();
 	});
 });

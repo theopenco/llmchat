@@ -7,6 +7,9 @@ export interface WidgetConfig {
 	/** Absolute URL the privacy notice links to, or null to use the widget's
 	 * built-in default (see PrivacyNotice). */
 	privacyPolicyUrl: string | null;
+	/** Admin-defined starter questions offered as tappable chips before the
+	 * visitor's first message. Empty → no chips. */
+	suggestedQuestions: string[];
 }
 
 /**
@@ -25,6 +28,7 @@ export function useWidgetConfig(
 	const [config, setConfig] = useState<WidgetConfig>({
 		showBranding: true,
 		privacyPolicyUrl: null,
+		suggestedQuestions: [],
 	});
 	useEffect(() => {
 		let active = true;
@@ -32,7 +36,11 @@ export function useWidgetConfig(
 			.then((r) => (r.ok ? r.json() : null))
 			.then(
 				(
-					data: { showBranding?: unknown; privacyPolicyUrl?: unknown } | null,
+					data: {
+						showBranding?: unknown;
+						privacyPolicyUrl?: unknown;
+						suggestedQuestions?: unknown;
+					} | null,
 				) => {
 					if (!active || !data) return;
 					setConfig((prev) => ({
@@ -44,6 +52,11 @@ export function useWidgetConfig(
 							typeof data.privacyPolicyUrl === "string"
 								? data.privacyPolicyUrl
 								: prev.privacyPolicyUrl,
+						suggestedQuestions: Array.isArray(data.suggestedQuestions)
+							? data.suggestedQuestions.filter(
+									(q): q is string => typeof q === "string" && q.trim() !== "",
+								)
+							: prev.suggestedQuestions,
 					}));
 				},
 			)

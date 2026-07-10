@@ -362,6 +362,31 @@ describe("PATCH /projects/:id — partial update never clobbers siblings", () =>
 		expect(lastSetData).toEqual({ [field]: value });
 	});
 
+	it("PATCH { suggestedQuestions } writes only that field", async () => {
+		mockDb({ role: "admin", existingProject: { id: "p1" } });
+		const res = await patch({ suggestedQuestions: ["Pricing?", "Refunds?"] });
+		expect(res.status).toBe(200);
+		expect(lastSetData).toEqual({
+			suggestedQuestions: ["Pricing?", "Refunds?"],
+		});
+	});
+
+	it("400s more than 6 suggested questions (public-config payload stays bounded)", async () => {
+		mockDb({ role: "admin", existingProject: { id: "p1" } });
+		const res = await patch({
+			suggestedQuestions: ["a", "b", "c", "d", "e", "f", "g"],
+		});
+		expect(res.status).toBe(400);
+		expect(updateSpy).not.toHaveBeenCalled();
+	});
+
+	it("400s a blank suggested question (trimmed empties are rejected)", async () => {
+		mockDb({ role: "admin", existingProject: { id: "p1" } });
+		const res = await patch({ suggestedQuestions: ["   "] });
+		expect(res.status).toBe(400);
+		expect(updateSpy).not.toHaveBeenCalled();
+	});
+
 	it("favorite toggle writes ONLY favorite (the worst clobber path)", async () => {
 		mockDb({ role: "admin", existingProject: { id: "p1" } });
 		const res = await patch({ favorite: true });

@@ -13,6 +13,17 @@ export function getOrCreateClientId(): string {
 	return id;
 }
 
+/**
+ * Start a fresh conversation: mint a new client id and persist it under the
+ * same key, so the new conversation also survives reloads. The previous
+ * conversation stays intact server-side (keyed by the old id) for the inbox.
+ */
+export function rotateClientId(): string {
+	const id = crypto.randomUUID();
+	sessionStorage.setItem(CLIENT_ID_KEY, id);
+	return id;
+}
+
 export interface StoredIdentity {
 	name: string;
 	email: string;

@@ -18,7 +18,11 @@ export const widgetConfig = new Hono<AppContext>().get(
 		const key = c.req.param("key");
 		const project = await db(c.env).query.project.findFirst({
 			where: (pt, { eq: e }) => e(pt.publicKey, key),
-			columns: { workspaceId: true, privacyPolicyUrl: true },
+			columns: {
+				workspaceId: true,
+				privacyPolicyUrl: true,
+				suggestedQuestions: true,
+			},
 		});
 		if (!project) {
 			return c.json({ error: "invalid project key" }, 404);
@@ -30,6 +34,11 @@ export const widgetConfig = new Hono<AppContext>().get(
 			showBranding: entitlements.branding === "badge",
 			// Null → the widget links its privacy notice to its built-in default.
 			privacyPolicyUrl: project.privacyPolicyUrl ?? null,
+			// Starter-question chips the widget offers before the first message.
+			// Guarded: a malformed/legacy column value degrades to no chips.
+			suggestedQuestions: Array.isArray(project.suggestedQuestions)
+				? project.suggestedQuestions.filter((q) => typeof q === "string")
+				: [],
 		});
 	},
 );

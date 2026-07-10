@@ -22,6 +22,7 @@ function draft(o: Partial<ProjectDraft> = {}): ProjectDraft {
 		notifyEmail: null,
 		slackWebhookUrl: null,
 		privacyPolicyUrl: null,
+		suggestedQuestions: [],
 		...o,
 	};
 }
