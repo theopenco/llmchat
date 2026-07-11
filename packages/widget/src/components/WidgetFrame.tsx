@@ -23,6 +23,7 @@ function prefersReducedMotion(): boolean {
 export function WidgetFrame({
 	inline,
 	brandColor,
+	theme = "light",
 	open,
 	onOpenChange,
 	badge,
@@ -32,6 +33,8 @@ export function WidgetFrame({
 }: {
 	inline: boolean;
 	brandColor: string;
+	/** Resolved color scheme (auto is resolved by the caller via useEffectiveTheme). */
+	theme?: "light" | "dark";
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	/** Optional header adornment, e.g. the showcase "Demo mode" pill. */
@@ -84,7 +87,10 @@ export function WidgetFrame({
 	const closing = !inline && mounted && !open;
 
 	return (
-		<div className="llmchat" style={{ ["--brand" as string]: brandColor }}>
+		<div
+			className={theme === "dark" ? "llmchat llmchat--dark" : "llmchat"}
+			style={{ ["--brand" as string]: brandColor }}
+		>
 			{!inline && (
 				<button
 					ref={launcherRef}

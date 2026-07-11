@@ -1,8 +1,14 @@
+import { parseTheme } from "./theme";
+
+import type { WidgetTheme } from "./theme";
+
 export interface BootConfig {
 	projectKey: string;
 	apiUrl: string;
 	brandColor: string;
 	mode: "bubble" | "inline";
+	/** Color scheme: light (default) | dark | auto (follows the OS). */
+	theme: WidgetTheme;
 	/** Messages before the human-handoff prompt appears; undefined → widget default. */
 	escalationThreshold?: number;
 }
@@ -20,6 +26,8 @@ export function resolveConfig(script: HTMLScriptElement | null): BootConfig {
 		(script?.src ? new URL(script.src).origin : window.location.origin);
 	const brandColor = script?.dataset.brand ?? "#111827";
 	const mode = script?.dataset.mode === "inline" ? "inline" : "bubble";
+	// data-theme → light | dark | auto; anything else (or absent) stays light.
+	const theme = parseTheme(script?.dataset.theme);
 	if (!projectKey) {
 		throw new Error("[llmchat] missing data-project on widget script tag");
 	}
@@ -32,5 +40,5 @@ export function resolveConfig(script: HTMLScriptElement | null): BootConfig {
 	const escalationThreshold = Number.isFinite(parsedThreshold)
 		? parsedThreshold
 		: undefined;
-	return { projectKey, apiUrl, brandColor, mode, escalationThreshold };
+	return { projectKey, apiUrl, brandColor, mode, theme, escalationThreshold };
 }

@@ -2,6 +2,72 @@
 // string so it can be consumed from both Vite (IIFE bundle) and Next.js
 // (server-rendered host page) without bundler-specific `?inline` syntax.
 export const widgetStyles = `
+/* ── Theme tokens ──────────────────────────────────────────────────────
+   Light is the default palette (existing embeds render unchanged); the
+   .llmchat--dark class — set by WidgetFrame from the resolved theme
+   (data-theme: light | dark | auto) — overrides the same custom properties.
+   On-brand surfaces (header, visitor bubbles, send) keep literal #fff text
+   on var(--brand) in both themes, so they are deliberately not tokenized. */
+:host,
+.llmchat {
+	/* Surfaces */
+	--sf: #fff;
+	--sf-2: #f3f4f6;
+	--sf-3: #f9fafb;
+	/* Ink */
+	--tx: #111827;
+	--tx-2: #374151;
+	--tx-3: #4b5563;
+	--tx-4: #6b7280;
+	--tx-5: #9ca3af;
+	/* Lines */
+	--ln: #e5e7eb;
+	--ln-2: #d1d5db;
+	--ln-soft: #f1f5f9;
+	/* Operator (admin) replies */
+	--ok-bg: #ecfdf5;
+	--ok-tx: #065f46;
+	--ok-ln: #a7f3d0;
+	/* Informational band (demo note) */
+	--info-bg: #eef2ff;
+	--info-tx: #4338ca;
+	--info-ln: #e0e7ff;
+	--err: #b91c1c;
+	/* Markdown chrome (code, quotes, tables) */
+	--code-bg: rgba(0, 0, 0, 0.06);
+	--pre-bg: rgba(0, 0, 0, 0.05);
+	--md-ln: rgba(0, 0, 0, 0.12);
+	--md-hr: rgba(0, 0, 0, 0.1);
+	--th-bg: rgba(0, 0, 0, 0.04);
+	color-scheme: light;
+}
+.llmchat--dark {
+	--sf: #111827;
+	--sf-2: #1f2937;
+	--sf-3: #1f2937;
+	--tx: #f9fafb;
+	--tx-2: #d1d5db;
+	--tx-3: #d1d5db;
+	--tx-4: #9ca3af;
+	--tx-5: #6b7280;
+	--ln: #374151;
+	--ln-2: #4b5563;
+	--ln-soft: #1f2937;
+	--ok-bg: #022c22;
+	--ok-tx: #6ee7b7;
+	--ok-ln: #065f46;
+	--info-bg: #1e1b4b;
+	--info-tx: #a5b4fc;
+	--info-ln: #312e81;
+	--err: #f87171;
+	--code-bg: rgba(255, 255, 255, 0.09);
+	--pre-bg: rgba(255, 255, 255, 0.07);
+	--md-ln: rgba(255, 255, 255, 0.16);
+	--md-hr: rgba(255, 255, 255, 0.12);
+	--th-bg: rgba(255, 255, 255, 0.05);
+	color-scheme: dark;
+}
+
 :host,
 .llmchat {
 	font-family:
@@ -9,7 +75,7 @@ export const widgetStyles = `
 		-apple-system,
 		Segoe UI,
 		sans-serif;
-	color: #111827;
+	color: var(--tx);
 	/* Pin inherited properties so the host page's typography can't leak across
 	   the shadow boundary and distort the widget. Dimensions are px throughout
 	   (never rem): rem resolves against the HOST page's root font-size even
@@ -91,7 +157,7 @@ export const widgetStyles = `
 	max-width: calc(100vw - 32px);
 	height: 544px;
 	max-height: calc(100vh - 112px);
-	background: #fff;
+	background: var(--sf);
 	border-radius: 16px;
 	display: flex;
 	flex-direction: column;
@@ -241,7 +307,7 @@ export const widgetStyles = `
 .llmchat-identify-sub {
 	margin: 0;
 	font-size: 14px;
-	color: #6b7280;
+	color: var(--tx-4);
 }
 .llmchat-field {
 	display: flex;
@@ -251,18 +317,18 @@ export const widgetStyles = `
 .llmchat-field-label {
 	font-size: 12.48px;
 	font-weight: 600;
-	color: #6b7280;
+	color: var(--tx-4);
 }
 .llmchat-identify input,
 .llmchat-input textarea {
 	width: 100%;
-	border: 1px solid #d1d5db;
+	border: 1px solid var(--ln-2);
 	border-radius: 10px;
 	padding: 8.8px 12px;
 	font: inherit;
 	font-size: 14.4px;
-	color: #111827;
-	background: #fff;
+	color: var(--tx);
+	background: var(--sf);
 	resize: none;
 	transition:
 		border-color 0.15s ease,
@@ -270,7 +336,7 @@ export const widgetStyles = `
 }
 .llmchat-identify input::placeholder,
 .llmchat-input textarea::placeholder {
-	color: #9ca3af;
+	color: var(--tx-5);
 }
 .llmchat-identify input:focus,
 .llmchat-input textarea:focus {
@@ -315,9 +381,9 @@ export const widgetStyles = `
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	background: #fff;
+	background: var(--sf);
 	scrollbar-width: thin;
-	scrollbar-color: #d1d5db transparent;
+	scrollbar-color: var(--ln-2) transparent;
 }
 /* Bottom spacer that lets the latest visitor message reach the top of the
    viewport; its height is set imperatively by useAnchoredScroll (0 by default). */
@@ -329,9 +395,9 @@ export const widgetStyles = `
 	width: 8px;
 }
 .llmchat-messages::-webkit-scrollbar-thumb {
-	background: #d1d5db;
+	background: var(--ln-2);
 	border-radius: 9999px;
-	border: 2px solid #fff;
+	border: 2px solid var(--sf);
 }
 /* "Scroll to latest": sticky so it floats at the bottom of the scroll area
    while the visitor reads earlier messages during a streaming reply. */
@@ -377,8 +443,8 @@ export const widgetStyles = `
 	}
 }
 .llmchat-msg-assistant {
-	background: #f3f4f6;
-	color: #111827;
+	background: var(--sf-2);
+	color: var(--tx);
 	align-self: flex-start;
 	border-bottom-left-radius: 4px;
 }
@@ -389,16 +455,16 @@ export const widgetStyles = `
 	border-bottom-right-radius: 4px;
 }
 .llmchat-msg-admin {
-	background: #ecfdf5;
-	color: #065f46;
+	background: var(--ok-bg);
+	color: var(--ok-tx);
 	align-self: flex-start;
-	border: 1px solid #a7f3d0;
+	border: 1px solid var(--ok-ln);
 	border-bottom-left-radius: 4px;
 }
 .llmchat-msg-system {
 	align-self: center;
-	background: #f3f4f6;
-	color: #6b7280;
+	background: var(--sf-2);
+	color: var(--tx-4);
 	font-size: 12.48px;
 	border-radius: 9999px;
 	padding: 4px 12px;
@@ -442,7 +508,7 @@ export const widgetStyles = `
 	margin: 2.4px 0;
 }
 .llmchat-md li::marker {
-	color: #9ca3af;
+	color: var(--tx-5);
 }
 .llmchat-md strong {
 	font-weight: 600;
@@ -473,14 +539,14 @@ export const widgetStyles = `
 .llmchat-md code {
 	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	font-size: 0.85em;
-	background: rgba(0, 0, 0, 0.06);
+	background: var(--code-bg);
 	padding: 0.1em 0.32em;
 	border-radius: 4.8px;
 }
 .llmchat-md pre {
 	margin: 0 0 8px;
 	padding: 9.6px 11.2px;
-	background: rgba(0, 0, 0, 0.05);
+	background: var(--pre-bg);
 	border-radius: 8px;
 	overflow-x: auto;
 	font-size: 0.85em;
@@ -495,12 +561,12 @@ export const widgetStyles = `
 .llmchat-md blockquote {
 	margin: 0 0 8px;
 	padding-left: 11.2px;
-	border-left: 3px solid rgba(0, 0, 0, 0.12);
+	border-left: 3px solid var(--md-ln);
 	opacity: 0.85;
 }
 .llmchat-md hr {
 	border: none;
-	border-top: 1px solid rgba(0, 0, 0, 0.1);
+	border-top: 1px solid var(--md-hr);
 	margin: 9.6px 0;
 }
 .llmchat-md table {
@@ -511,13 +577,13 @@ export const widgetStyles = `
 }
 .llmchat-md th,
 .llmchat-md td {
-	border: 1px solid rgba(0, 0, 0, 0.12);
+	border: 1px solid var(--md-ln);
 	padding: 4.8px 7.2px;
 	text-align: left;
 }
 .llmchat-md th {
 	font-weight: 600;
-	background: rgba(0, 0, 0, 0.04);
+	background: var(--th-bg);
 }
 .llmchat-md img {
 	max-width: 100%;
@@ -553,15 +619,15 @@ export const widgetStyles = `
 	border-radius: 6px;
 	background: transparent;
 	border: none;
-	color: #9ca3af;
+	color: var(--tx-5);
 	cursor: pointer;
 	transition:
 		background 0.15s ease,
 		color 0.15s ease;
 }
 .llmchat-rate-btn:hover {
-	background: #f3f4f6;
-	color: #4b5563;
+	background: var(--sf-2);
+	color: var(--tx-3);
 }
 /* Pressed = unmistakable: fill the thumb (this CSS fill overrides the inline
    fill="none" on the outline icons) and tint the button, so a registered vote
@@ -577,8 +643,8 @@ export const widgetStyles = `
    "noted" state — the filled thumb registers the vote without reading as
    celebratory, and the darker tint keeps it clearly apart from the brand thumb. */
 .llmchat-rate-btn[aria-label="Not helpful"][aria-pressed="true"] {
-	color: #4b5563;
-	background: #e5e7eb;
+	color: var(--tx-3);
+	background: var(--ln);
 }
 .llmchat-rate-btn:focus-visible {
 	outline: none;
@@ -604,7 +670,7 @@ export const widgetStyles = `
 	margin: 0;
 	font-size: 16.8px;
 	font-weight: 600;
-	color: #111827;
+	color: var(--tx);
 }
 .llmchat-csat-stars {
 	display: flex;
@@ -635,7 +701,7 @@ export const widgetStyles = `
 .llmchat-csat-skip {
 	background: transparent;
 	border: none;
-	color: #6b7280;
+	color: var(--tx-4);
 	font: inherit;
 	font-size: 13.6px;
 	cursor: pointer;
@@ -643,7 +709,7 @@ export const widgetStyles = `
 	border-radius: 6px;
 }
 .llmchat-csat-skip:hover {
-	color: #111827;
+	color: var(--tx);
 	text-decoration: underline;
 }
 .llmchat-csat-skip:focus-visible {
@@ -662,7 +728,7 @@ export const widgetStyles = `
 	width: 6.4px;
 	height: 6.4px;
 	border-radius: 9999px;
-	background: #9ca3af;
+	background: var(--tx-5);
 	animation: llmchat-bounce 1.2s infinite ease-in-out;
 }
 .llmchat-dot:nth-child(2) {
@@ -676,7 +742,7 @@ export const widgetStyles = `
 .llmchat-typing-label {
 	margin-left: 4px;
 	font-size: 12px;
-	color: #6b7280;
+	color: var(--tx-4);
 }
 @keyframes llmchat-bounce {
 	0%,
@@ -708,11 +774,11 @@ export const widgetStyles = `
 	margin-left: 4px;
 }
 .llmchat-demo-note {
-	background: #eef2ff;
-	color: #4338ca;
+	background: var(--info-bg);
+	color: var(--info-tx);
 	font-size: 12.48px;
 	padding: 8px 14px;
-	border-bottom: 1px solid #e0e7ff;
+	border-bottom: 1px solid var(--info-ln);
 }
 /* "Powered by Clanker Support" attribution at the foot of the panel (plan-gated). */
 .llmchat-powered-by {
@@ -720,20 +786,20 @@ export const widgetStyles = `
 	text-align: center;
 	padding: 6.4px 14px 8.8px;
 	font-size: 11.2px;
-	color: #9ca3af;
+	color: var(--tx-5);
 	text-decoration: none;
-	border-top: 1px solid #f1f5f9;
-	background: #fff;
+	border-top: 1px solid var(--ln-soft);
+	background: var(--sf);
 }
 .llmchat-powered-by:hover {
-	color: #6b7280;
+	color: var(--tx-4);
 }
 .llmchat-powered-by-name {
 	font-weight: 600;
-	color: #6b7280;
+	color: var(--tx-4);
 }
 .llmchat-error {
-	color: #b91c1c;
+	color: var(--err);
 	font-size: 13.6px;
 	margin: 0;
 	padding: 4px 8px 0;
@@ -743,7 +809,7 @@ export const widgetStyles = `
 .llmchat-escalate,
 .llmchat-escalated {
 	padding: 10px 14px;
-	border-top: 1px solid #e5e7eb;
+	border-top: 1px solid var(--ln);
 	font-size: 13.6px;
 	flex-shrink: 0;
 }
@@ -772,8 +838,8 @@ export const widgetStyles = `
 	cursor: default;
 }
 .llmchat-escalated {
-	color: #4b5563;
-	background: #f9fafb;
+	color: var(--tx-3);
+	background: var(--sf-3);
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
@@ -820,7 +886,7 @@ export const widgetStyles = `
 	padding: 8px 10px;
 	border-radius: 10px;
 	border: 1px solid color-mix(in srgb, var(--brand) 22%, transparent);
-	background: color-mix(in srgb, var(--brand) 6%, #fff);
+	background: color-mix(in srgb, var(--brand) 6%, var(--sf));
 	animation: llmchat-msg-in 0.2s ease;
 }
 .llmchat-summary-label {
@@ -842,7 +908,7 @@ export const widgetStyles = `
 	margin: 0;
 	font-size: 13.6px;
 	line-height: 1.4;
-	color: #374151;
+	color: var(--tx-2);
 	word-break: break-word;
 }
 
@@ -855,8 +921,8 @@ export const widgetStyles = `
 	align-items: center;
 	gap: 8px;
 	padding: 8px 8px 8px 14px;
-	background: #fff;
-	border-top: 1px solid #e5e7eb;
+	background: var(--sf);
+	border-top: 1px solid var(--ln);
 }
 .llmchat-privacy-text {
 	margin: 0;
@@ -865,7 +931,7 @@ export const widgetStyles = `
 	font-size: 11.52px;
 	line-height: 1.4;
 	text-align: left;
-	color: #6b7280;
+	color: var(--tx-4);
 }
 .llmchat-privacy a {
 	color: var(--brand);
@@ -888,15 +954,15 @@ export const widgetStyles = `
 	border: none;
 	border-radius: 6px;
 	background: transparent;
-	color: #9ca3af;
+	color: var(--tx-5);
 	cursor: pointer;
 	transition:
 		background 0.15s ease,
 		color 0.15s ease;
 }
 .llmchat-privacy-dismiss:hover {
-	background: #f3f4f6;
-	color: #4b5563;
+	background: var(--sf-2);
+	color: var(--tx-3);
 }
 .llmchat-privacy-dismiss:focus-visible {
 	outline: none;
@@ -915,12 +981,12 @@ export const widgetStyles = `
 
 /* ── Composer ──────────────────────────────────────────────────────── */
 .llmchat-input {
-	border-top: 1px solid #e5e7eb;
+	border-top: 1px solid var(--ln);
 	padding: 10px 12px;
 	display: flex;
 	gap: 8px;
 	align-items: flex-end;
-	background: #fff;
+	background: var(--sf);
 	flex-shrink: 0;
 }
 .llmchat-input textarea {
