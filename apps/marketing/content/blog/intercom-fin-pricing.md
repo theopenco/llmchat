@@ -4,6 +4,8 @@ description: "A primary-source teardown of Intercom Fin's $0.99-per-resolution p
 date: "2026-07-07"
 category: "Guides"
 featured: false
+cover: "/blog/intercom-fin-pricing.jpg"
+coverAlt: "A worked example support bill — seats, Copilot, and Fin resolution fees totalling $1,164 a month — in a dark terminal window on a violet gradient"
 ---
 
 Intercom Fin costs $0.99 per outcome — a resolution, a configured procedure handoff, or a lead disqualification — plus $9.99 per qualification, with a 50-outcome monthly minimum on non-Intercom helpdesks (about $49.50). Intercom seats stack on top, from $29 to $132 per seat per month on annual billing. Volume, not seats, drives the bill.

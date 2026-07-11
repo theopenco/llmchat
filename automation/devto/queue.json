@@ -1,0 +1,101 @@
+{
+	"_comment": "Ordered dev.to cross-post queue. The GitHub Actions workflow posts ONE not-yet-posted item per run (Mon/Wed/Fri). Items with published:true go live immediately — safe here because they are already published on clankersupport.com. To syndicate NEW original content, add a markdown file under automation/devto/drafts/ and a queue item with published:false — it is created as a dev.to DRAFT for you to review and publish by hand. Idempotent: an item already on the account (matched by canonical_url or title) is skipped, so re-runs never double-post. Reorder freely; posting follows array order. `cover` (root-relative, absolutized against SITE_ORIGIN) becomes the dev.to cover_image; the -devto.jpg variants are pre-cropped to dev.to's 1000x420 ratio.",
+	"items": [
+		{
+			"slug": "salesforce-fin-intercom-acquisition-support-bill",
+			"source": "apps/marketing/content/blog/salesforce-fin-intercom-acquisition-support-bill.md",
+			"canonical": "https://clankersupport.com/blog/salesforce-fin-intercom-acquisition-support-bill",
+			"series": "AI customer support in 2026",
+			"tags": ["saas", "customersupport", "ai", "startup"],
+			"cover": "/blog/salesforce-fin-intercom-acquisition-support-bill-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "intercom-alternatives",
+			"source": "apps/marketing/content/blog/intercom-alternatives.md",
+			"canonical": "https://clankersupport.com/blog/intercom-alternatives",
+			"series": "AI customer support in 2026",
+			"tags": ["customersupport", "saas", "ai", "startup"],
+			"cover": "/blog/intercom-alternatives-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "best-ai-support-agents",
+			"source": "apps/marketing/content/blog/best-ai-support-agents.md",
+			"canonical": "https://clankersupport.com/blog/best-ai-support-agents",
+			"series": "AI customer support in 2026",
+			"tags": ["ai", "customersupport", "saas", "webdev"],
+			"cover": "/blog/best-ai-support-agents-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "intercom-fin-pricing",
+			"source": "apps/marketing/content/blog/intercom-fin-pricing.md",
+			"canonical": "https://clankersupport.com/blog/intercom-fin-pricing",
+			"series": "AI customer support in 2026",
+			"tags": ["saas", "customersupport", "ai", "startup"],
+			"cover": "/blog/intercom-fin-pricing-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "open-source-intercom-alternatives",
+			"source": "apps/marketing/content/blog/open-source-intercom-alternatives.md",
+			"canonical": "https://clankersupport.com/blog/open-source-intercom-alternatives",
+			"series": "AI customer support in 2026",
+			"tags": ["opensource", "selfhosted", "customersupport", "ai"],
+			"cover": "/blog/open-source-intercom-alternatives-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "cloudflare-workers-every-node-sdk-broke",
+			"source": "apps/marketing/content/blog/cloudflare-workers-every-node-sdk-broke.md",
+			"canonical": "https://clankersupport.com/blog/cloudflare-workers-every-node-sdk-broke",
+			"series": "Building Clanker Support",
+			"tags": ["cloudflare", "node", "webdev", "serverless"],
+			"cover": "/blog/cloudflare-workers-every-node-sdk-broke-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "nextjs-ai-support-widget-server-component",
+			"source": "apps/marketing/content/blog/nextjs-ai-support-widget-server-component.md",
+			"canonical": "https://clankersupport.com/blog/nextjs-ai-support-widget-server-component",
+			"tags": ["nextjs", "react", "webdev", "tutorial"],
+			"cover": "/blog/nextjs-ai-support-widget-server-component-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "ai-support-agent-without-rag",
+			"source": "apps/marketing/content/blog/ai-support-agent-without-rag.md",
+			"canonical": "https://clankersupport.com/blog/ai-support-agent-without-rag",
+			"series": "Building Clanker Support",
+			"tags": ["ai", "llm", "architecture", "webdev"],
+			"cover": "/blog/ai-support-agent-without-rag-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "wordpress-ai-support-plugin",
+			"source": "apps/marketing/content/blog/wordpress-ai-support-plugin.md",
+			"canonical": "https://clankersupport.com/blog/wordpress-ai-support-plugin",
+			"tags": ["wordpress", "ai", "opensource", "webdev"],
+			"cover": "/blog/wordpress-ai-support-plugin-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "shipping-an-embeddable-widget",
+			"source": "apps/marketing/content/blog/shipping-an-embeddable-widget.md",
+			"canonical": "https://clankersupport.com/blog/shipping-an-embeddable-widget",
+			"series": "Building Clanker Support",
+			"tags": ["javascript", "webdev", "css", "frontend"],
+			"cover": "/blog/shipping-an-embeddable-widget-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "add-ai-support-agent-any-stack",
+			"source": "apps/marketing/content/blog/add-ai-support-agent-any-stack.md",
+			"canonical": "https://clankersupport.com/blog/add-ai-support-agent-any-stack",
+			"tags": ["tutorial", "webdev", "ai", "javascript"],
+			"cover": "/blog/add-ai-support-agent-any-stack-devto.jpg",
+			"published": true
+		}
+	]
+}
