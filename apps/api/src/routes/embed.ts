@@ -24,6 +24,9 @@ export const embed = new Hono<AppContext>().get("/embed/:key", async (c) => {
 		publicKey: project.publicKey,
 		brandColor: project.brandColor,
 		escalationThreshold: project.escalationThreshold,
+		// ?theme=dark|auto lets the embedding page match its own scheme;
+		// validated down to the widget's vocabulary (default light).
+		theme: c.req.query("theme"),
 	});
 
 	// Framing by any site is the point of this page; everything else is locked

@@ -4,6 +4,7 @@ import {
 	renderEmbedPage,
 	safeBrandColor,
 	safeEscalationThreshold,
+	safeTheme,
 } from "./embed-page";
 
 const base = {
@@ -91,5 +92,33 @@ describe("safeEscalationThreshold", () => {
 		expect(safeEscalationThreshold(0)).toBe(3);
 		expect(safeEscalationThreshold(-2)).toBe(3);
 		expect(safeEscalationThreshold(2.5)).toBe(3);
+	});
+});
+
+describe("embed theme passthrough", () => {
+	it("safeTheme constrains to the widget vocabulary (default light)", () => {
+		expect(safeTheme("dark")).toBe("dark");
+		expect(safeTheme("auto")).toBe("auto");
+		expect(safeTheme("light")).toBe("light");
+		expect(safeTheme(undefined)).toBe("light");
+		expect(safeTheme('"><script>')).toBe("light");
+	});
+
+	it("emits data-theme and a matching dark page background", () => {
+		const html = renderEmbedPage({ ...base, theme: "dark" });
+		expect(html).toContain('data-theme="dark"');
+		expect(html).toContain("background:#111827");
+	});
+
+	it("auto keeps a light background with a prefers-color-scheme override", () => {
+		const html = renderEmbedPage({ ...base, theme: "auto" });
+		expect(html).toContain('data-theme="auto"');
+		expect(html).toContain("@media (prefers-color-scheme: dark)");
+	});
+
+	it("defaults to light with the original white background", () => {
+		const html = renderEmbedPage({ ...base });
+		expect(html).toContain('data-theme="light"');
+		expect(html).toContain("background:#fff");
 	});
 });

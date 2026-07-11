@@ -73,3 +73,17 @@ describe("WidgetFrame — inline layout", () => {
 		).not.toBeInTheDocument();
 	});
 });
+
+describe("WidgetFrame — theme", () => {
+	it("defaults to light: no dark class on the root", () => {
+		renderFrame({ open: true });
+		const root = screen.getByText("panel body").closest(".llmchat");
+		expect(root).not.toHaveClass("llmchat--dark");
+	});
+
+	it("applies the dark palette class when theme=dark", () => {
+		renderFrame({ open: true, theme: "dark" });
+		const root = screen.getByText("panel body").closest(".llmchat");
+		expect(root).toHaveClass("llmchat--dark");
+	});
+});

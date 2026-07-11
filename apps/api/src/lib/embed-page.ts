@@ -8,6 +8,15 @@ export interface EmbedPageInput {
 	publicKey: string;
 	brandColor: string;
 	escalationThreshold: number;
+	/** Widget color scheme; anything unrecognized collapses to "light". */
+	theme?: string;
+}
+
+/** Constrain the ?theme= passthrough to the widget's own vocabulary. */
+export function safeTheme(
+	value: string | undefined,
+): "light" | "dark" | "auto" {
+	return value === "dark" || value === "auto" ? value : "light";
 }
 
 /** Brand color for inline interpolation — anything but a hex literal falls back. */
@@ -34,7 +43,18 @@ export function renderEmbedPage({
 	publicKey,
 	brandColor,
 	escalationThreshold,
+	theme,
 }: EmbedPageInput): string {
+	const safe = safeTheme(theme);
+	// The page background tracks the widget scheme so a dark iframe never
+	// flashes/frames white. "auto" defers to the visitor's OS via the media
+	// query; the widget itself resolves auto the same way (prefers-color-scheme).
+	const background =
+		safe === "dark"
+			? "html,body{margin:0;height:100%;background:#111827}"
+			: safe === "auto"
+				? "html,body{margin:0;height:100%;background:#fff}@media (prefers-color-scheme: dark){html,body{background:#111827}}"
+				: "html,body{margin:0;height:100%;background:#fff}";
 	return `<!doctype html>
 <html lang="en">
 <head>
@@ -42,10 +62,10 @@ export function renderEmbedPage({
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
 <title>${escapeHtml(projectName)} — Chat</title>
-<style>html,body{margin:0;height:100%;background:#fff}</style>
+<style>${background}</style>
 </head>
 <body>
-<script src="/widget.js" data-project="${escapeHtml(publicKey)}" data-brand="${safeBrandColor(brandColor)}" data-escalation-threshold="${safeEscalationThreshold(escalationThreshold)}" data-mode="inline" defer></script>
+<script src="/widget.js" data-project="${escapeHtml(publicKey)}" data-brand="${safeBrandColor(brandColor)}" data-escalation-threshold="${safeEscalationThreshold(escalationThreshold)}" data-mode="inline" data-theme="${safe}" defer></script>
 </body>
 </html>`;
 }

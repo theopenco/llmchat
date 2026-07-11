@@ -29,10 +29,12 @@ import {
 import { mergeMessages } from "./messages-sync";
 import { rateMessage, useMessageRatings } from "./rating";
 import { ShowcaseChat } from "./ShowcaseChat";
+import { useEffectiveTheme } from "./theme";
 import { useServerMessages } from "./useServerMessages";
 import { useWidgetConfig } from "./widget-config";
 
 import type { Rating } from "./rating";
+import type { WidgetTheme } from "./theme";
 
 /** How long the "Thanks!" screen shows before the conversation view returns. */
 const CSAT_THANKS_MS = 1200;
@@ -54,6 +56,8 @@ export type WidgetLayout = "bubble" | "inline";
 interface BaseWidgetProps {
 	brandColor: string;
 	mode?: WidgetLayout;
+	/** Color scheme: "light" (default) | "dark" | "auto" (follows the OS). */
+	theme?: WidgetTheme;
 }
 
 interface LiveWidgetProps extends BaseWidgetProps {
@@ -74,18 +78,30 @@ export type WidgetProps = LiveWidgetProps | ShowcaseWidgetProps;
 
 export function Widget(props: WidgetProps) {
 	if (props.widgetMode === "showcase") {
-		return <ShowcaseWidget brandColor={props.brandColor} mode={props.mode} />;
+		return (
+			<ShowcaseWidget
+				brandColor={props.brandColor}
+				mode={props.mode}
+				theme={props.theme}
+			/>
+		);
 	}
 	return <LiveWidget {...props} />;
 }
 
-function ShowcaseWidget({ brandColor, mode = "bubble" }: BaseWidgetProps) {
+function ShowcaseWidget({
+	brandColor,
+	mode = "bubble",
+	theme = "light",
+}: BaseWidgetProps) {
 	const inline = mode === "inline";
 	const [open, setOpen] = useState(inline);
+	const resolvedTheme = useEffectiveTheme(theme);
 	return (
 		<WidgetFrame
 			inline={inline}
 			brandColor={brandColor}
+			theme={resolvedTheme}
 			open={open}
 			onOpenChange={setOpen}
 			badge={<span className="llmchat-demo-badge">Demo mode</span>}
@@ -140,10 +156,12 @@ function LiveWidget({
 	apiUrl,
 	brandColor,
 	mode = "bubble",
+	theme = "light",
 	escalationThreshold,
 }: LiveWidgetProps) {
 	const inline = mode === "inline";
 	const [open, setOpen] = useState(inline);
+	const resolvedTheme = useEffectiveTheme(theme);
 	const [text, setText] = useState("");
 	// Hydrate identity from localStorage on first render (lazy init → no flash of
 	// the form on reload). The widget mounts client-side only, and getStoredIdentity
@@ -470,6 +488,7 @@ function LiveWidget({
 		<WidgetFrame
 			inline={inline}
 			brandColor={brandColor}
+			theme={resolvedTheme}
 			open={open}
 			onOpenChange={handleOpenChange}
 			actions={
