@@ -13,6 +13,9 @@ export interface WidgetConfig {
 	/** Whether the widget asks for the visitor's name/email before chatting.
 	 * Defaults to false: the widget opens straight into the conversation. */
 	collectIdentity: boolean;
+	/** Operator-configured greeting shown before the first message, or null to
+	 * use the widget's built-in default. */
+	welcomeMessage: string | null;
 }
 
 /**
@@ -33,6 +36,7 @@ export function useWidgetConfig(
 		privacyPolicyUrl: null,
 		suggestedQuestions: [],
 		collectIdentity: false,
+		welcomeMessage: null,
 	});
 	useEffect(() => {
 		let active = true;
@@ -45,6 +49,7 @@ export function useWidgetConfig(
 						privacyPolicyUrl?: unknown;
 						suggestedQuestions?: unknown;
 						collectIdentity?: unknown;
+						welcomeMessage?: unknown;
 					} | null,
 				) => {
 					if (!active || !data) return;
@@ -66,6 +71,10 @@ export function useWidgetConfig(
 							typeof data.collectIdentity === "boolean"
 								? data.collectIdentity
 								: prev.collectIdentity,
+						welcomeMessage:
+							typeof data.welcomeMessage === "string"
+								? data.welcomeMessage
+								: prev.welcomeMessage,
 					}));
 				},
 			)
