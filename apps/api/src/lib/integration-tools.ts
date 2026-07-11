@@ -31,6 +31,11 @@ import {
 
 import { CalcomError, calcomCreateBooking, calcomGetSlots } from "./calcom";
 import {
+	normalizeOrderKey,
+	type ConfirmOutcome,
+	type StartOutcome,
+} from "./order-verification";
+import {
 	ShopifyError,
 	shopifyCreateReturn,
 	shopifyLookupOrder,
@@ -64,6 +69,21 @@ export interface IntegrationGuards {
 	/** Return false when this exact action was JUST performed (idempotency);
 	 * true reserves the key. Guards create_return against double-filing. */
 	once?: (key: string) => Promise<boolean>;
+	/** Possession-proof for return filing (issue #131): an order number +
+	 * email identifies, it doesn't authenticate — both appear on packing slips.
+	 * When wired, create_return refuses until the visitor redeems a one-time
+	 * code emailed to the address on the order (verify_return_code). Absent ⇒
+	 * unguarded (unit tests / self-host without a state binding), matching the
+	 * other guards. */
+	returnVerification?: {
+		/** Email a fresh code for (order, email). The email is ALWAYS the
+		 * order-verified address the tool resolved — never model-chosen. */
+		start: (orderKey: string, email: string) => Promise<StartOutcome>;
+		/** Redeem a visitor-supplied code for this order. */
+		confirm: (orderKey: string, code: string) => Promise<ConfirmOutcome>;
+		/** Already verified for this (order, email)? MUST fail closed. */
+		check: (orderKey: string, email: string) => Promise<boolean>;
+	};
 }
 
 export interface BuiltIntegrationTools {
@@ -467,6 +487,70 @@ export function buildIntegrationTools(opts: {
 									: "nothing on this order is returnable right now",
 							};
 						}
+						// Possession proof: the order number + email pair identifies the
+						// order but doesn't prove the requester controls that mailbox.
+						// Before anything is filed, the visitor must redeem a one-time
+						// code emailed to the address on the order. The recipient is the
+						// order-verified `addr` (never model-chosen), and only checked
+						// AFTER the returnable-items pass so hopeless requests never
+						// trigger an email. A guard fault keeps the gate SHUT.
+						if (opts.guards?.returnVerification) {
+							const rv = opts.guards.returnVerification;
+							// Key the possession proof on the visitor's OWN order
+							// reference (what they'll also type into verify_return_code),
+							// NOT the canonical order.name — stores with configured
+							// order-name prefixes/suffixes make those differ, which would
+							// strand a legit visitor whose emailed code can never match.
+							// The real security binding is (conversation, order-verified
+							// email); orderKey is just a per-order sub-scope and MUST be
+							// derived identically here and in verify_return_code.
+							const orderKey = normalizeOrderKey(orderNumber);
+							let verified = false;
+							try {
+								verified = await rv.check(orderKey, addr);
+							} catch {
+								verified = false;
+							}
+							if (!verified) {
+								let outcome: StartOutcome = "unavailable";
+								try {
+									outcome = await rv.start(orderKey, addr);
+								} catch {
+									outcome = "unavailable";
+								}
+								report({
+									kind: "shopify",
+									tool: "create_return",
+									ok: false,
+									params: { orderNumber, email: addr },
+									detail:
+										outcome === "sent"
+											? "verification code sent to the order email"
+											: outcome === "limited"
+												? "blocked: verification send limit"
+												: "blocked: verification unavailable",
+								});
+								if (outcome === "sent") {
+									return {
+										ok: false as const,
+										error:
+											"verification_required — a 6-digit code was just emailed to the address on this order. Ask the visitor for the code from that email, redeem it with verify_return_code, then call create_return again.",
+									};
+								}
+								if (outcome === "limited") {
+									return {
+										ok: false as const,
+										error:
+											"Too many verification codes have been sent for this conversation — please try again later or ask to speak with a human.",
+									};
+								}
+								return {
+									ok: false as const,
+									error:
+										"Return verification is temporarily unavailable — please try again shortly or ask to speak with a human.",
+								};
+							}
+						}
 						// Idempotency: a committed-but-lost response or a double-fire must
 						// not file the return twice. Keyed on (conversation, order, items)
 						// and reserved right before the state-changing mutation.
@@ -544,8 +628,110 @@ export function buildIntegrationTools(opts: {
 				},
 			});
 
+			if (opts.guards?.returnVerification) {
+				const rv = opts.guards.returnVerification;
+				tools.verify_return_code = tool({
+					description:
+						"Redeem the 6-digit verification code that create_return emailed to the address on the order. Call this once the visitor reads the code back — never guess, invent, or ask to skip the code. After it succeeds, call create_return again.",
+					inputSchema: z.object({
+						orderNumber: z
+							.string()
+							.max(32)
+							.describe("The order the code was requested for"),
+						code: z
+							.string()
+							.min(4)
+							.max(12)
+							.describe("The 6-digit code from the visitor's email"),
+					}),
+					execute: async ({ orderNumber, code }) => {
+						const orderKey = normalizeOrderKey(orderNumber);
+						// Bound total guesses with the SAME fail-closed action limiter
+						// create_return uses. This is the real global brute-force bound
+						// (per-project + per-IP, survives clientId/IP rotation), so the
+						// per-code lockout's non-atomic STATE counter can never be raced
+						// into relevance — even if concurrency overshoots the 5-attempt
+						// lockout, total guesses stay capped at the daily action quota.
+						if (!(await allowAction("shopify", "verify_return_code"))) {
+							report({
+								kind: "shopify",
+								tool: "verify_return_code",
+								ok: false,
+								params: { orderNumber },
+								detail: "blocked: verification attempt rate/quota limit",
+							});
+							return {
+								ok: false as const,
+								error:
+									"We've reached the verification attempt limit for now — please try again later or ask to speak with a human.",
+							};
+						}
+						let outcome: ConfirmOutcome = "unavailable";
+						try {
+							outcome = await rv.confirm(orderKey, code);
+						} catch {
+							outcome = "unavailable";
+						}
+						// Audited like every action — but the code itself is NEVER
+						// logged (it stays redeemable for a short window on failure).
+						report({
+							kind: "shopify",
+							tool: "verify_return_code",
+							ok: outcome === "verified",
+							params: { orderNumber },
+							detail:
+								outcome === "verified"
+									? `verified return eligibility for order ${orderNumber}`
+									: outcome === "invalid"
+										? "wrong verification code"
+										: outcome === "expired"
+											? "verification code expired or not issued"
+											: outcome === "locked"
+												? "verification locked (too many wrong codes)"
+												: "verification unavailable",
+						});
+						switch (outcome) {
+							case "verified":
+								return {
+									ok: true as const,
+									verified: true,
+									message:
+										"Verified — call create_return again to file the return.",
+								};
+							case "invalid":
+								return {
+									ok: false as const,
+									error:
+										"That code doesn't match — ask the visitor to re-check the email. Attempts are limited.",
+								};
+							case "expired":
+								return {
+									ok: false as const,
+									error:
+										"That code is expired or no code is active for this order — call create_return again to email a fresh one.",
+								};
+							case "locked":
+								return {
+									ok: false as const,
+									error:
+										"Too many wrong codes — verification for this order is locked for now. Offer to connect the visitor with a human instead.",
+								};
+							default:
+								return {
+									ok: false as const,
+									error:
+										"Verification is temporarily unavailable — please try again shortly or ask to speak with a human.",
+								};
+						}
+					},
+				});
+			}
+
 			notes.push(
-				"- Store orders: you can look up the visitor's own order (lookup_order) and file a return (create_return). Both need the order number AND the email on the order — ask for whichever is missing, and never guess either. Before filing a return, confirm exactly which items and that the visitor wants it filed. Report tool errors honestly and offer to escalate to a human instead of retrying endlessly.",
+				"- Store orders: you can look up the visitor's own order (lookup_order) and file a return (create_return). Both need the order number AND the email on the order — ask for whichever is missing, and never guess either. Before filing a return, confirm exactly which items and that the visitor wants it filed. Report tool errors honestly and offer to escalate to a human instead of retrying endlessly." +
+					(opts.guards?.returnVerification
+						? " Filing a return also requires proof the visitor controls the email on the order: create_return will answer verification_required and email them a 6-digit code — ask for that code, redeem it with verify_return_code, then call create_return again. Never ask the visitor to skip verification, and never guess a code."
+						: ""),
 			);
 		}
 	}

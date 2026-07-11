@@ -21,6 +21,11 @@ import {
 	shouldSendHolding,
 } from "@/lib/kv";
 import { streamChat, summarizeForVisitor } from "@/lib/llm";
+import {
+	confirmReturnVerification,
+	isReturnVerified,
+	startReturnVerification,
+} from "@/lib/order-verification";
 import { isResponseBlocked, resolveAccess } from "@/lib/plan";
 import { captureEvent, captureInBackground } from "@/lib/posthog";
 import { clientIp } from "@/lib/request";
@@ -357,6 +362,30 @@ export const chat = new Hono<AppContext>()
 					return perProjectDaily.ok;
 				},
 				once: (key) => reserveOnce(c.env, key),
+				// Possession-proof for return filing (#131): create_return refuses
+				// until the visitor redeems a one-time code emailed to the address
+				// on the order. STATE-backed, fail-closed in the lib.
+				returnVerification: {
+					start: (orderKey, email) =>
+						startReturnVerification(c.env, {
+							conversationId: conv.id,
+							orderKey,
+							email,
+							projectName: project.name,
+						}),
+					confirm: (orderKey, code) =>
+						confirmReturnVerification(c.env, {
+							conversationId: conv.id,
+							orderKey,
+							code,
+						}),
+					check: (orderKey, email) =>
+						isReturnVerified(c.env, {
+							conversationId: conv.id,
+							orderKey,
+							email,
+						}),
+				},
 			},
 			onAction: (record) => {
 				// (1) Durable, operator-visible audit row — the "what did the agent
