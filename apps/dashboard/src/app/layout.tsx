@@ -110,6 +110,7 @@ export default function RootLayout({
 					data-project="pk_adadae5c42fbc58d2e4927cac84a2131ae3bf042d8032187"
 					data-api="https://api.clankersupport.com"
 					data-brand="#6366F1"
+					data-theme="host"
 					async
 				/>
 			</body>

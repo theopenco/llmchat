@@ -22,6 +22,8 @@ export function WidgetMount() {
 			projectKey: WIDGET_PROJECT_KEY,
 			apiUrl: apiBaseUrl(),
 			brandColor: BRAND_COLOR,
+			// Mirror the showcase site's own next-themes toggle (html class).
+			theme: "host",
 		});
 		return () => {
 			unmount();

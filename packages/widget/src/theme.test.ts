@@ -1,7 +1,12 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { parseTheme, resolveEffectiveTheme, useEffectiveTheme } from "./theme";
+import {
+	parseTheme,
+	resolveEffectiveTheme,
+	resolveHostDark,
+	useEffectiveTheme,
+} from "./theme";
 
 afterEach(() => {
 	vi.unstubAllGlobals();
@@ -82,6 +87,67 @@ describe("useEffectiveTheme", () => {
 		expect(result.current).toBe("dark");
 		act(() => media.fireChange(true));
 		act(() => media.fireChange(false));
+		expect(result.current).toBe("dark");
+	});
+});
+
+describe("parseTheme — host", () => {
+	it("accepts host", () => {
+		expect(parseTheme("host")).toBe("host");
+	});
+});
+
+describe("resolveHostDark", () => {
+	it("follows the host's dark/light class (next-themes attribute=class)", () => {
+		expect(resolveHostDark("dark", null, false)).toBe(true);
+		expect(resolveHostDark("some other dark classes", null, false)).toBe(true);
+		expect(resolveHostDark("light", null, true)).toBe(false);
+	});
+
+	it("follows a data-theme attribute", () => {
+		expect(resolveHostDark("", "dark", false)).toBe(true);
+		expect(resolveHostDark("", "light", true)).toBe(false);
+	});
+
+	it("never matches substrings of other class names", () => {
+		expect(resolveHostDark("darkroom skylight", null, false)).toBe(false);
+	});
+
+	it("defers to the OS when the host declares nothing", () => {
+		expect(resolveHostDark("", null, true)).toBe(true);
+		expect(resolveHostDark("", null, false)).toBe(false);
+	});
+});
+
+describe("useEffectiveTheme — host mode", () => {
+	afterEach(() => {
+		document.documentElement.className = "";
+		document.documentElement.removeAttribute("data-theme");
+	});
+
+	it("mirrors the host <html> class and follows a live toggle", async () => {
+		stubMatchMedia(false);
+		document.documentElement.className = "dark";
+		const { result } = renderHook(() => useEffectiveTheme("host"));
+		expect(result.current).toBe("dark");
+
+		// The site's theme toggle flips the class — the widget must follow.
+		await act(async () => {
+			document.documentElement.className = "light";
+			await new Promise((r) => setTimeout(r, 0)); // MutationObserver flush
+		});
+		expect(result.current).toBe("light");
+
+		await act(async () => {
+			document.documentElement.setAttribute("data-theme", "dark");
+			await new Promise((r) => setTimeout(r, 0));
+		});
+		expect(result.current).toBe("dark");
+	});
+
+	it("falls back to the OS scheme when the host declares nothing", () => {
+		stubMatchMedia(true);
+		const { result } = renderHook(() => useEffectiveTheme("host"));
 		expect(result.current).toBe("dark");
 	});
 });
