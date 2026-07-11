@@ -23,6 +23,7 @@ export const widgetConfig = new Hono<AppContext>().get(
 				privacyPolicyUrl: true,
 				suggestedQuestions: true,
 				collectIdentity: true,
+				welcomeMessage: true,
 			},
 		});
 		if (!project) {
@@ -43,6 +44,13 @@ export const widgetConfig = new Hono<AppContext>().get(
 			// Whether the widget asks for name/email before chatting. Off by
 			// default — the widget opens straight into the conversation.
 			collectIdentity: project.collectIdentity === true,
+			// The operator-configured greeting shown before the first message.
+			// Guarded: a non-string/legacy value degrades to null, and the widget
+			// then falls back to its built-in default greeting.
+			welcomeMessage:
+				typeof project.welcomeMessage === "string"
+					? project.welcomeMessage
+					: null,
 		});
 	},
 );

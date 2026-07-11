@@ -30,6 +30,7 @@ describe("GET /config/:key — public widget config", () => {
 			workspaceId: "ws1",
 			privacyPolicyUrl: null,
 			suggestedQuestions: ["Pricing?", "Refunds?"],
+			welcomeMessage: "Welcome to Acme!",
 		});
 		const res = await widgetConfig.request("/config/pk_x", {}, ENV);
 		expect(res.status).toBe(200);
@@ -38,7 +39,21 @@ describe("GET /config/:key — public widget config", () => {
 			privacyPolicyUrl: null,
 			suggestedQuestions: ["Pricing?", "Refunds?"],
 			collectIdentity: false,
+			welcomeMessage: "Welcome to Acme!",
 		});
+	});
+
+	it("returns the configured welcomeMessage; degrades a legacy row to null", async () => {
+		mockProject({
+			workspaceId: "ws1",
+			privacyPolicyUrl: null,
+			suggestedQuestions: [],
+			// Legacy row predating the column → the endpoint must not 500.
+			welcomeMessage: undefined,
+		});
+		const res = await widgetConfig.request("/config/pk_x", {}, ENV);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({ welcomeMessage: null });
 	});
 
 	it("reports collectIdentity when the project enables the pre-chat form", async () => {

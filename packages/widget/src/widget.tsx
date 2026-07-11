@@ -216,6 +216,7 @@ function LiveWidget({
 		privacyPolicyUrl,
 		suggestedQuestions,
 		collectIdentity,
+		welcomeMessage,
 	} = useWidgetConfig(apiUrl, projectKey);
 	// The pre-chat name/email form is opt-in per project (collectIdentity).
 	// Off (the default), the widget opens straight into the conversation; a
@@ -524,7 +525,11 @@ function LiveWidget({
 				<>
 					<MessageList
 						greeting={
-							name ? `Hi ${name}! How can I help?` : "Hi! How can I help?"
+							// The operator's configured welcomeMessage wins once the server
+							// config resolves; until then (or if unset) fall back to the
+							// built-in default, personalized when we already know the name.
+							welcomeMessage?.trim() ||
+							(name ? `Hi ${name}! How can I help?` : "Hi! How can I help?")
 						}
 						messages={displayMessages}
 						typing={loading}
