@@ -4,6 +4,8 @@ description: "Ten Intercom alternatives compared by pricing model — per-seat, 
 date: "2026-07-07"
 category: "Guides"
 featured: false
+cover: "/blog/intercom-alternatives.jpg"
+coverAlt: "The four support-software pricing models — per-seat, per-resolution, flat monthly, and self-hosted — as an annotated list in a dark code window on a violet gradient"
 ---
 
 The best Intercom alternative depends on which pricing model you can live with: Zendesk or Freshdesk if you want a per-seat suite, Gorgias or Chatbase if usage-based billing fits your volume, Crisp or Clanker Support for flat monthly pricing, and Chatwoot if you want open source. Most teams leave over cost: seats from $29/month plus Fin's $0.99 per resolution.

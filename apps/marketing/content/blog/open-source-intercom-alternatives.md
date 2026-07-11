@@ -4,6 +4,8 @@ description: "Six open-source Intercom alternatives you can self-host, compared 
 date: "2026-07-07"
 category: "Guides"
 featured: false
+cover: "/blog/open-source-intercom-alternatives.jpg"
+coverAlt: "Terminal commands cloning and running the open-source llmchat stack, in a dark terminal window on a violet gradient"
 ---
 
 The strongest open-source Intercom alternatives in 2026 are Chatwoot (the most complete omnichannel helpdesk), Zammad (process-heavy ticketing), FreeScout (lightweight shared inbox), Tiledesk (LLM agent flows), Papercups (maintenance mode), and Clanker Support (our AI-first agent: one script tag, any LLM, serverless self-hosting). The right pick depends on whether you need a helpdesk or an AI agent that answers and escalates.
