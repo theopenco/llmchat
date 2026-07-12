@@ -237,6 +237,38 @@ export function ClankerSupportProvider({
 		messagesRef.current = messages;
 	}, [messages]);
 
+	// ── Quote-reply ───────────────────────────────────────────────────
+	// The message the visitor is replying to (drives the "Replying to:" bar). Held
+	// in a ref alongside state so `send` reads the value current at send time
+	// without taking it as a dependency (same pattern as the draft).
+	const [replyTo, setReplyToState] = useState<ChatMessage | null>(null);
+	const replyToRef = useRef<ChatMessage | null>(null);
+	const setReplyTo = useCallback((message: ChatMessage | null) => {
+		// `system` rows are internal markers the widget never renders — refuse them
+		// here so a custom UI can't build a reply the api would only drop anyway.
+		const next = message && message.role === "system" ? null : message;
+		replyToRef.current = next;
+		setReplyToState(next);
+	}, []);
+	// Drop the pending reply if its target disappears from the loaded thread (e.g.
+	// the conversation was reset) — never send a reference to a message we can no
+	// longer show the visitor.
+	useEffect(() => {
+		const target = replyToRef.current;
+		if (target && !messages.some((m) => m.id === target.id)) {
+			setReplyTo(null);
+		}
+	}, [messages, setReplyTo]);
+
+	// Reads `messages` (state), NOT messagesRef: the ref is synced in an effect, so
+	// a ref-backed lookup would still see the previous thread on the render where
+	// the feed arrives — and, being ref-backed, would never re-render to correct
+	// itself. The quote chip would stay stuck on its "not in the thread" fallback.
+	const findMessage = useCallback(
+		(id: string) => messages.find((m) => m.id === id) ?? null,
+		[messages],
+	);
+
 	// ── Send ──────────────────────────────────────────────────────────
 	const busyRef = useRef(false);
 	const sendAbortRef = useRef<AbortController | null>(null);
@@ -259,10 +291,19 @@ export function ClankerSupportProvider({
 			}
 			setSendError(null);
 
+			// Consume the pending quote-reply: attached to this turn, then cleared, so
+			// the next message isn't silently sent as another reply to the same target.
+			const quoted = replyToRef.current;
+			setReplyTo(null);
+
 			const userMessage: LocalMessage = {
 				id: crypto.randomUUID(),
 				role: "user",
 				content: value,
+				// Optimistic: renders the chip on the sent bubble immediately. The feed
+				// replaces this row with the persisted one (carrying the server-validated
+				// reference) on the next poll.
+				replyToMessageId: quoted?.id ?? null,
 			};
 			// Model context = persisted user/assistant turns + this message. Admin
 			// and system rows are dashboard-side concepts the model API rejects.
@@ -295,6 +336,10 @@ export function ClankerSupportProvider({
 						clientId: ensureClientId(),
 						name: identityRef.current?.name,
 						email: identityRef.current?.email || undefined,
+						// Top-level, per-turn: the id of the message this turn replies to.
+						// The api re-validates it against the conversation and drops it if
+						// it doesn't belong, so a stale id degrades to a plain message.
+						...(quoted ? { replyToMessageId: quoted.id } : {}),
 						messages: history,
 					},
 					controller.signal,
@@ -336,7 +381,7 @@ export function ClankerSupportProvider({
 				}
 			}
 		},
-		[apiUrl, apiKey, ensureClientId, loadFeed, setDraft],
+		[apiUrl, apiKey, ensureClientId, loadFeed, setDraft, setReplyTo],
 	);
 
 	// ── Escalation / resolve ──────────────────────────────────────────
@@ -484,6 +529,9 @@ export function ClankerSupportProvider({
 			errorCode: sendError?.code ?? null,
 			draft,
 			setDraft,
+			replyTo,
+			setReplyTo,
+			findMessage,
 			send,
 			conversationId: feed.conversationId,
 			refresh,
@@ -520,6 +568,9 @@ export function ClankerSupportProvider({
 			sendError,
 			draft,
 			setDraft,
+			replyTo,
+			setReplyTo,
+			findMessage,
 			send,
 			feed.conversationId,
 			refresh,

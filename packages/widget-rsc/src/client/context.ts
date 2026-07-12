@@ -50,6 +50,19 @@ export interface ClankerSupportContextValue {
 	/** Composer draft (shared so Input/Submit/your components stay in sync). */
 	draft: string;
 	setDraft: (value: string) => void;
+
+	// ── Quote-reply ──────────────────────────────────────────────────
+	/**
+	 * The earlier message the visitor is replying to, or null. Set it to show the
+	 * "Replying to:" bar above the composer; the next `send` attaches it and clears
+	 * it. Only user/assistant/admin messages are quotable — `system` rows are
+	 * internal markers and `replyTo` ignores them (the api ignores them too).
+	 */
+	replyTo: ChatMessage | null;
+	setReplyTo: (message: ChatMessage | null) => void;
+	/** Resolve a `replyToMessageId` against the loaded thread; null when out of window. */
+	findMessage: (id: string) => ChatMessage | null;
+
 	/** Send `text` (or the current draft when omitted). No-op while busy or empty. */
 	send: (text?: string) => Promise<void>;
 	conversationId: string | null;

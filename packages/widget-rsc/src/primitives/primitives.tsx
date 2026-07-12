@@ -131,6 +131,7 @@ export function Messages({
 					</div>
 				) : (
 					<div key={m.id} data-part="message" data-role={m.role}>
+						<QuotedMessage message={m} />
 						{m.content}
 					</div>
 				),
@@ -166,6 +167,105 @@ export function Input(props: ComponentProps<"input">) {
 			autoComplete="off"
 			value={draft}
 			onChange={(e) => setDraft(e.target.value)}
+			{...props}
+		/>
+	);
+}
+
+/** Copy for a quote whose target isn't in the loaded thread (older page, or deleted). */
+export const MISSING_QUOTE_LABEL = "earlier message";
+
+/**
+ * The quote chip rendered above a message that replies to an earlier one. Renders
+ * nothing when the message isn't a reply. When the quoted id can't be resolved in
+ * the loaded thread — an older page the widget hasn't fetched, or a message that no
+ * longer exists — it degrades to a neutral "earlier message" label rather than
+ * disappearing, so the reply never looks like it was addressed to nothing.
+ */
+export function QuotedMessage({
+	message,
+	children,
+	...props
+}: Omit<ComponentProps<"div">, "children"> & {
+	message: ChatMessage;
+	children?: (quoted: ChatMessage | null) => ReactNode;
+}) {
+	const { findMessage } = useClankerSupport();
+	if (!message.replyToMessageId) {
+		return null;
+	}
+	const quoted = findMessage(message.replyToMessageId);
+	return (
+		<div
+			data-part="quote"
+			data-role={quoted?.role}
+			data-resolved={quoted ? "true" : "false"}
+			{...props}
+		>
+			{children ? children(quoted) : (quoted?.content ?? MISSING_QUOTE_LABEL)}
+		</div>
+	);
+}
+
+/**
+ * The "Replying to:" bar shown above the composer once the visitor picks a message
+ * to reply to. Renders nothing when no reply is pending. The default body is the
+ * quoted text plus a dismiss button that clears the pending reply.
+ */
+export function ReplyingTo({
+	children,
+	...props
+}: Omit<ComponentProps<"div">, "children"> & {
+	children?: (message: ChatMessage, dismiss: () => void) => ReactNode;
+}) {
+	const { replyTo, setReplyTo } = useClankerSupport();
+	if (!replyTo) {
+		return null;
+	}
+	const dismiss = () => setReplyTo(null);
+	return (
+		<div data-part="replying-to" data-role={replyTo.role} {...props}>
+			{children ? (
+				children(replyTo, dismiss)
+			) : (
+				<>
+					<span data-part="replying-to-text">{replyTo.content}</span>
+					<button
+						type="button"
+						data-part="replying-to-dismiss"
+						aria-label="Cancel reply"
+						onClick={dismiss}
+					>
+						×
+					</button>
+				</>
+			)}
+		</div>
+	);
+}
+
+/**
+ * "Reply" affordance for a specific message — sets it as the pending reply target.
+ * Renders nothing for `system` rows (internal markers the widget never shows) so a
+ * visitor can only ever quote a message they actually saw. Bring your own label:
+ * this is headless, so it sets no aria-label — an ICON-only button needs one from
+ * you (a text child labels itself).
+ */
+export function ReplyButton({
+	asChild,
+	message,
+	...props
+}: ButtonProps & { message: ChatMessage }) {
+	const { setReplyTo } = useClankerSupport();
+	if (message.role === "system") {
+		return null;
+	}
+	const Comp = asChild ? Slot : "button";
+	return (
+		<Comp
+			type={asChild ? undefined : "button"}
+			data-part="reply-button"
+			onClick={() => setReplyTo(message)}
 			{...props}
 		/>
 	);

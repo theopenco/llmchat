@@ -20,6 +20,14 @@ export interface ChatMessage {
 	/** Only persisted assistant messages (stable DB id) can be rated. */
 	rateable?: boolean;
 	rating?: MessageRating;
+	/**
+	 * Quote-reply: the id of the earlier message in this conversation that this
+	 * message replies to; null/absent when it isn't a reply. Resolve it against the
+	 * loaded thread to render the quote — the target may legitimately be missing
+	 * (older page not loaded, or deleted), which renders a neutral fallback chip
+	 * rather than nothing.
+	 */
+	replyToMessageId?: string | null;
 }
 
 /** Lifecycle of the current send: idle → submitted → streaming → idle | error. */

@@ -87,6 +87,58 @@ describe("mergeMessages", () => {
 		);
 		expect(merged.map((m) => m.content)).toEqual(["help", "On it!", "thanks"]);
 	});
+
+	// The server branch copies fields EXPLICITLY (no spread), so a new ServerMessage
+	// field is dropped from the rendered thread unless it's forwarded there — and the
+	// bug hides behind the optimistic local chip until the next poll. Pin it.
+	describe("quote-reply survives the merge", () => {
+		it("carries replyToMessageId through from a persisted server row", () => {
+			const merged = mergeMessages(
+				[
+					srv(1, "assistant", "ships Tuesday"),
+					{ ...srv(2, "user", "which one?"), replyToMessageId: "s1" },
+				],
+				[],
+			);
+			expect(merged.find((m) => m.id === "s2")?.replyToMessageId).toBe("s1");
+			// Explicit null on a non-reply — "not a reply", not "field lost".
+			expect(merged.find((m) => m.id === "s1")?.replyToMessageId).toBeNull();
+		});
+
+		it("carries it on an in-flight local message (optimistic chip)", () => {
+			const merged = mergeMessages(
+				[srv(1, "assistant", "ships Tuesday")],
+				[
+					{
+						id: "l1",
+						role: "user",
+						content: "which one?",
+						replyToMessageId: "s1",
+					},
+				],
+			);
+			expect(merged.find((m) => m.id === "l1")?.replyToMessageId).toBe("s1");
+		});
+
+		it("keeps the reference when the local copy is replaced by its server row", () => {
+			const merged = mergeMessages(
+				[
+					srv(1, "assistant", "ships Tuesday"),
+					{ ...srv(2, "user", "which one?"), replyToMessageId: "s1" },
+				],
+				[
+					{
+						id: "l1",
+						role: "user",
+						content: "which one?",
+						replyToMessageId: "s1",
+					},
+				],
+			);
+			expect(merged.map((m) => m.id)).toEqual(["s1", "s2"]);
+			expect(merged[1]?.replyToMessageId).toBe("s1");
+		});
+	});
 });
 
 describe("mergeMessages — holding-ack anchoring (Bug 3 / Problem 1)", () => {

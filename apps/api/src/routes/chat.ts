@@ -20,7 +20,12 @@ import {
 	reserveOnce,
 	shouldSendHolding,
 } from "@/lib/kv";
-import { streamChat, summarizeForVisitor } from "@/lib/llm";
+import {
+	isQuotableRole,
+	streamChat,
+	summarizeForVisitor,
+	type QuotableRole,
+} from "@/lib/llm";
 import {
 	confirmReturnVerification,
 	isReturnVerified,
@@ -70,6 +75,10 @@ const chatBody = z.object({
 	clientId: z.string().max(128),
 	name: z.string().max(200).optional(),
 	email: optionalEmail,
+	// Quote-reply: the id of an earlier message in THIS conversation the visitor is
+	// replying to. Bounded like every other public id; never trusted — resolved
+	// against the conversation below, and silently dropped when it doesn't belong.
+	replyToMessageId: z.string().max(128).optional(),
 	messages: z
 		.array(z.any())
 		.max(200)
@@ -165,7 +174,8 @@ async function findOrCreateConversation(
 
 export const chat = new Hono<AppContext>()
 	.post("/chat", zValidator("json", chatBody), async (c) => {
-		const { projectKey, clientId, name, email, messages } = c.req.valid("json");
+		const { projectKey, clientId, name, email, messages, replyToMessageId } =
+			c.req.valid("json");
 
 		// Per-IP gate BEFORE the project lookup: bounds DB load from floods of
 		// invalid/unknown project keys (the per-project limits below only kick in
@@ -256,6 +266,31 @@ export const chat = new Hono<AppContext>()
 			})(),
 		);
 
+		// Quote-reply: resolve the message the visitor is replying to, scoped to THIS
+		// conversation. Banked rule — and(), never bare eq(): `conv` is keyed by
+		// (project.id from the public key, clientId), so eq(conversationId, conv.id)
+		// is transitively a tenant scope and an id from another project or another
+		// visitor simply finds nothing. A foreign, unknown, deleted or garbage id
+		// therefore resolves to null and the message is persisted WITHOUT the
+		// reference — the visitor's turn is never rejected and no reason is echoed
+		// back, so this is not an existence oracle for other conversations' ids.
+		// The role allowlist is what keeps internal `system` markers (e.g. "Visitor
+		// requested a human operator", written on escalation below) out of the prompt.
+		// Resolved BEFORE the insert and BEFORE the escalated holding-guard return, so
+		// a muted turn still persists a validated reference for the operator to see.
+		let replyTo: { id: string; role: QuotableRole; content: string } | null =
+			null;
+		if (replyToMessageId) {
+			const ref = await db(c.env).query.message.findFirst({
+				where: (m, { and: a, eq: e }) =>
+					a(e(m.id, replyToMessageId), e(m.conversationId, conv.id)),
+				columns: { id: true, role: true, content: true },
+			});
+			if (ref && isQuotableRole(ref.role)) {
+				replyTo = { id: ref.id, role: ref.role, content: ref.content };
+			}
+		}
+
 		const lastUser = messages[messages.length - 1] as UIMessage;
 		const userText = lastUser?.parts
 			?.filter((p): p is { type: "text"; text: string } => p.type === "text")
@@ -269,6 +304,10 @@ export const chat = new Hono<AppContext>()
 				role: "user",
 				content: userText ?? "",
 				sequence: nextSeq,
+				// Null unless the reference resolved to a quotable message in this same
+				// conversation. content stays the visitor's RAW text — the quote is a
+				// reference, never inlined into the stored message.
+				replyToMessageId: replyTo?.id ?? null,
 			});
 		// Bump the count with the user message now — if the model call below
 		// fails, the next message must not reuse this sequence.
@@ -463,6 +502,12 @@ export const chat = new Hono<AppContext>()
 				identity: { name: conv.name, email: conv.email },
 				...(built
 					? { tools: built.tools, actionsBlock: built.actionsBlock }
+					: {}),
+				// The resolved quote (excerpt read from the STORED row, never from the
+				// request body) so the agent knows exactly which message the visitor is
+				// responding to. Absent when nothing resolved → prompt is unchanged.
+				...(replyTo
+					? { quote: { role: replyTo.role, excerpt: replyTo.content } }
 					: {}),
 				messages: messages as UIMessage[],
 			});

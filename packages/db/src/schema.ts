@@ -397,6 +397,17 @@ export const message = sqliteTable(
 		rating: text({ enum: ["up", "down"] }),
 		// Author for admin messages; null for user/assistant.
 		authorUserId: text().references(() => user.id),
+		// Quote-reply: the earlier message in the SAME conversation this one is
+		// replying to (the widget's "Replying to:" affordance); null = not a reply.
+		// Deliberately NOT .references(message.id): migration 0022 adds a bare text
+		// column with no FK clause, so declaring one here would describe a constraint
+		// the DB does not have (and a self-reference needs an AnySQLiteColumn
+		// annotation to break drizzle's circular type inference). The reference is
+		// validated in /v1/chat — and(id, conversationId), so a foreign or unknown id
+		// is never stored — and a dangling id (quoted message deleted) is harmless:
+		// both clients resolve the target from the loaded thread and fall back to a
+		// neutral "earlier message" chip.
+		replyToMessageId: text(),
 		// RFC 5322 Message-ID for outbound email threading + inbound matching.
 		emailMessageId: text(),
 		createdAt: createdAt(),
