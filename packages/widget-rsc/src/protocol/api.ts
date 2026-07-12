@@ -8,6 +8,12 @@ export interface ServerMessage {
 	sequence?: number;
 	createdAt?: number;
 	rating?: MessageRating;
+	/**
+	 * Quote-reply: the id of the earlier message in this conversation this one
+	 * replies to (validated server-side at write time, so it can only ever point at
+	 * another message in this same feed). Null/absent when it isn't a reply.
+	 */
+	replyToMessageId?: string | null;
 }
 
 /** The persisted conversation feed from `GET /v1/messages`. */
@@ -95,6 +101,13 @@ export interface ChatRequest {
 	clientId: string;
 	name?: string;
 	email?: string;
+	/**
+	 * Quote-reply: the id of an earlier message in this conversation the visitor is
+	 * replying to. Top-level (not per-message) because it describes THIS turn — the
+	 * one the request is sending. The api validates it against the conversation and
+	 * silently ignores anything that doesn't belong, so a stale id is never an error.
+	 */
+	replyToMessageId?: string;
 	messages: OutgoingUIMessage[];
 }
 

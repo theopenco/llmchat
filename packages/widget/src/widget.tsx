@@ -11,6 +11,7 @@ import { IdentifyForm } from "./components/IdentifyForm";
 import { MessageList } from "./components/MessageList";
 import { PoweredBy } from "./components/PoweredBy";
 import { PrivacyNotice } from "./components/PrivacyNotice";
+import { ReplyingTo } from "./components/ReplyingTo";
 import { ResolvedNotice } from "./components/ResolvedNotice";
 import { ResolveSection } from "./components/ResolveSection";
 import { SuggestedQuestions } from "./components/SuggestedQuestions";
@@ -33,6 +34,7 @@ import { useEffectiveTheme } from "./theme";
 import { useServerMessages } from "./useServerMessages";
 import { useWidgetConfig } from "./widget-config";
 
+import type { DisplayMessage } from "./components/MessageList";
 import type { Rating } from "./rating";
 import type { WidgetTheme } from "./theme";
 
@@ -289,16 +291,50 @@ function LiveWidget({
 		wasLoading.current = loading;
 	}, [loading, refresh]);
 
+	// ── Quote-reply ───────────────────────────────────────────────────
+	// The message the visitor is replying to (drives the "Replying to:" bar).
+	const [replyTo, setReplyTo] = useState<DisplayMessage | null>(null);
+	// The quote attached to the in-flight send, until the AI SDK gives that message
+	// an id we can key it by. `sendMessage` doesn't return the message it creates,
+	// so it's parked here and claimed by the effect below on the next render.
+	const pendingReplyRef = useRef<string | null>(null);
+	// Local user message id → quoted message id. Lets the chip render on the sent
+	// bubble IMMEDIATELY (the AI SDK's UIMessage has nowhere to carry it); once the
+	// feed catches up, the persisted row supplies the server-validated value instead.
+	const [localReplies, setLocalReplies] = useState<Record<string, string>>({});
+	useEffect(() => {
+		const pending = pendingReplyRef.current;
+		if (!pending) {
+			return;
+		}
+		const lastUser = messages.findLast((m) => m.role === "user");
+		if (lastUser) {
+			pendingReplyRef.current = null;
+			setLocalReplies((prev) => ({ ...prev, [lastUser.id]: pending }));
+		}
+	}, [messages]);
+
 	const displayMessages = useMemo(
 		() =>
 			mergeMessages(
 				serverMessages,
-				messages.map((m) => ({ id: m.id, role: m.role, content: getText(m) })),
+				messages.map((m) => ({
+					id: m.id,
+					role: m.role,
+					content: getText(m),
+					replyToMessageId: localReplies[m.id] ?? null,
+				})),
 			).map((m) =>
 				m.rateable ? { ...m, rating: effective(m.id, m.rating ?? null) } : m,
 			),
-		[serverMessages, messages, effective],
+		[serverMessages, messages, effective, localReplies],
 	);
+	// Never keep a pending reply pointed at a message that has left the thread.
+	useEffect(() => {
+		if (replyTo && !displayMessages.some((m) => m.id === replyTo.id)) {
+			setReplyTo(null);
+		}
+	}, [displayMessages, replyTo]);
 	// The agent is mid-action (integration tool call streamed, no text yet) —
 	// e.g. booking a call or looking up an order. Drives the "Working on it…"
 	// hint so a multi-second tool round-trip doesn't read as a stall.
@@ -417,7 +453,17 @@ function LiveWidget({
 	}
 
 	function handleSend() {
-		void sendMessage({ text: text.trim() });
+		// Per-TURN body, not the transport's static body: the quote describes this
+		// message only. The api re-validates the id against the conversation and
+		// silently drops it if it doesn't belong, so a stale id just sends a plain
+		// message. Cleared here so the next turn isn't sent as another reply.
+		const quoted = replyTo;
+		pendingReplyRef.current = quoted?.id ?? null;
+		setReplyTo(null);
+		void sendMessage(
+			{ text: text.trim() },
+			quoted ? { body: { replyToMessageId: quoted.id } } : undefined,
+		);
 		setText("");
 	}
 
@@ -536,6 +582,7 @@ function LiveWidget({
 						acting={acting}
 						error={sendFailed ? SEND_ERROR : null}
 						onRate={conversationId ? rate : undefined}
+						onReply={setReplyTo}
 					/>
 					{showEscalation && (
 						<EscalationSection
@@ -568,6 +615,9 @@ function LiveWidget({
 					    message, then it vanishes for the rest of the conversation. */}
 					{userMessageCount === 0 && (
 						<PrivacyNotice privacyPolicyUrl={privacyPolicyUrl} />
+					)}
+					{replyTo && (
+						<ReplyingTo message={replyTo} onDismiss={() => setReplyTo(null)} />
 					)}
 					<Composer
 						value={text}

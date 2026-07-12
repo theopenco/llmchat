@@ -10,6 +10,9 @@ export interface ServerMessage {
 	sequence: number;
 	createdAt: number;
 	rating?: Rating;
+	/** Quote-reply: the id of the earlier message in this conversation this one
+	 * replies to (server-validated at write time). Null when it isn't a reply. */
+	replyToMessageId?: string | null;
 }
 
 export interface MessageFeed {
@@ -126,6 +129,10 @@ export function mergeMessages(
 			// Only persisted assistant messages can be rated (they have a stable
 			// DB id); in-flight local messages can't until the feed catches up.
 			rateable: s.role === "assistant",
+			// Fields are copied EXPLICITLY here (no spread of `s`), so anything new on
+			// ServerMessage is dropped from the rendered thread unless forwarded. The
+			// quote chip would render optimistically and then vanish on the next poll.
+			replyToMessageId: s.replyToMessageId ?? null,
 		});
 		const holds = anchored.get(i);
 		if (holds) out.push(...holds);

@@ -46,6 +46,11 @@ export const widgetMessage = z.object({
 	role: widgetMessageRole,
 	content: z.string(),
 	createdAt: z.iso.datetime().optional(),
+	// Quote-reply: the id of an earlier message in the same conversation this one
+	// replies to. Nullish — absent on messages sent before the feature, null on
+	// every message that isn't a reply. Clients resolve it against the loaded
+	// thread and fall back to a neutral chip when the target isn't in the window.
+	replyToMessageId: z.string().nullish(),
 });
 export type WidgetMessage = z.infer<typeof widgetMessage>;
 

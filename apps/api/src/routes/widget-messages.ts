@@ -94,6 +94,11 @@ export const widgetMessages = new Hono<AppContext>().get(
 				sequence: m.sequence,
 				createdAt: m.createdAt,
 				rating: m.rating,
+				// Quote-reply reference (already validated to belong to THIS conversation
+				// at write time, so it can only ever point at a message in this same feed).
+				// The widget renders the chip by resolving it against the loaded thread —
+				// this is the field that makes that possible, so it must be serialized.
+				replyToMessageId: m.replyToMessageId,
 			})),
 		});
 	},

@@ -65,6 +65,10 @@ export interface Message {
 	/** Visitor thumbs rating on an assistant reply (answer quality); null/absent
 	 * = unrated. Distinct from per-conversation CSAT. */
 	rating?: "up" | "down" | null;
+	/** Quote-reply: the id of the earlier message in this conversation the visitor
+	 * was replying to; null/absent when the message isn't a reply. Resolved against
+	 * the loaded window — a target in an unloaded older page renders a neutral chip. */
+	replyToMessageId?: string | null;
 }
 
 /** A durable record of an action the AGENT took on this conversation (Cal.com

@@ -592,8 +592,9 @@ export const widgetStyles = `
 }
 
 /* ── Per-message rating (assistant thumbs) ─────────────────────────── */
-/* Group an assistant bubble with its rating controls so they read as one
-   left-aligned unit. */
+/* Group a bubble with the bits that belong to it — the rating controls, and the
+   quote chip of a reply — so they read as one unit. Every message now renders in a
+   group, so the group carries the side alignment the bubble used to own. */
 .llmchat-msg-group {
 	display: flex;
 	flex-direction: column;
@@ -602,8 +603,131 @@ export const widgetStyles = `
 	gap: 4px;
 	max-width: 85%;
 }
+.llmchat-msg-group[data-role="user"] {
+	align-items: flex-end;
+	align-self: flex-end;
+}
 .llmchat-msg-group .llmchat-msg {
 	max-width: 100%;
+}
+
+/* Quote-reply: the chip above a bubble that replies to an earlier message. */
+.llmchat-quote {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	max-width: 100%;
+	padding: 4px 9px;
+	border-left: 2px solid var(--brand);
+	border-radius: 6px;
+	background: var(--sf-2);
+	font-size: 12px;
+	line-height: 1.35;
+	/* Tucked against the bubble it belongs to (the group's 4px gap stays for the
+	   rating row below). */
+	margin-bottom: -2px;
+}
+.llmchat-quote-author {
+	color: var(--brand);
+	font-weight: 600;
+}
+.llmchat-quote-text {
+	color: var(--tx-2);
+	display: -webkit-box;
+	-webkit-line-clamp: 1;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+/* Target not in the loaded window (or deleted) — neutral, italic, no text line. */
+.llmchat-quote[data-resolved="false"] .llmchat-quote-author {
+	color: var(--tx-2);
+	font-weight: 400;
+	font-style: italic;
+}
+
+/* Reply affordance — hidden until hover; always visible where there is no hover
+   (touch), which doubles as the long-press target. */
+.llmchat-msg {
+	position: relative;
+}
+.llmchat-reply-btn {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	background: transparent;
+	color: var(--tx-2);
+	cursor: pointer;
+	padding: 3px;
+	border-radius: 6px;
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+.llmchat-msg-user .llmchat-reply-btn {
+	left: -26px;
+}
+.llmchat-msg-assistant .llmchat-reply-btn,
+.llmchat-msg-admin .llmchat-reply-btn {
+	right: -26px;
+}
+.llmchat-msg:hover .llmchat-reply-btn,
+.llmchat-reply-btn:focus-visible {
+	opacity: 1;
+}
+.llmchat-reply-btn:hover {
+	background: var(--sf-2);
+	color: var(--tx);
+}
+@media (hover: none) {
+	.llmchat-reply-btn {
+		opacity: 0.55;
+	}
+}
+
+/* "Replying to:" bar above the composer. */
+.llmchat-replying {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0 14px 6px;
+	padding: 6px 10px;
+	border-left: 2px solid var(--brand);
+	border-radius: 6px;
+	background: var(--sf-2);
+	font-size: 12px;
+	line-height: 1.35;
+}
+.llmchat-replying-label {
+	color: var(--brand);
+	font-weight: 600;
+	white-space: nowrap;
+}
+.llmchat-replying-text {
+	flex: 1;
+	min-width: 0;
+	color: var(--tx-2);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.llmchat-replying-dismiss {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	background: transparent;
+	color: var(--tx-2);
+	cursor: pointer;
+	padding: 2px;
+	border-radius: 4px;
+	line-height: 1;
+}
+.llmchat-replying-dismiss:hover {
+	background: var(--sf-3, var(--sf-2));
+	color: var(--tx);
 }
 .llmchat-rate {
 	display: flex;

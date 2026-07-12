@@ -1,7 +1,7 @@
 import { useAnchoredScroll } from "../hooks/useAnchoredScroll";
 import type { Rating } from "../rating";
 import { Markdown } from "./Markdown";
-import { ThumbDownIcon, ThumbUpIcon } from "./icons";
+import { ReplyIcon, ThumbDownIcon, ThumbUpIcon } from "./icons";
 
 /** Render the message body: visitor ("user") text stays literal; assistant and
  * agent ("admin") replies are Markdown so links and formatting render. */
@@ -37,6 +37,52 @@ export interface DisplayMessage {
 	rating?: Rating;
 	/** True for persisted assistant messages the visitor can rate. */
 	rateable?: boolean;
+	/** Quote-reply: the id of the earlier message this one replies to, or null. */
+	replyToMessageId?: string | null;
+}
+
+/** Copy for a quote whose target isn't in the loaded thread (paged out, or deleted). */
+export const MISSING_QUOTE_LABEL = "Earlier message";
+
+/** Who wrote the quoted message, from the visitor's point of view. */
+const QUOTE_AUTHOR: Record<string, string> = {
+	user: "You",
+	assistant: "Agent",
+	admin: "Support team",
+};
+
+/**
+ * The chip above a bubble that replies to an earlier message. `quoted` is the
+ * resolved target, or null when it isn't in the loaded thread (an older page, or a
+ * deleted message) — in which case the chip degrades to a neutral label rather than
+ * disappearing, so the reply never reads as addressed to nothing.
+ */
+function QuoteChip({ quoted }: { quoted: DisplayMessage | null }) {
+	return (
+		<div className="llmchat-quote" data-resolved={quoted ? "true" : "false"}>
+			<span className="llmchat-quote-author">
+				{quoted
+					? (QUOTE_AUTHOR[quoted.role] ?? MISSING_QUOTE_LABEL)
+					: MISSING_QUOTE_LABEL}
+			</span>
+			{quoted && <span className="llmchat-quote-text">{quoted.content}</span>}
+		</div>
+	);
+}
+
+/** Hover/long-press "Reply" affordance on a message. */
+function ReplyButton({ onClick }: { onClick: () => void }) {
+	return (
+		<button
+			type="button"
+			className="llmchat-reply-btn"
+			aria-label="Reply to this message"
+			title="Reply"
+			onClick={onClick}
+		>
+			<ReplyIcon />
+		</button>
+	);
 }
 
 function RateButtons({
@@ -77,6 +123,7 @@ export function MessageList({
 	acting = false,
 	error,
 	onRate,
+	onReply,
 }: {
 	greeting: string;
 	messages: DisplayMessage[];
@@ -90,8 +137,14 @@ export function MessageList({
 	/** Rate an assistant message; omit to hide the thumbs (e.g. before a
 	 * conversation exists). */
 	onRate?: (messageId: string, current: Rating, intent: "up" | "down") => void;
+	/** Start a quote-reply to a message; omit to hide the Reply affordance. */
+	onReply?: (message: DisplayMessage) => void;
 }) {
 	const last = messages[messages.length - 1];
+	// Resolve quote targets against the loaded thread (no server round-trip — the
+	// reference is always to a message in this same conversation). A miss means the
+	// target isn't in the loaded window (or was deleted) → neutral fallback chip.
+	const byId = new Map(messages.map((m) => [m.id, m]));
 	// The visitor's latest message — pinned to the top of the viewport when sent,
 	// so the reply streams in below it and the chat reads top-down (à la Chatbase)
 	// rather than the view chasing the bottom token-by-token.
@@ -122,12 +175,24 @@ export function MessageList({
 				if (!m.content) {
 					return null;
 				}
+				// `system` rows are internal markers the widget never shows, so they can
+				// never be quoted from here either (the api refuses them too).
+				const quotable = onReply && m.role !== "system";
+				const chip = m.replyToMessageId ? (
+					<QuoteChip quoted={byId.get(m.replyToMessageId) ?? null} />
+				) : null;
+				const reply = quotable ? (
+					<ReplyButton onClick={() => onReply(m)} />
+				) : null;
+
 				if (m.role === "assistant" && m.rateable && onRate) {
 					const rating = m.rating ?? null;
 					return (
-						<div key={m.id} className="llmchat-msg-group">
+						<div key={m.id} className="llmchat-msg-group" data-role={m.role}>
+							{chip}
 							<div className={`llmchat-msg llmchat-msg-${m.role}`}>
 								<MessageBody role={m.role} content={m.content} />
+								{reply}
 							</div>
 							<RateButtons
 								rating={rating}
@@ -137,12 +202,15 @@ export function MessageList({
 					);
 				}
 				return (
-					<div
-						key={m.id}
-						className={`llmchat-msg llmchat-msg-${m.role}`}
-						{...(m.id === lastUserId ? { "data-llmchat-anchor": "" } : {})}
-					>
-						<MessageBody role={m.role} content={m.content} />
+					<div key={m.id} className="llmchat-msg-group" data-role={m.role}>
+						{chip}
+						<div
+							className={`llmchat-msg llmchat-msg-${m.role}`}
+							{...(m.id === lastUserId ? { "data-llmchat-anchor": "" } : {})}
+						>
+							<MessageBody role={m.role} content={m.content} />
+							{reply}
+						</div>
 					</div>
 				);
 			})}

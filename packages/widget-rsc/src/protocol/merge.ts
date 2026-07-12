@@ -8,6 +8,12 @@ export interface LocalMessage {
 	id: string;
 	role: "user" | "assistant";
 	content: string;
+	/**
+	 * Quote-reply target of an in-flight user message, so the chip renders
+	 * optimistically on the sent bubble instead of popping in when the feed catches
+	 * up. Carried through the merge on both paths (see mergeMessages).
+	 */
+	replyToMessageId?: string | null;
 }
 
 /**
@@ -93,6 +99,12 @@ export function mergeMessages(
 			// Only persisted assistant messages can be rated (stable DB id);
 			// in-flight local messages can't until the feed catches up.
 			rateable: s.role === "assistant",
+			// This constructor copies fields EXPLICITLY (it does not spread `s`), so a
+			// new ServerMessage field is silently dropped from the rendered thread
+			// unless it is forwarded here. Quote-reply is such a field — without this
+			// line the chip would render optimistically and then vanish the moment the
+			// feed caught up. Covered by a merge round-trip test.
+			replyToMessageId: s.replyToMessageId ?? null,
 		});
 		const holds = anchored.get(i);
 		if (holds) {

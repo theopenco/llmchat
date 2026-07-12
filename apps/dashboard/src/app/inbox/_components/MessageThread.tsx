@@ -85,14 +85,56 @@ const ROLE = {
 	},
 } as const;
 
+/** Copy for a quote whose target isn't in the loaded window (older page, or deleted). */
+const MISSING_QUOTE_LABEL = "Earlier message";
+
+/**
+ * The quote chip above a message that replies to an earlier one — the operator's
+ * view of the widget's "Replying to:" affordance, so they can see exactly which
+ * message the visitor was answering. `quoted` is null when the target isn't in the
+ * loaded window (paged-out history, or a deleted message): the chip stays, with a
+ * neutral label, so the reply never reads as addressed to nothing.
+ */
+function QuoteChip({
+	quoted,
+	right,
+}: {
+	quoted: Message | null;
+	right: boolean;
+}) {
+	return (
+		<div
+			className={cn(
+				"flex max-w-[75%] flex-col gap-0.5 rounded-md border-l-2 border-ck-accent bg-ck-chip px-2 py-1 text-[11px]",
+				right ? "items-end text-right" : "items-start",
+			)}
+		>
+			<span className="font-semibold text-ck-accent">
+				{quoted
+					? (ROLE[quoted.role as keyof typeof ROLE]?.label ??
+						MISSING_QUOTE_LABEL)
+					: MISSING_QUOTE_LABEL}
+			</span>
+			{quoted ? (
+				<span className="line-clamp-1 text-ck-muted">{quoted.content}</span>
+			) : (
+				<span className="italic text-ck-faint">not in the loaded thread</span>
+			)}
+		</div>
+	);
+}
+
 function MessageBubble({
 	message,
+	quoted,
 	search,
 	firstHit,
 	knowledge,
 	knowledgeQuestion,
 }: {
 	message: Message;
+	/** The message this one quote-replies to, or null (not a reply / out of window). */
+	quoted: Message | null;
 	/** Active search term; occurrences are highlighted via the shared component. */
 	search: string;
 	/** True for the first message in the thread that matches — the scroll target. */
@@ -126,6 +168,7 @@ function MessageBubble({
 					{label}
 				</span>
 			)}
+			{message.replyToMessageId && <QuoteChip quoted={quoted} right={right} />}
 			<Bubble side={side} tone={tone}>
 				<Highlighted text={message.content} query={search} />
 			</Bubble>
@@ -258,6 +301,14 @@ export function MessageThread({
 		return map;
 	}, [messages]);
 
+	// Quote targets, resolved against the LOADED window only (the reference always
+	// points at a message in this same conversation — a miss just means it's in an
+	// older page we haven't fetched, or was deleted → neutral fallback chip).
+	const byId = useMemo(
+		() => new Map(messages.map((m) => [m.id, m])),
+		[messages],
+	);
+
 	// The first message (in order) containing the term — the scroll target. A
 	// stable id, so the scroll effect below fires once per open/term-change, not
 	// on every 3s poll. Null when not searching or nothing matches.
@@ -333,6 +384,9 @@ export function MessageThread({
 					<MessageBubble
 						key={m.id}
 						message={m}
+						quoted={
+							m.replyToMessageId ? (byId.get(m.replyToMessageId) ?? null) : null
+						}
 						search={search}
 						firstHit={m.id === firstHitId}
 						knowledge={knowledge}

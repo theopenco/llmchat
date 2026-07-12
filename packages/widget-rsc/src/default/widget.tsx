@@ -10,8 +10,12 @@ import {
 	Composer,
 	EscalateButton,
 	Input,
+	MISSING_QUOTE_LABEL,
 	Messages,
 	Panel,
+	QuotedMessage,
+	ReplyButton,
+	ReplyingTo,
 	ResolveButton,
 	Submit,
 	Trigger,
@@ -23,6 +27,13 @@ import type { CSSProperties } from "react";
 /** How long the "Thanks!" screen shows before the panel closes. */
 const CSAT_THANKS_MS = 1200;
 const DEFAULT_PRIVACY_URL = "https://clankersupport.com/privacy-policy";
+
+/** Who wrote the quoted message, from the visitor's point of view. */
+const QUOTE_AUTHOR: Record<string, string> = {
+	user: "you",
+	assistant: "the agent",
+	admin: "the support team",
+};
 
 export interface ClankerSupportWidgetProps extends Omit<
 	ClankerSupportProviderProps,
@@ -198,8 +209,33 @@ function Conversation() {
 						{m.role === "admin" && (
 							<span className="clanker-msg-meta">Support team</span>
 						)}
+						{/* Quote chip above the bubble. Unresolvable target (older page,
+						    deleted message) degrades to a neutral label, never nothing. */}
+						<QuotedMessage message={m} className="clanker-quote">
+							{(quoted) => (
+								<>
+									<span className="clanker-quote-author">
+										{quoted
+											? (QUOTE_AUTHOR[quoted.role] ?? "Earlier")
+											: "Earlier"}
+									</span>
+									<span className="clanker-quote-text">
+										{quoted?.content ?? MISSING_QUOTE_LABEL}
+									</span>
+								</>
+							)}
+						</QuotedMessage>
 						<div className="clanker-msg" data-role={m.role}>
 							{m.content}
+							{/* Hover/long-press affordance — pointer:coarse keeps it visible. */}
+							<ReplyButton
+								message={m}
+								className="clanker-reply"
+								aria-label="Reply to this message"
+								title="Reply to this message"
+							>
+								↩
+							</ReplyButton>
 						</div>
 						{m.rateable && conversationId ? (
 							<span className="clanker-rating">
@@ -268,6 +304,24 @@ function Conversation() {
 					.
 				</p>
 			)}
+			<ReplyingTo className="clanker-replying">
+				{(target, dismiss) => (
+					<>
+						<span className="clanker-replying-label">
+							Replying to {QUOTE_AUTHOR[target.role] ?? "earlier message"}
+						</span>
+						<span className="clanker-replying-text">{target.content}</span>
+						<button
+							type="button"
+							className="clanker-replying-dismiss"
+							aria-label="Cancel reply"
+							onClick={dismiss}
+						>
+							×
+						</button>
+					</>
+				)}
+			</ReplyingTo>
 			<Composer className="clanker-composer">
 				<Input className="clanker-input" />
 				<Submit className="clanker-send" aria-label="Send message">

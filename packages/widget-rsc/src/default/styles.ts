@@ -158,11 +158,122 @@ export const widgetStyles = `
 	overscroll-behavior: contain;
 }
 .clanker-msg {
+	position: relative;
 	max-width: 85%;
 	padding: 9px 13px;
 	border-radius: 14px;
 	white-space: pre-wrap;
 	overflow-wrap: break-word;
+}
+
+/* Quote-reply: the chip above a bubble that replies to an earlier message. */
+.clanker-quote {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	max-width: 85%;
+	padding: 5px 10px;
+	border-left: 2px solid var(--clanker-brand);
+	border-radius: 6px;
+	background: var(--clanker-bubble);
+	font-size: 11px;
+	line-height: 1.35;
+	margin-bottom: -6px;
+}
+.clanker-quote[data-role="user"] {
+	align-self: flex-end;
+}
+.clanker-quote[data-role="assistant"],
+.clanker-quote[data-role="admin"],
+/* Unresolved (older page / deleted) — no role to align by; keep it with the reply. */
+.clanker-quote[data-resolved="false"] {
+	align-self: flex-start;
+}
+.clanker-quote-author {
+	color: var(--clanker-brand);
+	font-weight: 600;
+}
+.clanker-quote-text {
+	color: var(--clanker-muted);
+	/* One line: the chip identifies the target, the thread shows the full text. */
+	display: -webkit-box;
+	-webkit-line-clamp: 1;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.clanker-quote[data-resolved="false"] .clanker-quote-text {
+	font-style: italic;
+}
+
+/* Reply affordance — revealed on hover, and always visible on touch (no hover). */
+.clanker-reply {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	border: 0;
+	background: transparent;
+	color: var(--clanker-muted);
+	cursor: pointer;
+	padding: 2px 4px;
+	font-size: 12px;
+	line-height: 1;
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+.clanker-msg[data-role="user"] .clanker-reply {
+	left: -22px;
+}
+.clanker-msg[data-role="assistant"] .clanker-reply,
+.clanker-msg[data-role="admin"] .clanker-reply {
+	right: -22px;
+}
+.clanker-msg:hover .clanker-reply,
+.clanker-reply:focus-visible {
+	opacity: 1;
+}
+@media (hover: none) {
+	.clanker-reply {
+		opacity: 0.6;
+	}
+}
+
+/* "Replying to:" bar above the composer. */
+.clanker-replying {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0 12px;
+	padding: 6px 10px;
+	border-left: 2px solid var(--clanker-brand);
+	border-radius: 6px;
+	background: var(--clanker-bubble);
+	font-size: 11px;
+	line-height: 1.35;
+}
+.clanker-replying-label {
+	color: var(--clanker-brand);
+	font-weight: 600;
+	white-space: nowrap;
+}
+.clanker-replying-text {
+	flex: 1;
+	min-width: 0;
+	color: var(--clanker-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.clanker-replying-dismiss {
+	border: 0;
+	background: transparent;
+	color: var(--clanker-muted);
+	cursor: pointer;
+	font-size: 14px;
+	line-height: 1;
+	padding: 0 2px;
+}
+.clanker-replying-dismiss:hover {
+	color: var(--clanker-text);
 }
 .clanker-msg[data-role="user"] {
 	align-self: flex-end;
