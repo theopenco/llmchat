@@ -1,0 +1,22 @@
+-- Quote-reply: the earlier message in the SAME conversation that this message is
+-- replying to (the widget's "Replying to:" affordance). Nullable: NULL = not a
+-- reply, which is every existing row. Bare `text` column with NO inline FK
+-- clause, matching 0009/0015 on this table — the self-reference is validated in
+-- application code (/v1/chat resolves it with and(id, conversationId), so a
+-- foreign or unknown id can never be stored), never by a DB constraint, and we
+-- never rely on FK cascade (see lib/workspace-deletion.ts). A dangling id (the
+-- quoted message was deleted with its conversation) is therefore harmless: both
+-- clients resolve the target from the already-loaded thread and fall back to a
+-- neutral "earlier message" chip. No index — resolution is in-memory over the
+-- loaded window, never a lookup by this column.
+--
+-- PHASE 1 of 2 (deliberate migrate-before-serve split, mirroring 0014/0015).
+-- Ploy's deploy ordering between "apply migrations" and "new Worker serves
+-- traffic" is undocumented, so this PR ships ONLY the column — schema.ts is
+-- intentionally NOT changed, so the live Worker never SELECTs a column that might
+-- not exist yet (drizzle projects every column of `message`, and /v1/chat +
+-- /v1/messages read it on the hottest paths; no read can 500 under any ordering).
+-- The schema field, the /v1/chat validation + persistence, the /v1/messages
+-- serializer, and the widget/dashboard UI land in a follow-up PR once this column
+-- is live in prod.
+ALTER TABLE `message` ADD COLUMN `reply_to_message_id` text;
