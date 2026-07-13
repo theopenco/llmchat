@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { badgeLabel, launcherLabel } from "../unread";
 import { ChatIcon, CloseIcon, CollapseIcon, ExpandIcon } from "./icons";
 
 import type { ReactNode } from "react";
@@ -27,6 +28,7 @@ export function WidgetFrame({
 	open,
 	onOpenChange,
 	badge,
+	unreadCount = 0,
 	actions,
 	footer,
 	children,
@@ -39,6 +41,9 @@ export function WidgetFrame({
 	onOpenChange: (open: boolean) => void;
 	/** Optional header adornment, e.g. the showcase "Demo mode" pill. */
 	badge?: ReactNode;
+	/** Messages that arrived while the panel was closed — rendered as a count on
+	 * the launcher. Only meaningful in bubble layout (inline has no launcher). */
+	unreadCount?: number;
 	/** Optional header buttons rendered before the expand/close controls,
 	 * e.g. the "Start a new conversation" action. */
 	actions?: ReactNode;
@@ -85,6 +90,9 @@ export function WidgetFrame({
 
 	const showPanel = inline || mounted;
 	const closing = !inline && mounted && !open;
+	// The badge is a CLOSED-panel affordance: once the panel is open, the thread
+	// itself is the read surface, so the count is moot whatever the caller passes.
+	const unread = open ? 0 : Math.max(0, Math.trunc(unreadCount));
 
 	return (
 		<div
@@ -92,18 +100,36 @@ export function WidgetFrame({
 			style={{ ["--brand" as string]: brandColor }}
 		>
 			{!inline && (
-				<button
-					ref={launcherRef}
-					type="button"
-					className={`llmchat-bubble${open ? " llmchat-bubble--open" : ""}`}
-					onClick={() => onOpenChange(!open)}
-					aria-label={open ? "Close chat" : "Open chat"}
-					aria-expanded={open}
-				>
-					<span className="llmchat-bubble-icon">
-						{open ? <CloseIcon /> : <ChatIcon />}
+				<>
+					{/* The count also reaches a screen reader that isn't focused on the
+					    launcher: an operator replying is an event, and the button's own
+					    label only speaks when it's read. Empty when there's nothing new,
+					    so it never re-announces on open/close. */}
+					<span className="llmchat-sr-only" role="status">
+						{unread > 0
+							? `${unread} new ${unread === 1 ? "message" : "messages"} in the support chat`
+							: ""}
 					</span>
-				</button>
+					<button
+						ref={launcherRef}
+						type="button"
+						className={`llmchat-bubble${open ? " llmchat-bubble--open" : ""}`}
+						onClick={() => onOpenChange(!open)}
+						aria-label={launcherLabel(open, unread)}
+						aria-expanded={open}
+					>
+						<span className="llmchat-bubble-icon">
+							{open ? <CloseIcon /> : <ChatIcon />}
+						</span>
+						{unread > 0 && (
+							// Decorative — the number is already in the button's accessible
+							// name and the live region above.
+							<span className="llmchat-bubble-badge" aria-hidden="true">
+								{badgeLabel(unread)}
+							</span>
+						)}
+					</button>
+				</>
 			)}
 			{showPanel && (
 				<div

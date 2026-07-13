@@ -148,6 +148,64 @@ export const widgetStyles = `
 	}
 }
 
+/* Unread count — messages that landed while the panel was closed (usually the
+   human's reply after an escalation). Inverted brand chrome: the launcher itself
+   is var(--brand), so a brand-filled badge on it would be invisible; a white pill
+   with brand text and a brand ring reads as part of the same object and needs no
+   new hue (deliberately NOT notification-red — this is a support reply, not an
+   alarm). Literal #fff in both themes, like every other on-brand surface. */
+.llmchat-bubble-badge {
+	position: absolute;
+	top: -2px;
+	right: -2px;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 6px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 9999px;
+	background: #fff;
+	color: var(--brand);
+	border: 2px solid var(--brand);
+	/* px, never rem: rem resolves against the HOST page's root font-size even
+	   inside shadow DOM (Shopify's Dawn sets html to 62.5%). */
+	font-size: 11.7px;
+	font-weight: 700;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+	/* direction inherits across the shadow boundary: on an RTL host page the
+	   trailing "+" of "9+" is bidi-neutral and would reorder to "+9". */
+	direction: ltr;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+	animation: llmchat-badge-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes llmchat-badge-in {
+	from {
+		opacity: 0;
+		transform: scale(0.4);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+/* Announced, never seen: the live region that tells a screen reader a reply
+   arrived while the panel was closed. */
+.llmchat-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
 /* ── Panel ─────────────────────────────────────────────────────────── */
 .llmchat-panel {
 	position: fixed;
