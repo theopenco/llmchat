@@ -31,15 +31,36 @@ import { mergeMessages } from "./messages-sync";
 import { rateMessage, useMessageRatings } from "./rating";
 import { ShowcaseChat } from "./ShowcaseChat";
 import { useEffectiveTheme } from "./theme";
-import { useServerMessages } from "./useServerMessages";
+import {
+	BACKGROUND_POLL_INTERVAL_MS,
+	clearSnapshot,
+	countUnread,
+	latestSequence,
+	readSnapshot,
+	sameSnapshot,
+	shouldPollInBackground,
+	writeSnapshot,
+} from "./unread";
+import { POLL_INTERVAL_MS, useServerMessages } from "./useServerMessages";
 import { useWidgetConfig } from "./widget-config";
 
 import type { DisplayMessage } from "./components/MessageList";
 import type { Rating } from "./rating";
 import type { WidgetTheme } from "./theme";
+import type { ConversationSnapshot } from "./unread";
 
 /** How long the "Thanks!" screen shows before the conversation view returns. */
 const CSAT_THANKS_MS = 1200;
+
+/**
+ * How long after a send settles the post-stream refetch is retried once. The
+ * api persists the assistant row in a waitUntil after the stream closes, so the
+ * immediate refetch races that INSERT; one retry a beat later is what makes the
+ * unread badge reliable for a bot reply when the visitor closed the panel
+ * mid-answer on a non-escalated conversation (no poll runs there — these two
+ * requests are the only chance to see the row). Exported for the tests.
+ */
+export const POST_STREAM_REFRESH_RETRY_MS = 2_500;
 
 /**
  * "live" (default) talks to the real API: conversations are created and
@@ -183,6 +204,10 @@ function LiveWidget({
 		null,
 	);
 	const [clientId, setClientId] = useState("");
+	// Tab-local read state for the unread badge (sessionStorage, alongside the
+	// clientId). Null = nothing to badge and nothing to poll for: no conversation in
+	// this tab yet, or a rotated id (a fresh conversation inherits neither).
+	const [snapshot, setSnapshot] = useState<ConversationSnapshot | null>(null);
 	// End-of-conversation CSAT screen: "hidden" during chat, "prompt" when the
 	// visitor ends a conversation (resolve / start-a-new-one — NEVER on merely
 	// closing the panel), "thanks" briefly after a rating.
@@ -207,6 +232,13 @@ function LiveWidget({
 			setIdentified(true);
 		}
 	}, [projectKey]);
+
+	// Load this tab's read state once the client id resolves — and drop it when the
+	// id rotates ("start a new conversation"), since the stored snapshot belongs to
+	// the conversation that was just left behind.
+	useEffect(() => {
+		setSnapshot(clientId ? readSnapshot(projectKey, clientId) : null);
+	}, [projectKey, clientId]);
 
 	// Server decides whether the "Powered by" badge shows (plan-gated, tamper-
 	// proof) and supplies the project's privacy policy URL, admin-defined
@@ -246,6 +278,11 @@ function LiveWidget({
 	const loading = status === "streaming" || status === "submitted";
 	const sendFailed = status === "error" && error != null;
 
+	// Keep polling with the panel CLOSED, but only for an escalated, unresolved
+	// conversation that exists in this tab — the one case where somebody owes the
+	// visitor a reply they'd otherwise never see. Everything else (a fresh pageview
+	// above all) makes zero background requests. See unread.ts for the cost model.
+	const backgroundPoll = !open && shouldPollInBackground(snapshot);
 	// Poll the persisted feed while chatting so admin replies from the
 	// dashboard appear without a refresh.
 	const {
@@ -254,14 +291,99 @@ function LiveWidget({
 		csatRating,
 		escalatedAt: serverEscalatedAt,
 		archivedAt: serverArchivedAt,
+		feedClientId,
 		refresh,
-	} = useServerMessages(apiUrl, projectKey, clientId, open && !needsIdentity);
+	} = useServerMessages(
+		apiUrl,
+		projectKey,
+		clientId,
+		(open && !needsIdentity) || backgroundPoll,
+		open ? POLL_INTERVAL_MS : BACKGROUND_POLL_INTERVAL_MS,
+	);
 	// Escalated this session OR per the server feed (hydrates on reload so the
 	// "Talk to a human" CTA can't reappear and re-fire /v1/escalate).
 	const escalated = deriveEscalated(escalatedLocal, serverEscalatedAt);
 	// Resolved this session OR per the server feed (hydrates on reload like
 	// escalated, so the "Mark resolved" button stays hidden and the notice shows).
 	const resolved = deriveResolved(resolvedLocal, serverArchivedAt);
+
+	// ── Unread badge ──────────────────────────────────────────────────
+	// Whether the feed in hand actually describes the conversation we're holding.
+	// useServerMessages clears its state in its own POST-COMMIT effect, so for one
+	// render after the client id rotates ("start a new conversation") the feed still
+	// describes the conversation just left behind. Persisting a snapshot from it
+	// would staple the NEW id to the OLD conversation — and arm a background poll for
+	// a thread that no longer exists, on every pageview, for the life of the tab.
+	// Both values come from the same render, so they go stale together and the
+	// mismatch is visible.
+	const feedIsCurrent = feedClientId !== null && feedClientId === clientId;
+
+	// Keep the tab-local read state in step with the feed.
+	useEffect(() => {
+		if (!clientId || !feedIsCurrent) {
+			// No feed for THIS conversation yet. Leave the stored record alone — on a
+			// reload it's the only thing that knows to start polling at all.
+			return;
+		}
+		if (!conversationId) {
+			// The server says this visitor has no conversation: they never started one,
+			// or an operator deleted it from the inbox. Nothing to badge, nobody left to
+			// wait for — forget it, rather than polling a dead thread forever.
+			if (snapshot) {
+				clearSnapshot(projectKey);
+				setSnapshot(null);
+			}
+			// The session-local flags described the conversation that's now gone. Left
+			// set, escalatedLocal would be OR-ed into whatever conversation this tab
+			// starts NEXT (deriveEscalated), stamping it escalated and arming the
+			// background poll for a thread no human owes a reply on — for the life of
+			// the tab. resolvedLocal is the mirror image: it would stamp the successor
+			// resolved and silently disarm its badge. (No-ops when already false.)
+			setEscalatedLocal(false);
+			setResolvedLocal(false);
+			return;
+		}
+		const next: ConversationSnapshot = {
+			clientId,
+			conversationId,
+			escalated,
+			resolved,
+			// Open panel = the visitor is reading, so the marker rides the head of the
+			// thread; closed = it freezes, which is what makes the count mean anything.
+			// With no marker at all, nothing has been seen: that state is reached by
+			// sending a first message and closing the panel before the first poll
+			// lands, so the reply that follows arrived while the panel was shut — which
+			// is exactly what there is to badge. (Adopting the head here instead would
+			// silently mark it read.)
+			lastSeenSequence: open
+				? latestSequence(serverMessages)
+				: (snapshot?.lastSeenSequence ?? 0),
+		};
+		if (snapshot && sameSnapshot(snapshot, next)) {
+			return;
+		}
+		writeSnapshot(projectKey, next);
+		setSnapshot(next);
+	}, [
+		clientId,
+		projectKey,
+		feedIsCurrent,
+		conversationId,
+		open,
+		serverMessages,
+		escalated,
+		resolved,
+		snapshot,
+	]);
+
+	// What the launcher badges. Derived from the FEED against the stored marker —
+	// never from a stored count — so a reload with the panel closed recomputes it
+	// from what the server actually has, and no snapshot means nothing to compare
+	// (hence nothing to badge).
+	const unreadCount =
+		open || !snapshot
+			? 0
+			: countUnread(serverMessages, snapshot.lastSeenSequence);
 
 	// Per-message thumbs: optimistic, rolling back if the request fails.
 	const sendRating = useCallback(
@@ -282,13 +404,23 @@ function LiveWidget({
 	const { rate, effective } = useMessageRatings(sendRating);
 
 	// Refetch as soon as a send settles (stream finished or failed) so the
-	// just-persisted exchange replaces the local copy immediately.
+	// just-persisted exchange replaces the local copy immediately. One delayed
+	// retry backs it up: the api persists the assistant row in a waitUntil AFTER
+	// the stream closes, so the immediate refetch can be served before that row
+	// commits. With the panel open the next foreground poll would paper over the
+	// loss — but a visitor who closed the panel mid-answer on a NON-escalated
+	// conversation has no poll left, and the badge for the bot's reply hangs on
+	// whichever of these two requests sees the row.
 	const wasLoading = useRef(false);
 	useEffect(() => {
-		if (wasLoading.current && !loading) {
-			refresh();
-		}
+		const settled = wasLoading.current && !loading;
 		wasLoading.current = loading;
+		if (!settled) {
+			return;
+		}
+		refresh();
+		const retry = setTimeout(refresh, POST_STREAM_REFRESH_RETRY_MS);
+		return () => clearTimeout(retry);
 	}, [loading, refresh]);
 
 	// ── Quote-reply ───────────────────────────────────────────────────
@@ -538,6 +670,7 @@ function LiveWidget({
 			theme={resolvedTheme}
 			open={open}
 			onOpenChange={handleOpenChange}
+			unreadCount={unreadCount}
 			actions={
 				canStartNew ? (
 					<button
