@@ -28,15 +28,35 @@ const mono = JetBrains_Mono({
 	display: "swap",
 });
 
+const TITLE = "Clanker Support — live demo";
+const DESCRIPTION =
+	"Try the Clanker Support widget live. Chat with the bubble, send a few messages, and watch it escalate to a human.";
+
 export const metadata: Metadata = {
 	metadataBase: new URL(
 		process.env.NEXT_PUBLIC_SHOWCASE_URL ??
 			"https://showcase.clankersupport.com",
 	),
-	title: "Clanker Support — live demo",
-	description:
-		"Try the Clanker Support widget live. Chat with the bubble, send a few messages, and watch it escalate to a human.",
+	title: TITLE,
+	description: DESCRIPTION,
 	alternates: { canonical: "/" },
+	// og:image comes from app/opengraph-image.png (the Next file convention);
+	// these blocks add the title/description/card tags that the file alone
+	// doesn't emit.
+	openGraph: {
+		type: "website",
+		url: "/",
+		siteName: "Clanker Support",
+		title: TITLE,
+		description: DESCRIPTION,
+		locale: "en_US",
+	},
+	twitter: {
+		card: "summary_large_image",
+		site: "@ClankrSupport",
+		title: TITLE,
+		description: DESCRIPTION,
+	},
 	icons: {
 		icon: [
 			{ url: "/favicon-16.png", sizes: "16x16", type: "image/png" },

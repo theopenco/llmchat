@@ -39,7 +39,7 @@ const TWO_MONTHS_FREE = (
 	[BILLING_TIERS.starter, BILLING_TIERS.growth, BILLING_TIERS.scale] as const
 ).every((t) => t.priceUsdAnnual === t.priceUsdMonthly * 10);
 
-const SUMMARY = `An AI-powered support agent for your site — install it with one script tag or one React Server Component (${RSC_PACKAGE} on npm). It answers from your docs and sources, then escalates to your team. Open source (MIT) and self-hostable (bring your own keys); the hosted version has flat monthly plans from $${STARTER}/mo with no per-seat fees.`;
+export const SUMMARY = `An AI-powered support agent for your site — install it with one script tag or one React Server Component (${RSC_PACKAGE} on npm). It answers from your docs and sources, then escalates to your team. Open source (MIT) and self-hostable (bring your own keys); the hosted version has flat monthly plans from $${STARTER}/mo with no per-seat fees.`;
 
 const DETAILS = [
 	"Two official ways to install:",
@@ -120,6 +120,8 @@ export function buildLlmsTxt(siteUrl: string, input: LlmsTxtInput): string {
 	lines.push(
 		"",
 		"## Optional",
+		`- [Full content](${siteUrl}/llms-full.txt): Every blog post from this site, in full, in one plain-text file.`,
+		`- [Full documentation](${DOCS_URL}/llms-full.txt): Every docs page, in full, in one plain-text file.`,
 		`- [Privacy policy](${siteUrl}/privacy-policy): How visitor and customer data is handled.`,
 		`- [Terms of use](${siteUrl}/terms-of-use): The terms for the hosted service.`,
 	);

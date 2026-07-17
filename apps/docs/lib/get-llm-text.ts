@@ -1,7 +1,7 @@
+import { DOCS_URL } from "@/lib/site";
+
 import type { source } from "@/lib/source";
 import type { InferPageType } from "fumadocs-core/source";
-
-const DOCS_URL = "https://docs.clankersupport.com";
 
 export async function getLLMText(page: InferPageType<typeof source>) {
 	const processed = await page.data.getText("processed");

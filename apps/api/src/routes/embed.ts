@@ -41,6 +41,9 @@ export const embed = new Hono<AppContext>().get("/embed/:key", async (c) => {
 	);
 	c.header("x-content-type-options", "nosniff");
 	c.header("referrer-policy", "no-referrer");
+	// Iframe chrome, not content: per-project embed URLs on the api host must
+	// never appear in search results next to the customer's own site.
+	c.header("x-robots-tag", "noindex");
 	c.header("cache-control", "public, max-age=300");
 	return c.html(html);
 });
