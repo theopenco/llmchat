@@ -2,7 +2,12 @@ import { Check } from "lucide-react";
 
 import { Badge, Button } from "@/components/ds";
 import { cn } from "@/lib/utils";
-import type { BillingInterval, PaidPlan } from "@llmchat/shared";
+import {
+	TRIAL_PERIOD_DAYS,
+	isPaidPlan,
+	type BillingInterval,
+	type PaidPlan,
+} from "@llmchat/shared";
 
 import { TIERS } from "./billing-plans";
 
@@ -37,6 +42,10 @@ export function PlanTiers({
 	interval?: BillingInterval;
 }) {
 	const annual = interval === "year";
+	// The api only grants the trial to workspaces not already on a paid plan
+	// (switching tiers never restarts it) — mirror that so we never promise a
+	// trial Checkout won't deliver.
+	const trialEligible = !isPaidPlan(currentPlan);
 	return (
 		<div className="grid gap-4 lg:grid-cols-3">
 			{TIERS.map((tier) => {
@@ -103,14 +112,24 @@ export function PlanTiers({
 									Current plan
 								</Button>
 							) : available ? (
-								<Button
-									variant={tier.highlight ? "primary" : "outline"}
-									className="w-full"
-									onClick={() => onSelect(tier.plan)}
-									disabled={disabled || pending}
-								>
-									{pending ? "Redirecting…" : `${ctaPrefix} ${tier.name}`}
-								</Button>
+								<>
+									<Button
+										variant={tier.highlight ? "primary" : "outline"}
+										className="w-full"
+										onClick={() => onSelect(tier.plan)}
+										disabled={disabled || pending}
+									>
+										{pending ? "Redirecting…" : `${ctaPrefix} ${tier.name}`}
+									</Button>
+									{/* Trial promise — mirrors what the api actually sends to
+									    Stripe Checkout (subscription_data[trial_period_days]). */}
+									{trialEligible && (
+										<p className="mt-2 text-center text-[12px] text-ck-faint">
+											{TRIAL_PERIOD_DAYS}-day free trial · no charge until it
+											ends
+										</p>
+									)}
+								</>
 							) : (
 								<Button variant="outline" className="w-full" disabled>
 									Coming soon

@@ -4,6 +4,7 @@ import {
 	BILLING_TIERS,
 	ENTERPRISE_TIER,
 	PAID_PLANS,
+	TRIAL_PERIOD_DAYS,
 	isUnlimited,
 	type PaidPlan,
 } from "@llmchat/shared";
@@ -25,7 +26,7 @@ const starterPrice = BILLING_TIERS.starter.priceUsdMonthly;
 export const metadata = pageMeta({
 	title: "Pricing — flat monthly or annual plans, free to self-host",
 	description:
-		"Clanker Support pricing: flat plans from $19/mo with no per-seat fees, two months free on annual, a 14-day money-back guarantee, or self-host free with your own keys.",
+		"Clanker Support pricing: flat plans from $19/mo with a 7-day free trial, no per-seat fees, two months free on annual, a 14-day money-back guarantee, or self-host free with your own keys.",
 	path: "/pricing",
 });
 
@@ -107,8 +108,7 @@ const faqs: Faq[] = [
 	},
 	{
 		question: "Is there a free trial or a guarantee?",
-		answer:
-			"Every hosted plan comes with a 14-day money-back guarantee, and you can cancel anytime — no contracts. Want to try before you buy? The live demo runs in your browser without signing up.",
+		answer: `Yes — every hosted plan starts with a ${TRIAL_PERIOD_DAYS}-day free trial. A card is required to start, but you aren't charged until the trial ends, and you can cancel before then at no cost. On top of that there's a 14-day money-back guarantee and you can cancel anytime — no contracts. Want a feel first? The live demo runs in your browser without signing up.`,
 	},
 	{
 		question: "Is there a free plan?",
@@ -237,8 +237,10 @@ export default function PricingPage() {
 							Straight talk ·{" "}
 						</span>
 						The hosted product is paid-only — there&apos;s no free hosted tier,
-						so every plan above is paid. Plans start at ${starterPrice}/month
-						with no per-seat fees, and self-hosting stays free.
+						so every plan above is paid. Each one starts with a{" "}
+						{TRIAL_PERIOD_DAYS}-day free trial (card required, no charge until
+						it ends), plans start at ${starterPrice}/month with no per-seat
+						fees, and self-hosting stays free.
 					</p>
 				</section>
 

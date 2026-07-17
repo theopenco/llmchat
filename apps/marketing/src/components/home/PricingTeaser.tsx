@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BILLING_TIERS } from "@llmchat/shared";
+import { BILLING_TIERS, TRIAL_PERIOD_DAYS } from "@llmchat/shared";
 import { ShineBorder } from "@/components/magicui/shine-border";
 
 /**
@@ -70,7 +70,9 @@ export function PricingTeaser() {
 				</div>
 
 				<p className="mt-8 text-sm text-muted">
-					Self-hosting is free — it&apos;s open source, bring your own keys.{" "}
+					Every plan starts with a {TRIAL_PERIOD_DAYS}-day free trial — no
+					charge until it ends. Self-hosting is free — it&apos;s open source,
+					bring your own keys.{" "}
 					<Link
 						href="/pricing"
 						className="font-medium text-accent-soft transition-colors hover:text-accent"

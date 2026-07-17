@@ -15,7 +15,11 @@ import {
 } from "@/lib/billing";
 import { cn } from "@/lib/utils";
 
-import type { BillingInterval, PaidPlan } from "@llmchat/shared";
+import {
+	TRIAL_PERIOD_DAYS,
+	type BillingInterval,
+	type PaidPlan,
+} from "@llmchat/shared";
 
 /**
  * Hard paywall shown before onboarding when the workspace has no active
@@ -71,8 +75,9 @@ export function OnboardingPaywall({
 					Choose a plan to launch your agent
 				</h1>
 				<p className="max-w-lg text-balance text-sm text-muted-foreground">
-					Clanker Support is paid from day one — pick a plan and add a card to
-					get started. Billed monthly or yearly; change or cancel anytime.
+					Every plan starts with a {TRIAL_PERIOD_DAYS}-day free trial — pick a
+					plan and add a card, and you won&apos;t be charged until the trial
+					ends. Billed monthly or yearly after that; change or cancel anytime.
 				</p>
 			</header>
 

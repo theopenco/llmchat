@@ -24,6 +24,7 @@ export {
 	ENTERPRISE_TIER,
 	INTERNAL_ENTITLEMENTS,
 	PAID_PLANS,
+	TRIAL_PERIOD_DAYS,
 	UNLIMITED,
 	isInternalEmail,
 	isModelAllowed,

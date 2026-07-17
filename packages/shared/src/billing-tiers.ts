@@ -54,6 +54,20 @@ export interface TierEntitlements {
  * `priceUsdAnnual`); the API maps each to a distinct Stripe price id. */
 export type BillingInterval = "month" | "year";
 
+/**
+ * Free-trial length (days) for a workspace's FIRST subscription. A card is
+ * still collected at Checkout (`payment_method_collection: "always"`), but the
+ * subscription starts in Stripe's `trialing` status — full plan entitlements,
+ * no charge — and converts to `active` (first charge) when the trial ends.
+ *
+ * Single source of truth for every surface that mentions the trial (paywall,
+ * billing screen, marketing pricing) AND for the api, which passes it to
+ * Stripe Checkout as `subscription_data[trial_period_days]` — no Stripe
+ * dashboard configuration is needed for the trial itself. Workspaces already
+ * on a paid plan never get a trial on upgrade (see /billing/checkout).
+ */
+export const TRIAL_PERIOD_DAYS = 7;
+
 /** Sentinel for an "unlimited" cap. Large enough that isWithinLimit() never
  * blocks, and recognized by isUnlimited() so the UI renders "Unlimited" instead
  * of a meaningless nine-digit number. */

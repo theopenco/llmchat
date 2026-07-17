@@ -2,6 +2,7 @@ import {
 	BILLING_TIERS,
 	ENTERPRISE_TIER,
 	PAID_PLANS,
+	TRIAL_PERIOD_DAYS,
 	isUnlimited,
 } from "@llmchat/shared";
 
@@ -54,6 +55,7 @@ Clanker Support is an AI-powered support agent. It is open and self-hostable, wi
 
 ## Hosted (clankersupport.com)
 - Paid-only — there is no free hosted tier.
+- Every plan starts with a ${TRIAL_PERIOD_DAYS}-day free trial: a card is required at signup, and the first charge happens when the trial ends. Cancel during the trial at no cost.
 - Flat monthly plans billed via Stripe; no per-seat fees (seats are included per plan).
 - Annual billing available on every plan at 10× the monthly price (two months free).
 - 14-day money-back guarantee; cancel anytime.

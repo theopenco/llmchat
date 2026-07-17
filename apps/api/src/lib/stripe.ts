@@ -143,6 +143,11 @@ export function createCheckoutSession(
 		/** The plan being purchased — stamped on the subscription so the webhook
 		 * can map it back to a tier without re-deriving it from the price id. */
 		plan: string;
+		/** When set, the subscription starts with a free trial of this many days
+		 * (Stripe `subscription_data[trial_period_days]`). The card is still
+		 * collected upfront; the first charge happens when the trial ends. Omit
+		 * for no trial (e.g. a workspace upgrading from an active paid plan). */
+		trialPeriodDays?: number;
 		workspaceId: string;
 		successUrl: string;
 		cancelUrl: string;
@@ -158,7 +163,8 @@ export function createCheckoutSession(
 		mode: "subscription",
 		customer: args.customer,
 		line_items: lineItems,
-		// Paid-only: always collect a card, never offer a trial.
+		// Paid-only: always collect a card — even during a free trial, so the
+		// subscription converts to a charge automatically when the trial ends.
 		payment_method_collection: "always",
 		// Map the session AND the resulting subscription back to the workspace +
 		// purchased tier, so the webhook needs no price→tier lookup. Stamped in
@@ -168,6 +174,8 @@ export function createCheckoutSession(
 		metadata: { workspaceId: args.workspaceId, plan: args.plan },
 		subscription_data: {
 			metadata: { workspaceId: args.workspaceId, plan: args.plan },
+			// formEncode drops undefined, so "no trial" simply omits the key.
+			trial_period_days: args.trialPeriodDays,
 		},
 		success_url: args.successUrl,
 		cancel_url: args.cancelUrl,

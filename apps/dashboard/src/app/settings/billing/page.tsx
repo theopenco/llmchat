@@ -18,7 +18,12 @@ import { useWorkspace } from "@/lib/workspace";
 import { WORKSPACES_KEY } from "@/lib/workspace-utils";
 import { cn } from "@/lib/utils";
 
-import type { BillingInterval, PaidPlan } from "@llmchat/shared";
+import {
+	TRIAL_PERIOD_DAYS,
+	isPaidPlan,
+	type BillingInterval,
+	type PaidPlan,
+} from "@llmchat/shared";
 
 import { BillingNotice } from "./_components/BillingNotice";
 import { BillingSkeleton } from "./_components/BillingSkeleton";
@@ -198,12 +203,28 @@ function BillingContent() {
 					<div className="flex items-start gap-2.5 rounded-[10px] border border-ck-border bg-ck-chip p-4 text-sm text-ck-muted">
 						<CreditCard className="mt-0.5 size-4 shrink-0" />
 						<p>
-							<span className="font-semibold text-ck-text">
-								A card is required to start.
-							</span>{" "}
-							Every plan is paid — pick a tier and add a card to put your agent
-							live. Billed monthly or yearly, with a 14-day money-back
-							guarantee; change or cancel anytime.
+							{/* Trial copy only while it's true: the api grants the trial
+							    solely to workspaces not already on a paid plan. */}
+							{isPaidPlan(plan) ? (
+								<>
+									<span className="font-semibold text-ck-text">
+										A card is required to start.
+									</span>{" "}
+									Every plan is paid — billed monthly or yearly, with a 14-day
+									money-back guarantee; change or cancel anytime.
+								</>
+							) : (
+								<>
+									<span className="font-semibold text-ck-text">
+										A card is required to start your {TRIAL_PERIOD_DAYS}-day
+										free trial.
+									</span>{" "}
+									New subscriptions begin with a {TRIAL_PERIOD_DAYS}-day free
+									trial — you won&apos;t be charged until it ends. Billed
+									monthly or yearly after that, with a 14-day money-back
+									guarantee; change or cancel anytime.
+								</>
+							)}
 							{!isOwner && " Only a workspace owner can manage billing."}
 						</p>
 					</div>

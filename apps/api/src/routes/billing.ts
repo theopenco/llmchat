@@ -31,7 +31,12 @@ import {
 } from "@/middleware/session";
 
 import { eq, workspace } from "@llmchat/db";
-import { ANALYTICS_EVENTS, PAID_PLANS, isPaidPlan } from "@llmchat/shared";
+import {
+	ANALYTICS_EVENTS,
+	PAID_PLANS,
+	TRIAL_PERIOD_DAYS,
+	isPaidPlan,
+} from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 import type { PaidPlan, Plan } from "@llmchat/shared";
@@ -189,6 +194,11 @@ export const billing = new Hono<AppContext>()
 						? overagePriceId
 						: undefined,
 					plan,
+					// 7-day free trial (card still collected upfront) — but only when
+					// the workspace isn't already on a paid plan, so switching tiers
+					// never restarts a trial. The webhook already treats `trialing`
+					// as entitled (see planForSubscription).
+					trialPeriodDays: isPaidPlan(ws.plan) ? undefined : TRIAL_PERIOD_DAYS,
 					workspaceId,
 					successUrl: returnUrl(DASHBOARD_URL, returnTo, "success"),
 					cancelUrl: returnUrl(DASHBOARD_URL, returnTo, "cancel"),
@@ -271,8 +281,12 @@ export const billing = new Hono<AppContext>()
 				const meta = s.metadata as Record<string, string> | undefined;
 				const workspaceId =
 					(s.client_reference_id as string | undefined) ?? meta?.workspaceId;
-				// The session completing means payment succeeded — promote to the
-				// purchased tier (validated; an unknown stamp falls back to none).
+				// The session completing means the card was collected and the
+				// subscription created (charged immediately, or `trialing` for the
+				// 7-day free trial) — promote to the purchased tier either way
+				// (validated; an unknown stamp falls back to none). If a trial later
+				// ends without a payable card, customer.subscription.updated /
+				// .deleted below demotes the plan.
 				const plan = isPaidPlan(meta?.plan) ? meta.plan : "none";
 				if (workspaceId) {
 					await d

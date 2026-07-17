@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -123,18 +123,34 @@ describe("BillingPage", () => {
 		).toBeInTheDocument();
 	});
 
-	// Data honesty: no free tier, and the displayed prices are the real ones
-	// from the shared tier table (which match Stripe) — not fabricated.
+	// Data honesty: no free TIER (a free trial exists, a free plan doesn't), and
+	// the displayed prices are the real ones from the shared tier table (which
+	// match Stripe) — not fabricated.
 	it("shows the real tier prices and never a Free tier", () => {
 		setWorkspace("none");
 		renderPage();
-		expect(screen.queryByText(/free/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/free (tier|plan)/i)).not.toBeInTheDocument();
 		expect(screen.getByText("$19")).toBeInTheDocument();
 		expect(screen.getByText("$89")).toBeInTheDocument();
 		expect(screen.getByText("$299")).toBeInTheDocument();
 		expect(
 			screen.getByText(/a card is required to start/i),
 		).toBeInTheDocument();
+	});
+
+	// The trial promise mirrors the api's eligibility rule: shown to a workspace
+	// with no paid plan, hidden once one is active (upgrades get no new trial).
+	it("promises the 7-day free trial only to unsubscribed workspaces", async () => {
+		setWorkspace("none");
+		renderPage();
+		expect(screen.getAllByText(/7-day free trial/i).length).toBeGreaterThan(0);
+
+		cleanup();
+		setWorkspace("growth");
+		vi.mocked(fetchUsage).mockResolvedValue(usageFor("growth"));
+		renderPage();
+		await screen.findByRole("button", { name: /manage in stripe/i });
+		expect(screen.queryByText(/free trial/i)).not.toBeInTheDocument();
 	});
 
 	it("subscribed plan → current tier is marked and Manage opens the portal", async () => {

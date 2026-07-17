@@ -238,6 +238,38 @@ describe("POST /billing/checkout", () => {
 		);
 	});
 
+	it("grants the 7-day free trial to a workspace with no paid plan", async () => {
+		mockDb({
+			member: { role: "owner" },
+			workspace: { id: "ws_1", stripeCustomerId: "cus_1", plan: "none" },
+		});
+		vi.mocked(createCheckoutSession).mockResolvedValue({
+			id: "cs",
+			url: "https://checkout/cs",
+		});
+		await checkout("starter");
+		expect(createCheckoutSession).toHaveBeenCalledWith(
+			"sk_test_fixture",
+			expect.objectContaining({ trialPeriodDays: 7 }),
+		);
+	});
+
+	it("does NOT grant a trial when the workspace is already on a paid plan", async () => {
+		mockDb({
+			member: { role: "owner" },
+			workspace: { id: "ws_1", stripeCustomerId: "cus_1", plan: "starter" },
+		});
+		vi.mocked(createCheckoutSession).mockResolvedValue({
+			id: "cs",
+			url: "https://checkout/cs",
+		});
+		await checkout("growth");
+		expect(createCheckoutSession).toHaveBeenCalledWith(
+			"sk_test_fixture",
+			expect.objectContaining({ trialPeriodDays: undefined }),
+		);
+	});
+
 	it("creates and stores a customer when the workspace has none", async () => {
 		const state = mockDb({
 			member: { role: "owner" },
