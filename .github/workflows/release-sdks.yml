@@ -1,0 +1,68 @@
+# Publishes the language SDKs to their registries. Trigger by pushing a tag:
+#   sdk-python@1.0.0  → runs the Python tests, builds sdist+wheel, uploads to PyPI
+#   sdk-ruby@1.0.0    → runs the Ruby tests, builds the gem, pushes to RubyGems
+# Secrets required (repo Settings → Secrets and variables → Actions):
+#   PYPI_API_TOKEN    — PyPI API token (account-scoped for the first release)
+#   RUBYGEMS_API_KEY  — rubygems.org API key with "Push rubygem" scope
+# The tag version must match the package version (pyproject.toml / version.rb);
+# each job asserts that before publishing.
+name: Release SDKs
+
+on:
+  push:
+    tags:
+      - "sdk-python@*"
+      - "sdk-ruby@*"
+
+jobs:
+  python:
+    if: startsWith(github.ref_name, 'sdk-python@')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Assert tag matches package version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#sdk-python@}"
+          PKG_VERSION="$(grep -Po '(?<=^version = ")[^"]+' sdks/python/pyproject.toml)"
+          test "$TAG_VERSION" = "$PKG_VERSION" || { echo "tag $TAG_VERSION != pyproject $PKG_VERSION"; exit 1; }
+      - name: Test
+        run: PYTHONPATH=sdks/python/src python -m unittest discover -s sdks/python/tests
+      - name: Build
+        run: |
+          pip install build
+          python -m build sdks/python
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdks/python/dist
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  ruby:
+    if: startsWith(github.ref_name, 'sdk-ruby@')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - name: Assert tag matches gem version
+        working-directory: sdks/ruby
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#sdk-ruby@}"
+          GEM_VERSION="$(grep -Po '(?<=VERSION = ")[^"]+' lib/clankersupport/version.rb)"
+          test "$TAG_VERSION" = "$GEM_VERSION" || { echo "tag $TAG_VERSION != version.rb $GEM_VERSION"; exit 1; }
+      - name: Test
+        working-directory: sdks/ruby
+        run: |
+          bundle install
+          bundle exec rake test
+      - name: Build and push gem
+        working-directory: sdks/ruby
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          gem build clankersupport.gemspec
+          gem push clankersupport-*.gem
