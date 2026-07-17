@@ -8,6 +8,12 @@ import { X_HANDLE } from "./site-urls";
  * relative ("/blog") — metadataBase (set in the root layout) resolves it to an
  * absolute URL. One helper so no page forgets the canonical or the OG block.
  */
+/** The site-wide OG cover (the app/opengraph-image.png file convention route).
+ * Explicit fallback because a page-level `openGraph` object replaces the
+ * layout's resolved metadata wholesale (Next merges shallowly) — without this,
+ * every pageMeta page shipped no og:image/twitter:image at all. */
+const DEFAULT_OG_IMAGE = "/opengraph-image.png";
+
 export function pageMeta(opts: {
 	title: string;
 	description: string;
@@ -18,7 +24,8 @@ export function pageMeta(opts: {
 	/** ISO date for article OG (blog posts). */
 	publishedTime?: string;
 	/** Root-relative OG/Twitter card image (e.g. "/blog/foo.jpg") —
-	 * metadataBase resolves it to an absolute URL. */
+	 * metadataBase resolves it to an absolute URL. Defaults to the site-wide
+	 * OG cover. */
 	image?: string;
 }): Metadata {
 	const {
@@ -27,7 +34,7 @@ export function pageMeta(opts: {
 		path,
 		type = "website",
 		publishedTime,
-		image,
+		image = DEFAULT_OG_IMAGE,
 	} = opts;
 	return {
 		title,
@@ -46,14 +53,14 @@ export function pageMeta(opts: {
 			description,
 			siteName: "Clanker Support",
 			...(publishedTime ? { publishedTime } : {}),
-			...(image ? { images: [{ url: image }] } : {}),
+			images: [{ url: image }],
 		},
 		twitter: {
 			card: "summary_large_image",
 			site: X_HANDLE,
 			title,
 			description,
-			...(image ? { images: [image] } : {}),
+			images: [image],
 		},
 	};
 }

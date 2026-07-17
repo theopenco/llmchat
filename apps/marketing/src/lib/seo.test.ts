@@ -263,10 +263,16 @@ describe("pageMeta", () => {
 		expect(m.twitter?.images).toEqual(["/blog/cover.jpg"]);
 	});
 
-	it("omits image fields entirely when no cover is set", () => {
+	it("falls back to the site-wide OG cover when no image is set", () => {
+		// A page-level openGraph replaces the layout's resolved metadata
+		// (shallow merge), so the file-convention og:image never reaches these
+		// pages — pageMeta must supply the cover itself or the page ships no
+		// card image at all.
 		const m = pageMeta({ title: "T", description: "d", path: "/p" });
-		expect(m.openGraph && "images" in m.openGraph).toBe(false);
+		expect(m.openGraph).toMatchObject({
+			images: [{ url: "/opengraph-image.png" }],
+		});
 		// @ts-expect-error twitter card shape is a union; assert the field directly
-		expect(m.twitter && "images" in m.twitter).toBe(false);
+		expect(m.twitter?.images).toEqual(["/opengraph-image.png"]);
 	});
 });
