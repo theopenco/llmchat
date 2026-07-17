@@ -1,0 +1,35 @@
+name: SDKs
+
+on:
+  push:
+    paths:
+      - "sdks/**"
+  pull_request:
+    paths:
+      - "sdks/**"
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run tests
+        run: python -m unittest discover -s sdks/python/tests
+        env:
+          PYTHONPATH: sdks/python/src
+
+  ruby:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdks/ruby
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - name: Run tests
+        run: bundle install && bundle exec rake test
