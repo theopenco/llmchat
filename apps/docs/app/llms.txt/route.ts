@@ -1,19 +1,20 @@
 import { BILLING_TIERS } from "@llmchat/shared";
 
+import {
+	DASHBOARD_URL,
+	DOCS_URL,
+	GITHUB_URL,
+	RSC_NPM_URL,
+	RSC_PACKAGE,
+	SHOWCASE_URL,
+	SITE_URL,
+} from "@/lib/site";
 import { source } from "@/lib/source";
 
 import type { InferPageType } from "fumadocs-core/source";
 
 // cached forever
 export const revalidate = false;
-
-const SITE_URL = "https://clankersupport.com";
-const DOCS_URL = "https://docs.clankersupport.com";
-const DASHBOARD_URL = "https://app.clankersupport.com";
-const SHOWCASE_URL = "https://showcase.clankersupport.com";
-const GITHUB_URL = "https://github.com/theopenco/llmchat";
-const RSC_PACKAGE = "@clankersupport/widget-rsc";
-const RSC_NPM_URL = `https://www.npmjs.com/package/${RSC_PACKAGE}`;
 
 const STARTER = BILLING_TIERS.starter.priceUsdMonthly;
 const GROWTH = BILLING_TIERS.growth.priceUsdMonthly;
