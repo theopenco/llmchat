@@ -39,6 +39,7 @@ describe("buildSitemap", () => {
 				`${BASE}/pricing`,
 				`${BASE}/features`,
 				`${BASE}/compare`,
+				`${BASE}/templates`,
 				`${BASE}/blog`,
 				`${BASE}/privacy-policy`,
 				`${BASE}/terms-of-use`,
@@ -95,10 +96,10 @@ describe("buildSitemap", () => {
 		}
 	});
 
-	it("counts = 9 static + posts + competitors + migrations + features + use cases + tools", () => {
+	it("counts = 10 static + posts + competitors + migrations + features + use cases + tools", () => {
 		// /docs is deliberately absent: it 308-redirects to the docs app
 		// (next.config.ts) and redirecting URLs don't belong in a sitemap.
-		expect(entries).toHaveLength(9 + 2 + 2 + 1 + 2 + 2 + 2);
+		expect(entries).toHaveLength(10 + 2 + 2 + 1 + 2 + 2 + 2);
 	});
 });
 

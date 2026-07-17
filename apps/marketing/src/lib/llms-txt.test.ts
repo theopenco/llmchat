@@ -57,6 +57,7 @@ describe("buildLlmsTxt", () => {
 		// Docs live on their own host (the Fumadocs app), not a marketing route.
 		expect(out).toContain(`(${DOCS_URL})`);
 		expect(out).toContain(`(${BASE}/compare)`);
+		expect(out).toContain(`(${BASE}/templates)`);
 		expect(out).toContain(`(${BASE}/pricing.md)`);
 	});
 

@@ -64,6 +64,11 @@ export function SiteFooter() {
 								</a>
 							</li>
 							<li>
+								<Link href="/templates" className={colLink}>
+									Templates
+								</Link>
+							</li>
+							<li>
 								<a href={WORDPRESS_PLUGIN_URL} className={colLink}>
 									WordPress plugin
 								</a>
