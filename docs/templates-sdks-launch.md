@@ -29,6 +29,21 @@ Deploy buttons follow the llmgateway pattern exactly: Vercel `new/clone` with `r
 6. 🔑 **Push `feat/templates-sdks` + PR** (this repo: 2 SDKs + CI + marketing page). Merge after steps 1–4 so the page's registry links resolve.
 7. **Post-launch fast-follows**: swap the FastAPI verify note once PyPI resolves; consider a `preview.png` per template + demo deploys (llmgateway ships both); optional npx scaffolder via degit (llmgateway's CLI pattern).
 
+## Polish wave (2026-07-18) — built, one publish + two content steps left
+
+Shipped (PR #151 on llmchat; templates repo pushed direct to main):
+
+- **Preview images** — five 1200×630 on-brand cards at `apps/marketing/public/templates/<slug>.png` + each template README hero. On every `/templates` card and the page OG image.
+- **npx scaffolder** — `create-clanker-support` in the templates repo (`packages/create-clanker-support`, giget-based). CI `cli` job proves it (offline checks + a live scaffold). `/templates` shows `npm create clanker-support@latest` with a copy button.
+- **SDK docs** — `apps/docs/content/sdks/` (SDK overview + templates page), in the sidebar and docs `llms.txt` — real crawlable content for the support agent.
+- **Live-demo slots** — `demoUrl?` per template on the `/templates` page; renders a link only when set (dark until demos exist).
+
+Remaining (credential-gated — 🔑):
+
+1. 🔑 **Publish the CLI**: add `NPM_TOKEN` (npm automation token, publish rights to the unscoped `create-clanker-support`) to the **templates repo** secrets, then push tag `create-clanker-support@1.0.0`. `release-cli.yml` asserts tag==version and publishes. Do this **before** the Recrawl, since the docs reference `npm create clanker-support`.
+2. 🔑 **Dashboard Recrawl**: after PR #151 deploys, in the dashboard open the project whose knowledge base powers the site agent → Sources → the docs/marketing URL source → **Recrawl** (deploy ≠ agent update; URL sources are crawl-time snapshots). Then ask the live widget "do you have a Python SDK / Next.js template?" to confirm.
+3. 🔑 **Hosted demos**: deploy each template (`vercel --cwd templates/<name>` with the public showcase key `pk_be2d…`, or the Railway template for Laravel), then set `demoUrl` in the `/templates` page's `TEMPLATES` array and redeploy. The link slot lights up automatically.
+
 ## Verification gaps only a runtime can close
 
 - PHP/Ruby code never executed locally (no interpreters, no Docker) — first CI run on push is the real gate. The adversarial static review already fixed: unbound composer PHP constraint (broke `composer validate --strict`), empty-env → 500 hazard in the Laravel provider, `(int) env()` empty-cast bug, Laravel quickstart missing sqlite touch + migrate, Railway startCommand missing `migrate --force`, `.env.example` placeholder defeating the setup callout.
