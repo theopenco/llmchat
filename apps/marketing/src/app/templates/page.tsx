@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { JsonLd } from "@/components/JsonLd";
 import { TrackedLink } from "@/components/TrackedLink";
-import { CopyButton } from "@/components/tools/CopyButton";
+import { ScaffoldCopyButton } from "./ScaffoldCopyButton";
 import { breadcrumbLd, itemListLd, pageMeta } from "@/lib/seo";
 import {
 	CANONICAL_SITE_URL,
@@ -226,11 +226,7 @@ export default function TemplatesPage() {
 							</p>
 						</div>
 						<div className="shrink-0">
-							<CopyButton
-								text={() => SCAFFOLD_COMMAND}
-								tool="templates_scaffold_cli"
-								label="Copy command"
-							/>
+							<ScaffoldCopyButton command={SCAFFOLD_COMMAND} />
 						</div>
 					</div>
 				</section>
