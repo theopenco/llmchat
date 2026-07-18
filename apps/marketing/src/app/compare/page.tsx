@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Fragment } from "react";
 import { matrix, allCompetitors } from "content-collections";
-import { ANALYTICS_EVENTS } from "@llmchat/shared";
+import { ANALYTICS_EVENTS, TRIAL_PERIOD_DAYS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ComparisonCell } from "@/components/ComparisonCell";
@@ -254,7 +254,7 @@ export default function ComparePage() {
 						Try Clanker Support free
 					</p>
 					<h2 className="font-display mx-auto mt-4 max-w-2xl text-4xl font-semibold leading-tight tracking-tight-display text-paper sm:text-5xl">
-						One script tag. No credit card. See if it fits.
+						One script tag. {TRIAL_PERIOD_DAYS}-day free trial. See if it fits.
 					</h2>
 					<div className="mt-8 flex flex-wrap justify-center gap-3">
 						<TrackedLink

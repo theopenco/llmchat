@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ANALYTICS_EVENTS } from "@llmchat/shared";
+import { ANALYTICS_EVENTS, TRIAL_PERIOD_DAYS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
@@ -213,7 +213,7 @@ export default async function FeaturePage({
 						<div className="relative">
 							<p className="kicker">Ship support today</p>
 							<h2 className="font-display mx-auto mt-4 max-w-2xl text-3xl font-semibold leading-[1.08] tracking-tight-display text-ink sm:text-5xl">
-								Live in five minutes. No credit card to start.
+								Live in five minutes. {TRIAL_PERIOD_DAYS}-day free trial.
 							</h2>
 							<div className="mt-9 flex flex-wrap justify-center gap-3">
 								<TrackedLink
