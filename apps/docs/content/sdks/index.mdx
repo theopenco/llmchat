@@ -1,0 +1,158 @@
+---
+title: SDKs
+description: Official packages that render the Clanker Support widget from React, Python, Ruby, and PHP
+icon: Package
+---
+
+The plain [script tag](/integrations/widget) works on any site, but if you'd rather emit the embed from your own code, Clanker Support publishes official SDKs for the four most common backends. Each one produces the exact same widget as the dashboard's Embed snippet — a single self-contained script that mounts an AI-powered support agent — so you get streaming answers, escalation, live operator replies, ratings, and CSAT with no extra wiring.
+
+There are two flavors:
+
+- **`@clankersupport/widget-rsc`** renders the widget as a **React component** in the browser (React 19 / RSC). It's the only SDK that draws UI itself.
+- **`clankersupport` (Python), `clankersupport` (Ruby), and `clankersupport/clankersupport-php`** are **server-side helpers**: they emit the `<script>` tag with the right `data-*` attributes and HTML-escape every value, so a template renders the embed without a copy-pasted snippet. The widget itself is still the client-side JavaScript served from the API.
+
+Every SDK is MIT-licensed and open source. All of them take your project's **public key** (`pk_…`), which is safe to expose in page source or a client bundle — it only identifies which project's agent answers, and it grants no dashboard access. Find it under **Projects → your project → Widget** in the dashboard.
+
+## Official SDKs
+
+| Package                             | Registry                                                                      | Use it from                                                 |
+| ----------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `@clankersupport/widget-rsc`        | [npm](https://www.npmjs.com/package/@clankersupport/widget-rsc)               | React 19 / Next.js — styled component + headless primitives |
+| `clankersupport`                    | [PyPI](https://pypi.org/project/clankersupport/)                              | Any Python app; Jinja2-safe out of the box                  |
+| `clankersupport`                    | [RubyGems](https://rubygems.org/gems/clankersupport)                          | Any Ruby app; Rails view helper via Railtie                 |
+| `clankersupport/clankersupport-php` | [Packagist](https://packagist.org/packages/clankersupport/clankersupport-php) | Any PHP app; Laravel auto-discovery + Blade directive       |
+
+## React / Next.js — `@clankersupport/widget-rsc`
+
+The React SDK is the widget as an npm package for React 19 and Next.js App Router apps: zero runtime dependencies, a batteries-included Server Component, and a headless entry with primitives and a hook for building your own chat UI.
+
+```sh
+npm install @clankersupport/widget-rsc
+```
+
+Add the component once in your root layout and every page gets the widget:
+
+```tsx
+import { ClankerSupport } from "@clankersupport/widget-rsc";
+
+export default function RootLayout({ children }) {
+	return (
+		<html lang="en">
+			<body>
+				{children}
+				<ClankerSupport apiKey="pk_your_project_key" />
+			</body>
+		</html>
+	);
+}
+```
+
+`ClankerSupport` is an async Server Component that prefetches your widget config on the server, so branding never flashes and the client saves a round-trip. Mounting from a Client Component instead? Import `ClankerSupportWidget` from the `@clankersupport/widget-rsc/headless` entry — the identical widget, with config fetched client-side. The headless entry also exports unstyled primitives and a `useClankerSupport()` hook when you want to build the chat UI yourself.
+
+See the [React SDK integration page](/integrations/react-sdk) for the full prop list, CSS-variable theming, and the headless API.
+
+## Python — `clankersupport`
+
+A server-side helper for Python web apps (FastAPI, Flask, Django). It builds the widget `<script>` tag with HTML-attribute escaping and returns a `str` subclass that implements the `__html__` protocol — so Jinja2 and other MarkupSafe-aware templates render it as markup without a `| safe` filter.
+
+```sh
+pip install clankersupport
+```
+
+```python
+from clankersupport import script_tag
+
+tag = script_tag("pk_your_project_key")
+```
+
+Pass the result to your template and render it directly:
+
+```python
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+from clankersupport import script_tag
+
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+
+
+@app.get("/")
+def home(request: Request):
+	return templates.TemplateResponse(
+		"index.html",
+		{"request": request, "clanker": script_tag("pk_your_project_key")},
+	)
+```
+
+```html
+<!-- templates/index.html, just before </body> -->
+{{ clanker }}
+```
+
+Because `script_tag` returns a `ScriptTag` (a `str` with `__html__`), Jinja2 autoescaping emits it as HTML — no `| safe` needed. Keyword arguments let you override the defaults: `api_url` (for self-hosting), `brand_color`, `mode` (`"bubble"` or `"inline"`), `theme` (`"light"`, `"dark"`, or `"auto"`), and `escalation_threshold`.
+
+## Ruby / Rails — `clankersupport`
+
+A server-side helper for Ruby web apps, with a Rails view helper wired in through a Railtie.
+
+```sh
+gem install clankersupport
+```
+
+The core method works in any Ruby app and returns a plain `String`:
+
+```ruby
+require "clankersupport"
+
+tag = ClankerSupport.script_tag("pk_your_project_key")
+```
+
+In Rails, the gem's Railtie mixes a `clanker_support_tag` helper into ActionView. It returns an `html_safe` string, so ERB autoescaping renders it as markup. Drop it into your layout just before `</body>`:
+
+```erb
+<%= clanker_support_tag %>
+```
+
+Called with no argument, `clanker_support_tag` reads the key from `ENV["CLANKER_PROJECT_KEY"]`. Pass one explicitly to override it, along with any options:
+
+```erb
+<%= clanker_support_tag "pk_your_project_key", theme: "auto" %>
+```
+
+Options mirror the other SDKs: `api_url`, `brand_color`, `mode`, `theme`, and `escalation_threshold`.
+
+## PHP / Laravel — `clankersupport/clankersupport-php`
+
+A server-side helper for PHP apps, with a first-class Laravel bridge: an auto-discovered service provider, publishable config, and a Blade directive.
+
+```sh
+composer require clankersupport/clankersupport-php
+```
+
+The static method works in any PHP app:
+
+```php
+<?php
+
+use ClankerSupport\ClankerSupport;
+
+// In your layout, just before </body>:
+echo ClankerSupport::scriptTag('pk_your_project_key');
+```
+
+In **Laravel**, the service provider is auto-discovered — no manual registration. Set `CLANKER_PROJECT_KEY` in your `.env`, then drop the `@clankerSupport` Blade directive into your layout:
+
+```blade
+	@clankerSupport
+</body>
+```
+
+The directive reads its configuration from env vars (`CLANKER_PROJECT_KEY`, and optional `CLANKER_API_URL`, `CLANKER_BRAND_COLOR`, `CLANKER_MODE`, `CLANKER_THEME`, `CLANKER_ESCALATION_THRESHOLD`). When `CLANKER_PROJECT_KEY` is unset it renders an HTML comment instead of throwing, so a fresh install never breaks page rendering. Named arguments on `scriptTag()` — `apiUrl`, `brandColor`, `mode`, `theme`, `escalationThreshold` — cover the same options everywhere else.
+
+## Which one do I use?
+
+- **React or Next.js?** Reach for [`@clankersupport/widget-rsc`](/integrations/react-sdk) — it renders the widget as a component, prefetches config on the server, and can be restyled with CSS variables or replaced entirely with the headless primitives.
+- **A server-rendered app in Python, Ruby, or PHP?** The matching helper emits the embed from your templates, HTML-escaped and framework-safe, so you never hand-copy a snippet.
+- **Anything else?** The [script tag](/integrations/widget) is one line of HTML and works on every stack.
+
+Want a running starting point instead of wiring it up yourself? The [starter templates](/sdks/templates) ship a deployable app for each of these SDKs.

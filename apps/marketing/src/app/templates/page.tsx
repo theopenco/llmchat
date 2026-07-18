@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { JsonLd } from "@/components/JsonLd";
 import { TrackedLink } from "@/components/TrackedLink";
+import { ScaffoldCopyButton } from "./ScaffoldCopyButton";
 import { breadcrumbLd, itemListLd, pageMeta } from "@/lib/seo";
 import {
 	CANONICAL_SITE_URL,
@@ -20,10 +21,14 @@ export const metadata = pageMeta({
 	description:
 		"One-click deploy starters with the Clanker Support agent pre-wired: Next.js 15 + shadcn/ui, TanStack Start, React Router 7, Laravel, and FastAPI. Clone, set your project key, ship.",
 	path: "/templates",
+	image: "/templates/nextjs-shadcn.png",
 });
 
 const REPO_TREE =
 	"https://github.com/theopenco/clankersupport-templates/tree/main/templates";
+
+/** The npm scaffolder — pick a template interactively or `--template <name>`. */
+const SCAFFOLD_COMMAND = "npm create clanker-support@latest";
 
 /** The exact Vercel clone URL each template's README uses — same repo root,
  * per-template root-directory, project/repo name, and env var. */
@@ -38,6 +43,9 @@ interface Template {
 	tags: string[];
 	deployHref: string;
 	deployLabel: string;
+	/** Public live-demo URL. Undefined until a demo is deployed — the card
+	 * renders a "Live demo" link only when this is set, so no dead links ship. */
+	demoUrl?: string;
 }
 
 const TEMPLATES: Template[] = [
@@ -196,63 +204,119 @@ export default function TemplatesPage() {
 					</div>
 				</section>
 
+				{/* ── CLI scaffolder ───────────────────────────────────── */}
+				<section className="animate-rise-in mt-12 [animation-delay:200ms]">
+					<div className="flex flex-col gap-5 rounded-2xl border border-rule bg-paper-card/70 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+						<div className="min-w-0">
+							<p className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-faint">
+								Scaffold from the CLI
+							</p>
+							<code className="mt-3 flex items-center gap-3 font-mono text-sm text-ink sm:text-base">
+								<span aria-hidden className="select-none text-faint">
+									$
+								</span>
+								<span className="break-all">{SCAFFOLD_COMMAND}</span>
+							</code>
+							<p className="mt-3 text-sm leading-relaxed text-muted">
+								Pick any template interactively, or pass{" "}
+								<code className="rounded bg-paper-raise px-1.5 py-0.5 font-mono text-[0.82em] text-ink-soft">
+									--template &lt;name&gt;
+								</code>
+								.
+							</p>
+						</div>
+						<div className="shrink-0">
+							<ScaffoldCopyButton command={SCAFFOLD_COMMAND} />
+						</div>
+					</div>
+				</section>
+
 				{/* ── Template grid ────────────────────────────────────── */}
 				<section className="animate-rise-in mt-14 [animation-delay:220ms]">
 					<div className="grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2">
 						{TEMPLATES.map((t) => (
 							<article
 								key={t.dir}
-								className="group relative flex flex-col overflow-hidden bg-paper p-8 transition-colors hover:bg-paper-card sm:p-10"
+								className="group relative flex flex-col overflow-hidden bg-paper transition-colors hover:bg-paper-card"
 							>
-								<span
-									aria-hidden
-									className="pointer-events-none absolute -right-3 -top-8 select-none font-display text-[7rem] font-bold leading-none text-rule/60 transition-colors group-hover:text-accent/10"
-								>
-									{t.num}
-								</span>
-								<div className="relative flex flex-1 flex-col">
-									<span className="font-mono text-xs font-medium text-faint transition-colors group-hover:text-accent-soft">
+								{/* Preview (plain <img>, not next/image — Ploy's deploy
+								    esbuild re-processes Next output, so we keep media
+								    tags simple; matches the blog cover pattern). */}
+								<div className="aspect-[1200/630] w-full overflow-hidden border-b border-rule bg-paper-raise">
+									{/* eslint-disable-next-line @next/next/no-img-element */}
+									<img
+										src={`/templates/${t.dir}.png`}
+										alt={`${t.name} template preview`}
+										width={1200}
+										height={630}
+										loading="lazy"
+										className="h-full w-full max-w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+									/>
+								</div>
+								<div className="relative flex flex-1 flex-col overflow-hidden p-8 sm:p-10">
+									<span
+										aria-hidden
+										className="pointer-events-none absolute -right-3 -top-6 select-none font-display text-[7rem] font-bold leading-none text-rule/60 transition-colors group-hover:text-accent/10"
+									>
 										{t.num}
 									</span>
-									<h2 className="font-display mt-4 text-2xl font-semibold tracking-tight-display text-ink">
-										{t.name}
-									</h2>
-									<p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
-										{t.description}
-									</p>
-									<ul className="mt-5 flex flex-wrap gap-2">
-										{t.tags.map((tag) => (
-											<li
-												key={tag}
-												className="rounded-full border border-rule bg-paper-raise px-3 py-1 font-mono text-[0.66rem] tracking-[0.04em] text-ink-soft"
+									<div className="relative flex flex-1 flex-col">
+										<span className="font-mono text-xs font-medium text-faint transition-colors group-hover:text-accent-soft">
+											{t.num}
+										</span>
+										<h2 className="font-display mt-4 text-2xl font-semibold tracking-tight-display text-ink">
+											{t.name}
+										</h2>
+										<p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
+											{t.description}
+										</p>
+										<ul className="mt-5 flex flex-wrap gap-2">
+											{t.tags.map((tag) => (
+												<li
+													key={tag}
+													className="rounded-full border border-rule bg-paper-raise px-3 py-1 font-mono text-[0.66rem] tracking-[0.04em] text-ink-soft"
+												>
+													{tag}
+												</li>
+											))}
+										</ul>
+										<div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 pt-px">
+											<TrackedLink
+												href={t.deployHref}
+												target="_blank"
+												rel="noopener noreferrer"
+												event={ANALYTICS_EVENTS.ctaClicked}
+												eventProps={{
+													source: "templates_deploy",
+													template: t.dir,
+												}}
+												className="rounded-full bg-ink px-5 py-2.5 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 											>
-												{tag}
-											</li>
-										))}
-									</ul>
-									<div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 pt-px">
-										<TrackedLink
-											href={t.deployHref}
-											target="_blank"
-											rel="noopener noreferrer"
-											event={ANALYTICS_EVENTS.ctaClicked}
-											eventProps={{
-												source: "templates_deploy",
-												template: t.dir,
-											}}
-											className="rounded-full bg-ink px-5 py-2.5 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
-										>
-											{t.deployLabel}
-										</TrackedLink>
-										<a
-											href={`${REPO_TREE}/${t.dir}`}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted transition-colors hover:text-ink"
-										>
-											Source on GitHub
-											<span aria-hidden>↗</span>
-										</a>
+												{t.deployLabel}
+											</TrackedLink>
+											<a
+												href={`${REPO_TREE}/${t.dir}`}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted transition-colors hover:text-ink"
+											>
+												Source on GitHub
+												<span aria-hidden>↗</span>
+											</a>
+											{/* Live demo appears only once a demo URL is set —
+										    no dead links while demos aren't deployed yet. */}
+											{t.demoUrl && (
+												<a
+													href={t.demoUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted transition-colors hover:text-ink"
+												>
+													Live demo
+													<span aria-hidden>↗</span>
+												</a>
+											)}
+										</div>
 									</div>
 								</div>
 							</article>

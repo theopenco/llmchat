@@ -28,6 +28,7 @@ const SECTIONS: { key: string; title: string }[] = [
 	{ key: "", title: "Getting started" },
 	{ key: "features", title: "Features" },
 	{ key: "integrations", title: "Integrations" },
+	{ key: "sdks", title: "SDKs & Templates" },
 	{ key: "learn", title: "Dashboard knowledge base" },
 ];
 
