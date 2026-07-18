@@ -13,7 +13,7 @@ Built 2026-07-17 on `feat/templates-sdks` (+ two new local repos). Everything be
 | Templates monorepo | `~/dev/clankersupport-templates` — `templates/{nextjs-shadcn,tanstack-start,react-router,laravel,fastapi}` | 3 JS templates `pnpm build` green; FastAPI 2/2 pytest + live boot; Laravel static review (3 fixes) |
 | Marketing `/templates` page | `apps/marketing/src/app/templates/` (this branch) | 42/42 tests, prettier, oxlint |
 
-Deploy buttons follow the llmgateway pattern exactly: Vercel `new/clone` with `repository-url=theopenco/clankersupport-templates` + `root-directory=templates/<name>` + env pre-fill (`NEXT_PUBLIC_CLANKER_KEY` / `VITE_CLANKER_KEY` / `CLANKER_PROJECT_KEY`); Laravel uses a Railway template button (`railway.com/template/clanker-laravel`).
+Deploy buttons follow the llmgateway pattern exactly: Vercel `new/clone` with `repository-url=theopenco/clankersupport-templates` + `root-directory=templates/<name>` + env pre-fill (`NEXT_PUBLIC_CLANKER_KEY` / `VITE_CLANKER_KEY` / `CLANKER_PROJECT_KEY`); Laravel uses a Railway template button (`railway.com/deploy/clanker-laravel`).
 
 ## Publish order (dependencies flow downward)
 
