@@ -1,0 +1,57 @@
+---
+title: Starter templates
+description: One-click starter apps with the support agent already wired in, for five popular stacks
+icon: LayoutTemplate
+---
+
+If you'd rather start from a working app than wire up an [SDK](/sdks) yourself, Clanker Support publishes five open-source starter templates — one per popular stack, each with the AI-powered support agent already mounted and a real page around it. Every template lives in the [`theopenco/clankersupport-templates`](https://github.com/theopenco/clankersupport-templates) monorepo, deploys in one click, and needs only your project's public key (`pk_…`) to go live. The key is safe to expose — it identifies the project, nothing more.
+
+## The five templates
+
+| Template                                                                                                     | Stack                               | SDK                                                 | Deploy  |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------- | --------------------------------------------------- | ------- |
+| [`nextjs-shadcn`](https://github.com/theopenco/clankersupport-templates/tree/main/templates/nextjs-shadcn)   | Next.js 15 · App Router · shadcn/ui | `@clankersupport/widget-rsc` (RSC Server Component) | Vercel  |
+| [`tanstack-start`](https://github.com/theopenco/clankersupport-templates/tree/main/templates/tanstack-start) | TanStack Start · Vite               | `@clankersupport/widget-rsc/headless`               | Vercel  |
+| [`react-router`](https://github.com/theopenco/clankersupport-templates/tree/main/templates/react-router)     | React Router 7 · Vite · SSR         | `@clankersupport/widget-rsc/headless`               | Vercel  |
+| [`laravel`](https://github.com/theopenco/clankersupport-templates/tree/main/templates/laravel)               | Laravel 12 · Blade                  | `clankersupport/clankersupport-php`                 | Railway |
+| [`fastapi`](https://github.com/theopenco/clankersupport-templates/tree/main/templates/fastapi)               | FastAPI · Jinja2                    | `clankersupport` (pip)                              | Vercel  |
+
+## What each one gives you
+
+### [`nextjs-shadcn`](https://github.com/theopenco/clankersupport-templates/tree/main/templates/nextjs-shadcn)
+
+A Next.js 15 App Router help-center page with hand-vendored shadcn/ui-style components and Tailwind CSS v4. The support agent is mounted site-wide by the `<ClankerSupport />` Server Component from `@clankersupport/widget-rsc`, so its config is prefetched on the server and streamed in via Suspense — zero client round-trips before first paint. Deploys to **Vercel**; set `NEXT_PUBLIC_CLANKER_KEY`.
+
+### [`tanstack-start`](https://github.com/theopenco/clankersupport-templates/tree/main/templates/tanstack-start)
+
+A TanStack Start (Vite) landing/help page with the agent in the corner and no styling framework — proof the SDK drops into plain-CSS apps. It uses `ClankerSupportWidget` from the headless entry, which renders cleanly through TanStack Start's SSR with config fetched client-side. Deploys to **Vercel**; set `VITE_CLANKER_KEY`.
+
+### [`react-router`](https://github.com/theopenco/clankersupport-templates/tree/main/templates/react-router)
+
+A React Router v7 starter in framework mode with SSR enabled — a small product landing page whose real star is the support-agent bubble. It uses the headless `ClankerSupportWidget` entry of the React SDK. Vercel auto-detects React Router, so there are no build settings to configure; just set `VITE_CLANKER_KEY`. Deploys to **Vercel**.
+
+### [`laravel`](https://github.com/theopenco/clankersupport-templates/tree/main/templates/laravel)
+
+The official `laravel/laravel` 12.x skeleton with the agent rendered by the `@clankerSupport` Blade directive from `clankersupport/clankersupport-php` — no JavaScript build step. Deploys to **Railway** via a registered template button (or any Laravel host — Forge, Laravel Cloud, Fly.io, your own server); set `CLANKER_PROJECT_KEY`.
+
+### [`fastapi`](https://github.com/theopenco/clankersupport-templates/tree/main/templates/fastapi)
+
+A FastAPI + Jinja2 landing/help page that renders the agent server-side with the `clankersupport` pip package — no `| safe` filter, no copy-pasted snippet, thanks to the package's `__html__` protocol. Without a key the page still renders and shows a setup callout instead of breaking. Deploys to **Vercel**; set `CLANKER_PROJECT_KEY`.
+
+## Deploy in one click
+
+Every template's README carries a deploy button. The four JavaScript and Python templates deploy to **Vercel** (each pre-fills the one environment variable it needs — `NEXT_PUBLIC_CLANKER_KEY`, `VITE_CLANKER_KEY`, or `CLANKER_PROJECT_KEY`), and the Laravel template deploys to **Railway**. Click the button, paste your project's public key when prompted, and the app ships with a live support agent.
+
+## Scaffold from the command line
+
+Prefer to start locally? Scaffold any of the templates with the CLI:
+
+```sh
+npm create clanker-support@latest
+```
+
+It prompts for a template and stack, copies it into a new directory, and leaves you a `.env` to drop your project key into. From there it's a normal app — install dependencies and run the dev server as you would for that stack.
+
+## After you deploy
+
+Whichever template you pick, the widget behaves exactly like every other install path — it talks to the same project, the same knowledge base, and the same shared [inbox](/learn/inbox). Add [knowledge sources](/learn/sources) so the agent has something to answer from, tune its instructions and [escalation](/features/escalation) settings, and you're live. To customize how the widget mounts or looks, see the [SDK reference](/sdks) and the [React SDK](/integrations/react-sdk) page.

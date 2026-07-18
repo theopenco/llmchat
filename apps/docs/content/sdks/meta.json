@@ -1,0 +1,6 @@
+{
+	"title": "SDKs & Templates",
+	"description": "Official SDKs and one-click starter templates",
+	"icon": "Package",
+	"pages": ["index", "templates"]
+}
