@@ -42,10 +42,11 @@ const TWO_MONTHS_FREE = (
 export const SUMMARY = `An AI-powered support agent for your site — install it with one script tag or one React Server Component (${RSC_PACKAGE} on npm). It answers from your docs and sources, then escalates to your team. Open source (MIT) and self-hostable (bring your own keys); the hosted version has flat monthly plans from $${STARTER}/mo with no per-seat fees.`;
 
 const DETAILS = [
-	"Two official ways to install:",
+	"Official ways to install:",
 	"",
 	"- Script tag: paste one `<script>` before `</body>` — the widget mounts in an isolated shadow DOM, inherits your brand color, and needs no build step.",
 	`- React / Next.js SDK: \`npm install ${RSC_PACKAGE}\` (React 19 — Next.js 15+ App Router or any RSC framework), then render one \`<ClankerSupport apiKey="pk_…" />\` Server Component in your root layout; no script tag. Restyle the default UI with its \`.clanker-*\` classes and \`--clanker-*\` CSS variables, or build a fully custom UI with the headless primitives and \`useClankerSupport()\` hook from \`${RSC_PACKAGE}/headless\` — which also ships a client-rendered \`ClankerSupportWidget\` for non-RSC React apps.`,
+	"- Backend packages: `clankersupport` on PyPI (Python — `script_tag()` for FastAPI, Django, Flask) and on RubyGems (Ruby, with a Rails `clanker_support_tag` view helper), plus `clankersupport/clankersupport-php` on Packagist (PHP, with a Laravel `@clankerSupport` Blade directive) — each renders the same script tag server-side from your project key.",
 	"",
 	"The agent answers from a per-project knowledge base (page URLs, text snippets, and Q&A pairs) with your own system prompt and per-project model choice. Visitors introduce themselves by name (email optional). When the agent can't help, it escalates: your team is notified by email and optionally Slack, the visitor sees a recap of the handoff right in the chat, and the agent stands down — fully silent once a human replies. Replies from the team inbox appear in the widget and go out by email when the visitor shared an address; email replies from the visitor thread back into the same conversation, and visitors can mark their conversation resolved. Quality is tracked with per-message thumbs up/down ratings plus a 1–5 CSAT score.",
 ];
@@ -62,6 +63,7 @@ export function buildLlmsTxt(siteUrl: string, input: LlmsTxtInput): string {
 		`- [Overview](${siteUrl}/): What Clanker Support is and how the drop-in agent works.`,
 		`- [Docs](${DOCS_URL}): The product docs and knowledge base — getting started plus a how-to guide for every dashboard page.`,
 		`- [React / Next.js SDK](${RSC_NPM_URL}): ${RSC_PACKAGE} on npm — the widget as one Server Component in your root layout, with a headless entry for custom UIs.`,
+		`- [Backend SDKs](${DOCS_URL}/sdks): Official packages for Python (PyPI), Ruby (RubyGems), and PHP (Packagist) — render the embed snippet from your backend.`,
 		`- [GitHub](${GITHUB_URL}): The open-source (MIT) codebase — self-host the full stack with your own keys.`,
 		`- [Live demo](${CANONICAL_SHOWCASE_URL}): The real widget running on a first-party demo page — try it before installing.`,
 		`- [Templates](${siteUrl}/templates): One-click deploy starters — Next.js, TanStack Start, React Router, Laravel, and FastAPI — with the support agent pre-wired.`,
