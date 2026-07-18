@@ -79,7 +79,7 @@ const TEMPLATES: Template[] = [
 			"A Blade landing page rendering the embed with the official Composer package's helper.",
 		tags: ["Laravel 12", "Blade", "Composer package"],
 		deployHref:
-			"https://railway.com/template/clanker-laravel?referralCode=clankersupport",
+			"https://railway.com/deploy/clanker-laravel?referralCode=clankersupport",
 		deployLabel: "Deploy on Railway",
 	},
 	{
