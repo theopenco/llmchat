@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clankersupport"
+version = "1.0.0"
+description = "Embed the Clanker Support AI support agent in any Python web app — one helper that renders the widget script tag, escaped and framework-friendly."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [{ name = "The Open Company", email = "hello@clankersupport.com" }]
+keywords = [
+	"customer-support",
+	"support-agent",
+	"chat-widget",
+	"clankersupport",
+	"fastapi",
+	"flask",
+	"django",
+	"jinja2",
+]
+classifiers = [
+	"Development Status :: 5 - Production/Stable",
+	"Intended Audience :: Developers",
+	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3 :: Only",
+	"Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+	"Topic :: Communications :: Chat",
+]
+
+[project.urls]
+Homepage = "https://clankersupport.com"
+Documentation = "https://docs.clankersupport.com"
+Repository = "https://github.com/theopenco/llmchat"
+Issues = "https://github.com/theopenco/llmchat/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/clankersupport"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
