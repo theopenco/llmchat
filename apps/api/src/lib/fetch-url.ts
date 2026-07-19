@@ -16,14 +16,7 @@ export async function fetchUrlContent(url: string): Promise<FetchedSource> {
 	const ctrl = new AbortController();
 	const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
 	try {
-		const res = await fetch(url, {
-			signal: ctrl.signal,
-			redirect: "follow",
-			headers: {
-				"user-agent": "llmchat-source-fetcher/1.0",
-				accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.1",
-			},
-		});
+		const res = await fetchFresh(url, ctrl.signal);
 		if (!res.ok) {
 			throw new Error(`HTTP ${res.status}`);
 		}
@@ -76,6 +69,66 @@ export async function fetchUrlContent(url: string): Promise<FetchedSource> {
 		return { title: url, content: trimmed };
 	} finally {
 		clearTimeout(timer);
+	}
+}
+
+// A crawl exists to refresh a snapshot, so a cached response defeats it: our
+// own llms.txt serves `max-age=3600`, and a Recrawl clicked within an hour of
+// a deploy would silently re-store the pre-deploy copy. Defenses, strongest
+// first: (1) a unique query param — CDNs key their caches on the full URL, so
+// this forces a miss on any of them; (2) `cache: "no-store"`, the
+// requester-side bypass; (3) `cache-control: no-cache` request headers for
+// caches that honor them. If the busted URL fails (e.g. a signed URL the extra
+// param breaks), retry the original so no previously-working source regresses
+// — that path can still be served stale by an edge cache, which is no worse
+// than before.
+async function fetchFresh(url: string, signal: AbortSignal) {
+	let busted: string;
+	try {
+		const u = new URL(url);
+		u.searchParams.set("__recrawl", crypto.randomUUID().slice(0, 8));
+		busted = u.toString();
+	} catch {
+		return fetchBypassingCache(url, signal);
+	}
+	try {
+		const res = await fetchBypassingCache(busted, signal);
+		if (res.ok) return res;
+	} catch (e) {
+		if (signal.aborted) throw e;
+	}
+	return fetchBypassingCache(url, signal);
+}
+
+// workerd rejects the `cache` option on pre-2024-11-11 compatibility dates
+// ("The 'cache' field on 'RequestInitializerDict' is not implemented") and
+// rejects modes it doesn't support ("Unsupported cache mode: …") — both throw
+// before any network I/O, so falling back to a plain fetch never duplicates an
+// in-flight request.
+async function fetchBypassingCache(url: string, signal: AbortSignal) {
+	const init: RequestInit = {
+		signal,
+		redirect: "follow",
+		headers: {
+			"user-agent": "llmchat-source-fetcher/1.0",
+			accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.1",
+			"cache-control": "no-cache",
+			pragma: "no-cache",
+		},
+	};
+	try {
+		return await fetch(url, { ...init, cache: "no-store" });
+	} catch (e) {
+		if (
+			e instanceof Error &&
+			/the 'cache' field|unsupported cache mode/i.test(e.message)
+		) {
+			console.warn("[fetch-url] runtime rejected the cache option", {
+				error: e.message,
+			});
+			return fetch(url, init);
+		}
+		throw e;
 	}
 }
 
