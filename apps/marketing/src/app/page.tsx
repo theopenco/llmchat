@@ -17,7 +17,9 @@ import {
 import {
 	CodeIcon,
 	NextJsIcon,
+	PythonIcon,
 	ReactIcon,
+	RubyIcon,
 	ShopifyIcon,
 	WordPressIcon,
 } from "@/components/PlatformIcons";
@@ -151,10 +153,10 @@ const platforms = [
 		cta: "See the Shopify guide",
 	},
 	{
-		name: "React & Next.js",
-		icons: [ReactIcon, NextJsIcon],
-		body: `One server component from the official ${RSC_PACKAGE} npm package — no script tag at all.`,
-		href: `${DOCS_URL}/integrations/react-sdk`,
+		name: "React, Python & Ruby",
+		icons: [ReactIcon, NextJsIcon, PythonIcon, RubyIcon],
+		body: `One server component from the official ${RSC_PACKAGE} npm package — plus a pip package, a Ruby gem, and a Composer package that render the snippet from your backend.`,
+		href: `${DOCS_URL}/sdks`,
 		cta: "Read the SDK docs",
 	},
 	{
