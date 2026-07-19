@@ -154,9 +154,16 @@ const SDKS: SdkEntry[] = [
 	{
 		name: "Plain <script> embed",
 		registry: "Docs",
-		href: DOCS_URL,
+		href: `${DOCS_URL}/integrations/widget`,
 		blurb:
 			"One script tag before </body> — works on any site, no build step, no framework.",
+	},
+	{
+		name: "All SDK docs",
+		registry: "Docs",
+		href: `${DOCS_URL}/sdks`,
+		blurb:
+			"Install guides for every package and template — pick your stack and go.",
 	},
 ];
 
@@ -321,6 +328,50 @@ export default function TemplatesPage() {
 								</div>
 							</article>
 						))}
+
+						{/* With five templates in a two-column grid, the sixth cell
+						    would render as a dead hole on desktop — make it the
+						    request-a-template slot instead. */}
+						<article className="group relative flex flex-col justify-center overflow-hidden bg-paper p-8 transition-colors hover:bg-paper-card sm:p-10">
+							<span
+								aria-hidden
+								className="pointer-events-none absolute -right-3 -top-6 select-none font-display text-[7rem] font-bold leading-none text-rule/60 transition-colors group-hover:text-accent/10"
+							>
+								06
+							</span>
+							<div className="relative">
+								<span className="font-mono text-xs font-medium text-faint transition-colors group-hover:text-accent-soft">
+									06
+								</span>
+								<h2 className="font-display mt-4 text-2xl font-semibold tracking-tight-display text-ink">
+									Your stack next
+								</h2>
+								<p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
+									Astro, SvelteKit, Django, Rails — new starters land by
+									request. Tell us what you deploy and we&apos;ll wire the
+									support agent in the official way for that stack.
+								</p>
+								<div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+									<a
+										href="https://github.com/theopenco/clankersupport-templates/issues/new?title=Template%20request%3A%20"
+										target="_blank"
+										rel="noopener noreferrer"
+										className="rounded-full border border-rule px-5 py-2.5 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-accent/40 hover:text-ink"
+									>
+										Request a template
+									</a>
+									<a
+										href={REPO_TREE}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted transition-colors hover:text-ink"
+									>
+										Browse the repo
+										<span aria-hidden>↗</span>
+									</a>
+								</div>
+							</div>
+						</article>
 					</div>
 				</section>
 
