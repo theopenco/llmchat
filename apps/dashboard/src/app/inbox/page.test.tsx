@@ -368,3 +368,39 @@ describe("InboxPage — onboarding redirect guards on the projects fetch outcome
 		);
 	});
 });
+
+describe("InboxPage — internal-note mode routes to the notes endpoint, never /reply", () => {
+	// THE S1 hazard test: if the composer's note mode ever fell through to the
+	// reply mutation, the note would hit /reply — which emails the visitor when
+	// an address is on file. The mode branch must target /notes exclusively.
+	it("sends the draft to POST …/notes (and never touches …/reply) in note mode", async () => {
+		const user = userEvent.setup();
+		renderInbox();
+
+		// Open the seeded conversation so the composer mounts.
+		await user.click(await screen.findByText("Bob"));
+		const noteTab = await screen.findByRole("button", {
+			name: /internal note/i,
+		});
+		await user.click(noteTab);
+
+		await user.type(
+			await screen.findByPlaceholderText(/add an internal note/i),
+			"VIP — comp the order",
+		);
+		await user.click(screen.getByRole("button", { name: /add note/i }));
+
+		await waitFor(() =>
+			expect(
+				calls.some(
+					(c) =>
+						c.method === "POST" &&
+						c.path === "/api/projects/p1/conversations/c1/notes",
+				),
+			).toBe(true),
+		);
+		expect(
+			calls.some((c) => c.method === "POST" && c.path.endsWith("/reply")),
+		).toBe(false);
+	});
+});

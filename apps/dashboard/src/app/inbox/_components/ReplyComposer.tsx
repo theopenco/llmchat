@@ -1,8 +1,11 @@
 "use client";
 
-import { Paperclip, Send, Sparkles } from "lucide-react";
+import { Paperclip, Send, Sparkles, StickyNote } from "lucide-react";
 
 import { Button } from "@/components/ds";
+import { cn } from "@/lib/utils";
+
+export type ComposerMode = "reply" | "note";
 
 export interface ReplyComposerProps {
 	value: string;
@@ -10,6 +13,11 @@ export interface ReplyComposerProps {
 	onSend: () => void;
 	placeholder: string;
 	pending?: boolean;
+	/** "reply" (default) sends to the visitor; "note" writes a team-only internal
+	 * note — a separate endpoint that never emails, so the mode must be explicit
+	 * and visually unmistakable (amber). */
+	mode?: ComposerMode;
+	onModeChange?: (mode: ComposerMode) => void;
 }
 
 export function ReplyComposer({
@@ -18,8 +26,11 @@ export function ReplyComposer({
 	onSend,
 	placeholder,
 	pending = false,
+	mode = "reply",
+	onModeChange,
 }: ReplyComposerProps) {
 	const canSend = value.trim().length > 0 && !pending;
+	const isNote = mode === "note";
 
 	function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
 		// Enter sends; Shift+Enter inserts a newline.
@@ -31,24 +42,50 @@ export function ReplyComposer({
 
 	return (
 		<div className="border-t border-ck-border bg-ck-topbar p-3">
-			{/* Reply (LIVE) vs Internal note (ROADMAP — internal notes aren't built). */}
+			{/* Mode tabs: Reply (to the visitor) vs Internal note (team-only). */}
 			<div className="mb-2 flex items-center gap-1.5">
-				<span className="rounded-[8px] bg-ck-accent/12 px-2.5 py-1 text-xs font-semibold text-ck-accent">
-					Reply
-				</span>
-				<span
-					aria-disabled="true"
-					title="Coming soon"
-					className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-[8px] border border-dashed border-ck-border px-2.5 py-1 text-xs font-medium text-ck-disabled"
+				<button
+					type="button"
+					aria-pressed={!isNote}
+					onClick={() => onModeChange?.("reply")}
+					className={cn(
+						"rounded-[8px] px-2.5 py-1 text-xs font-semibold",
+						isNote
+							? "border border-ck-border text-ck-muted hover:text-ck-text"
+							: "bg-ck-accent/12 text-ck-accent",
+					)}
 				>
+					Reply
+				</button>
+				<button
+					type="button"
+					aria-pressed={isNote}
+					onClick={() => onModeChange?.("note")}
+					className={cn(
+						"inline-flex items-center gap-1.5 rounded-[8px] px-2.5 py-1 text-xs font-semibold",
+						isNote
+							? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+							: "border border-ck-border font-medium text-ck-muted hover:text-ck-text",
+					)}
+				>
+					<StickyNote className="size-3.5" />
 					Internal note
-					<span className="text-[9px] font-semibold uppercase tracking-wide">
-						soon
+				</button>
+				{isNote && (
+					<span className="text-[11px] text-ck-faint">
+						visible to your team only — never sent to the visitor
 					</span>
-				</span>
+				)}
 			</div>
 
-			<div className="rounded-[12px] border border-ck-border bg-ck-card focus-within:border-ck-accent">
+			<div
+				className={cn(
+					"rounded-[12px] border bg-ck-card",
+					isNote
+						? "border-amber-500/50 bg-amber-500/5 focus-within:border-amber-500"
+						: "border-ck-border focus-within:border-ck-accent",
+				)}
+			>
 				<textarea
 					rows={2}
 					value={value}
@@ -80,8 +117,18 @@ export function ReplyComposer({
 						</span>
 					</div>
 					<Button size="sm" onClick={onSend} disabled={!canSend}>
-						{pending ? "Sending…" : "Send"}
-						<Send className="size-4" />
+						{pending
+							? isNote
+								? "Adding…"
+								: "Sending…"
+							: isNote
+								? "Add note"
+								: "Send"}
+						{isNote ? (
+							<StickyNote className="size-4" />
+						) : (
+							<Send className="size-4" />
+						)}
 					</Button>
 				</div>
 			</div>

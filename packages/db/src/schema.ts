@@ -389,13 +389,21 @@ export const message = sqliteTable(
 		conversationId: text()
 			.notNull()
 			.references(() => conversation.id, { onDelete: "cascade" }),
-		role: text({ enum: ["user", "assistant", "admin", "system"] }).notNull(),
+		// "note" = operator-internal annotation: rendered only in the dashboard
+		// thread, excluded from every visitor/model/email surface via the role
+		// ALLOWLISTS in @llmchat/shared (VISITOR_VISIBLE_ROLES / RECAP_ROLES) and
+		// lib/llm.ts (QUOTABLE_ROLES). TS-only enum — the column is plain text in
+		// SQL (no CHECK), so widening it needs no migration.
+		role: text({
+			enum: ["user", "assistant", "admin", "system", "note"],
+		}).notNull(),
 		content: text().notNull(),
 		sequence: integer().notNull(),
 		// Visitor thumbs rating on an assistant reply; null = unrated. Only
 		// assistant messages are rateable (enforced in the /v1/rating route).
 		rating: text({ enum: ["up", "down"] }),
-		// Author for admin messages; null for user/assistant.
+		// Author for admin messages and internal notes; null for user/assistant
+		// (and scrubbed to null when the authoring account is deleted).
 		authorUserId: text().references(() => user.id),
 		// Quote-reply: the earlier message in the SAME conversation this one is
 		// replying to (the widget's "Replying to:" affordance); null = not a reply.

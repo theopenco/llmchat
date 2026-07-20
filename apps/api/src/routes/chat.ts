@@ -52,6 +52,8 @@ import {
 	effectiveModel,
 	isModelAllowed,
 	isPaidPlan,
+	isRecapRole,
+	isVisitorVisibleRole,
 	planEntitlements,
 } from "@llmchat/shared";
 
@@ -679,13 +681,14 @@ export const chat = new Hono<AppContext>()
 		// Start the visitor-facing recap now so the gpt-5-nano call overlaps the email
 		// round-trips below; it's awaited (timeout-bounded) just before the response.
 		// The escalation is ALREADY durably recorded above, so a slow/failed/empty
-		// recap can never fail or hang the visitor's human request. Exclude system rows
-		// (the "Visitor requested a human operator" marker) so the recap summarizes the
-		// conversation, not the escalation event; the operator email keeps every row.
+		// recap can never fail or hang the visitor's human request. RECAP_ROLES is an
+		// ALLOWLIST: it excludes system rows (the "Visitor requested a human operator"
+		// marker is an event, not conversation content) and every non-listed role —
+		// operator-internal notes must never be paraphrased back to the visitor.
 		// Gate on a real exchange (parity with the inbox path) so a thin chat isn't
 		// padded into a vacuous recap.
 		const recapRows = rows.filter(
-			(m) => m.role !== "system" && m.content.trim(),
+			(m) => isRecapRole(m.role) && m.content.trim(),
 		);
 		const summaryPromise: Promise<string | null> =
 			recapRows.length >= SUMMARY_MIN_MESSAGES
@@ -700,7 +703,13 @@ export const chat = new Hono<AppContext>()
 				: Promise.resolve(null);
 
 		if (project.notifyEmail) {
+			// VISITOR_VISIBLE_ROLES bounds what may leave the operator dashboard —
+			// including email. The recipient is the operator, but internal notes must
+			// never transit email at all, and a future role stays out until it is
+			// deliberately allowlisted. (System rows stay: this transcript records the
+			// escalation event for the operator, unlike the visitor recap above.)
 			const transcriptHtml = rows
+				.filter((m) => isVisitorVisibleRole(m.role))
 				.map(
 					(m) =>
 						`<p><b>${escapeHtml(m.role)}:</b> ${escapeHtml(m.content)}</p>`,

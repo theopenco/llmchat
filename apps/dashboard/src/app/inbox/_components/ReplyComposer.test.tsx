@@ -4,9 +4,16 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ReplyComposer } from "./ReplyComposer";
 
-function setup(props: { value?: string; pending?: boolean } = {}) {
+function setup(
+	props: {
+		value?: string;
+		pending?: boolean;
+		mode?: "reply" | "note";
+	} = {},
+) {
 	const onChange = vi.fn();
 	const onSend = vi.fn();
+	const onModeChange = vi.fn();
 	render(
 		<ReplyComposer
 			value={props.value ?? ""}
@@ -14,9 +21,11 @@ function setup(props: { value?: string; pending?: boolean } = {}) {
 			onSend={onSend}
 			placeholder="Write a reply"
 			pending={props.pending ?? false}
+			mode={props.mode ?? "reply"}
+			onModeChange={onModeChange}
 		/>,
 	);
-	return { onChange, onSend };
+	return { onChange, onSend, onModeChange };
 }
 
 describe("ReplyComposer", () => {
@@ -46,18 +55,41 @@ describe("ReplyComposer", () => {
 		expect(send).toBeDisabled();
 	});
 
-	it("ROADMAP: Internal note / Suggest with AI / attach are dimmed labels, never interactive controls", () => {
-		setup({ value: "hi" });
-		// The labels render for layout parity…
-		expect(screen.getByText("Internal note")).toBeInTheDocument();
-		expect(screen.getByText("Suggest with AI")).toBeInTheDocument();
-		// …but they are NOT buttons — the ONLY real control is Send.
+	it("LIVE: Internal note is a real tab — switches mode and relabels Send", async () => {
+		const { onModeChange } = setup({ value: "hi" });
+		// The tab is now an interactive control (polarity flip of the old ROADMAP
+		// guard: internal notes shipped)…
+		await userEvent.click(
+			screen.getByRole("button", { name: /internal note/i }),
+		);
+		expect(onModeChange).toHaveBeenCalledWith("note");
+	});
+
+	it("LIVE: note mode shows the team-only caption and the 'Add note' send label", () => {
+		setup({ value: "hi", mode: "note" });
 		expect(
-			screen.queryByRole("button", { name: /internal note/i }),
-		).not.toBeInTheDocument();
+			screen.getByText(
+				/visible to your team only — never sent to the visitor/i,
+			),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: /add note/i }),
+		).toBeInTheDocument();
+		// Reply tab remains available to switch back.
+		expect(
+			screen.getByRole("button", { name: /^reply$/i }),
+		).toBeInTheDocument();
+	});
+
+	it("ROADMAP: Suggest with AI / attach stay dimmed labels, never interactive controls", () => {
+		setup({ value: "hi" });
+		// The label renders for layout parity…
+		expect(screen.getByText("Suggest with AI")).toBeInTheDocument();
+		// …but it is NOT a button — the real controls are exactly the two mode
+		// tabs + Send.
 		expect(
 			screen.queryByRole("button", { name: /suggest with ai/i }),
 		).not.toBeInTheDocument();
-		expect(screen.getAllByRole("button")).toHaveLength(1);
+		expect(screen.getAllByRole("button")).toHaveLength(3);
 	});
 });

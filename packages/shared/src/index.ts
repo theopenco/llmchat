@@ -40,7 +40,41 @@ export {
 	type TierEntitlements,
 } from "./billing-tiers";
 
-export const widgetMessageRole = z.enum(["user", "assistant", "admin"]);
+/** Roles allowed to leave the operator dashboard, incl. email. Everything not
+ * listed (e.g. the operator-internal "note") must never reach a visitor
+ * surface: the widget feed (/v1/messages), the escalation notification email's
+ * transcript, or the inbox triage summary prompt. ALLOWLIST on purpose — a
+ * future role is hidden until it is deliberately added here. */
+export const VISITOR_VISIBLE_ROLES = [
+	"user",
+	"assistant",
+	"admin",
+	"system",
+] as const;
+export type VisitorVisibleRole = (typeof VISITOR_VISIBLE_ROLES)[number];
+export function isVisitorVisibleRole(role: string): role is VisitorVisibleRole {
+	return (VISITOR_VISIBLE_ROLES as readonly string[]).includes(role);
+}
+
+/** Roles summarized into the VISITOR-facing escalation recap. Excludes
+ * `system` (the escalation marker is an event, not conversation content —
+ * preserving the recap's historical behavior) and, like every role allowlist,
+ * hides future roles by default. */
+export const RECAP_ROLES = ["user", "assistant", "admin"] as const;
+export type RecapRole = (typeof RECAP_ROLES)[number];
+export function isRecapRole(role: string): role is RecapRole {
+	return (RECAP_ROLES as readonly string[]).includes(role);
+}
+
+// `system` rows (the escalation marker) are part of the served feed, so the
+// wire type names them; the operator-internal `note` role must NEVER be added
+// here — this enum defines what a visitor may see.
+export const widgetMessageRole = z.enum([
+	"user",
+	"assistant",
+	"admin",
+	"system",
+]);
 
 export const widgetMessage = z.object({
 	id: z.string(),
