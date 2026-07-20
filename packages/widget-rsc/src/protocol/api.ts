@@ -43,10 +43,13 @@ export interface UIMessageTextPart {
 	text: string;
 }
 
-/** The UIMessage shape `POST /v1/chat` expects in its `messages` array. */
+/** The UIMessage shape `POST /v1/chat` expects in its `messages` array.
+ * Only the visitor's own turns and prior bot replies are valid history — the
+ * api rejects anything else at validation (the server owns the system prompt),
+ * and the provider filters to these roles before POSTing. */
 export interface OutgoingUIMessage {
 	id: string;
-	role: "user" | "assistant" | "system";
+	role: "user" | "assistant";
 	parts: UIMessageTextPart[];
 }
 
