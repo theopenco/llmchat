@@ -94,7 +94,7 @@ export const FEATURES: Feature[] = [
 			"Generic chatbots guess, ramble, and confidently invent answers — then your team cleans up the mess.",
 		body: [
 			"Your documentation already holds the answers to most support questions. Clanker Support grounds every reply in the knowledge you give it, so customers get accurate, on-brand answers instead of generic AI filler.",
-			"Just as important: it admits the limits of what it knows. Rather than inventing a confident wrong answer, it defers — and hands off to a human when it should.",
+			"Just as important: it's instructed to admit the limits of what it knows rather than invent a confident wrong answer — and the human hand-off is always one tap away in the widget.",
 		],
 		points: [
 			{
@@ -107,13 +107,13 @@ export const FEATURES: Feature[] = [
 			},
 			{
 				heading: "Knows when to stop",
-				body: "When the docs don't cover a question, it says so and escalates — no confident hallucinations.",
+				body: "When the docs don't cover a question, it's instructed to say so and point to a human — instead of confident hallucinations.",
 			},
 		],
 		inPractice: [
 			"Update your knowledge base in the dashboard and answers change immediately — no retraining.",
 			"Tune tone and boundaries with a plain-language system prompt, per project.",
-			"Pair it with the escalation threshold so uncertain answers become human hand-offs.",
+			"Pair it with escalation so a stuck customer reaches your team in one tap.",
 		],
 		faqs: [
 			{
@@ -124,7 +124,7 @@ export const FEATURES: Feature[] = [
 			{
 				question: "What happens when the bot doesn't know an answer?",
 				answer:
-					"It admits the limit instead of inventing one. When your docs don't cover a question, the bot says so and escalates to a human rather than producing a confident wrong answer — so customers aren't misled and your team isn't cleaning up after it.",
+					"It's instructed to admit the limit instead of inventing one, and the customer can escalate to your team at any point — the 'Talk to a human' option is built into the widget, and asking for a person surfaces it immediately. Automatic hand-off when the bot detects it's stuck is on the roadmap.",
 			},
 			{
 				question: "Can I control the bot's tone and boundaries?",
@@ -138,14 +138,15 @@ export const FEATURES: Feature[] = [
 		num: "03",
 		name: "Escalates to humans",
 		tagline:
-			"When the bot can't help, the conversation lands in your inbox with full context — no lost threads.",
-		headline: "When the bot can't help, a human picks up — with full context.",
-		lead: "The moment a conversation needs a person, the whole thread lands in your team inbox — so no customer is left talking to a wall.",
+			"Customers reach a human in one tap — the conversation lands in your inbox with full context. No lost threads.",
+		headline:
+			"When a customer needs a human, one picks up — with full context.",
+		lead: "The customer taps “Talk to a human” — the widget offers it, and an explicit ask surfaces it instantly — and the whole thread lands in your team inbox. No customer is left talking to a wall.",
 		problem:
 			"A bot that can't escalate just traps customers in a loop with no way out.",
 		body: [
-			"AI support is only as good as its exit hatch. Clanker Support is built around the hand-off: the moment a conversation needs a person, it routes the whole thread — every message, not a summary — into a shared inbox.",
-			"You set how eager it is to escalate with a per-project threshold, so the bot handles the routine questions and your team gets the ones that matter.",
+			"AI support is only as good as its exit hatch. Clanker Support is built around the hand-off: when a customer taps “Talk to a human”, it routes the whole thread — every message, not a summary — into a shared inbox.",
+			"You control when the hand-off is offered: after a per-project number of messages the widget surfaces a “Talk to a human” option, and an explicit ask for a person surfaces it immediately.",
 		],
 		points: [
 			{
@@ -154,7 +155,7 @@ export const FEATURES: Feature[] = [
 			},
 			{
 				heading: "A threshold you control",
-				body: "Dial how readily the bot hands off, per project, so escalations match your team's capacity and risk tolerance.",
+				body: "Choose how many messages before the widget offers a human, per project. A customer who asks for a person gets the option immediately.",
 			},
 			{
 				heading: "No lost threads",
@@ -170,7 +171,7 @@ export const FEATURES: Feature[] = [
 			{
 				question: "When does Clanker Support escalate to a human?",
 				answer:
-					"When a conversation needs a person. You set a per-project threshold for how readily the bot hands off, so it handles the routine questions and routes the ones that matter to your team — matching escalations to your capacity and risk tolerance.",
+					"When the customer chooses to. The widget offers “Talk to a human” after a per-project message threshold you set — and immediately when a customer explicitly asks for a person. Escalation sends the full thread to your team inbox and notifies you by email (and Slack, if configured).",
 			},
 			{
 				question: "Does my team see the full conversation when it's escalated?",
@@ -238,21 +239,21 @@ export const FEATURES: Feature[] = [
 	{
 		slug: "any-model-any-time",
 		num: "05",
-		name: "Any model, any time",
+		name: "Your model, any time",
 		tagline:
-			"Built on LLM Gateway. Swap GPT, Claude, or a custom model per project — a config change, not a rewrite.",
-		headline: "Run any model. Switch the moment a better one ships.",
-		lead: "Built on LLM Gateway, the model behind your bot is a setting — pick one per project and change it whenever you like.",
+			"Built on LLM Gateway. Pick from a curated catalog of web-search-capable models per project — a config change, not a rewrite.",
+		headline: "Pick the right model. Switch the moment a better one ships.",
+		lead: "Built on LLM Gateway, the model behind your bot is a setting — pick from a curated, web-search-capable catalog per project and change it whenever you like.",
 		problem:
 			"Hard-wire one model and you're stuck with it — every upgrade becomes a migration.",
 		body: [
 			"You shouldn't have to re-architect your support stack every time a better model ships. Clanker Support runs on LLM Gateway, so the model behind your bot is a setting you control, not a dependency baked into your code.",
-			"Use a frontier model for complex products, a cheaper one for simple FAQs, or bring your own — without touching a line of integration code.",
+			"The catalog is curated to web-search-capable models — GPT, Claude, Gemini and more. Use a frontier model for complex products or a lighter one for simple FAQs, without touching a line of integration code. Growth and Scale unlock the full catalog.",
 		],
 		points: [
 			{
-				heading: "Model-agnostic",
-				body: "GPT, Claude, or a custom model — they're interchangeable behind the same support experience.",
+				heading: "A curated, multi-provider catalog",
+				body: "GPT, Claude, Gemini and more via LLM Gateway — interchangeable behind the same support experience, every one of them web-search-capable.",
 			},
 			{
 				heading: "Per-project choice",
@@ -272,7 +273,7 @@ export const FEATURES: Feature[] = [
 			{
 				question: "Which AI models can I use with Clanker Support?",
 				answer:
-					"Any model available through LLM Gateway — GPT, Claude, or a custom model. The model behind your bot is a setting you control, not a dependency baked into your code, so you're never tied to one provider's roadmap.",
+					"A curated catalog of web-search-capable models served through LLM Gateway — GPT, Claude, Gemini and more. Starter includes the lighter model class; Growth and Scale unlock the full catalog. The model is a per-project setting you control, so you're never tied to one provider's roadmap.",
 			},
 			{
 				question: "How do I switch models?",
@@ -323,7 +324,7 @@ export const FEATURES: Feature[] = [
 			{
 				question: "Can I self-host Clanker Support?",
 				answer:
-					"Yes. The architecture is open and runs on serverless edge infrastructure, so instead of renting a black box you can deploy the whole stack on your own account. You bring your own keys and a database, and get the full feature set.",
+					"Yes. The stack is MIT open source and runs on serverless infrastructure, so instead of renting a black box you can deploy the whole thing on your own account. You bring your own keys and a database; the code you deploy is the same code behind the hosted service, and one environment variable marks your own workspaces as internal so plan limits never apply — the self-hosting docs walk through it.",
 			},
 			{
 				question: "Where does my data live when I self-host?",

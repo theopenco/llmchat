@@ -165,7 +165,7 @@ export const ENTERPRISE_TIER = {
 		"Everything in Scale",
 		"Custom response volume & pricing",
 		"Unlimited projects & seats",
-		"SSO/SAML, audit logs & DPA",
+		"DPA on request; SSO/SAML & audit logs on the roadmap",
 		"SLA + dedicated support channel",
 		"White-glove onboarding & migration",
 		"Self-host support contract",

@@ -12,7 +12,7 @@ const INK = "#0c0e1a";
 const ACCENT = "#7CA2FF";
 const PRODUCT_HUNT_URL = "https://www.producthunt.com/products/clanker-support";
 
-const PILLS = ["One script tag", "Any model", "Open & self-hostable"];
+const PILLS = ["One script tag", "Model choice", "Open & self-hostable"];
 
 export function LaunchHero({ preview = false }: { preview?: boolean }) {
 	const HeadingTag = preview ? "div" : "h1";
@@ -102,8 +102,8 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 						}}
 					>
 						Answers from your docs.{" "}
-						<span style={{ color: ACCENT }}>Escalates</span> the moment it
-						can&apos;t.
+						<span style={{ color: ACCENT }}>Escalates</span> when your customer
+						asks.
 					</HeadingTag>
 
 					<p

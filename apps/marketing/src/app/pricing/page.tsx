@@ -113,7 +113,7 @@ const faqs: Faq[] = [
 	{
 		question: "Is there a free plan?",
 		answer:
-			"The hosted product is paid-only — there's no free hosted tier. Self-hosting is free: run the open, self-hostable stack on your own infrastructure with your own keys and get the full feature set.",
+			"The hosted product is paid-only — there's no free hosted tier. Self-hosting is free: the same MIT-licensed code behind the hosted service, run on your own infrastructure with your own keys. One environment variable marks your workspaces as internal so plan limits never apply — the self-hosting docs walk through it.",
 	},
 	{
 		question: "What's included in each plan?",
@@ -126,12 +126,12 @@ const faqs: Faq[] = [
 	{
 		question: "Can I self-host instead of paying?",
 		answer:
-			"Yes. Clanker Support is open and self-hostable. Bring an LLM Gateway key and a database, run it on your own infrastructure, and get the full feature set for free — you only pay your own model and hosting costs.",
+			"Yes. Clanker Support is MIT open source and self-hostable. Bring an LLM Gateway key and a database, run it on your own infrastructure, and pay only your own model and hosting costs — the code is the same as the hosted service, and one documented environment variable lifts the plan limits on your install.",
 	},
 	{
 		question: "What's the Enterprise plan?",
 		answer:
-			"For agencies, high volume, or teams that need SSO/SAML, a DPA, an SLA, white-glove onboarding and migration, or a self-host support contract. Response volume and pricing are built around your usage — talk to sales.",
+			"For agencies, high volume, or teams that need an SLA, white-glove onboarding and migration, a self-host support contract, or enterprise controls arranged on request — a DPA, with SSO/SAML and audit logs on the Enterprise roadmap. Response volume and pricing are built around your usage — talk to sales.",
 	},
 ];
 
@@ -153,7 +153,7 @@ const pricingLd = {
 			name: "Self-hosted",
 			price: "0",
 			priceCurrency: "USD",
-			description: "Run it yourself with your own keys. Full feature set.",
+			description: "Run it yourself with your own keys. Same code as hosted.",
 		},
 		...PAID_PLANS.map((plan) => {
 			const t = BILLING_TIERS[plan];
@@ -216,10 +216,11 @@ export default function PricingPage() {
 							Rather run it yourself? Self-host for free.
 						</h2>
 						<p className="mt-2 text-sm leading-relaxed text-muted">
-							Clanker Support is open and self-hostable. Bring your own LLM
-							Gateway key and a database, deploy the whole stack on your own
-							infrastructure, and get the full feature set with no usage limits
-							from us.
+							Clanker Support is MIT open source and self-hostable. Bring your
+							own LLM Gateway key and a database, deploy the whole stack on your
+							own infrastructure, and pay no usage fees to us — it&apos;s the
+							same code as the hosted service, with a documented env variable
+							that lifts the plan limits.
 						</p>
 					</div>
 					<a

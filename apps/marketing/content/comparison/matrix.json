@@ -78,7 +78,7 @@
 					"intercom": "no",
 					"chatwoot": "no",
 					"crisp": "no",
-					"note": "Clanker Support runs any model or provider — including custom and self-hosted endpoints — via LLM Gateway. Chatbase lets you pick from its supported models (premium ones gated to higher plans); Fin, Intercom, Chatwoot, and Crisp are fixed to their own AI stack."
+					"note": "Clanker Support picks from a curated multi-provider catalog of web-search-capable models via LLM Gateway (GPT, Claude, Gemini and more) — per project, swappable with a config change; Growth and Scale unlock the full catalog. Chatbase lets you pick from its supported models (premium ones gated to higher plans); Fin, Intercom, Chatwoot, and Crisp are fixed to their own AI stack."
 				},
 				{
 					"label": "Custom system prompt",
@@ -95,7 +95,7 @@
 			"heading": "Escalation & inbox",
 			"rows": [
 				{
-					"label": "Smart escalation to humans",
+					"label": "Escalation to humans",
 					"llmchat": "yes",
 					"chatbase": "yes",
 					"fin": "yes",

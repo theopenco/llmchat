@@ -124,7 +124,7 @@ export const USE_CASES: UseCase[] = [
 			{
 				question: "Will it make things up about my product?",
 				answer:
-					"No. It answers from the docs and system prompt you give it, and when a question isn't covered it says so and escalates to a human instead of inventing a confident wrong answer.",
+					"No. It answers from the docs and system prompt you give it, and when a question isn't covered it's instructed to say so — and your customer can hand the thread to a human in one tap instead of getting a confident wrong answer.",
 			},
 			{
 				question: "Can it match our product's voice?",
@@ -165,7 +165,7 @@ export const USE_CASES: UseCase[] = [
 			},
 			{
 				heading: "Honest by design",
-				body: "When the docs don't cover something, it says so and hands off — no confident hallucinations.",
+				body: "When the docs don't cover something, it's instructed to say so — and a human is one tap away. No confident hallucinations.",
 			},
 		],
 		faqs: [
@@ -177,7 +177,7 @@ export const USE_CASES: UseCase[] = [
 			{
 				question: "What happens with questions the docs don't cover?",
 				answer:
-					"It tells the user it isn't sure rather than guessing, and escalates to a human so a real answer (and a future doc update) can follow.",
+					"It's instructed to say it isn't sure rather than guess, and the user can escalate to a human in one tap so a real answer (and a future doc update) can follow.",
 			},
 		],
 	},
@@ -268,7 +268,7 @@ export const USE_CASES: UseCase[] = [
 			{
 				question: "How does it know about our current listings?",
 				answer:
-					"It answers from the listing details and information you provide. Keep that content current in the dashboard and the agent stays accurate; for anything it can't answer, it escalates to an agent.",
+					"It answers from the listing details and information you provide. Keep that content current in the dashboard and the agent stays accurate; for anything it can't answer, the visitor can escalate to your team in one tap.",
 			},
 			{
 				question: "Can it book a viewing directly?",

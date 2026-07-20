@@ -26,7 +26,7 @@
 		},
 		{
 			"title": "Configure escalation and your notify email",
-			"body": "In project settings, set the escalation threshold (how many exchanges before the bot hands off) and the notify email where escalations should land. This is your team inbox or a shared support address. When the bot can't help, the full conversation arrives there with context intact."
+			"body": "In project settings, set the escalation threshold (how many messages before the widget offers “Talk to a human” — an explicit ask surfaces it immediately) and the notify email where escalations should land. This is your team inbox or a shared support address. When a customer escalates, the full conversation arrives there with context intact."
 		},
 		{
 			"title": "Set up email threading (optional)",
@@ -53,7 +53,7 @@
 		},
 		{
 			"from": "Custom AI model (Chatbase-managed)",
-			"to": "Any model via LLM Gateway",
+			"to": "Curated multi-provider catalog via LLM Gateway",
 			"note": "Swap per project, no code change."
 		},
 		{

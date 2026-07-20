@@ -8,7 +8,7 @@
 	"bestFor": "Teams wanting open-source ownership and multi-channel support who are comfortable running infrastructure.",
 	"notFor": "Teams wanting a minimal drop-in widget — Chatwoot is a full platform.",
 	"pricing": "Free self-hosted (community) & a free cloud 'Hacker' plan (live chat only, no AI); paid cloud from $19/agent/mo",
-	"heroSubtext": "Both self-hostable — but different stacks. Chatwoot runs on Ruby on Rails with PostgreSQL and Redis. Clanker Support runs serverless on Cloudflare's edge: no database to provision, no app server to maintain.",
+	"heroSubtext": "Both self-hostable — but different stacks. Chatwoot runs on Ruby on Rails with PostgreSQL and Redis. Clanker Support runs serverless on workerd via Ploy: no database server to provision, no app server to maintain.",
 	"heroBadges": [
 		"Serverless self-hosting",
 		"Model-agnostic",
@@ -25,7 +25,7 @@
 			"rows": [
 				{
 					"label": "Self-hosting stack",
-					"llmchat": "Cloudflare serverless (D1, KV, workerd)",
+					"llmchat": "Serverless workerd via Ploy (D1-compatible SQLite + KV state)",
 					"competitor": "Ruby on Rails + PostgreSQL + Redis"
 				},
 				{
@@ -45,7 +45,7 @@
 			"rows": [
 				{
 					"label": "AI model flexibility",
-					"llmchat": "Any LLM via LLM Gateway",
+					"llmchat": "Curated multi-provider catalog via LLM Gateway",
 					"competitor": "Captain AI on OpenAI GPT — fixed model"
 				},
 				{
@@ -101,17 +101,17 @@
 			]
 		}
 	],
-	"tldr": "Both Clanker Support and Chatwoot are self-hostable. The difference is scope and stack: Chatwoot is a full multi-channel platform running on Rails + PostgreSQL; Clanker Support is a focused widget running serverless on Cloudflare's edge. Choose Chatwoot for open-source, multi-channel coverage. Choose Clanker Support for a lighter setup and model-agnostic AI.",
+	"tldr": "Both Clanker Support and Chatwoot are MIT-licensed and self-hostable. The difference is scope and stack: Chatwoot is a full multi-channel platform running on Rails + PostgreSQL; Clanker Support is a focused widget running serverless on workerd via Ploy. Choose Chatwoot for multi-channel coverage and the larger OSS community. Choose Clanker Support for a lighter setup and model flexibility.",
 	"seoDescription": "Clanker Support vs Chatwoot: both self-hostable — a focused serverless AI widget vs a full Rails multi-channel platform. See the full comparison.",
 	"llmchatWins": [
-		"Lighter self-hosting — serverless on Cloudflare, no database to manage",
+		"Lighter self-hosting — serverless on workerd via Ploy, no database server to manage",
 		"Model-agnostic AI — swap LLMs per project without code changes",
 		"One script tag setup vs. full platform deployment",
 		"Shadow DOM widget with no style bleed",
 		"Flat monthly plans, not per-agent — from $19/mo"
 	],
 	"competitorWins": [
-		"Fully open-source (MIT license) — read, fork, and contribute",
+		"Larger, older open-source community around an MIT codebase",
 		"Multi-channel: WhatsApp, Instagram, email, Telegram, and more",
 		"25,000+ GitHub stars and active community",
 		"Full agent management: roles, canned responses, labels, reports",
@@ -122,11 +122,11 @@
 		"Teams who want a drop-in AI support widget without deploying a platform",
 		"Teams who want managed cloud without maintaining infrastructure",
 		"Teams who need model flexibility across different projects",
-		"Developers who want edge-native, serverless architecture",
+		"Developers who want a serverless, workerd-based architecture",
 		"Products where a focused widget is enough"
 	],
 	"competitorBestFor": [
-		"Teams who specifically need open-source licensing (MIT)",
+		"Teams who want a large, established OSS community and ecosystem",
 		"Teams requiring multi-channel support: WhatsApp, Instagram, Telegram",
 		"Organizations that want full agent management and reporting",
 		"Teams comfortable running and maintaining a Rails/PostgreSQL stack",
@@ -135,7 +135,7 @@
 	"keyDifferences": [
 		{
 			"heading": "Self-hosting: same goal, different stacks",
-			"llmchat": "Self-hosted on Cloudflare infrastructure — D1 for the database, KV for cache and rate limiting, workerd for compute. Serverless and edge-native. No database server to provision or maintain.",
+			"llmchat": "Self-hosted on serverless infrastructure — a D1-compatible SQLite database, KV-style state for cache and rate limiting, and workerd for compute, deployed via Ploy. No database server to provision or maintain.",
 			"competitor": "Self-hosted on a Ruby on Rails application with PostgreSQL and Redis. A production-grade traditional web application stack. More operational surface to manage, but also more mature and battle-tested.",
 			"bottomLine": "Choose Clanker Support if you want self-hosting without managing a database server. Choose Chatwoot if you're comfortable with Rails/PostgreSQL and want the full platform that stack enables."
 		},
@@ -147,9 +147,9 @@
 		},
 		{
 			"heading": "Open source licensing",
-			"llmchat": "Open architecture — the code is readable and the stack is transparent — but not MIT-licensed open source in the contribution sense. You can audit and fork the concepts, but it's not a community-governed project.",
-			"competitor": "Fully open-source under the MIT License. 25,000+ GitHub stars, active contributors, and a long history of community-driven development. If OSS community and contribution rights matter, Chatwoot is the clear choice.",
-			"bottomLine": "Choose Chatwoot if open-source licensing, community contributions, or forking rights are important. Choose Clanker Support if open architecture (readable, auditable) is sufficient."
+			"llmchat": "MIT open source, same as Chatwoot — the whole stack lives in one public repository (theopenco/llmchat) you can read, fork, and contribute to. The project is younger, with a smaller community than Chatwoot's.",
+			"competitor": "Fully open-source under the MIT License. 25,000+ GitHub stars, active contributors, and a long history of community-driven development. If a large OSS community matters, Chatwoot is the established choice.",
+			"bottomLine": "Both are MIT open source. Choose Chatwoot for the larger, older community and ecosystem; choose Clanker Support for a lighter, serverless, AI-first stack."
 		},
 		{
 			"heading": "AI model flexibility",
@@ -162,11 +162,11 @@
 	"faqs": [
 		{
 			"question": "Both Clanker Support and Chatwoot are self-hostable — what's the difference?",
-			"answer": "It's the stack and the scope. Chatwoot is a full multi-channel platform you run on Ruby on Rails with PostgreSQL and Redis. Clanker Support is a focused support widget that runs serverless on Cloudflare's edge — no database to provision and no app server to maintain."
+			"answer": "It's the stack and the scope. Chatwoot is a full multi-channel platform you run on Ruby on Rails with PostgreSQL and Redis. Clanker Support is a focused support widget that runs serverless on workerd via Ploy — no database server to provision and no app server to maintain."
 		},
 		{
 			"question": "Does Chatwoot have model-agnostic AI like Clanker Support?",
-			"answer": "No. Chatwoot's Captain AI assistant runs on a fixed stack. Clanker Support is built on LLM Gateway, so you choose the model per project and swap it with a config change — running a cheaper model for routine questions and a more capable one where it matters."
+			"answer": "No. Chatwoot's Captain AI assistant runs on a fixed stack. Clanker Support is built on LLM Gateway, so you pick the model per project from a curated multi-provider catalog and swap it with a config change — running a cheaper model for routine questions and a more capable one where it matters."
 		},
 		{
 			"question": "Which is easier to self-host?",
@@ -174,7 +174,7 @@
 		},
 		{
 			"question": "Should I choose Clanker Support or Chatwoot?",
-			"answer": "Choose Clanker Support for a lightweight, serverless widget with model-agnostic AI and minimal setup. Choose Chatwoot if you want open-source ownership of a full multi-channel inbox — WhatsApp, Instagram, and more — and are comfortable running the infrastructure."
+			"answer": "Choose Clanker Support for a lightweight, serverless widget with model flexibility and minimal setup. Choose Chatwoot if you want a full multi-channel inbox — WhatsApp, Instagram, and more — with a large OSS community, and are comfortable running the infrastructure. Both are MIT open source."
 		}
 	]
 }

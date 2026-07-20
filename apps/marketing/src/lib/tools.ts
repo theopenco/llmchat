@@ -160,7 +160,7 @@ export const TOOLS: Tool[] = [
 			{
 				heading: "From templates to automation",
 				paragraphs: [
-					"Canned responses are the manual version of what an AI support agent does automatically: it drafts the reply from your docs and policies, personalized to the question, and only hands off to a human when the answer isn't knowable. If your team pastes the same ten templates all day, that's the signal the first tier of your support can be automated.",
+					"Canned responses are the manual version of what an AI support agent does automatically: it drafts the reply from your docs and policies, personalized to the question, and hands off to a human when your customer asks for one. If your team pastes the same ten templates all day, that's the signal the first tier of your support can be automated.",
 				],
 			},
 		],

@@ -27,7 +27,7 @@ const faqs: Faq[] = [
 	{
 		question: "What is the best AI support tool?",
 		answer:
-			"It depends on what you need. Clanker Support is the best fit if you want a single script tag, model-agnostic AI, smart escalation, and the option to self-host. Intercom, Chatwoot, and Chatbase reach further if you need WhatsApp, voice, or a full multi-channel platform today.",
+			"It depends on what you need. Clanker Support is the best fit if you want a single script tag, model-agnostic AI, human escalation, and the option to self-host. Intercom, Chatwoot, and Chatbase reach further if you need WhatsApp, voice, or a full multi-channel platform today.",
 	},
 	{
 		question: "Which AI support tools are self-hostable?",
@@ -37,7 +37,7 @@ const faqs: Faq[] = [
 	{
 		question: "How is Clanker Support different from Intercom?",
 		answer:
-			"Intercom is a full customer-communication platform spanning support, sales, and marketing. Clanker Support is purpose-built for AI support — one script tag, any model, smart escalation, and email threading — so it costs less and there's far less to learn if support is all you need.",
+			"Intercom is a full customer-communication platform spanning support, sales, and marketing. Clanker Support is purpose-built for AI support — one script tag, your choice of model, human escalation, and email threading — so it costs less and there's far less to learn if support is all you need.",
 	},
 	{
 		question: "Can I use my own AI model with these tools?",
@@ -98,9 +98,9 @@ export default function ComparePage() {
 						<strong className="font-semibold text-ink">
 							a single script tag
 						</strong>{" "}
-						for AI support, smart escalation, and email threading — with the
+						for AI support, human escalation, and email threading — with the
 						freedom to{" "}
-						<strong className="font-semibold text-ink">run any model</strong>{" "}
+						<strong className="font-semibold text-ink">pick your model</strong>{" "}
 						and <strong className="font-semibold text-ink">self-host</strong>.
 						Need WhatsApp, voice, or a full platform today? Intercom, Chatwoot,
 						or Chatbase reach further.

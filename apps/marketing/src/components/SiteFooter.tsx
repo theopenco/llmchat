@@ -38,7 +38,7 @@ export function SiteFooter() {
 						</div>
 						<p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
 							AI support that answers from your docs and escalates to humans —
-							one script tag, any model.
+							one script tag, your choice of model.
 						</p>
 						<TrackedLink
 							href={dashboardUrl}
@@ -187,7 +187,7 @@ export function SiteFooter() {
 							Terms
 						</Link>
 						<p className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
-							Any model · Self-hostable · No lock-in
+							Model choice · Self-hostable · No lock-in
 						</p>
 					</div>
 				</div>

@@ -4,7 +4,7 @@
 	"name": "Chatwoot",
 	"tagline": "From a self-hosted Rails stack to serverless Clanker Support",
 	"estimatedTime": "~25 minutes",
-	"intro": "Both Chatwoot and Clanker Support can be self-hosted, but the stacks differ: Chatwoot is Ruby on Rails + PostgreSQL + Redis, while Clanker Support runs serverless on Cloudflare (D1, KV, workerd). Migrating means a widget swap plus a knowledge-base re-import — and, if you self-host, far less infrastructure to maintain afterward.",
+	"intro": "Both Chatwoot and Clanker Support can be self-hosted, but the stacks differ: Chatwoot is Ruby on Rails + PostgreSQL + Redis, while Clanker Support runs serverless on workerd via Ploy (D1-compatible SQLite + KV state). Migrating means a widget swap plus a knowledge-base re-import — and, if you self-host, far less infrastructure to maintain afterward.",
 	"seoDescription": "How to migrate from Chatwoot to Clanker Support: swap the widget, re-import your knowledge base, and drop the Rails + PostgreSQL + Redis stack.",
 	"quickSummary": "Replace the Chatwoot SDK loader with the Clanker Support script tag and re-import your knowledge base. If you self-host, you can decommission the Rails/PostgreSQL stack once you're live on Clanker Support.",
 	"oldEmbedLabel": "Remove the Chatwoot SDK",
@@ -12,7 +12,7 @@
 	"steps": [
 		{
 			"title": "Create your Clanker Support project",
-			"body": "Sign up for managed Clanker Support (or set up the self-hosted deployment on your Cloudflare account). Create a project and grab your public key."
+			"body": "Sign up for managed Clanker Support (or set up the self-hosted deployment on your own account). Create a project and grab your public key."
 		},
 		{
 			"title": "Re-import your knowledge base",
@@ -26,7 +26,7 @@
 		},
 		{
 			"title": "Configure escalation and your notify email",
-			"body": "In project settings, set the escalation threshold (how many exchanges before the bot hands off) and the notify email where escalations should land. This is your team inbox or a shared support address. When the bot can't help, the full conversation arrives there with context intact."
+			"body": "In project settings, set the escalation threshold (how many messages before the widget offers “Talk to a human” — an explicit ask surfaces it immediately) and the notify email where escalations should land. This is your team inbox or a shared support address. When a customer escalates, the full conversation arrives there with context intact."
 		},
 		{
 			"title": "Set up email threading (optional)",
@@ -48,11 +48,11 @@
 		},
 		{
 			"from": "Captain AI (fixed stack)",
-			"to": "Any model via LLM Gateway"
+			"to": "Curated multi-provider catalog via LLM Gateway"
 		},
 		{
 			"from": "Rails + PostgreSQL + Redis",
-			"to": "Cloudflare D1 + KV + workerd",
+			"to": "Serverless workerd via Ploy (D1-compatible SQLite + KV state)",
 			"note": "No DB server to run."
 		},
 		{

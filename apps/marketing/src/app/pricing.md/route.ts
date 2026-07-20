@@ -51,7 +51,7 @@ Clanker Support is an AI-powered support agent. It is open and self-hostable, wi
 ## Self-hosted
 - Price: Free
 - You run it yourself and bring your own keys and infrastructure (an LLM Gateway key and a database).
-- Full feature set; no usage limits imposed by us.
+- Same code as the hosted service; no usage limits imposed by us. One documented environment variable (\`INTERNAL_ACCOUNT_EMAILS\`) lifts the plan limits on your install.
 
 ## Hosted (clankersupport.com)
 - Paid-only — there is no free hosted tier.

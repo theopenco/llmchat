@@ -91,7 +91,7 @@ const orgJsonLd = {
 const faqs: Faq[] = [
 	{
 		question: "What is Clanker Support?",
-		answer: `Clanker Support is an AI-powered support agent you embed on any site with one script tag — or one React Server Component via the ${RSC_PACKAGE} npm package. It answers from your docs and sources, then hands off to your team the moment it can't — routing every escalation into a single inbox with the full conversation intact.`,
+		answer: `Clanker Support is an AI-powered support agent you embed on any site with one script tag — or one React Server Component via the ${RSC_PACKAGE} npm package. It answers from your docs and sources, and offers a hand-off to your team the moment your customer wants a person — one tap routes the escalation into a single inbox with the full conversation intact.`,
 	},
 	{
 		question: "How do I add Clanker Support to my site?",
@@ -100,12 +100,12 @@ const faqs: Faq[] = [
 	{
 		question: "Which AI models does Clanker Support support?",
 		answer:
-			"Any model available through LLM Gateway. You choose the model per project and can swap it with a config change — no code edits — so you can run a cost-efficient model for routine questions and a more capable one where it matters.",
+			"A curated catalog of web-search-capable models through LLM Gateway — GPT, Claude, Gemini and more. You choose the model per project and can swap it with a config change — no code edits — running a cost-efficient model for routine questions and a more capable one where it matters. Starter includes the lighter model class; Growth and Scale unlock the full catalog.",
 	},
 	{
 		question: "What happens when the AI can't answer?",
 		answer:
-			"It escalates to a human instead of guessing. The full conversation lands in your team inbox with context intact, a notification goes to your alert email, and the customer can keep the thread going over email — nothing lands in a black hole.",
+			"It's instructed to say so instead of guessing, and your customer can reach a human at any point — one tap in the widget, or simply by asking. On escalation the full conversation lands in your team inbox with context intact, a notification goes to your alert email, and the customer can keep the thread going over email — nothing lands in a black hole.",
 	},
 	{
 		question: "Is Clanker Support self-hostable?",
@@ -128,7 +128,7 @@ const steps = [
 	{
 		k: "Step 03",
 		title: "Watch it work",
-		body: "It answers from your docs, escalates when stuck, and routes every hand-off into a single team inbox.",
+		body: "It answers from your docs, offers a human the moment your customer wants one, and routes every hand-off into a single team inbox.",
 	},
 ];
 
@@ -212,9 +212,9 @@ export default function Home() {
 						</h1>
 
 						<p className="animate-rise-in mt-7 max-w-xl text-pretty text-lg leading-relaxed text-muted [animation-delay:140ms]">
-							It answers from your docs, hands off to a human the moment it
-							can&apos;t, and threads every reply through email — so no customer
-							is left talking to a wall, and nothing lands in a black hole.
+							It answers from your docs, offers a human the moment your customer
+							asks, and threads every reply through email — so no customer is
+							left talking to a wall, and nothing lands in a black hole.
 						</p>
 
 						<div className="animate-rise-in mt-10 [animation-delay:200ms]">
@@ -235,7 +235,7 @@ export default function Home() {
 					<div className="mx-auto max-w-2xl text-center">
 						<p className="kicker">The handoff</p>
 						<h2 className="font-display mt-3 text-3xl font-semibold leading-tight tracking-tight-display text-ink sm:text-4xl">
-							Answers when it can. Hands off when it can&apos;t.
+							Answers when it can. Hands off when asked.
 						</h2>
 						<p className="mt-3 text-sm leading-relaxed text-muted">
 							The agent only speaks from your knowledge base. The moment a
