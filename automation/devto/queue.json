@@ -120,6 +120,14 @@
 			"tags": ["seo", "nextjs", "webdev", "ai"],
 			"cover": "/blog/ai-seo-audit-checklist-devto.jpg",
 			"published": true
+		},
+		{
+			"slug": "7-day-free-trial",
+			"source": "apps/marketing/content/blog/7-day-free-trial.md",
+			"canonical": "https://clankersupport.com/blog/7-day-free-trial",
+			"tags": ["saas", "startup", "ai", "customersupport"],
+			"cover": "/blog/7-day-free-trial-devto.jpg",
+			"published": true
 		}
 	]
 }
