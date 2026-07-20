@@ -96,6 +96,30 @@
 			"tags": ["tutorial", "webdev", "ai", "javascript"],
 			"cover": "/blog/add-ai-support-agent-any-stack-devto.jpg",
 			"published": true
+		},
+		{
+			"slug": "additive-migration-almost-broke-every-login",
+			"source": "apps/marketing/content/blog/additive-migration-almost-broke-every-login.md",
+			"canonical": "https://clankersupport.com/blog/additive-migration-almost-broke-every-login",
+			"tags": ["database", "sql", "devops", "webdev"],
+			"cover": "/blog/additive-migration-almost-broke-every-login-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "knowledge-base-recrawl-cdn-cache",
+			"source": "apps/marketing/content/blog/knowledge-base-recrawl-cdn-cache.md",
+			"canonical": "https://clankersupport.com/blog/knowledge-base-recrawl-cdn-cache",
+			"tags": ["rag", "caching", "webdev", "ai"],
+			"cover": "/blog/knowledge-base-recrawl-cdn-cache-devto.jpg",
+			"published": true
+		},
+		{
+			"slug": "ai-seo-audit-checklist",
+			"source": "apps/marketing/content/blog/ai-seo-audit-checklist.md",
+			"canonical": "https://clankersupport.com/blog/ai-seo-audit-checklist",
+			"tags": ["seo", "nextjs", "webdev", "ai"],
+			"cover": "/blog/ai-seo-audit-checklist-devto.jpg",
+			"published": true
 		}
 	]
 }
