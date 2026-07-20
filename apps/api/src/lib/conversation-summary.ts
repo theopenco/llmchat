@@ -1,4 +1,5 @@
 import { conversation, eq } from "@llmchat/db";
+import { VISITOR_VISIBLE_ROLES } from "@llmchat/shared";
 
 import { db } from "@/lib/db";
 import { summarizeConversation } from "@/lib/llm";
@@ -60,7 +61,11 @@ async function generateAndStore(
 	conv: { id: string; messageCount: number },
 ): Promise<void> {
 	const msgs = await db(env).query.message.findMany({
-		where: (m, { eq: e }) => e(m.conversationId, conv.id),
+		// Summaries describe the visitor conversation — the allowlist keeps
+		// operator-internal notes (and any future role) out of the LLM prompt,
+		// where buildTranscript would otherwise mislabel them "Agent".
+		where: (m, { and: a, eq: e, inArray: inA }) =>
+			a(e(m.conversationId, conv.id), inA(m.role, [...VISITOR_VISIBLE_ROLES])),
 		orderBy: (m, { asc }) => [asc(m.sequence)],
 		columns: { role: true, content: true },
 	});

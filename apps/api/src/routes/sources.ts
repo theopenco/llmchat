@@ -110,7 +110,14 @@ export const sources = new Hono<AppContext>()
 			const msg = await db(c.env).query.message.findFirst({
 				where: (mt, { eq: e }) => e(mt.id, messageId),
 			});
-			if (!msg) return c.json({ error: "not found" }, 404);
+			// Only operator replies are promotable — the same gate the dashboard
+			// renders (Promote shows on role==="admin" rows only). Anything else,
+			// internal notes above all, must not be laundered into a knowledge
+			// source that feeds the visitor-facing prompt. 404 (not 400) so the
+			// role of a foreign/unknown id is never disclosed.
+			if (!msg || msg.role !== "admin") {
+				return c.json({ error: "not found" }, 404);
+			}
 
 			const conv = await db(c.env).query.conversation.findFirst({
 				where: (ct, { eq: e }) => e(ct.id, msg.conversationId),

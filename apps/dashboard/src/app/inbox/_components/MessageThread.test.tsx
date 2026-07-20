@@ -63,6 +63,74 @@ describe("MessageThread", () => {
 		expect(screen.getByText("You")).toBeInTheDocument();
 	});
 
+	it("renders an internal note as the amber Internal card — never a visitor bubble", () => {
+		render(
+			<MessageThread
+				messages={[
+					msg({ role: "user", content: "I need help", sequence: 1 }),
+					msg({
+						role: "note",
+						content: "VIP customer — comp the order",
+						sequence: 2,
+						authorName: "Omar Owner",
+					}),
+				]}
+			/>,
+		);
+		const card = screen
+			.getByText("VIP customer — comp the order")
+			.closest("[data-note]");
+		// The note is its own card, NOT inside a sided bubble (the old fallback
+		// rendered unknown roles as a Visitor bubble — the exact mispresentation
+		// this branch exists to prevent).
+		expect(card).toBeInTheDocument();
+		expect(card?.closest("[data-side]")).toBeNull();
+		expect(
+			screen.getByText(/Internal — Omar Owner · visible to your team only/),
+		).toBeInTheDocument();
+	});
+
+	it("falls back to a generic author label when the note's author was deleted", () => {
+		render(
+			<MessageThread
+				messages={[
+					msg({
+						role: "note",
+						content: "orphan note",
+						sequence: 1,
+						authorName: null,
+					}),
+				]}
+			/>,
+		);
+		expect(
+			screen.getByText(
+				/Internal — a former teammate · visible to your team only/,
+			),
+		).toBeInTheDocument();
+	});
+
+	it("never offers Promote-to-knowledge on a note (admin replies only)", () => {
+		render(
+			<MessageThread
+				messages={[
+					msg({
+						role: "note",
+						content: "note body",
+						sequence: 1,
+						authorName: "Omar Owner",
+					}),
+				]}
+				knowledge={{
+					projectId: "p1",
+					projectName: "Acme",
+					workspaceId: "ws1",
+				}}
+			/>,
+		);
+		expect(screen.queryByText(/add to knowledge/i)).not.toBeInTheDocument();
+	});
+
 	it("shows an empty state when there are no messages", () => {
 		render(<MessageThread messages={[]} />);
 		expect(

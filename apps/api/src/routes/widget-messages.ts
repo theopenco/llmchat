@@ -2,6 +2,8 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
+import { VISITOR_VISIBLE_ROLES } from "@llmchat/shared";
+
 import { db } from "@/lib/db";
 import { publicLookupRateLimit, rateLimit } from "@/lib/kv";
 import { clientIp } from "@/lib/request";
@@ -68,7 +70,15 @@ export const widgetMessages = new Hono<AppContext>().get(
 		}
 
 		const rows = await db(c.env).query.message.findMany({
-			where: (mt, { eq: e }) => e(mt.conversationId, conv.id),
+			// Role ALLOWLIST, not just conversation scoping: operator-internal rows
+			// (role "note") must never reach the visitor, and any future role stays
+			// hidden until deliberately added to VISITOR_VISIBLE_ROLES. Server-side
+			// on purpose — old cached widget bundles render whatever this returns.
+			where: (mt, { and: a, eq: e, inArray: inA }) =>
+				a(
+					e(mt.conversationId, conv.id),
+					inA(mt.role, [...VISITOR_VISIBLE_ROLES]),
+				),
 			orderBy: (mt, { asc }) => asc(mt.sequence),
 		});
 		// Conversation content: never cacheable by intermediaries.

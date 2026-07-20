@@ -29,6 +29,7 @@ export const ANALYTICS_EVENTS = {
 	sourceAdded: "source_added",
 	conversationOpened: "conversation_opened",
 	replySent: "reply_sent",
+	noteAdded: "note_added",
 	integrationConnected: "integration_connected",
 
 	// ── Billing funnel ──────────────────────────────────────────────

@@ -5,6 +5,7 @@ import {
 	ArrowDown,
 	Headset,
 	Sparkles,
+	StickyNote,
 	ThumbsDown,
 	ThumbsUp,
 } from "lucide-react";
@@ -379,6 +380,30 @@ export function MessageThread({
 						<span className="shrink-0 tabular-nums text-ck-faint">
 							{formatMessageTime(m.createdAt)}
 						</span>
+					</div>
+				) : m.role === "note" ? (
+					// Internal note: amber, full-width, visually unmistakable from a
+					// reply — this content never leaves the dashboard. Null author =
+					// the authoring account was deleted (authorUserId scrubbed).
+					<div
+						key={m.id}
+						data-note
+						data-search-hit={m.id === firstHitId ? "true" : undefined}
+						className="rounded-[10px] border border-amber-500/40 border-l-2 border-l-amber-500 bg-amber-500/10 px-3 py-2"
+					>
+						<div className="mb-1 flex items-baseline gap-1.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+							<StickyNote className="size-3.5 shrink-0 self-center" />
+							<span>
+								Internal — {m.authorName ?? "a former teammate"} · visible to
+								your team only
+							</span>
+							<span className="ml-auto shrink-0 font-normal tabular-nums text-ck-faint">
+								{formatMessageTime(m.createdAt)}
+							</span>
+						</div>
+						<div className="whitespace-pre-wrap text-sm text-ck-text">
+							<Highlighted text={m.content} query={search} />
+						</div>
 					</div>
 				) : (
 					<MessageBubble

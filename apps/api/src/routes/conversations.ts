@@ -50,6 +50,11 @@ type ConversationTagView = { id: string; name: string; color: string | null };
  * field it came from, so the agent sees the reason in the list. */
 type SearchMatch = { field: "body" | "name" | "email"; snippet: string };
 
+/** Cap on operator-authored message content (replies and internal notes) —
+ * generous enough for pasted stack traces / order dumps, bounded against DB
+ * abuse. The visitor-side cap is 8k (chat.ts MAX_MESSAGE_TEXT). */
+const MESSAGE_CONTENT_MAX = 10_000;
+
 export const conversations = new Hono<AppContext>()
 	.use("*", requireSession, requireWorkspace)
 	.get(
@@ -473,9 +478,35 @@ export const conversations = new Hono<AppContext>()
 				createdAt: a.createdAt,
 			}));
 
+			// Resolve author display names for operator-authored rows (admin replies,
+			// internal notes) in one batched lookup. Null-safe by construction: rows
+			// with no author (visitor/bot/system) and authors whose account was since
+			// deleted (authorUserId scrubbed to null, or the user row gone) all map to
+			// authorName: null and the UI falls back to a generic label.
+			const authorIds = [
+				...new Set(
+					messages
+						.map((m) => m.authorUserId)
+						.filter((id): id is string => id !== null),
+				),
+			];
+			const authors = authorIds.length
+				? await db(c.env).query.user.findMany({
+						where: (u, { inArray: inA }) => inA(u.id, authorIds),
+						columns: { id: true, name: true },
+					})
+				: [];
+			const authorNameById = new Map(authors.map((u) => [u.id, u.name]));
+			const messagesWithAuthor = messages.map((m) => ({
+				...m,
+				authorName: m.authorUserId
+					? (authorNameById.get(m.authorUserId) ?? null)
+					: null,
+			}));
+
 			return c.json({
 				conversation: conv,
-				messages,
+				messages: messagesWithAuthor,
 				hasOlder,
 				firstHitSequence,
 				agentActions,
@@ -484,7 +515,10 @@ export const conversations = new Hono<AppContext>()
 	)
 	.post(
 		"/projects/:projectId/conversations/:id/reply",
-		zValidator("json", z.object({ content: z.string().min(1) })),
+		zValidator(
+			"json",
+			z.object({ content: z.string().min(1).max(MESSAGE_CONTENT_MAX) }),
+		),
 		async (c) => {
 			const { projectId, id } = c.req.param();
 			const { content } = c.req.valid("json");
@@ -534,6 +568,79 @@ export const conversations = new Hono<AppContext>()
 			}
 
 			return c.json({ ok: true });
+		},
+	)
+	// Internal note: operator-only content on the conversation thread. Deliberately
+	// a SEPARATE endpoint from /reply — the exclusion from email is structural
+	// (this handler contains no sendEmail/Slack/analytics code and stamps no
+	// emailMessageId, so a note can never transit any outbound channel), and the
+	// role allowlists (VISITOR_VISIBLE_ROLES, RECAP_ROLES, QUOTABLE_ROLES) keep
+	// role="note" rows out of every visitor/model surface. All member roles can
+	// write notes — triage annotation is the agent role's job.
+	.post(
+		"/projects/:projectId/conversations/:id/notes",
+		requireRole("agent"),
+		zValidator(
+			"json",
+			z.object({ content: z.string().min(1).max(MESSAGE_CONTENT_MAX) }),
+		),
+		async (c) => {
+			const { projectId, id } = c.req.param();
+			const { content } = c.req.valid("json");
+			const userId = c.get("userId");
+			const workspaceId = c.get("workspaceId");
+
+			const proj = await db(c.env).query.project.findFirst({
+				where: (pt, { and: a, eq: e }) =>
+					a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+			});
+			if (!proj) {
+				return c.json({ error: "not found" }, 404);
+			}
+			const conv = await db(c.env).query.conversation.findFirst({
+				where: (ct, { and: a, eq: e }) =>
+					a(e(ct.id, id), e(ct.projectId, projectId)),
+			});
+			if (!conv) {
+				return c.json({ error: "not found" }, 404);
+			}
+
+			// Same sequence protocol as every other writer (messageCount+1 → bump):
+			// a divergent scheme would collide with the pre-fetched counts in
+			// chat/escalate (#146 tracks making this allocation atomic). Bumping
+			// messageCount also flips teammates' unread on and re-sorts the inbox —
+			// intended: a note IS new team-visible content.
+			const nextSeq = conv.messageCount + 1;
+			const [created] = await db(c.env)
+				.insert(messageTable)
+				.values({
+					conversationId: conv.id,
+					role: "note",
+					content,
+					sequence: nextSeq,
+					authorUserId: userId,
+					// NO emailMessageId: notes never seed email threading (a visitor
+					// reply could otherwise thread off a note's Message-ID).
+				})
+				.returning();
+			await db(c.env)
+				.update(conversation)
+				.set({ messageCount: nextSeq, updatedAt: new Date() })
+				.where(eq(conversation.id, conv.id));
+
+			return c.json(
+				{
+					message: {
+						id: created.id,
+						role: created.role,
+						content: created.content,
+						sequence: created.sequence,
+						authorUserId: created.authorUserId,
+						createdAt: created.createdAt,
+					},
+				},
+				201,
+			);
 		},
 	)
 	.patch(

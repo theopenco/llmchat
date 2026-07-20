@@ -11,6 +11,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { ApiError, api, describeApiError } from "@/lib/api";
+import { useSession } from "@/lib/auth-client";
 import { resolveOnboardingState } from "@/lib/onboarding";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { resolveSelectedId } from "@/lib/selection";
@@ -45,9 +46,12 @@ import { InboxStats } from "./_components/InboxStats";
 import { ListFilters } from "./_components/ListFilters";
 import { LoadMore } from "./_components/LoadMore";
 import { MessageThread } from "./_components/MessageThread";
-import { appendOptimisticReply } from "./_components/optimistic-updaters";
+import {
+	appendOptimisticNote,
+	appendOptimisticReply,
+} from "./_components/optimistic-updaters";
 import { ProjectSwitcher } from "./_components/ProjectSwitcher";
-import { ReplyComposer } from "./_components/ReplyComposer";
+import { ReplyComposer, type ComposerMode } from "./_components/ReplyComposer";
 import {
 	deriveStatus,
 	STATUS_PILL,
@@ -83,6 +87,13 @@ function InboxPageInner() {
 	const [projectId, setProjectId] = useState<string | null>(null);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [reply, setReply] = useState("");
+	// Composer mode: "reply" goes to the visitor, "note" is team-only. Reset to
+	// reply on conversation switch so a lingering note mode can't surprise.
+	const [composerMode, setComposerMode] = useState<ComposerMode>("reply");
+	useEffect(() => {
+		setComposerMode("reply");
+	}, [selectedId]);
+	const { data: session } = useSession();
 	const [search, setSearch] = useState("");
 	const [status, setStatus] = useState<StatusFilter>("open");
 	const [tagIds, setTagIds] = useState<string[]>([]);
@@ -502,6 +513,36 @@ function InboxPageInner() {
 		onError: (e) => toast.error(describeApiError(e, "Failed to send reply")),
 	});
 
+	// Optimistic internal note: same shape as the reply mutation but against the
+	// notes endpoint — which never emails the visitor (structural, server-side).
+	// The amber card appears instantly, stamped with the operator's own name.
+	const noteMut = useOptimisticMutation<{
+		tempId: string;
+		content: string;
+		createdAt: string;
+		authorName: string | null;
+	}>({
+		queryKey: ["thread", projectId, selectedId],
+		apply: (prev, vars) => appendOptimisticNote(prev, vars),
+		mutationFn: (vars) =>
+			api(`/api/projects/${projectId}/conversations/${selectedId}/notes`, {
+				method: "POST",
+				body: { content: vars.content },
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: () => {
+			setReply("");
+			toast.success("Note added");
+			track(ANALYTICS_EVENTS.noteAdded);
+			// A note bumps updatedAt/messageCount server-side (teammates' unread +
+			// re-sort) — same head-only revalidation as a reply.
+			void qc.invalidateQueries({
+				queryKey: ["conversations", projectId, "head"],
+			});
+		},
+		onError: (e) => toast.error(describeApiError(e, "Failed to add note")),
+	});
+
 	// Optimistic archive/restore + delete: the row leaves the current list the
 	// instant the action fires; a failure re-inserts it (and toasts).
 	const archiveMut = useOptimisticMutation<{
@@ -553,6 +594,15 @@ function InboxPageInner() {
 	function handleReply() {
 		const content = reply.trim();
 		if (!content || !projectId || !selectedId || !workspaceId) return;
+		if (composerMode === "note") {
+			noteMut.mutate({
+				tempId: `temp-${crypto.randomUUID()}`,
+				content,
+				createdAt: new Date().toISOString(),
+				authorName: session?.user?.name ?? null,
+			});
+			return;
+		}
 		replyMut.mutate({
 			tempId: `temp-${crypto.randomUUID()}`,
 			content,
@@ -722,11 +772,15 @@ function InboxPageInner() {
 							value={reply}
 							onChange={setReply}
 							onSend={handleReply}
-							pending={replyMut.isPending}
+							pending={replyMut.isPending || noteMut.isPending}
+							mode={composerMode}
+							onModeChange={setComposerMode}
 							placeholder={
-								detailConv.email
-									? "Reply (also sent via email)"
-									: "Reply (no email — shows in the widget on next visit)"
+								composerMode === "note"
+									? "Add an internal note — visible to your team only"
+									: detailConv.email
+										? "Reply (also sent via email)"
+										: "Reply (no email — shows in the widget on next visit)"
 							}
 						/>
 					)

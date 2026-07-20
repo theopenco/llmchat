@@ -58,10 +58,18 @@ export interface ConversationStats {
 
 export interface Message {
 	id: string;
-	role: "user" | "assistant" | "admin" | "system";
+	/** "note" = operator-internal annotation — dashboard-thread only; the api
+	 * excludes it from every visitor/model/email surface. */
+	role: "user" | "assistant" | "admin" | "system" | "note";
 	content: string;
 	sequence: number;
 	createdAt: string;
+	/** Author of operator-authored rows (admin replies, notes); null/absent for
+	 * visitor/bot/system rows. */
+	authorUserId?: string | null;
+	/** Display name resolved by the thread API; null when the authoring account
+	 * was deleted (render a generic fallback). */
+	authorName?: string | null;
 	/** Visitor thumbs rating on an assistant reply (answer quality); null/absent
 	 * = unrated. Distinct from per-conversation CSAT. */
 	rating?: "up" | "down" | null;

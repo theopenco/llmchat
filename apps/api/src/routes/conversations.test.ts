@@ -63,6 +63,8 @@ interface State {
 	conv?: Row;
 	/** Rows the thread message window query returns (relational findMany). */
 	threadMessages?: Row[];
+	/** User rows the authorName lookup returns ({id, name}). */
+	userRows?: Row[];
 	/** Agent-action audit rows the thread endpoint returns. */
 	agentActionRows?: Row[];
 	/** Batched per-page tag rows (conversation_tag ⨝ tag) for the list response. */
@@ -186,6 +188,11 @@ function mockDb(state: State) {
 			},
 			message: {
 				findMany: async () => state.threadMessages ?? [],
+			},
+			// Author display names for operator-authored rows (admin replies /
+			// notes); [] keeps authorName null everywhere unless a test seeds it.
+			user: {
+				findMany: async () => state.userRows ?? [],
 			},
 			agentAction: {
 				findMany: async () => state.agentActionRows ?? [],
