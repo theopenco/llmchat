@@ -70,6 +70,16 @@ const optionalEmail = z
 const MAX_MESSAGE_TEXT = 8_000;
 const MAX_MESSAGE_PARTS = 100;
 
+// History roles a visitor may submit: their own turns and prior bot replies.
+// `system` is REJECTED — the server owns the system prompt, and a client-supplied
+// system turn would reach the model as fabricated authority. Anything else
+// (admin/note/junk) was never legitimate history; rejecting at the schema turns
+// what used to be a convertToModelMessages 502 into a clean 400. Both official
+// transports already comply: the widget's useChat state only ever holds the
+// visitor's turns + streamed replies, and the RSC provider filters to
+// user/assistant before POSTing (packages/widget-rsc/src/client/provider.tsx).
+const HISTORY_ROLES = ["user", "assistant"] as const;
+
 const chatBody = z.object({
 	projectKey: z.string().max(128),
 	clientId: z.string().max(128),
@@ -80,7 +90,9 @@ const chatBody = z.object({
 	// against the conversation below, and silently dropped when it doesn't belong.
 	replyToMessageId: z.string().max(128).optional(),
 	messages: z
-		.array(z.any())
+		// Role is allowlisted; the rest of the UIMessage shape (id/parts/…) passes
+		// through untouched for convertToModelMessages, bounded by the refine below.
+		.array(z.looseObject({ role: z.enum(HISTORY_ROLES) }))
 		.max(200)
 		.refine(
 			(msgs) =>
@@ -291,7 +303,7 @@ export const chat = new Hono<AppContext>()
 			}
 		}
 
-		const lastUser = messages[messages.length - 1] as UIMessage;
+		const lastUser = messages[messages.length - 1] as unknown as UIMessage;
 		const userText = lastUser?.parts
 			?.filter((p): p is { type: "text"; text: string } => p.type === "text")
 			.map((p) => p.text)
@@ -509,7 +521,7 @@ export const chat = new Hono<AppContext>()
 				...(replyTo
 					? { quote: { role: replyTo.role, excerpt: replyTo.content } }
 					: {}),
-				messages: messages as UIMessage[],
+				messages: messages as unknown as UIMessage[],
 			});
 		} catch (err) {
 			// The visitor message is already persisted (the conversation shows up
