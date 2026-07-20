@@ -6,9 +6,9 @@
 	"tagline": "AI agents for customer experiences",
 	"description": "Full platform for building and deploying AI support agents across web, WhatsApp, Slack, and Messenger. Enterprise-focused with SOC 2 compliance and 10,000+ business customers.",
 	"bestFor": "Teams that need multi-channel AI support and have enterprise security requirements.",
-	"notFor": "Teams wanting a simple drop-in widget, or the freedom to run a custom or self-hosted model.",
+	"notFor": "Teams wanting a simple drop-in widget, or model choice across providers.",
 	"pricing": "Free plan (1 agent, basic models); paid from $40/mo (Hobby) to ~$500/mo (Pro), credit-based; Enterprise custom",
-	"heroSubtext": "Clanker Support is a single script tag that goes live in minutes — no platform onboarding, no SDK required (an official React SDK exists when you want one). Chatbase lets you pick from its supported models on higher-priced plans; Clanker Support runs any model or provider — including custom and self-hosted endpoints — on every plan, and you can self-host the whole stack.",
+	"heroSubtext": "Clanker Support is a single script tag that goes live in minutes — no platform onboarding, no SDK required (an official React SDK exists when you want one). Chatbase lets you pick from its supported models on higher-priced plans; Clanker Support picks from a curated multi-provider catalog (GPT, Claude, Gemini and more via LLM Gateway) on every plan — the full catalog on Growth and Scale — and you can self-host the whole stack.",
 	"heroBadges": [
 		"One script tag",
 		"Model-agnostic",
@@ -40,7 +40,7 @@
 				},
 				{
 					"label": "Data location",
-					"llmchat": "Your Cloudflare account",
+					"llmchat": "Your own account (self-hosted)",
 					"competitor": "Chatbase SaaS infrastructure"
 				}
 			]
@@ -50,13 +50,13 @@
 			"rows": [
 				{
 					"label": "AI model",
-					"llmchat": "Any model via LLM Gateway",
+					"llmchat": "Curated multi-provider catalog via LLM Gateway",
 					"competitor": "GPT-4o, Claude, Gemini, DeepSeek — premium models on higher tiers"
 				},
 				{
 					"label": "Swap models",
 					"llmchat": "Per-project config change — no code",
-					"competitor": "Pick from supported models; no custom or self-hosted endpoints"
+					"competitor": "Pick from Chatbase's supported models (premium gated to higher plans)"
 				},
 				{
 					"label": "Knowledge base",
@@ -100,7 +100,7 @@
 				},
 				{
 					"label": "Self-hostable",
-					"llmchat": "Yes — Cloudflare D1, KV, workerd",
+					"llmchat": "Yes — serverless workerd via Ploy (D1-compatible SQLite + KV state)",
 					"competitor": "SaaS only"
 				},
 				{
@@ -116,8 +116,8 @@
 	"llmchatWins": [
 		"One script tag setup — live in under 5 minutes",
 		"Shadow DOM isolation — widget styles never bleed into your page",
-		"Model-agnostic — swap GPT-4o, Claude, or a custom model per project",
-		"Self-hostable on your own Cloudflare infrastructure",
+		"Model choice — swap GPT, Claude, Gemini and more per project",
+		"Self-hostable on your own serverless infrastructure (workerd via Ploy)",
 		"Open architecture — no black-box AI stack",
 		"Transparent, publicly listed flat monthly plans — from $19/mo"
 	],
@@ -158,12 +158,12 @@
 		{
 			"heading": "Model flexibility",
 			"llmchat": "Built on LLM Gateway — you choose the AI model per project and switch it with a config change, not a code change. Run a smaller, cheaper model for routine questions and a more capable one for complex queries.",
-			"competitor": "Lets you choose from a list of supported models (GPT-4o, Claude, Gemini, DeepSeek, Meta), but the more capable ones are gated behind higher-priced plans and premium models burn credits faster. You can't bring a custom or self-hosted endpoint.",
+			"competitor": "Lets you choose from a list of supported models (GPT-4o, Claude, Gemini, DeepSeek, Meta), but the more capable ones are gated behind higher-priced plans and premium models burn credits faster.",
 			"bottomLine": "Choose Clanker Support if you care about model choice, cost optimization across tiers, or vendor diversity. Choose Chatbase if you'd rather not think about the model layer."
 		},
 		{
 			"heading": "Ownership and self-hosting",
-			"llmchat": "Fully self-hostable on Cloudflare infrastructure — D1, KV, and workerd. Your conversations live in your database, on your account. The architecture is open and auditable.",
+			"llmchat": "Fully self-hostable — serverless workerd via Ploy, with a D1-compatible SQLite database and KV-style state. Your conversations live in your database, on your account. The stack is MIT open source and auditable.",
 			"competitor": "SaaS-only. Your data lives in Chatbase's infrastructure. They are SOC 2 certified and GDPR compliant, which satisfies most compliance requirements — but you can't run it on your own infrastructure.",
 			"bottomLine": "Choose Clanker Support if data residency or infrastructure ownership is a requirement. Choose Chatbase if managed SaaS with compliance certifications is sufficient."
 		}
@@ -180,7 +180,7 @@
 		},
 		{
 			"question": "Can I use a custom or self-hosted model with Chatbase?",
-			"answer": "No. Chatbase lets you pick from its supported models, with the more capable ones gated behind higher-priced plans. Clanker Support runs on LLM Gateway, so you can run any provider — including custom or self-hosted endpoints — on every plan."
+			"answer": "No. Chatbase lets you pick from its supported models, with the more capable ones gated behind higher-priced plans. Clanker Support picks from a curated multi-provider catalog via LLM Gateway — GPT, Claude, Gemini and more — on every plan, with the full catalog on Growth and Scale."
 		},
 		{
 			"question": "Is Clanker Support faster to set up than Chatbase?",

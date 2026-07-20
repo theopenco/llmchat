@@ -50,12 +50,12 @@
 			"rows": [
 				{
 					"label": "AI model",
-					"llmchat": "Any LLM via LLM Gateway",
+					"llmchat": "Curated multi-provider catalog via LLM Gateway",
 					"competitor": "Fin AI (proprietary)"
 				},
 				{
 					"label": "Model flexibility",
-					"llmchat": "Per-project config, any provider",
+					"llmchat": "Per-project config, multi-provider catalog",
 					"competitor": "Fixed to Intercom's AI stack"
 				}
 			]
@@ -90,7 +90,7 @@
 				},
 				{
 					"label": "Self-hosting",
-					"llmchat": "Cloudflare D1, KV, workerd",
+					"llmchat": "Serverless workerd via Ploy (D1-compatible SQLite + KV state)",
 					"competitor": "SaaS only"
 				},
 				{
@@ -148,7 +148,7 @@
 		},
 		{
 			"heading": "Model and infrastructure flexibility",
-			"llmchat": "Model-agnostic — choose any LLM per project and switch it with a config change. Self-hostable on Cloudflare infrastructure for teams with data residency requirements. Open architecture throughout.",
+			"llmchat": "Model-agnostic across providers — pick a model per project from a curated multi-provider catalog (GPT, Claude, Gemini and more via LLM Gateway) and switch it with a config change. Self-hostable — serverless workerd via Ploy — for teams with data residency requirements. MIT open source throughout.",
 			"competitor": "Runs on Intercom's proprietary Fin AI infrastructure. SaaS-only — no self-hosting option. Strong compliance posture (GDPR, SOC 2) for teams that need certifications but not infrastructure ownership.",
 			"bottomLine": "Choose Clanker Support if you want model flexibility or self-hosting. Choose Intercom if managed SaaS with compliance certifications is the right posture for your team."
 		},
@@ -171,7 +171,7 @@
 		},
 		{
 			"question": "Can I self-host Clanker Support instead of Intercom?",
-			"answer": "Yes. Intercom is SaaS-only, while Clanker Support is self-hostable on Cloudflare infrastructure (D1, KV, workerd) — useful when data residency or infrastructure ownership is a requirement. You can also let Clanker Support host it for you on a flat monthly plan."
+			"answer": "Yes. Intercom is SaaS-only, while Clanker Support is self-hostable — serverless workerd via Ploy with a D1-compatible SQLite database — useful when data residency or infrastructure ownership is a requirement. You can also let Clanker Support host it for you on a flat monthly plan."
 		},
 		{
 			"question": "Should I choose Clanker Support or Intercom?",

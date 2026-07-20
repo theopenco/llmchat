@@ -119,7 +119,7 @@ CORS is tiered: `/v1/*` is open (`*`) for public widget embeds; `/api/*` is pinn
   - `POST /v1/escalate` — flips the conversation to escalated; emails `project.notifyEmail` (Reply-To `reply+<inboundEmailLocal>@<INBOUND_EMAIL_DOMAIN>`) and posts to `project.slackWebhookUrl`.
   - `GET /v1/messages` — polls the conversation's messages (own messages only) so operator replies show up in the widget.
   - `POST /v1/rating` — per-assistant-message thumbs up/down. `POST /v1/csat` — 1–5 conversation rating. `GET /v1/config/:key` — public widget branding config.
-- **Widget asset / embed**: `GET /widget.js` (the compiled IIFE bundle, `cache-control: public, max-age=300`); `GET /embed/:key` (a CSP-hardened full-page iframe chat shell).
+- **Widget asset / embed**: `GET /widget.js` (the compiled IIFE bundle; the code sets `cache-control: public, max-age=300`, but production serves `public, max-age=3600, s-maxage=14400` — Ploy's edge cache (Souin) rewrites it, so don't rely on the 300s for freshness); `GET /embed/:key` (a CSP-hardened full-page iframe chat shell).
 - **Dashboard API** (`/api/*`, credentials): `account`, `workspaces`, `projects` (+ `/projects/usage`), `conversations` (list / `stats` / thread / `reply` / archive / read / `tags` / delete), `tags`, `search` (the ⌘K palette), `system-prompts` (per-project prompt library + activate), `sources` (knowledge base: url/text/qa + promote/refresh), `oauth-providers`.
 - **Auth** (`/api/auth/*`): the Better Auth handler (catch-all GET/POST).
 - **Billing** (`/billing/*`): `checkout`, `portal`, `usage` (dashboard-pinned, owner-gated) + `webhook` (Stripe-signature-verified, no CORS).
@@ -146,7 +146,7 @@ Stripe billing is **fully implemented** (not a stub). Plans `none|starter|growth
 - **Webhook**: `POST /billing/webhook` verifies the signature (constant-time HMAC, replay-guarded) and handles `checkout.session.completed` (promote plan + store ids), `customer.subscription.updated` (re-stamp plan by status), `customer.subscription.deleted` (downgrade to `none`).
 - **Price config** is env-driven: `STRIPE_PRICE_{STARTER,GROWTH,SCALE}`, `..._ANNUAL`, `STRIPE_PRICE_{GROWTH,SCALE}_OVERAGE`, `STRIPE_METER_EVENT`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
 - **Metering**: every `/v1/chat` response writes a `usageEvent` row (source of truth) and best-effort reports a Stripe meter event inside `waitUntil` (idempotency key = `usageEvent.id`, so retries don't double-bill).
-- **Enforcement** (`lib/plan.ts` `resolveAccess`): unpaid or over-quota workspaces get a **402** server-side, so the UI paywall can't be bypassed — gates live responses, project creation, member adds, and model access. `INTERNAL_ACCOUNT_EMAILS` are exempt. Account/workspace deletion is gated by a live-subscription check (fail-closed).
+- **Enforcement** (`lib/plan.ts` `resolveAccess`): unpaid or over-quota workspaces get a **402** server-side, so the UI paywall can't be bypassed — gates live responses, project creation, and model access. (The `maxMembers` entitlement exists in `billing-tiers.ts` but has no consumer — there is no invite/member-add endpoint yet, so nothing gates member adds.) `INTERNAL_ACCOUNT_EMAILS` are exempt. Account/workspace deletion is gated by a live-subscription check (fail-closed).
 
 ### Streaming chat write pattern (`apps/api/src/routes/chat.ts`)
 

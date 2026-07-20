@@ -16,7 +16,7 @@
 		"Flat monthly plans"
 	],
 	"tableSummary": {
-		"llmchat": "Focused widget — flat plans from $19/mo, any AI model",
+		"llmchat": "Focused widget — flat plans from $19/mo, your choice of model",
 		"competitor": "All-in-one — free plan (no AI); AI from ~€45/mo"
 	},
 	"vsCategories": [
@@ -50,12 +50,12 @@
 			"rows": [
 				{
 					"label": "AI model",
-					"llmchat": "Any LLM via LLM Gateway",
+					"llmchat": "Curated multi-provider catalog via LLM Gateway",
 					"competitor": "Hugo AI (Crisp's engine)"
 				},
 				{
 					"label": "Model flexibility",
-					"llmchat": "Per-project, any provider",
+					"llmchat": "Per-project, multi-provider catalog",
 					"competitor": "Fixed to Crisp's AI stack"
 				}
 			]
@@ -65,7 +65,7 @@
 			"rows": [
 				{
 					"label": "Self-hosting",
-					"llmchat": "Cloudflare D1, KV, workerd",
+					"llmchat": "Serverless workerd via Ploy (D1-compatible SQLite + KV state)",
 					"competitor": "SaaS only"
 				},
 				{
@@ -106,7 +106,7 @@
 	"llmchatWins": [
 		"One script tag setup — no platform to configure",
 		"Model-agnostic — swap AI models per project without code changes",
-		"Self-hostable on your own Cloudflare infrastructure",
+		"Self-hostable on your own serverless infrastructure (workerd via Ploy)",
 		"Shadow DOM widget with zero style interference",
 		"Open architecture — fully auditable stack",
 		"Transparent flat monthly plans — from $19/mo, no per-seat fees"

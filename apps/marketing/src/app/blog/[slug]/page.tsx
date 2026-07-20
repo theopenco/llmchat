@@ -171,7 +171,7 @@ export default async function PostPage({
 					<div className="mt-10 rounded-2xl border border-rule bg-paper-deep p-8 text-center">
 						<p className="kicker">Try it free</p>
 						<h2 className="font-display mt-3 text-2xl font-semibold tracking-tight-display text-ink">
-							One script tag. Any model. Live in minutes.
+							One script tag. Your choice of model. Live in minutes.
 						</h2>
 						<Link
 							href={

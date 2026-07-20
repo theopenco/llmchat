@@ -45,7 +45,7 @@ const mono = JetBrains_Mono({
 
 const TITLE = "Clanker Support — AI support, dropped in";
 const DESCRIPTION =
-	"One script tag. Any model. An AI-powered support agent that answers from your docs and escalates to your team — with no lost threads.";
+	"One script tag. Your choice of model. An AI-powered support agent that answers from your docs and escalates to your team — with no lost threads.";
 
 export const metadata: Metadata = {
 	// Resolves relative canonical/OG URLs (set per page via pageMeta) to absolute.

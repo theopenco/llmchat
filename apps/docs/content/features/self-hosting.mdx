@@ -30,6 +30,10 @@ Three external services, only one of which is required:
 
 Inference goes through [LLM Gateway](https://llmgateway.io), so a single key gives your projects access to the model catalog, and usage is billed to your own account — Clanker Support takes no cut on a self-hosted install. Without Resend, chat and the inbox work fine; you just lose [escalation emails](/features/escalation) and [email threading](/features/email-threading). Stripe is entirely optional and only matters if you're running the stack as a service for others.
 
+## Unlocking plan limits
+
+One setup step that isn't obvious: the hosted paywall ships with the code, so on a fresh install every workspace resolves to the `none` plan — zero projects, zero responses — until you tell the API whose workspaces are yours. Set `INTERNAL_ACCOUNT_EMAILS` (comma-separated) in the API's environment to the email address you sign up with, and every workspace that account owns runs fully unlocked, with no plan limits and no billing. The alternative is wiring Stripe and selling plans like the hosted service does. Without one of the two, sign-in works but project creation hits the paywall.
+
 ## Self-host or hosted?
 
 Both run the same code; the difference is who operates it.

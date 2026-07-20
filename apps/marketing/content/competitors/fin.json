@@ -8,7 +8,7 @@
 	"bestFor": "Enterprise teams who want outcome-based pricing and already use Zendesk or Salesforce.",
 	"notFor": "Small teams or those wanting predictable flat-rate pricing.",
 	"pricing": "$0.99 per resolved outcome (usage-based)",
-	"heroSubtext": "Fin charges $0.99 per resolved outcome and runs on its own proprietary model (Fin Apex) — you can't choose the model. Clanker Support uses flat monthly plans (from $19/mo) and lets you run any model you choose.",
+	"heroSubtext": "Fin charges $0.99 per resolved outcome and runs on its own proprietary model (Fin Apex) — you can't choose the model. Clanker Support uses flat monthly plans (from $19/mo) and lets you pick the model per project from a curated multi-provider catalog.",
 	"heroBadges": [
 		"No per-outcome fees",
 		"Model-agnostic",
@@ -50,12 +50,12 @@
 			"rows": [
 				{
 					"label": "AI stack",
-					"llmchat": "Any LLM via LLM Gateway",
+					"llmchat": "Curated multi-provider catalog via LLM Gateway",
 					"competitor": "Fin Apex — proprietary in-house model"
 				},
 				{
 					"label": "Model flexibility",
-					"llmchat": "Swap per project, any provider",
+					"llmchat": "Swap per project across providers",
 					"competitor": "Locked to Fin's engine"
 				},
 				{
@@ -90,7 +90,7 @@
 			"rows": [
 				{
 					"label": "Self-hosting",
-					"llmchat": "Cloudflare D1, KV, workerd",
+					"llmchat": "Serverless workerd via Ploy (D1-compatible SQLite + KV state)",
 					"competitor": "SaaS only"
 				},
 				{
@@ -168,11 +168,11 @@
 	"faqs": [
 		{
 			"question": "How does Clanker Support pricing compare to Fin?",
-			"answer": "Fin charges $0.99 per resolved outcome on its proprietary model. Clanker Support uses flat monthly plans (from $19/mo, no per-seat fees) and runs on any model you choose. Teams moving off outcome-based pricing often find a flat monthly bill easier to forecast."
+			"answer": "Fin charges $0.99 per resolved outcome on its proprietary model. Clanker Support uses flat monthly plans (from $19/mo, no per-seat fees) and runs the model you pick from a curated multi-provider catalog. Teams moving off outcome-based pricing often find a flat monthly bill easier to forecast."
 		},
 		{
 			"question": "Can I choose the AI model with Fin?",
-			"answer": "No. Fin runs on Intercom's proprietary Fin AI Engine, so you're tied to their model roadmap. Clanker Support is built on LLM Gateway, so you can run any provider and switch models per project without touching code."
+			"answer": "No. Fin runs on Intercom's proprietary Fin AI Engine, so you're tied to their model roadmap. Clanker Support is built on LLM Gateway, so you can pick from a curated multi-provider catalog and switch models per project without touching code."
 		},
 		{
 			"question": "Does Fin support voice and helpdesk integrations?",

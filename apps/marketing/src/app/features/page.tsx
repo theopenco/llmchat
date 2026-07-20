@@ -14,7 +14,7 @@ const dashboardUrl =
 export const metadata = pageMeta({
 	title: "Features — what Clanker Support does",
 	description:
-		"A drop-in AI support widget that answers from your docs, escalates to humans, threads over email, runs any model, and self-hosts. Every feature, explained.",
+		"A drop-in AI support widget that answers from your docs, escalates to humans, threads over email, runs the model you pick, and self-hosts. Every feature, explained.",
 	path: "/features",
 });
 
