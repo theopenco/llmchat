@@ -216,7 +216,7 @@ export default function Home() {
 							left talking to a wall, and nothing lands in a black hole.
 						</p>
 
-						<div className="animate-rise-in mt-10 flex flex-wrap items-center justify-center gap-3 [animation-delay:200ms]">
+						<div className="animate-rise-in mt-10 [animation-delay:200ms]">
 							<ShimmerCta
 								href={SIGNUP_URL}
 								event={ANALYTICS_EVENTS.signupStarted}
@@ -225,14 +225,6 @@ export default function Home() {
 								Start your free trial
 								<span aria-hidden>→</span>
 							</ShimmerCta>
-							<TrackedLink
-								href={CANONICAL_SHOWCASE_URL}
-								event={ANALYTICS_EVENTS.ctaClicked}
-								eventProps={{ label: "live_demo", location: "home_hero" }}
-								className="inline-flex items-center gap-2 rounded-full border border-rule px-7 py-4 text-base font-medium text-ink-soft transition-colors hover:border-accent/40 hover:text-ink"
-							>
-								Chat with the live demo
-							</TrackedLink>
 						</div>
 
 						<p className="animate-rise-in mt-5 text-[0.8rem] text-faint [animation-delay:260ms]">
