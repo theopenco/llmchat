@@ -10,11 +10,9 @@ import {
 	DOCS_URL,
 	RSC_NPM_URL,
 	RSC_PACKAGE,
+	SIGNUP_URL,
 	WORDPRESS_PLUGIN_URL,
 } from "@/lib/site-urls";
-
-const dashboardUrl =
-	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
 export const metadata = pageMeta({
 	title: "Templates — deploy the support agent in one click",
@@ -426,7 +424,7 @@ export default function TemplatesPage() {
 					</div>
 					<div className="flex shrink-0 flex-wrap gap-3">
 						<TrackedLink
-							href={dashboardUrl}
+							href={SIGNUP_URL}
 							event={ANALYTICS_EVENTS.signupStarted}
 							eventProps={{ source: "templates_cta" }}
 							className="rounded-full bg-ink px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"

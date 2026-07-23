@@ -8,12 +8,10 @@ import { TOOLS } from "@/lib/tools";
 import {
 	DISCORD_URL,
 	DOCS_URL,
+	SIGNUP_URL,
 	WORDPRESS_PLUGIN_URL,
 	X_URL,
 } from "@/lib/site-urls";
-
-const dashboardUrl =
-	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
 const colHead =
 	"font-mono text-[0.68rem] uppercase tracking-[0.16em] text-faint";
@@ -41,12 +39,12 @@ export function SiteFooter() {
 							one script tag, your choice of model.
 						</p>
 						<TrackedLink
-							href={dashboardUrl}
+							href={SIGNUP_URL}
 							event={ANALYTICS_EVENTS.signupStarted}
 							eventProps={{ source: "footer" }}
 							className="mt-6 inline-block rounded-full bg-ink px-5 py-2.5 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 						>
-							Get your support agent now
+							Start your free trial
 						</TrackedLink>
 					</div>
 

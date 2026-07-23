@@ -14,11 +14,13 @@ import { TrackedLink } from "@/components/TrackedLink";
 import { FaqSection } from "@/components/FaqSection";
 import { JsonLd } from "@/components/JsonLd";
 import { breadcrumbLd, faqPageLd, pageMeta, type Faq } from "@/lib/seo";
-import { CANONICAL_SITE_URL, DOCS_URL, SALES_EMAIL } from "@/lib/site-urls";
+import {
+	CANONICAL_SITE_URL,
+	DOCS_URL,
+	SALES_EMAIL,
+	SIGNUP_URL,
+} from "@/lib/site-urls";
 import { PricingPlans, type PlanCard } from "./PricingPlans";
-
-const dashboardUrl =
-	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 const starterPrice = BILLING_TIERS.starter.priceUsdMonthly;
@@ -205,7 +207,7 @@ export default function PricingPage() {
 				<PricingPlans
 					tiers={hostedTiers}
 					enterprise={ENTERPRISE_TIER}
-					dashboardUrl={dashboardUrl}
+					signupUrl={SIGNUP_URL}
 					salesEmail={SALES_EMAIL}
 				/>
 
@@ -258,12 +260,12 @@ export default function PricingPage() {
 					</h2>
 					<div className="mt-8 flex flex-wrap justify-center gap-3">
 						<TrackedLink
-							href={dashboardUrl}
+							href={SIGNUP_URL}
 							event={ANALYTICS_EVENTS.signupStarted}
 							eventProps={{ source: "pricing_cta" }}
 							className="rounded-full bg-paper px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-accent hover:text-paper"
 						>
-							Get your support agent now
+							Start your free trial
 						</TrackedLink>
 						<Link
 							href="/compare"
