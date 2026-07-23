@@ -37,12 +37,12 @@ function perMonth(t: PlanCard, interval: BillingInterval): number {
 export function PricingPlans({
 	tiers,
 	enterprise,
-	dashboardUrl,
+	signupUrl,
 	salesEmail,
 }: {
 	tiers: PlanCard[];
 	enterprise: EnterpriseCard;
-	dashboardUrl: string;
+	signupUrl: string;
 	salesEmail: string;
 }) {
 	const [interval, setInterval] = useState<BillingInterval>("month");
@@ -151,7 +151,7 @@ export function PricingPlans({
 							</ul>
 
 							<TrackedLink
-								href={dashboardUrl}
+								href={signupUrl}
 								event={ANALYTICS_EVENTS.signupStarted}
 								eventProps={{
 									source: "pricing_tier",

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { allPosts } from "content-collections";
-import { ANALYTICS_EVENTS } from "@llmchat/shared";
+import { ANALYTICS_EVENTS, TRIAL_PERIOD_DAYS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
@@ -31,17 +31,16 @@ import { USE_CASES } from "@/lib/use-cases";
 import { formatDateShort } from "@/lib/format";
 import { faqPageLd, type Faq } from "@/lib/seo";
 import {
+	CANONICAL_SHOWCASE_URL,
 	CANONICAL_SITE_URL,
 	DISCORD_URL,
 	DOCS_URL,
 	GITHUB_URL,
 	RSC_PACKAGE,
+	SIGNUP_URL,
 	WORDPRESS_PLUGIN_URL,
 	X_URL,
 } from "@/lib/site-urls";
-
-const dashboardUrl =
-	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
 
 // Latest three posts, surfaced on the home page so fresh content is one click
 // from the root — crawlers weight link depth heavily when scheduling crawls,
@@ -187,7 +186,7 @@ export default function Home() {
 			<SiteHeader active="features" />
 
 			<main>
-				{/* ── Hero — copy locked; no client JS added ───────────── */}
+				{/* ── Hero — the offer up front: trial, risk reversal, live demo ── */}
 				<section className="relative overflow-hidden">
 					<GridPattern
 						width={44}
@@ -199,7 +198,7 @@ export default function Home() {
 						<span className="animate-rise-in inline-flex items-center gap-2 rounded-full border border-rule bg-paper-card/60 px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted">
 							<span className="size-1.5 rounded-full bg-accent shadow-[0_0_10px_2px_rgba(46,107,255,0.7)]" />
 							<AnimatedGradientText className="[--color-from:#1D4FD7] [--color-to:#2E6BFF] dark:[--color-from:#7CA2FF] dark:[--color-to:#2E6BFF]">
-								Simple monthly plans · Live in 30 seconds
+								Free for {TRIAL_PERIOD_DAYS} days · Live in minutes
 							</AnimatedGradientText>
 						</span>
 
@@ -219,14 +218,19 @@ export default function Home() {
 
 						<div className="animate-rise-in mt-10 [animation-delay:200ms]">
 							<ShimmerCta
-								href={dashboardUrl}
+								href={SIGNUP_URL}
 								event={ANALYTICS_EVENTS.signupStarted}
 								eventProps={{ source: "home_hero" }}
 							>
-								Get your support agent now
+								Start your free trial
 								<span aria-hidden>→</span>
 							</ShimmerCta>
 						</div>
+
+						<p className="animate-rise-in mt-5 text-[0.8rem] text-faint [animation-delay:260ms]">
+							{TRIAL_PERIOD_DAYS} days free on every plan · Cancel anytime ·
+							Open source — self-host free
+						</p>
 					</div>
 				</section>
 
@@ -485,21 +489,27 @@ export default function Home() {
 							</h2>
 							<div className="mt-10 flex flex-wrap justify-center gap-3">
 								<TrackedLink
-									href={dashboardUrl}
+									href={SIGNUP_URL}
 									event={ANALYTICS_EVENTS.signupStarted}
 									eventProps={{ source: "home_closing" }}
 									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-colors hover:bg-accent-deep"
 								>
-									Get your support agent now
+									Start your free trial
 									<span aria-hidden>→</span>
 								</TrackedLink>
-								<Link
-									href="/compare"
+								<TrackedLink
+									href={CANONICAL_SHOWCASE_URL}
+									event={ANALYTICS_EVENTS.ctaClicked}
+									eventProps={{ label: "live_demo", location: "home_closing" }}
 									className="rounded-full border border-rule px-7 py-3.5 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
 								>
-									Compare alternatives
-								</Link>
+									Chat with the live demo
+								</TrackedLink>
 							</div>
+							<p className="mt-5 text-[0.8rem] text-faint">
+								{TRIAL_PERIOD_DAYS} days free on every plan · No charge until
+								your trial ends · Cancel anytime
+							</p>
 						</div>
 					</div>
 				</section>

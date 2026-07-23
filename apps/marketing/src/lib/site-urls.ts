@@ -9,6 +9,11 @@ export const CANONICAL_DASHBOARD_URL =
 export const CANONICAL_SHOWCASE_URL =
 	process.env.NEXT_PUBLIC_SHOWCASE_URL ?? "http://localhost:3003";
 
+/** Where every signup CTA lands. Deep-links to the dashboard's /sign-up page —
+ * the dashboard root redirects signed-out visitors to the sign-in form, which
+ * is a funnel dead-end for someone who just clicked "start free trial". */
+export const SIGNUP_URL = `${CANONICAL_DASHBOARD_URL}/sign-up`;
+
 /** The marketing site's own canonical origin — the base for metadataBase,
  * canonical tags, the sitemap, and robots. Falls back to the production host
  * (this site *is* clankersupport.com) so SEO URLs are absolute even when

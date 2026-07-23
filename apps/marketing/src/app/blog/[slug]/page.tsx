@@ -8,7 +8,7 @@ import { TrackView } from "@/components/TrackView";
 import { formatDate } from "@/lib/format";
 import { breadcrumbLd, pageMeta } from "@/lib/seo";
 import { JsonLd } from "@/components/JsonLd";
-import { CANONICAL_SITE_URL } from "@/lib/site-urls";
+import { CANONICAL_SITE_URL, SIGNUP_URL } from "@/lib/site-urls";
 
 export function generateStaticParams() {
 	return allPosts.map((p) => ({ slug: p.slug }));
@@ -174,12 +174,10 @@ export default async function PostPage({
 							One script tag. Your choice of model. Live in minutes.
 						</h2>
 						<Link
-							href={
-								process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001"
-							}
+							href={SIGNUP_URL}
 							className="mt-6 inline-block rounded-full bg-ink px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 						>
-							Get your support agent now
+							Start your free trial
 						</Link>
 					</div>
 				</div>

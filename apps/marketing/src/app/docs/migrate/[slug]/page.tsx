@@ -8,10 +8,7 @@ import { CodeBlock } from "@/components/CodeBlock";
 import { TrackView } from "@/components/TrackView";
 import { JsonLd } from "@/components/JsonLd";
 import { breadcrumbLd, howToLd, pageMeta } from "@/lib/seo";
-import { CANONICAL_SITE_URL, DOCS_URL } from "@/lib/site-urls";
-
-const dashboardUrl =
-	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
+import { CANONICAL_SITE_URL, DOCS_URL, SIGNUP_URL } from "@/lib/site-urls";
 
 export function generateStaticParams() {
 	return allMigrations.map((m) => ({ slug: m.slug }));
@@ -241,7 +238,7 @@ export default async function MigratePage({
 				{/* CTA */}
 				<section className="mt-12">
 					<Link
-						href={dashboardUrl}
+						href={SIGNUP_URL}
 						className="inline-block rounded-full bg-ink px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 					>
 						Start your migration free →

@@ -6,10 +6,7 @@ import { TrackedLink } from "@/components/TrackedLink";
 import { JsonLd } from "@/components/JsonLd";
 import { USE_CASES } from "@/lib/use-cases";
 import { breadcrumbLd, pageMeta } from "@/lib/seo";
-import { CANONICAL_SITE_URL } from "@/lib/site-urls";
-
-const dashboardUrl =
-	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
+import { CANONICAL_SITE_URL, SIGNUP_URL } from "@/lib/site-urls";
 
 export const metadata = pageMeta({
 	title: "Use cases — who Clanker Support is for",
@@ -108,12 +105,12 @@ export default function UseCasesPage() {
 							</p>
 							<div className="mt-9 flex flex-wrap justify-center gap-3">
 								<TrackedLink
-									href={dashboardUrl}
+									href={SIGNUP_URL}
 									event={ANALYTICS_EVENTS.signupStarted}
 									eventProps={{ source: "use_cases_hub" }}
 									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-colors hover:bg-accent-deep"
 								>
-									Get your support agent now
+									Start your free trial
 									<span aria-hidden>→</span>
 								</TrackedLink>
 								<Link

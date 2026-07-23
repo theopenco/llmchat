@@ -8,10 +8,11 @@ import { JsonLd } from "@/components/JsonLd";
 import { FaqSection } from "@/components/FaqSection";
 import { FEATURES, getFeature } from "@/lib/features";
 import { breadcrumbLd, faqPageLd, pageMeta } from "@/lib/seo";
-import { CANONICAL_SHOWCASE_URL, CANONICAL_SITE_URL } from "@/lib/site-urls";
-
-const dashboardUrl =
-	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
+import {
+	CANONICAL_SHOWCASE_URL,
+	CANONICAL_SITE_URL,
+	SIGNUP_URL,
+} from "@/lib/site-urls";
 
 export function generateStaticParams() {
 	return FEATURES.map((f) => ({ slug: f.slug }));
@@ -99,12 +100,12 @@ export default async function FeaturePage({
 
 						<div className="animate-rise-in mt-8 flex flex-wrap gap-3 [animation-delay:200ms]">
 							<TrackedLink
-								href={dashboardUrl}
+								href={SIGNUP_URL}
 								event={ANALYTICS_EVENTS.signupStarted}
 								eventProps={{ source: "feature_page", feature: feature.slug }}
 								className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-colors hover:bg-accent-deep"
 							>
-								Get your support agent now
+								Start your free trial
 								<span aria-hidden>→</span>
 							</TrackedLink>
 							<a
@@ -217,7 +218,7 @@ export default async function FeaturePage({
 							</h2>
 							<div className="mt-9 flex flex-wrap justify-center gap-3">
 								<TrackedLink
-									href={dashboardUrl}
+									href={SIGNUP_URL}
 									event={ANALYTICS_EVENTS.signupStarted}
 									eventProps={{
 										source: "feature_closing",
@@ -225,7 +226,7 @@ export default async function FeaturePage({
 									}}
 									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-colors hover:bg-accent-deep"
 								>
-									Get your support agent now
+									Start your free trial
 									<span aria-hidden>→</span>
 								</TrackedLink>
 								<Link

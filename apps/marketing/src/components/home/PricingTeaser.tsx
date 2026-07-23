@@ -1,6 +1,12 @@
 import Link from "next/link";
-import { BILLING_TIERS, TRIAL_PERIOD_DAYS } from "@llmchat/shared";
+import {
+	ANALYTICS_EVENTS,
+	BILLING_TIERS,
+	TRIAL_PERIOD_DAYS,
+} from "@llmchat/shared";
 import { ShineBorder } from "@/components/magicui/shine-border";
+import { TrackedLink } from "@/components/TrackedLink";
+import { SIGNUP_URL } from "@/lib/site-urls";
 
 /**
  * Real prices from the single source of truth (@llmchat/shared BILLING_TIERS —
@@ -60,10 +66,23 @@ export function PricingTeaser() {
 									<span className="text-sm text-muted">/month</span>
 								</div>
 								<p className="mt-2 text-sm text-muted">{t.blurb}</p>
-								<p className="mt-4 text-sm text-ink-soft">
+								<p className="mt-4 flex-1 text-sm text-ink-soft">
 									{tier.maxResponsesPerMonth.toLocaleString("en-US")} AI
 									responses / month included
 								</p>
+								<TrackedLink
+									href={SIGNUP_URL}
+									event={ANALYTICS_EVENTS.signupStarted}
+									eventProps={{ source: "home_pricing_teaser", plan: t.plan }}
+									className={`mt-6 inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
+										t.featured
+											? "bg-accent text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] hover:bg-accent-deep"
+											: "border border-rule text-ink-soft hover:border-accent/40 hover:text-ink"
+									}`}
+								>
+									Start free trial
+									<span aria-hidden>→</span>
+								</TrackedLink>
 							</div>
 						);
 					})}
