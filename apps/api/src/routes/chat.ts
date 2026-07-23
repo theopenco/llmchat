@@ -8,6 +8,7 @@ import {
 	SUMMARY_MIN_MESSAGES,
 } from "@/lib/conversation-summary";
 import { db } from "@/lib/db";
+import { insertMessage } from "@/lib/messages";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
 import {
 	ESCALATED_HOLDING_MESSAGE,
@@ -38,7 +39,6 @@ import {
 	conversation,
 	eq,
 	isNull,
-	message as messageTable,
 	usageEvent,
 } from "@llmchat/db";
 import {
@@ -299,25 +299,15 @@ export const chat = new Hono<AppContext>()
 			?.filter((p): p is { type: "text"; text: string } => p.type === "text")
 			.map((p) => p.text)
 			.join("");
-		const nextSeq = conv.messageCount + 1;
-		await db(c.env)
-			.insert(messageTable)
-			.values({
-				conversationId: conv.id,
-				role: "user",
-				content: userText ?? "",
-				sequence: nextSeq,
-				// Null unless the reference resolved to a quotable message in this same
-				// conversation. content stays the visitor's RAW text — the quote is a
-				// reference, never inlined into the stored message.
-				replyToMessageId: replyTo?.id ?? null,
-			});
-		// Bump the count with the user message now — if the model call below
-		// fails, the next message must not reuse this sequence.
-		await db(c.env)
-			.update(conversation)
-			.set({ messageCount: nextSeq, updatedAt: new Date() })
-			.where(eq(conversation.id, conv.id));
+		await insertMessage(c.env, {
+			conversationId: conv.id,
+			role: "user",
+			content: userText ?? "",
+			// Null unless the reference resolved to a quotable message in this same
+			// conversation. content stays the visitor's RAW text — the quote is a
+			// reference, never inlined into the stored message.
+			replyToMessageId: replyTo?.id ?? null,
+		});
 
 		// Holding-message guard: a human is in the loop (escalated and not yet
 		// resolved), so the bot must NOT answer over the handoff. The visitor message
@@ -530,18 +520,15 @@ export const chat = new Hono<AppContext>()
 					// span several model steps, and metering must count all of them.
 					// Identical to `usage` for the single-step (no-tools) path.
 					const usage = await result.totalUsage;
-					await db(c.env)
-						.insert(messageTable)
-						.values({
-							conversationId: conv.id,
-							role: "assistant",
-							content: text,
-							sequence: nextSeq + 1,
-						});
-					await db(c.env)
-						.update(conversation)
-						.set({ messageCount: nextSeq + 1, updatedAt: new Date() })
-						.where(eq(conversation.id, conv.id));
+					// Allocates its sequence at COMMIT time (post-stream), not from a
+					// slot precomputed before the stream — so an operator note or an
+					// escalate marker landing mid-stream takes the earlier sequence and
+					// the thread reads in true chronological order.
+					await insertMessage(c.env, {
+						conversationId: conv.id,
+						role: "assistant",
+						content: text,
+					});
 					const [event] = await db(c.env)
 						.insert(usageEvent)
 						.values({
@@ -632,7 +619,6 @@ export const chat = new Hono<AppContext>()
 		}
 		// DB first: the escalation must be recorded and visible in the inbox
 		// regardless of whether any notification below succeeds.
-		const systemSeq = conv.messageCount + 1;
 		// Seed the email thread: stamp the system message with a Message-ID so a
 		// reply to the customer acknowledgement (sent below) threads back into this
 		// conversation via In-Reply-To. Only meaningful when inbound email is
@@ -640,21 +626,21 @@ export const chat = new Hono<AppContext>()
 		const ackMessageId = c.env.vars.INBOUND_EMAIL_DOMAIN
 			? `${crypto.randomUUID()}@${c.env.vars.INBOUND_EMAIL_DOMAIN}`
 			: null;
-		await db(c.env).insert(messageTable).values({
+		const { messageCount } = await insertMessage(c.env, {
 			conversationId: conv.id,
 			role: "system",
 			content: "Visitor requested a human operator",
-			sequence: systemSeq,
 			emailMessageId: ackMessageId,
 		});
+		// The escalation stamps stay their own ABSOLUTE update, deliberately
+		// separate from the helper's commutative count bump: bundling the count
+		// in here (the old shape) silently absorbed concurrent writers' bumps.
 		await db(c.env)
 			.update(conversation)
 			.set({
 				escalatedAt: new Date(),
 				name: name ?? conv.name,
 				email: email ?? conv.email,
-				messageCount: systemSeq,
-				updatedAt: new Date(),
 			})
 			.where(eq(conversation.id, conv.id));
 
@@ -755,7 +741,9 @@ export const chat = new Hono<AppContext>()
 					project_id: project.id,
 					workspace_id: project.workspaceId,
 					notified: !!project.notifyEmail,
-					message_count: systemSeq,
+					// The helper's post-bump count — a true row count, never a
+					// sequence value standing in for one.
+					message_count: messageCount,
 				},
 			}),
 		);

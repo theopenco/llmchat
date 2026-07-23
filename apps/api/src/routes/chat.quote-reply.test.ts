@@ -116,7 +116,15 @@ function mockDb(opts: { messages?: Row[]; convRow?: Row } = {}) {
 			message: { findFirst: findFirstOver(opts.messages ?? []) },
 		},
 		insert: () => ({ values }),
-		update: () => ({ set: () => ({ where: async () => [] }) }),
+		update: () => ({
+			set: () => ({
+				// Thenable + .returning() for insertMessage's count bump.
+				where: () =>
+					Object.assign(Promise.resolve([]), {
+						returning: async () => [{ messageCount: 3 }],
+					}),
+			}),
+		}),
 	} as unknown as ReturnType<typeof db>);
 	return { inserted };
 }

@@ -9,6 +9,7 @@ import {
 } from "@/lib/conversation-summary";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { db } from "@/lib/db";
+import { insertMessage } from "@/lib/messages";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
 import {
 	MAX_MATCH_CONVERSATIONS,
@@ -540,21 +541,15 @@ export const conversations = new Hono<AppContext>()
 				return c.json({ error: "not found" }, 404);
 			}
 
-			const nextSeq = conv.messageCount + 1;
 			const messageId = `${crypto.randomUUID()}@${c.env.vars.INBOUND_EMAIL_DOMAIN}`;
 
-			await db(c.env).insert(messageTable).values({
+			await insertMessage(c.env, {
 				conversationId: conv.id,
 				role: "admin",
 				content,
-				sequence: nextSeq,
 				authorUserId: userId,
 				emailMessageId: messageId,
 			});
-			await db(c.env)
-				.update(conversation)
-				.set({ messageCount: nextSeq, updatedAt: new Date() })
-				.where(eq(conversation.id, conv.id));
 
 			if (conv.email) {
 				await sendEmail(c.env, {
@@ -607,28 +602,18 @@ export const conversations = new Hono<AppContext>()
 				return c.json({ error: "not found" }, 404);
 			}
 
-			// Same sequence protocol as every other writer (messageCount+1 → bump):
-			// a divergent scheme would collide with the pre-fetched counts in
-			// chat/escalate (#146 tracks making this allocation atomic). Bumping
-			// messageCount also flips teammates' unread on and re-sorts the inbox —
-			// intended: a note IS new team-visible content.
-			const nextSeq = conv.messageCount + 1;
-			const [created] = await db(c.env)
-				.insert(messageTable)
-				.values({
-					conversationId: conv.id,
-					role: "note",
-					content,
-					sequence: nextSeq,
-					authorUserId: userId,
-					// NO emailMessageId: notes never seed email threading (a visitor
-					// reply could otherwise thread off a note's Message-ID).
-				})
-				.returning();
-			await db(c.env)
-				.update(conversation)
-				.set({ messageCount: nextSeq, updatedAt: new Date() })
-				.where(eq(conversation.id, conv.id));
+			// Allocation is atomic in insertMessage (#146 resolved — no more
+			// pre-fetched-count collisions with chat/escalate). The count bump
+			// also flips teammates' unread on and re-sorts the inbox — intended:
+			// a note IS new team-visible content. NO emailMessageId: notes never
+			// seed email threading (a visitor reply could otherwise thread off a
+			// note's Message-ID).
+			const { row: created } = await insertMessage(c.env, {
+				conversationId: conv.id,
+				role: "note",
+				content,
+				authorUserId: userId,
+			});
 
 			return c.json(
 				{

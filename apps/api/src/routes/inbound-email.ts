@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 
 import { db } from "@/lib/db";
+import { insertMessage } from "@/lib/messages";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { captureInBackground } from "@/lib/posthog";
 import { verifySvixSignature } from "@/lib/svix";
 
-import { conversation, eq, message } from "@llmchat/db";
+import { message } from "@llmchat/db";
 import { ANALYTICS_EVENTS } from "@llmchat/shared";
 
 import type { AppContext, Env } from "@/env";
@@ -295,17 +296,11 @@ export const inboundEmail = new Hono<AppContext>().post(
 			);
 			return fail("empty body", 400);
 		}
-		const nextSeq = conv.messageCount + 1;
-		await db(c.env).insert(message).values({
+		await insertMessage(c.env, {
 			conversationId: conv.id,
 			role: "user",
 			content,
-			sequence: nextSeq,
 		});
-		await db(c.env)
-			.update(conversation)
-			.set({ messageCount: nextSeq, updatedAt: new Date() })
-			.where(eq(conversation.id, conv.id));
 
 		// `matched` says whether In-Reply-To threading worked or the sender
 		// fallback caught it — a rising fallback share means clients are dropping

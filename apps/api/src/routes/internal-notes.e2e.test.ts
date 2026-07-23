@@ -208,10 +208,11 @@ async function seed(sqlite: DatabaseSync) {
 			projectId: pA,
 			clientId: "visitor-1",
 			name: "Vic Visitor",
-			// Deliberately AHEAD of MAX(sequence) (6, below) — the shape a thread
-			// takes after a future row deletion (#146). The gap makes the sequence
-			// assertions discriminate the messageCount+1 protocol from a
-			// MAX(sequence)+1 reimplementation, which this fixture would catch.
+			// Deliberately AHEAD of MAX(sequence) (6, below) — historical count
+			// drift from the pre-#146 absolute-bump races. The gap makes the
+			// sequence assertions discriminate the atomic MAX(sequence)+1
+			// allocation (insertMessage) from a messageCount+1 regression, which
+			// this fixture would expose as sequence 9.
 			messageCount: 8,
 		},
 	]);
@@ -338,9 +339,10 @@ describe("notes endpoint — POST /api/projects/:pid/conversations/:id/notes", (
 			};
 		};
 		expect(body.message.role).toBe("note");
-		// messageCount(8)+1 — NOT MAX(sequence)(6)+1, which the fixture's gap
-		// would expose as 7.
-		expect(body.message.sequence).toBe(9);
+		// MAX(sequence)(6)+1 — NOT messageCount(8)+1, which the fixture's gap
+		// would expose as 9. The decoupling pair: sequence comes from MAX+1,
+		// while message_count still lands on 9 via the commutative 8+1 bump.
+		expect(body.message.sequence).toBe(7);
 		expect(body.message.authorUserId).toBe(u2);
 		const conv = sqlite
 			.prepare("SELECT message_count FROM conversation WHERE id = ?")
@@ -360,6 +362,16 @@ describe("notes endpoint — POST /api/projects/:pid/conversations/:id/notes", (
 			.run(c1);
 		const res2 = await post({ "x-test-user": u2, "x-workspace-id": wsA });
 		expect(res2.status).toBe(201);
+		// The interleaving pair: the second sequential insert allocates strictly
+		// above the first (7 → 8, no collision, monotonic) while the count keeps
+		// its commutative march (9 → 10) — the drifted fixture discriminates
+		// both halves of the protocol at once.
+		const body2 = (await res2.json()) as { message: { sequence: number } };
+		expect(body2.message.sequence).toBe(8);
+		const conv2 = sqlite
+			.prepare("SELECT message_count FROM conversation WHERE id = ?")
+			.get(c1) as { message_count: number };
+		expect(conv2.message_count).toBe(10);
 		expect(sendEmail).not.toHaveBeenCalled();
 		expect(sendEscalationSlack).not.toHaveBeenCalled();
 		// No server-side analytics on the notes path either — the only note_added
@@ -594,5 +606,149 @@ describe("notifications bell ignores notes", () => {
 		);
 		expect(res.status).toBe(200);
 		expect(JSON.stringify(await res.json())).not.toContain(NOTE_TOKEN);
+	});
+});
+
+// ─── #146: atomic sequence allocation (insertMessage) ───────────────────────
+
+/** The TRUE mid-stream race, replayed deterministically: /v1/chat persists the
+ * user row in-request, the assistant row commits later inside waitUntil — and
+ * an operator note lands in between. Under the old precomputed protocol the
+ * note and the assistant reply collided on the same sequence; commit-time
+ * MAX+1 allocation gives each writer its truthful slot. */
+function mockStream() {
+	// A DEFERRED stream: text/usage resolve only when the test releases the
+	// gate, exactly like a real stream that is still emitting tokens. Without
+	// this the mocked promises are pre-resolved and the waitUntil closure
+	// commits the assistant row on the microtask queue — before the "mid-
+	// stream" note could ever land.
+	let release!: () => void;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	vi.mocked(streamChat).mockResolvedValue({
+		text: gate.then(() => "the assistant reply"),
+		usage: gate.then(() => ({ inputTokens: 1, outputTokens: 2 })),
+		totalUsage: gate.then(() => ({ inputTokens: 1, outputTokens: 2 })),
+		toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
+	} as never);
+	return release;
+}
+
+async function runMidStreamInterleave() {
+	const release = mockStream();
+	const { ctx, settle } = makeCtx();
+	const res = await chat.request(
+		"/chat",
+		{
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				projectKey: "pk_a",
+				clientId: "visitor-1",
+				messages: [
+					{ role: "user", parts: [{ type: "text", text: "still there?" }] },
+				],
+			}),
+		},
+		ENV,
+		ctx as never,
+	);
+	expect(res.status).toBe(200);
+	// TRULY mid-stream: the assistant's `await result.text` is parked on the
+	// unreleased gate, so its row cannot have committed yet.
+	const noteRes = await conversations.request(
+		`/projects/${pA}/conversations/${c1}/notes`,
+		{
+			method: "POST",
+			headers: { ...MEMBER_HEADERS, "content-type": "application/json" },
+			body: JSON.stringify({ content: "handling this one myself" }),
+		},
+		ENV,
+	);
+	expect(noteRes.status).toBe(201);
+	release(); // the stream finishes now
+	await settle(); // assistant persists, allocating at commit time
+}
+
+describe("#146 — mid-stream note gets the middle slot, no collision", () => {
+	it("user 7, note 8, assistant 9 — unique, monotonic, chronologically truthful", async () => {
+		await runMidStreamInterleave();
+		const rows = sqlite
+			.prepare(
+				"SELECT role, sequence FROM message WHERE conversation_id = ? AND sequence > 6 ORDER BY sequence",
+			)
+			.all(c1) as { role: string; sequence: number }[];
+		expect(rows).toEqual([
+			{ role: "user", sequence: 7 },
+			{ role: "note", sequence: 8 },
+			{ role: "assistant", sequence: 9 },
+		]);
+		// No duplicate (conversation_id, sequence) pair anywhere.
+		const dupes = sqlite
+			.prepare(
+				`SELECT COUNT(*) AS n FROM (SELECT conversation_id, sequence FROM message
+				 GROUP BY conversation_id, sequence HAVING COUNT(*) > 1)`,
+			)
+			.get() as { n: number };
+		expect(dupes.n).toBe(0);
+		// Commutative count: 8 (drifted fixture) + user + note + assistant = 11.
+		const conv = sqlite
+			.prepare("SELECT message_count FROM conversation WHERE id = ?")
+			.get(c1) as { message_count: number };
+		expect(conv.message_count).toBe(11);
+	});
+});
+
+describe("#146 — the visitor-side gap a hidden note leaves is handled everywhere", () => {
+	it("widget feed skips the note but keeps true sequences; thread keyset pages across the gap", async () => {
+		await runMidStreamInterleave();
+		// Widget feed (VISITOR_VISIBLE_ROLES): the mid-feed notes vanish, the
+		// surviving rows keep their REAL sequences — gaps at 5, 6 and 8.
+		const feedRes = await widgetMessages.request(
+			"/messages?projectKey=pk_a&clientId=visitor-1",
+			{},
+			ENV,
+		);
+		expect(feedRes.status).toBe(200);
+		const feed = (await feedRes.json()) as {
+			messages: { role: string; sequence: number }[];
+		};
+		expect(feed.messages.map((m) => `${m.role}=${m.sequence}`)).toEqual([
+			"user=1",
+			"assistant=2",
+			"admin=3",
+			"system=4",
+			"user=7",
+			"assistant=9",
+		]);
+		// Operator thread keyset across the gap: the poll cursor (after=7) picks
+		// up exactly the note and the assistant reply; the older-page cursor
+		// (before=8) ends exactly at the user row — gap-tolerant both directions.
+		const poll = await conversations.request(
+			`/projects/${pA}/conversations/${c1}?after=7`,
+			{ headers: MEMBER_HEADERS },
+			ENV,
+		);
+		expect(poll.status).toBe(200);
+		const polled = (await poll.json()) as {
+			messages: { role: string; sequence: number }[];
+		};
+		expect(polled.messages.map((m) => `${m.role}=${m.sequence}`)).toEqual([
+			"note=8",
+			"assistant=9",
+		]);
+		const older = await conversations.request(
+			`/projects/${pA}/conversations/${c1}?before=8&limit=2`,
+			{ headers: MEMBER_HEADERS },
+			ENV,
+		);
+		expect(older.status).toBe(200);
+		const olderBody = (await older.json()) as {
+			messages: { sequence: number }[];
+			hasOlder: boolean;
+		};
+		expect(olderBody.messages.map((m) => m.sequence)).toEqual([6, 7]);
+		expect(olderBody.hasOlder).toBe(true);
 	});
 });
