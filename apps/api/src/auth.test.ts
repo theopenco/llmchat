@@ -174,3 +174,44 @@ describe("buildAuthOptions", () => {
 		spy.mockRestore();
 	});
 });
+
+describe("trustedOrigins", () => {
+	const resolve = (
+		origin: string | null,
+		url = "http://localhost:8787/api/auth/sign-in/email",
+	) => {
+		const headers = new Headers();
+		if (origin !== null) headers.set("origin", origin);
+		return buildAuthOptions(env()).trustedOrigins(
+			new Request(url, { headers }),
+		);
+	};
+
+	it("trusts the API's own origin (same-origin is CSRF-safe; used by the MCP connector)", () => {
+		expect(resolve("http://localhost:8787")).toEqual(["http://localhost:8787"]);
+	});
+
+	it("trusts the configured app origins", () => {
+		expect(resolve("http://localhost:3001")).toEqual(["http://localhost:3001"]);
+	});
+
+	it("falls back to the static allowlist for foreign or absent origins", () => {
+		const fallback = [
+			"http://localhost:3001",
+			"http://localhost:3002",
+			"http://localhost:3003",
+			"http://localhost:3004",
+		];
+		expect(resolve("https://evil.example")).toEqual(fallback);
+		expect(resolve(null)).toEqual(fallback);
+	});
+
+	it("does not trust a same-host origin on a different scheme or port", () => {
+		expect(resolve("https://localhost:8787")).not.toContain(
+			"https://localhost:8787",
+		);
+		expect(resolve("http://localhost:8788")).not.toContain(
+			"http://localhost:8788",
+		);
+	});
+});

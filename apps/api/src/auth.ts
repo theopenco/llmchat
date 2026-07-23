@@ -146,9 +146,17 @@ export function buildAuthOptions(env: Env) {
 			const mkt = env.vars.MARKETING_URL || "http://localhost:3002";
 			const showcase = env.vars.SHOWCASE_URL || "http://localhost:3003";
 			const admin = adminUrl(env);
+			// The API's own origin is also trusted: same-origin requests are
+			// CSRF-safe by definition (a browser only sends Origin = this API from
+			// pages the API itself serves), and it gives non-browser clients that
+			// can't suppress Sec-Fetch-* headers — Node's fetch, hence the
+			// @clankersupport/mcp connector — a deterministic origin to present
+			// that works on any deployment, hosted or self-hosted.
+			const self = request ? new URL(request.url).origin : undefined;
 			if (
 				origin &&
-				(isAllowedOrigin(origin, dash) ||
+				(origin === self ||
+					isAllowedOrigin(origin, dash) ||
 					isAllowedOrigin(origin, mkt) ||
 					isAllowedOrigin(origin, showcase) ||
 					isAllowedOrigin(origin, admin))

@@ -108,7 +108,7 @@ The api ships to workerd. Avoid Node-only deps — they fail to bundle. Already 
 
 ### Auth (`apps/api/src/auth.ts`)
 
-Better Auth with the Drizzle adapter. **Email+password plus Google and GitHub OAuth** (social providers are wired only when the matching `*_CLIENT_ID`/`*_CLIENT_SECRET` env vars are present; `/api/oauth-providers` tells the frontends which are enabled). The passkey plugin remains removed (Node deps). `createAuth(env)` is called **per-request** because env is a Ploy binding, not a module-scope value.
+Better Auth with the Drizzle adapter. **Email+password plus Google and GitHub OAuth** (social providers are wired only when the matching `*_CLIENT_ID`/`*_CLIENT_SECRET` env vars are present; `/api/oauth-providers` tells the frontends which are enabled). The passkey plugin remains removed (Node deps). `createAuth(env)` is called **per-request** because env is a Ploy binding, not a module-scope value. `trustedOrigins` accepts the app origins (dashboard/marketing/showcase/admin, incl. Ploy preview hosts) **plus the API's own origin** — same-origin is CSRF-safe, and non-browser clients whose fetch stamps `Sec-Fetch-*` headers (Node's fetch → the MCP connector) present it to pass Better Auth's origin check (tested in `auth.test.ts`).
 
 ### Request paths (`apps/api/src/index.ts`)
 
@@ -183,6 +183,10 @@ Three entry points via package `exports`:
 - `@llmchat/widget/styles` → `src/styles.ts` (a `widgetStyles` string for injecting into a shadow root `<style>`).
 
 The CSS lives as a TS template literal rather than a `.css` file because Next.js (the in-tree consumers) doesn't grok Vite's `?inline` syntax — a string export works for both bundlers. After `vite build`, `scripts/emit-api-asset.mjs` embeds `dist/widget.js` into `apps/api/src/generated/widget-bundle.ts` (gitignored) so the worker serves `/widget.js` with no filesystem.
+
+### MCP connector (`packages/mcp`)
+
+`@clankersupport/mcp` — a **publishable** stdio MCP server (like `packages/widget-rsc`, it keeps the `@clankersupport/*` npm name) that gives Claude Code / Codex / any MCP client the operator surface as tools: list/read conversations, reply, internal notes, knowledge sources, workspace search. It's a plain Node CLI (`bin: clanker-support-mcp`, run via `npx`) — **NodeNext module resolution + `.js` import extensions**, unlike the bundler-consumed packages; the workerd constraint does not apply. Auth is the dashboard's own email+password flow (`/api/auth/sign-in/email` → replay the session cookie + `x-workspace-id`; one transparent re-auth on 401). Sign-in sends `Origin: <api origin>` because Node's fetch force-stamps `Sec-Fetch-*` headers, which makes Better Auth demand a trusted origin — the API trusts its own origin for exactly this (see Auth above). Config is env-only: `CLANKER_EMAIL` / `CLANKER_PASSWORD` / `CLANKER_API_URL` (self-host) / `CLANKER_WORKSPACE_ID` (optional pin; else the busiest workspace). Docs: `apps/docs/content/integrations/mcp.mdx` and the package README.
 
 ### Marketing site (`apps/marketing`)
 

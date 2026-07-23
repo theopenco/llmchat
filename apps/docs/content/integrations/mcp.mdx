@@ -1,0 +1,78 @@
+---
+title: MCP connector (Claude Code & Codex)
+description: Work your support inbox from your coding agent — read escalations, send replies, and update the knowledge base over the Model Context Protocol
+icon: Terminal
+---
+
+The official MCP server, [`@clankersupport/mcp`](https://www.npmjs.com/package/@clankersupport/mcp), connects Clanker Support to any [Model Context Protocol](https://modelcontextprotocol.io) client — Claude Code and Codex being the two it's tested against. Your coding agent gets the operator surface as tools: list and read conversations, reply to customers, leave internal notes, search the workspace, and add knowledge sources.
+
+The loop it unlocks: a customer reports a bug and escalates → your agent reads the conversation from the terminal, you fix the bug together → the agent replies to the customer and adds the fix to the knowledge base so the AI answers it next time. No dashboard tab involved.
+
+## Claude Code
+
+```sh
+claude mcp add clanker-support \
+  --env CLANKER_EMAIL=you@company.com \
+  --env CLANKER_PASSWORD=your-password \
+  -- npx -y @clankersupport/mcp
+```
+
+Restart Claude Code (or run `/mcp`) and the `clanker-support` tools are available. For a team-shared, project-scoped setup, commit a `.mcp.json` that references environment variables instead of literal credentials:
+
+```json
+{
+	"mcpServers": {
+		"clanker-support": {
+			"command": "npx",
+			"args": ["-y", "@clankersupport/mcp"],
+			"env": {
+				"CLANKER_EMAIL": "${CLANKER_EMAIL}",
+				"CLANKER_PASSWORD": "${CLANKER_PASSWORD}"
+			}
+		}
+	}
+}
+```
+
+## Codex
+
+Add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.clanker-support]
+command = "npx"
+args = ["-y", "@clankersupport/mcp"]
+env = { CLANKER_EMAIL = "you@company.com", CLANKER_PASSWORD = "your-password" }
+```
+
+## Configuration
+
+| Variable               | Required | Default                          | What it does                                                                      |
+| ---------------------- | -------- | -------------------------------- | --------------------------------------------------------------------------------- |
+| `CLANKER_EMAIL`        | yes      | —                                | Operator account email                                                            |
+| `CLANKER_PASSWORD`     | yes      | —                                | Operator account password                                                         |
+| `CLANKER_API_URL`      | no       | `https://api.clankersupport.com` | Your API origin when [self-hosting](/features/self-hosting)                       |
+| `CLANKER_WORKSPACE_ID` | no       | auto                             | Pin a workspace when the account belongs to several (`list_workspaces` lists ids) |
+
+Prefer a dedicated automation account with the least role that covers what you'll do — `agent` is enough for reading, replying, notes, and knowledge sources.
+
+## Tools
+
+| Tool                     | What it does                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `list_workspaces`        | Workspaces this account belongs to, with role and project count               |
+| `list_projects`          | Support projects in the active workspace                                      |
+| `list_conversations`     | Conversations in a project — filter by open / escalated / resolved, or search |
+| `conversation_stats`     | Open / escalated / resolved counts for a project                              |
+| `get_conversation`       | A conversation's full message thread                                          |
+| `reply_to_conversation`  | Send an operator reply to the customer (customer-visible)                     |
+| `add_internal_note`      | Team-only note on a conversation — never shown to the customer                |
+| `list_knowledge_sources` | The project's knowledge base (url / text / qa sources)                        |
+| `add_knowledge_source`   | Add a docs URL, text snippet, or Q&A pair the AI will answer from             |
+| `search`                 | Workspace-wide search — the same one the dashboard's ⌘K palette uses          |
+
+`reply_to_conversation` is customer-visible, and its tool description instructs agents to confirm the draft with you before sending.
+
+## Self-hosting
+
+Set `CLANKER_API_URL` to your deployment's API origin — everything else is identical. The API must be a build that trusts its own origin for sign-in (July 2026 or later).
