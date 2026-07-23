@@ -422,7 +422,14 @@ export const message = sqliteTable(
 		createdAt: createdAt(),
 	},
 	(t) => [
-		index("message_conv_seq").on(t.conversationId, t.sequence),
+		// UNIQUE — enforced in the DB by migration 0024, which ships in the
+		// NEXT deploy (#146 PR-C) once this allocation code is serving: every
+		// writer allocates sequence atomically via lib/messages.ts
+		// insertMessage, and the index is the tripwire that makes any
+		// regression loud. Declaration kept in sync by hand; do NOT run
+		// drizzle-kit generate (migrations are hand-authored — 0023/0024 have
+		// no snapshots).
+		uniqueIndex("message_conv_seq_uidx").on(t.conversationId, t.sequence),
 		index("message_email_id").on(t.emailMessageId),
 	],
 );

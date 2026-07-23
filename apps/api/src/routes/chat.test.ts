@@ -1,7 +1,9 @@
+import { SQL } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
+import { captureEvent } from "@/lib/posthog";
 import { ESCALATED_HOLDING_MESSAGE } from "@/lib/holding";
 import { publicLookupRateLimit, shouldSendHolding } from "@/lib/kv";
 import { streamChat, summarizeForVisitor } from "@/lib/llm";
@@ -87,7 +89,16 @@ function mockDb({
 			integration: { findMany: async () => integrations },
 		},
 		insert: () => ({ values: valuesResult }),
-		update: () => ({ set: () => ({ where: async () => [] }) }),
+		update: () => ({
+			set: () => ({
+				// Thenable + .returning(): awaited bare by absolute updates and
+				// consumed via .returning() by insertMessage's count bump.
+				where: () =>
+					Object.assign(Promise.resolve([]), {
+						returning: async () => [{ messageCount: 1 }],
+					}),
+			}),
+		}),
 	} as unknown as ReturnType<typeof db>);
 }
 
@@ -478,7 +489,16 @@ describe("POST /v1/chat — escalation mutes the bot (Bug 3 holding message)", (
 				},
 			},
 			insert: () => ({ values: valuesSpy }),
-			update: () => ({ set: () => ({ where: async () => [] }) }),
+			update: () => ({
+				set: () => ({
+					// Thenable + .returning(): awaited bare by absolute updates and
+					// consumed via .returning() by insertMessage's count bump.
+					where: () =>
+						Object.assign(Promise.resolve([]), {
+							returning: async () => [{ messageCount: 1 }],
+						}),
+				}),
+			}),
 		} as unknown as ReturnType<typeof db>);
 		return { valuesSpy, adminProbeEqs };
 	}
@@ -642,7 +662,16 @@ describe("POST /v1/escalate — operator transcript is server-side", () => {
 				message: { findMany: async () => storedMessages },
 			},
 			insert: () => ({ values: valuesResult }),
-			update: () => ({ set: () => ({ where: async () => [] }) }),
+			update: () => ({
+				set: () => ({
+					// Thenable + .returning(): awaited bare by absolute updates and
+					// consumed via .returning() by insertMessage's count bump.
+					where: () =>
+						Object.assign(Promise.resolve([]), {
+							returning: async () => [{ messageCount: 1 }],
+						}),
+				}),
+			}),
 		} as unknown as ReturnType<typeof db>);
 	}
 
@@ -747,7 +776,16 @@ describe("POST /v1/escalate — operator transcript is server-side", () => {
 				message: { findMany: async () => [] },
 			},
 			insert: () => ({ values: valuesSpy }),
-			update: () => ({ set: () => ({ where: async () => [] }) }),
+			update: () => ({
+				set: () => ({
+					// Thenable + .returning(): awaited bare by absolute updates and
+					// consumed via .returning() by insertMessage's count bump.
+					where: () =>
+						Object.assign(Promise.resolve([]), {
+							returning: async () => [{ messageCount: 1 }],
+						}),
+				}),
+			}),
 		} as unknown as ReturnType<typeof db>);
 
 		const env = {
@@ -806,7 +844,12 @@ describe("POST /v1/escalate — in-chat visitor summary (Bug 2)", () => {
 				returning: async () => [{ id: "ue1" }],
 			}),
 		);
-		const setSpy = vi.fn((_payload: unknown) => ({ where: async () => [] }));
+		const setSpy = vi.fn((_payload: unknown) => ({
+			where: () =>
+				Object.assign(Promise.resolve([]), {
+					returning: async () => [{ messageCount: 3 }],
+				}),
+		}));
 		vi.mocked(db).mockReturnValue({
 			query: {
 				project: {
@@ -882,6 +925,14 @@ describe("POST /v1/escalate — in-chat visitor summary (Bug 2)", () => {
 		expect(insertedSystem?.content).toBe("Visitor requested a human operator");
 		expect(sendEmail).toHaveBeenCalled();
 		await settle();
+		// #146: the analytics payload reports the helper's post-bump COUNT (the
+		// mocked UPDATE…RETURNING value), never a sequence standing in for one.
+		expect(captureEvent).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				properties: expect.objectContaining({ message_count: 3 }),
+			}),
+		);
 	});
 
 	it("hangs are bounded: a never-resolving summarizer times out → 200, summary null (NN1)", async () => {
@@ -992,7 +1043,12 @@ describe("POST /v1/escalate — idempotent (Bug 3)", () => {
 				returning: async () => [{ id: "x" }],
 			}),
 		);
-		const setSpy = vi.fn((_p: unknown) => ({ where: async () => [] }));
+		const setSpy = vi.fn((_p: unknown) => ({
+			where: () =>
+				Object.assign(Promise.resolve([]), {
+					returning: async () => [{ messageCount: 3 }],
+				}),
+		}));
 		vi.mocked(db).mockReturnValue({
 			query: {
 				project: {
@@ -1250,5 +1306,64 @@ describe("POST /v1/chat — history role allowlist (fabricated-authority guard)"
 		const input = vi.mocked(streamChat).mock.calls[0]![1];
 		expect(input.messages).toEqual(history);
 		await settle();
+	});
+});
+
+describe("#146 — allocation is a SQL subquery, the bump a SQL increment", () => {
+	// The mocked-db suites otherwise pass a drizzle SQL object through their
+	// insert spies without ever looking at it — this pin makes a regression to
+	// precomputed numeric sequences (or absolute count writes) fail loudly.
+	it("user + assistant rows carry SQL sequence fragments; both count bumps are SQL, not numbers", async () => {
+		const inserted: Record<string, unknown>[] = [];
+		const setPayloads: Record<string, unknown>[] = [];
+		vi.mocked(db).mockReturnValue({
+			query: {
+				project: { findFirst: async () => project },
+				conversation: {
+					findFirst: async () => ({ id: "c1", messageCount: 5 }),
+				},
+				source: { findMany: async () => [] },
+				systemPrompt: { findFirst: async () => undefined },
+				integration: { findMany: async () => [] },
+			},
+			insert: () => ({
+				values: vi.fn((row: Record<string, unknown>) => {
+					inserted.push(row);
+					return Object.assign(Promise.resolve([]), {
+						returning: async () => [{ id: "m1" }],
+					});
+				}),
+			}),
+			update: () => ({
+				set: vi.fn((payload: Record<string, unknown>) => {
+					setPayloads.push(payload);
+					return {
+						where: () =>
+							Object.assign(Promise.resolve([]), {
+								returning: async () => [{ messageCount: 6 }],
+							}),
+					};
+				}),
+			}),
+		} as unknown as ReturnType<typeof db>);
+		setAccess({});
+		streamOk();
+		const { ctx, settle } = makeCtx();
+		const res = await send(validBody, ctx);
+		expect(res.status).toBe(200);
+		await settle();
+
+		const messageRows = inserted.filter((r) => "role" in r);
+		expect(messageRows.map((r) => r.role)).toEqual(["user", "assistant"]);
+		for (const row of messageRows) {
+			// Atomic MAX(sequence)+1 — never a number precomputed from the count.
+			expect(row.sequence).toBeInstanceOf(SQL);
+		}
+		const bumps = setPayloads.filter((p) => "messageCount" in p);
+		expect(bumps).toHaveLength(2); // one per row (user in-request, assistant in waitUntil)
+		for (const bump of bumps) {
+			// Commutative message_count + 1 — never an absolute assignment.
+			expect(bump.messageCount).toBeInstanceOf(SQL);
+		}
 	});
 });

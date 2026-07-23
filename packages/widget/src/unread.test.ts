@@ -72,6 +72,18 @@ describe("countUnread", () => {
 	it("survives a marker ahead of the feed (rows deleted from the inbox)", () => {
 		expect(countUnread([msg(1, "admin")], 99)).toBe(0);
 	});
+
+	it("is exact across the sequence gap a hidden internal note leaves (#146)", () => {
+		// Server-side: user=7, note=8 (never served to visitors), assistant=9.
+		// The feed arrives with a hole at 8; the high-water marker sits on the
+		// visitor's own 7. Exactly one unread — the gap neither hides the
+		// assistant reply nor phantom-counts the invisible note.
+		const gapped = [msg(7, "user"), msg(9, "assistant")];
+		expect(countUnread(gapped, 7)).toBe(1);
+		expect(latestSequence(gapped)).toBe(9);
+		// Adopting the head as the new marker clears the badge across the gap.
+		expect(countUnread(gapped, latestSequence(gapped))).toBe(0);
+	});
 });
 
 describe("latestSequence", () => {
