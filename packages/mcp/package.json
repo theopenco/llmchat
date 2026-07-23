@@ -1,0 +1,59 @@
+{
+	"name": "@clankersupport/mcp",
+	"version": "0.1.0",
+	"description": "MCP server for Clanker Support — read your support inbox, reply to customers, and manage your knowledge base from Claude Code, Codex, or any MCP client.",
+	"keywords": [
+		"mcp",
+		"model-context-protocol",
+		"ai",
+		"customer-support",
+		"claude-code",
+		"codex",
+		"connector"
+	],
+	"homepage": "https://clankersupport.com",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/theopenco/llmchat.git",
+		"directory": "packages/mcp"
+	},
+	"license": "MIT",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"bin": {
+		"clanker-support-mcp": "./dist/cli.js"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"format": "prettier --write .",
+		"lint": "prettier --check .",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.29.0",
+		"zod": "^4.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.0.0",
+		"typescript": "5.9.2",
+		"vitest": "^3.0.0"
+	},
+	"engines": {
+		"node": ">=20"
+	}
+}

@@ -1,0 +1,15 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		// This package ships a Node-executable CLI (run via `npx`), so the emitted
+		// JS must resolve under Node's own ESM rules — NodeNext, with explicit .js
+		// extensions on relative imports — unlike the bundler-consumed packages.
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"lib": ["ES2023"],
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"types": ["node"]
+	},
+	"include": ["src"]
+}
