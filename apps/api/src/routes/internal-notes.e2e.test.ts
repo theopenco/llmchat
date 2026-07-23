@@ -75,6 +75,7 @@ import { planEntitlements } from "@llmchat/shared";
 import { maybeSummarize } from "@/lib/conversation-summary";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
+import { captureEvent, captureInBackground } from "@/lib/posthog";
 import { sendEscalationSlack } from "@/lib/slack";
 import {
 	streamChat,
@@ -207,7 +208,11 @@ async function seed(sqlite: DatabaseSync) {
 			projectId: pA,
 			clientId: "visitor-1",
 			name: "Vic Visitor",
-			messageCount: 6,
+			// Deliberately AHEAD of MAX(sequence) (6, below) — the shape a thread
+			// takes after a future row deletion (#146). The gap makes the sequence
+			// assertions discriminate the messageCount+1 protocol from a
+			// MAX(sequence)+1 reimplementation, which this fixture would catch.
+			messageCount: 8,
 		},
 	]);
 	await sdb.insert(message).values([
@@ -321,19 +326,33 @@ describe("notes endpoint — POST /api/projects/:pid/conversations/:id/notes", (
 			ENV,
 		);
 
-	it("agent-role member can write; 201; sequence + messageCount bump; NO email", async () => {
+	it("agent-role member can write; 201; sequence + messageCount bump; NO email, analytics, or emailMessageId", async () => {
 		const res = await post({ "x-test-user": u2, "x-workspace-id": wsA });
 		expect(res.status).toBe(201);
 		const body = (await res.json()) as {
-			message: { role: string; sequence: number; authorUserId: string };
+			message: {
+				id: string;
+				role: string;
+				sequence: number;
+				authorUserId: string;
+			};
 		};
 		expect(body.message.role).toBe("note");
-		expect(body.message.sequence).toBe(7);
+		// messageCount(8)+1 — NOT MAX(sequence)(6)+1, which the fixture's gap
+		// would expose as 7.
+		expect(body.message.sequence).toBe(9);
 		expect(body.message.authorUserId).toBe(u2);
 		const conv = sqlite
 			.prepare("SELECT message_count FROM conversation WHERE id = ?")
 			.get(c1) as { message_count: number };
-		expect(conv.message_count).toBe(7);
+		expect(conv.message_count).toBe(9);
+		// The created row carries NO email_message_id: a stamped RFC-5322 id
+		// would let inbound-email threading (In-Reply-To matching) resolve a
+		// reply against a note — the exact hazard the handler comment warns about.
+		const row = sqlite
+			.prepare("SELECT email_message_id AS emid FROM message WHERE id = ?")
+			.get(body.message.id) as { emid: string | null };
+		expect(row.emid).toBeNull();
 		// The exclusion from email is structural: with a visitor email on file, a
 		// note write must still never touch the email lib.
 		sqlite
@@ -343,6 +362,10 @@ describe("notes endpoint — POST /api/projects/:pid/conversations/:id/notes", (
 		expect(res2.status).toBe(201);
 		expect(sendEmail).not.toHaveBeenCalled();
 		expect(sendEscalationSlack).not.toHaveBeenCalled();
+		// No server-side analytics on the notes path either — the only note_added
+		// event is the dashboard's client-side one (which carries no payload).
+		expect(captureEvent).not.toHaveBeenCalled();
+		expect(captureInBackground).not.toHaveBeenCalled();
 	});
 
 	it("unauthenticated → 401; foreign tenant → 404; non-member → 403", async () => {
@@ -473,7 +496,7 @@ describe("rating a note fails closed", () => {
 
 describe("M3 — inbox triage summary never ingests a note", () => {
 	it("the transcript handed to the summarizer lacks the note, keeps the conversation", async () => {
-		await maybeSummarize(ENV as never, { id: c1, messageCount: 6 });
+		await maybeSummarize(ENV as never, { id: c1, messageCount: 8 });
 		expect(summarizeConversation).toHaveBeenCalledTimes(1);
 		const transcript = vi.mocked(summarizeConversation).mock.calls[0]![1];
 		expect(transcript).not.toContain(NOTE_TOKEN);
