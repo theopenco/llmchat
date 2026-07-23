@@ -2,7 +2,10 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MessageThread } from "./MessageThread";
-import { appendOptimisticReply } from "./optimistic-updaters";
+import {
+	appendOptimisticNote,
+	appendOptimisticReply,
+} from "./optimistic-updaters";
 
 import type { Conversation, Message } from "./types";
 
@@ -306,6 +309,32 @@ describe("MessageThread auto-scroll (useStickToBottom)", () => {
 
 		rerender(<MessageThread messages={next.messages} />);
 		// Role "admin" => stick-to-bottom treats it as the agent's own send.
+		expect(s.top).toBe(1000);
+	});
+
+	it("follows the agent's own note (built by appendOptimisticNote) even when scrolled up", () => {
+		const base = [
+			msg({ content: "hi", sequence: 1 }),
+			msg({ role: "assistant", content: "hello", sequence: 2 }),
+		];
+		const { el, rerender } = renderThread(base);
+		const s = mockScroll(el, { scrollHeight: 1000, clientHeight: 400 });
+		s.setTop(0); // scrolled up reading history
+
+		// The exact array the inbox's optimistic note writes into the thread cache.
+		const next = appendOptimisticNote(
+			{ conversation: { id: "c1" } as Conversation, messages: base },
+			{
+				tempId: "temp-n1",
+				content: "VIP customer — comp the order",
+				createdAt: "2026-07-23T05:00:00.000Z",
+				authorName: "Omar Owner",
+			},
+		) as { messages: Message[] };
+
+		rerender(<MessageThread messages={next.messages} />);
+		// Role "note" => own-send too: adding a note follows to the bottom
+		// exactly like sending a reply.
 		expect(s.top).toBe(1000);
 	});
 
