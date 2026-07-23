@@ -266,9 +266,13 @@ export function MessageThread({
 			// leaves it unchanged, so paging in history never reads as new content
 			// and never yanks to the bottom.
 			contentKey: messages.at(-1)?.id ?? messages.length,
-			// The agent's own sends are role "admin"; following those is expected.
-			// Inbound visitor/bot messages instead obey the near-bottom rule.
-			sendKey: messages.reduce((id, m) => (m.role === "admin" ? m.id : id), ""),
+			// The agent's own sends — replies (role "admin") and internal notes
+			// (role "note") — are followed to the bottom; inbound visitor/bot
+			// messages instead obey the near-bottom rule.
+			sendKey: messages.reduce(
+				(id, m) => (m.role === "admin" || m.role === "note" ? m.id : id),
+				"",
+			),
 		});
 
 	// Scroll anchoring for prepended history: when the FIRST message changes (an

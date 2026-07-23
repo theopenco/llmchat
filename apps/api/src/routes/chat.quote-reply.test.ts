@@ -15,8 +15,9 @@ vi.mock("@/lib/kv", () => ({
 	shouldSendHolding: vi.fn(async () => true),
 }));
 vi.mock("@/lib/llm", async (orig) => ({
-	// isQuotableRole is the real allowlist — mocking it would let a `system` row
-	// through and quietly void the test that proves it can't.
+	// isQuotableRole (the real allowlist) lives in @llmchat/shared, which this
+	// file never mocks — so a `system` row can't slip through a stubbed guard
+	// and quietly void the test that proves it can't.
 	...(await orig<typeof import("@/lib/llm")>()),
 	streamChat: vi.fn(),
 	summarizeForVisitor: vi.fn(async () => null),

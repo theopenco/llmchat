@@ -579,6 +579,8 @@ export const conversations = new Hono<AppContext>()
 	// write notes — triage annotation is the agent role's job.
 	.post(
 		"/projects/:projectId/conversations/:id/notes",
+		// Intentionally redundant with requireWorkspace today (agent = lowest
+		// rank) — defense in depth if workspace admission ever widens.
 		requireRole("agent"),
 		zValidator(
 			"json",

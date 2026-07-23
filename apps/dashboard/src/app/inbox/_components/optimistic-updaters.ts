@@ -37,8 +37,9 @@ export function appendOptimisticReply(
 /**
  * Same contract as appendOptimisticReply, for an internal note: the amber card
  * appears the instant the operator hits "Add note", stamped with their own name
- * (the reconciled server row carries the joined authorName). Role "note" also
- * gets the agent's-own-send stick-to-bottom treatment.
+ * (the reconciled server row carries the joined authorName). Like "admin",
+ * role "note" is one of the own-send roles in MessageThread's sendKey, so the
+ * thread follows your note to the bottom even when you'd scrolled up.
  */
 export function appendOptimisticNote(
 	prev: unknown,
