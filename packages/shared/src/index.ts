@@ -40,6 +40,15 @@ export {
 	type TierEntitlements,
 } from "./billing-tiers";
 
+// ─── Message-role allowlists ────────────────────────────────────────────────
+// ALL FOUR role allowlists live side by side, on purpose: a new message role
+// gets judged against every boundary in one place, and stays invisible on all
+// of them until it is deliberately added. Each guards a different edge:
+//   VISITOR_VISIBLE_ROLES — what may LEAVE the operator dashboard
+//   RECAP_ROLES           — what the visitor-facing escalation recap summarizes
+//   HISTORY_ROLES         — what a visitor may SUBMIT as /v1/chat history
+//   QUOTABLE_ROLES        — what a visitor may quote-reply
+
 /** Roles allowed to leave the operator dashboard, incl. email. Everything not
  * listed (e.g. the operator-internal "note") must never reach a visitor
  * surface: the widget feed (/v1/messages), the escalation notification email's
@@ -64,6 +73,28 @@ export const RECAP_ROLES = ["user", "assistant", "admin"] as const;
 export type RecapRole = (typeof RECAP_ROLES)[number];
 export function isRecapRole(role: string): role is RecapRole {
 	return (RECAP_ROLES as readonly string[]).includes(role);
+}
+
+/** History roles a visitor may SUBMIT to /v1/chat: their own turns and prior
+ * bot replies — the inbound counterpart of the outbound lists above. `system`
+ * is REJECTED — the server owns the system prompt, and a client-supplied
+ * system turn would reach the model as fabricated authority. Anything else
+ * (admin/note/junk) was never legitimate history; rejecting at the schema
+ * turns what used to be a convertToModelMessages 502 into a clean 400. Both
+ * official transports already comply: the widget's useChat state only ever
+ * holds the visitor's turns + streamed replies, and the RSC provider filters
+ * to user/assistant before POSTing (packages/widget-rsc/src/client/provider.tsx). */
+export const HISTORY_ROLES = ["user", "assistant"] as const;
+
+/** The message roles a visitor may quote-reply — an ALLOWLIST, not a denylist.
+ * `system` is excluded on purpose: those rows are internal markers ("Visitor
+ * requested a human operator") that the widget never displays, so re-surfacing
+ * one into the prompt would be a net-new injection/leak channel rather than a
+ * reply to something the visitor actually saw. */
+export const QUOTABLE_ROLES = ["user", "assistant", "admin"] as const;
+export type QuotableRole = (typeof QUOTABLE_ROLES)[number];
+export function isQuotableRole(role: string): role is QuotableRole {
+	return (QUOTABLE_ROLES as readonly string[]).includes(role);
 }
 
 // `system` rows (the escalation marker) are part of the served feed, so the

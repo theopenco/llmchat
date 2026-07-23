@@ -1,6 +1,7 @@
+import { isQuotableRole } from "@llmchat/shared";
 import { describe, expect, it } from "vitest";
 
-import { isQuotableRole, renderQuoteAnnotation, withQuote } from "./llm";
+import { renderQuoteAnnotation, withQuote } from "./llm";
 
 import type { UIMessage } from "ai";
 

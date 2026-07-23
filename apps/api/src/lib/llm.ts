@@ -8,6 +8,8 @@ import {
 	type UIMessage,
 } from "ai";
 
+import type { QuotableRole } from "@llmchat/shared";
+
 import type { Env } from "@/env";
 
 export interface LlmCallInput {
@@ -39,20 +41,6 @@ export interface LlmCallInput {
 	 */
 	quote?: { role: QuotableRole; excerpt: string };
 	messages: UIMessage[];
-}
-
-/**
- * The message roles a visitor may quote — an ALLOWLIST, not a denylist. `system`
- * is excluded on purpose: those rows are internal markers ("Visitor requested a
- * human operator") that the widget never displays, so re-surfacing one into the
- * prompt would be a net-new injection/leak channel rather than a reply to
- * something the visitor actually saw.
- */
-export const QUOTABLE_ROLES = ["user", "assistant", "admin"] as const;
-export type QuotableRole = (typeof QUOTABLE_ROLES)[number];
-
-export function isQuotableRole(role: string): role is QuotableRole {
-	return (QUOTABLE_ROLES as readonly string[]).includes(role);
 }
 
 // Cap aggregate source content to keep system prompts bounded. ~80k chars

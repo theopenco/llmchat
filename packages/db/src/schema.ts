@@ -391,9 +391,10 @@ export const message = sqliteTable(
 			.references(() => conversation.id, { onDelete: "cascade" }),
 		// "note" = operator-internal annotation: rendered only in the dashboard
 		// thread, excluded from every visitor/model/email surface via the role
-		// ALLOWLISTS in @llmchat/shared (VISITOR_VISIBLE_ROLES / RECAP_ROLES) and
-		// lib/llm.ts (QUOTABLE_ROLES). TS-only enum — the column is plain text in
-		// SQL (no CHECK), so widening it needs no migration.
+		// ALLOWLISTS in @llmchat/shared (VISITOR_VISIBLE_ROLES / RECAP_ROLES /
+		// HISTORY_ROLES / QUOTABLE_ROLES — all four side by side there). TS-only
+		// enum — the column is plain text in SQL (no CHECK), so widening it needs
+		// no migration.
 		role: text({
 			enum: ["user", "assistant", "admin", "system", "note"],
 		}).notNull(),

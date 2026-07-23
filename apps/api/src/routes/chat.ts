@@ -20,12 +20,7 @@ import {
 	reserveOnce,
 	shouldSendHolding,
 } from "@/lib/kv";
-import {
-	isQuotableRole,
-	streamChat,
-	summarizeForVisitor,
-	type QuotableRole,
-} from "@/lib/llm";
+import { streamChat, summarizeForVisitor } from "@/lib/llm";
 import {
 	confirmReturnVerification,
 	isReturnVerified,
@@ -50,11 +45,14 @@ import {
 	ANALYTICS_EVENTS,
 	DEFAULT_MODEL,
 	effectiveModel,
+	HISTORY_ROLES,
 	isModelAllowed,
 	isPaidPlan,
+	isQuotableRole,
 	isRecapRole,
 	isVisitorVisibleRole,
 	planEntitlements,
+	type QuotableRole,
 } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
@@ -72,16 +70,6 @@ const optionalEmail = z
 const MAX_MESSAGE_TEXT = 8_000;
 const MAX_MESSAGE_PARTS = 100;
 
-// History roles a visitor may submit: their own turns and prior bot replies.
-// `system` is REJECTED — the server owns the system prompt, and a client-supplied
-// system turn would reach the model as fabricated authority. Anything else
-// (admin/note/junk) was never legitimate history; rejecting at the schema turns
-// what used to be a convertToModelMessages 502 into a clean 400. Both official
-// transports already comply: the widget's useChat state only ever holds the
-// visitor's turns + streamed replies, and the RSC provider filters to
-// user/assistant before POSTing (packages/widget-rsc/src/client/provider.tsx).
-const HISTORY_ROLES = ["user", "assistant"] as const;
-
 const chatBody = z.object({
 	projectKey: z.string().max(128),
 	clientId: z.string().max(128),
@@ -92,7 +80,8 @@ const chatBody = z.object({
 	// against the conversation below, and silently dropped when it doesn't belong.
 	replyToMessageId: z.string().max(128).optional(),
 	messages: z
-		// Role is allowlisted; the rest of the UIMessage shape (id/parts/…) passes
+		// Role is allowlisted (HISTORY_ROLES, @llmchat/shared — system/admin/note
+		// rejected as a 400); the rest of the UIMessage shape (id/parts/…) passes
 		// through untouched for convertToModelMessages, bounded by the refine below.
 		.array(z.looseObject({ role: z.enum(HISTORY_ROLES) }))
 		.max(200)
