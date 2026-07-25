@@ -5,8 +5,34 @@ import { Safari } from "@/components/magicui/safari";
  * Real pixels only: both images are actual product screenshots from our own
  * workspace (fictional persona data, same standard as the docs screenshots).
  * No mocked UI, no invented metrics.
+ *
+ * `bare` renders just the framed screenshots — the home page supplies its own
+ * section heading; the default keeps the standalone heading for other users.
  */
-export function ProofSection() {
+export function ProofSection({ bare = false }: { bare?: boolean }) {
+	const shots = (
+		<div className="grid items-start gap-8 lg:grid-cols-[1.6fr_1fr]">
+			<Safari
+				role="img"
+				aria-label="An escalated conversation open in the Clanker Support team inbox"
+				url="app.clankersupport.com/inbox"
+				imageSrc="/proof/inbox-escalation.webp"
+				className="size-full"
+			/>
+			<div className="overflow-hidden rounded-2xl border border-rule bg-paper-card/60 shadow-lift">
+				<Image
+					src="/proof/widget-live.webp"
+					alt="The Clanker Support widget answering a visitor question"
+					width={800}
+					height={1182}
+					className="h-auto w-full"
+				/>
+			</div>
+		</div>
+	);
+
+	if (bare) return shots;
+
 	return (
 		<section className="mx-auto max-w-6xl px-6 py-24">
 			<p className="kicker">Real product</p>
@@ -18,24 +44,7 @@ export function ProofSection() {
 				inbox, and the live widget mid-answer.
 			</p>
 
-			<div className="mt-12 grid items-start gap-8 lg:grid-cols-[1.6fr_1fr]">
-				<Safari
-					role="img"
-					aria-label="An escalated conversation open in the Clanker Support team inbox"
-					url="app.clankersupport.com/inbox"
-					imageSrc="/proof/inbox-escalation.webp"
-					className="size-full"
-				/>
-				<div className="overflow-hidden rounded-2xl border border-rule bg-paper-card/60 shadow-lift">
-					<Image
-						src="/proof/widget-live.webp"
-						alt="The Clanker Support widget answering a visitor question"
-						width={800}
-						height={1182}
-						className="h-auto w-full"
-					/>
-				</div>
-			</div>
+			<div className="mt-12">{shots}</div>
 		</section>
 	);
 }

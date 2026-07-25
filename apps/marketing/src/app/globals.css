@@ -4,48 +4,49 @@
 
 @layer base {
 	/*
-	 * Clean Slate palette as RGB channels so Tailwind's `<alpha-value>` (e.g.
-	 * `bg-paper/70`) keeps working. `:root` is light; `.dark` (set by
-	 * next-themes) swaps to the original dark identity.
+	 * Warm Press palette as RGB channels so Tailwind's `<alpha-value>` (e.g.
+	 * `bg-paper/70`) keeps working. `:root` is light (cream paper + espresso
+	 * ink + ember accent); `.dark` (set by next-themes) swaps to a warm
+	 * espresso dark, not a blue-black one.
 	 */
 	:root {
 		color-scheme: light;
-		--paper: 248 250 252;
-		--paper-deep: 241 245 249;
-		--paper-card: 255 255 255;
-		--paper-raise: 241 245 249;
-		--ink: 15 23 42;
-		--ink-soft: 51 65 85;
-		--muted: 71 85 105;
-		--faint: 100 116 139;
-		--rule: 226 232 240;
-		--rule-soft: 241 245 249;
-		--accent: 46 107 255;
-		--accent-soft: 29 79 215;
-		--accent-deep: 23 64 184;
-		--aurora-1: rgba(46, 107, 255, 0.08);
-		--aurora-2: rgba(124, 162, 255, 0.06);
-		--grid-dot: rgba(15, 23, 42, 0.06);
+		--paper: 251 247 240;
+		--paper-deep: 245 238 227;
+		--paper-card: 255 253 248;
+		--paper-raise: 243 235 222;
+		--ink: 31 26 21;
+		--ink-soft: 74 65 56;
+		--muted: 107 95 82;
+		--faint: 143 130 114;
+		--rule: 230 220 203;
+		--rule-soft: 241 234 220;
+		--accent: 214 72 12;
+		--accent-soft: 164 55 12;
+		--accent-deep: 138 44 12;
+		--aurora-1: rgba(214, 72, 12, 0.07);
+		--aurora-2: rgba(235, 160, 70, 0.09);
+		--grid-dot: rgba(31, 26, 21, 0.07);
 	}
 
 	.dark {
 		color-scheme: dark;
-		--paper: 11 14 20;
-		--paper-deep: 9 12 17;
-		--paper-card: 20 25 37;
-		--paper-raise: 27 34 51;
-		--ink: 246 248 252;
-		--ink-soft: 199 206 219;
-		--muted: 138 147 166;
-		--faint: 92 101 119;
-		--rule: 34 42 58;
-		--rule-soft: 26 33 48;
-		--accent: 46 107 255;
-		--accent-soft: 124 162 255;
-		--accent-deep: 30 86 230;
-		--aurora-1: rgba(46, 107, 255, 0.16);
-		--aurora-2: rgba(30, 86, 230, 0.1);
-		--grid-dot: rgba(255, 255, 255, 0.05);
+		--paper: 23 18 15;
+		--paper-deep: 17 13 11;
+		--paper-card: 35 28 23;
+		--paper-raise: 46 37 29;
+		--ink: 246 240 231;
+		--ink-soft: 218 208 194;
+		--muted: 168 155 138;
+		--faint: 122 109 93;
+		--rule: 60 49 40;
+		--rule-soft: 44 35 28;
+		--accent: 234 88 12;
+		--accent-soft: 251 146 60;
+		--accent-deep: 194 65 12;
+		--aurora-1: rgba(234, 88, 12, 0.13);
+		--aurora-2: rgba(251, 146, 60, 0.07);
+		--grid-dot: rgba(255, 250, 240, 0.05);
 	}
 
 	html,
@@ -57,7 +58,7 @@
 		font-family: var(--font-sans), system-ui, sans-serif;
 		color: rgb(var(--ink));
 		background-color: rgb(var(--paper));
-		/* Indigo aurora at the top + faint depth — atmosphere, not flat fill. */
+		/* Ember aurora at the top + faint depth — atmosphere, not flat fill. */
 		background-image:
 			radial-gradient(
 				60rem 40rem at 50% -10%,
@@ -72,8 +73,23 @@
 	}
 
 	::selection {
-		background-color: rgba(46, 107, 255, 0.35);
-		color: #ffffff;
+		background-color: rgba(234, 88, 12, 0.3);
+		color: rgb(var(--ink));
+	}
+
+	/* Print-shop grain over the whole page — one fixed SVG-noise layer.
+	   Pointer-events off; sits above content but is nearly transparent. */
+	body::after {
+		content: "";
+		position: fixed;
+		inset: 0;
+		z-index: 60;
+		pointer-events: none;
+		opacity: 0.05;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+	}
+	.dark body::after {
+		opacity: 0.07;
 	}
 }
 
@@ -85,6 +101,37 @@
 		letter-spacing: 0.18em;
 		text-transform: uppercase;
 		color: rgb(var(--accent-soft));
+	}
+
+	/* Characterful Fraunces cut for highlighted display words — needs the
+	   SOFT/WONK axes loaded in layout.tsx. */
+	.wonk {
+		font-variation-settings:
+			"SOFT" 70,
+			"WONK" 1;
+	}
+
+	/* Rubber-stamp label for the ticket wall — letterpress mono, slightly
+	   rotated by the caller. */
+	.stamp {
+		font-family: var(--font-mono), monospace;
+		font-size: 0.6rem;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		padding: 0.3rem 0.55rem;
+		border: 1.5px solid currentColor;
+		border-radius: 4px;
+		display: inline-block;
+	}
+
+	/* Editorial section header: mono index + serif title over a hairline. */
+	.section-rule {
+		display: flex;
+		align-items: baseline;
+		gap: 1rem;
+		border-bottom: 1px solid rgb(var(--rule));
+		padding-bottom: 1rem;
 	}
 
 	/* Subtle dotted-grid backdrop for hero/sections. */
@@ -117,7 +164,7 @@
 		text-decoration-thickness: 1px;
 	}
 	.prose-editorial h2 {
-		font-family: var(--font-display), sans-serif;
+		font-family: var(--font-display), Georgia, serif;
 		font-weight: 600;
 		font-size: 1.6rem;
 		line-height: 1.2;
@@ -126,7 +173,7 @@
 		margin-top: 2.2em;
 	}
 	.prose-editorial h3 {
-		font-family: var(--font-display), sans-serif;
+		font-family: var(--font-display), Georgia, serif;
 		font-weight: 600;
 		font-size: 1.25rem;
 		color: rgb(var(--ink));
@@ -204,7 +251,7 @@
 		border: 3px solid rgb(var(--paper-card));
 		box-shadow:
 			0 0 0 1px rgb(var(--accent)),
-			0 4px 12px rgba(46, 107, 255, 0.5);
+			0 4px 12px rgba(234, 88, 12, 0.45);
 	}
 	.tool-range::-moz-range-thumb {
 		width: 18px;
@@ -214,12 +261,12 @@
 		border: 3px solid rgb(var(--paper-card));
 		box-shadow:
 			0 0 0 1px rgb(var(--accent)),
-			0 4px 12px rgba(46, 107, 255, 0.5);
+			0 4px 12px rgba(234, 88, 12, 0.45);
 	}
 
 	/* Drop cap for the first paragraph of an article. */
 	.dropcap > p:first-of-type::first-letter {
-		font-family: var(--font-display), sans-serif;
+		font-family: var(--font-display), Georgia, serif;
 		font-weight: 700;
 		float: left;
 		font-size: 3.6rem;

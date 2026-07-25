@@ -6,7 +6,7 @@ const config: Config = {
 	theme: {
 		extend: {
 			fontFamily: {
-				display: ["var(--font-display)", "system-ui", "sans-serif"],
+				display: ["var(--font-display)", "Georgia", "serif"],
 				sans: ["var(--font-sans)", "system-ui", "sans-serif"],
 				mono: ["var(--font-mono)", "ui-monospace", "monospace"],
 			},
@@ -28,14 +28,14 @@ const config: Config = {
 				"accent-deep": "rgb(var(--accent-deep) / <alpha-value>)",
 			},
 			letterSpacing: {
-				"tight-display": "-0.02em",
+				"tight-display": "-0.01em",
 			},
 			maxWidth: {
 				prose: "42rem",
 			},
 			boxShadow: {
-				glow: "0 0 0 1px rgba(46,107,255,0.25), 0 20px 60px -20px rgba(46,107,255,0.35)",
-				lift: "0 24px 60px -28px rgba(0,0,0,0.7)",
+				glow: "0 0 0 1px rgba(234,88,12,0.22), 0 20px 60px -20px rgba(234,88,12,0.3)",
+				lift: "0 24px 60px -28px rgba(31,26,21,0.45)",
 			},
 			keyframes: {
 				"rise-in": {

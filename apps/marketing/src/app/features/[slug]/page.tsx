@@ -103,7 +103,7 @@ export default async function FeaturePage({
 								href={SIGNUP_URL}
 								event={ANALYTICS_EVENTS.signupStarted}
 								eventProps={{ source: "feature_page", feature: feature.slug }}
-								className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-colors hover:bg-accent-deep"
+								className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(234,88,12,0.7)] transition-colors hover:bg-accent-deep"
 							>
 								Start your free trial
 								<span aria-hidden>→</span>
@@ -112,7 +112,7 @@ export default async function FeaturePage({
 								href={CANONICAL_SHOWCASE_URL}
 								className="inline-flex items-center gap-2 rounded-full border border-rule px-7 py-3.5 text-sm font-medium text-ink-soft transition-colors hover:border-accent/40 hover:text-ink"
 							>
-								<span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_2px_rgba(46,107,255,0.6)]" />
+								<span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_2px_rgba(234,88,12,0.6)]" />
 								See it live
 							</a>
 						</div>
@@ -201,6 +201,9 @@ export default async function FeaturePage({
 								</p>
 							</Link>
 						))}
+						{/* Filler cell: 5 tiles in a 2/3-col hairline grid leaves the
+						    remainder showing the rule-colored backdrop — cap it. */}
+						<div aria-hidden className="hidden bg-paper sm:block" />
 					</div>
 				</section>
 
@@ -224,7 +227,7 @@ export default async function FeaturePage({
 										source: "feature_closing",
 										feature: feature.slug,
 									}}
-									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-colors hover:bg-accent-deep"
+									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(234,88,12,0.7)] transition-colors hover:bg-accent-deep"
 								>
 									Start your free trial
 									<span aria-hidden>→</span>

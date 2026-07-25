@@ -52,7 +52,7 @@ export function PricingTeaser() {
 							>
 								{t.featured && (
 									<ShineBorder
-										shineColor={["#2E6BFF", "#7CA2FF"]}
+										shineColor={["#EA580C", "#FB923C"]}
 										borderWidth={1.5}
 									/>
 								)}
@@ -76,7 +76,7 @@ export function PricingTeaser() {
 									eventProps={{ source: "home_pricing_teaser", plan: t.plan }}
 									className={`mt-6 inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
 										t.featured
-											? "bg-accent text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] hover:bg-accent-deep"
+											? "bg-accent text-white shadow-[0_10px_30px_-8px_rgba(234,88,12,0.7)] hover:bg-accent-deep"
 											: "border border-rule text-ink-soft hover:border-accent/40 hover:text-ink"
 									}`}
 								>

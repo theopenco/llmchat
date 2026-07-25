@@ -8,8 +8,8 @@
 // side-by-side layout, no viewport-dependent sizing, heading as a div, no
 // links, aria-hidden) for use as a scaled thumbnail — see HeroThumbnail.
 
-const INK = "#0c0e1a";
-const ACCENT = "#7CA2FF";
+const INK = "#171210";
+const ACCENT = "#FB923C";
 const PRODUCT_HUNT_URL = "https://www.producthunt.com/products/clanker-support";
 
 const PILLS = ["One script tag", "Model choice", "Open & self-hostable"];
@@ -31,7 +31,7 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 				className="pointer-events-none absolute -right-40 -top-52 h-[480px] w-[480px] rounded-full"
 				style={{
 					background:
-						"radial-gradient(circle, rgba(124,162,255,.20), transparent 68%)",
+						"radial-gradient(circle, rgba(251,146,60,.20), transparent 68%)",
 				}}
 			/>
 			<div
@@ -69,12 +69,12 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 						</span>
 						<span
 							className="h-[5px] w-[5px] rounded-full"
-							style={{ background: "#2f3350" }}
+							style={{ background: "#3c3128" }}
 						/>
 						{preview ? (
 							<span
 								className="text-[13px] font-medium tracking-[0.16em]"
-								style={{ color: "#7E90C2" }}
+								style={{ color: "#a89b8a" }}
 							>
 								FEATURED ON PRODUCT HUNT
 							</span>
@@ -83,8 +83,8 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 								href={PRODUCT_HUNT_URL}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="text-[13px] font-medium tracking-[0.16em] transition-colors hover:text-[#7CA2FF]"
-								style={{ color: "#7E90C2" }}
+								className="text-[13px] font-medium tracking-[0.16em] transition-colors hover:text-[#FB923C]"
+								style={{ color: "#a89b8a" }}
 							>
 								FEATURED ON PRODUCT HUNT ↗
 							</a>
@@ -131,7 +131,7 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 							<span
 								key={pill}
 								className="rounded-full px-[18px] py-[11px] text-[15px] font-medium"
-								style={{ color: "#e8ebe2", border: "1.5px solid #262a40" }}
+								style={{ color: "#e8ebe2", border: "1.5px solid #3c3128" }}
 							>
 								{pill}
 							</span>
@@ -185,7 +185,7 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 									className="text-[11px] font-medium"
 									style={{
 										fontFamily: "var(--font-mono), monospace",
-										color: "#5B7FD4",
+										color: "#c2410c",
 									}}
 								>
 									● powered by Clanker
@@ -214,8 +214,8 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 								className="my-1 inline-flex items-center gap-2 self-center rounded-full px-[13px] py-[7px] text-[12px] font-bold tracking-[0.06em]"
 								style={{
 									fontFamily: "var(--font-mono), monospace",
-									color: "#3b3a96",
-									background: "#e5e4fb",
+									color: "#8a2c0c",
+									background: "#fbe4d5",
 								}}
 							>
 								↗ ESCALATED TO YOUR TEAM

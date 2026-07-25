@@ -30,7 +30,7 @@ export default function NotFound() {
 						<div className="animate-rise-in mt-8 flex flex-wrap gap-3 [animation-delay:200ms]">
 							<Link
 								href="/"
-								className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-colors hover:bg-accent-deep"
+								className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(234,88,12,0.7)] transition-colors hover:bg-accent-deep"
 							>
 								Back to the homepage
 								<span aria-hidden>→</span>

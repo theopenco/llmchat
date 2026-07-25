@@ -23,13 +23,13 @@ export function ShimmerCta({
 			style={
 				{
 					"--spread": "90deg",
-					"--shimmer-color": "#dbe6ff",
+					"--shimmer-color": "#ffedd5",
 					"--speed": "3.2s",
 					"--cut": "0.06em",
-					"--bg": "#2E6BFF",
+					"--bg": "#EA580C",
 				} as CSSProperties
 			}
-			className="group relative z-0 inline-flex overflow-hidden rounded-full [background:var(--bg)] shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-transform duration-300 active:translate-y-px"
+			className="group relative z-0 inline-flex overflow-hidden rounded-full [background:var(--bg)] shadow-[0_10px_30px_-8px_rgba(234,88,12,0.7)] transition-transform duration-300 active:translate-y-px"
 		>
 			<span
 				aria-hidden

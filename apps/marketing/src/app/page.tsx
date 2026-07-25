@@ -1,31 +1,27 @@
 import Link from "next/link";
 import { allPosts } from "content-collections";
-import { ANALYTICS_EVENTS, TRIAL_PERIOD_DAYS } from "@llmchat/shared";
+import {
+	ANALYTICS_EVENTS,
+	BILLING_TIERS,
+	ENTERPRISE_TIER,
+	PAID_PLANS,
+	TRIAL_PERIOD_DAYS,
+	isUnlimited,
+	type PaidPlan,
+} from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
 import { JsonLd } from "@/components/JsonLd";
 import { FaqSection } from "@/components/FaqSection";
-import { AnimatedGradientText } from "@/components/magicui/animated-gradient-text";
-import { BentoCard, BentoGrid } from "@/components/magicui/bento-grid";
 import { GridPattern } from "@/components/magicui/grid-pattern";
-import {
-	DeferredHandoffBeam,
-	DeferredInstallTerminal,
-} from "@/components/home/deferred";
-
-import {
-	CodeIcon,
-	NextJsIcon,
-	PythonIcon,
-	ReactIcon,
-	RubyIcon,
-	ShopifyIcon,
-	WordPressIcon,
-} from "@/components/PlatformIcons";
+import { DeferredInstallTerminal } from "@/components/home/deferred";
+import { InlineDemo } from "@/components/home/InlineDemo";
 import { ProofSection } from "@/components/home/ProofSection";
-import { PricingTeaser } from "@/components/home/PricingTeaser";
+import { QuestionTicker } from "@/components/home/QuestionTicker";
 import { ShimmerCta } from "@/components/home/ShimmerCta";
+import { TicketWall } from "@/components/home/TicketWall";
+import { PricingPlans, type PlanCard } from "@/app/pricing/PricingPlans";
 import { FEATURES } from "@/lib/features";
 import { USE_CASES } from "@/lib/use-cases";
 import { formatDateShort } from "@/lib/format";
@@ -37,6 +33,7 @@ import {
 	DOCS_URL,
 	GITHUB_URL,
 	RSC_PACKAGE,
+	SALES_EMAIL,
 	SIGNUP_URL,
 	WORDPRESS_PLUGIN_URL,
 	X_URL,
@@ -113,70 +110,115 @@ const faqs: Faq[] = [
 	},
 ];
 
+// Home pricing cards, computed from the same shared BILLING_TIERS table the
+// API enforces — four bullets per tier, the full grid lives on /pricing.
+const TIER_META: Record<
+	PaidPlan,
+	{ name: string; tagline: string; highlight: boolean }
+> = {
+	starter: {
+		name: "Starter",
+		tagline: "Put one support agent live.",
+		highlight: false,
+	},
+	growth: {
+		name: "Growth",
+		tagline: "For growing support teams.",
+		highlight: true,
+	},
+	scale: {
+		name: "Scale",
+		tagline: "High volume, fully white-labeled.",
+		highlight: false,
+	},
+};
+
+const fmt = (n: number) => n.toLocaleString("en-US");
+
+const homeTiers: PlanCard[] = PAID_PLANS.map((plan) => {
+	const t = BILLING_TIERS[plan];
+	return {
+		plan,
+		name: TIER_META[plan].name,
+		tagline: TIER_META[plan].tagline,
+		highlight: TIER_META[plan].highlight,
+		priceMonthly: t.priceUsdMonthly,
+		priceAnnual: t.priceUsdAnnual,
+		features: [
+			`${fmt(t.maxResponsesPerMonth)} AI responses/mo${t.allowOverage ? " included" : " — hard cap, no surprise bills"}`,
+			`${t.maxProjects} project${t.maxProjects === 1 ? "" : "s"} · ${
+				isUnlimited(t.maxMembers)
+					? "unlimited team members"
+					: `${t.maxMembers} team members`
+			}`,
+			t.modelAccess === "all"
+				? "All models, including frontier"
+				: "Fast models (mini · Haiku · Flash)",
+			t.branding === "custom"
+				? "Full white-label branding"
+				: t.branding === "off"
+					? "No “Powered by” badge"
+					: "“Powered by” badge",
+		],
+	};
+});
+
+// § 02 — the three-step install, tightened to one line each.
 const steps = [
 	{
-		k: "Step 01",
+		n: "1",
 		title: "Create a project",
-		body: "Sign up, name your bot, and grab your public key. A workspace is provisioned for you instantly.",
+		body: "Sign up, grab your public key — a workspace is provisioned instantly.",
 	},
 	{
-		k: "Step 02",
+		n: "2",
 		title: "Paste the snippet",
-		body: "Drop one script tag before </body>. The widget mounts in an isolated shadow DOM and inherits your brand color.",
+		body: "One script tag before </body>. Shadow DOM, your brand color, no build step.",
 	},
 	{
-		k: "Step 03",
-		title: "Watch it work",
-		body: "It answers from your docs, offers a human the moment your customer wants one, and routes every hand-off into a single team inbox.",
+		n: "3",
+		title: "Close the tab",
+		body: "It answers from your docs and routes every hand-off into one team inbox.",
 	},
 ];
 
-// Official platform installs surfaced under the snippet — WordPress and
-// Shopify visitors shouldn't have to infer that the script tag is for them.
-// Claims stay honest: the WP plugin is live on wordpress.org; the Shopify app
-// embed's App Store listing is pending, so it says "coming soon" and the docs
-// page explains the works-today script path.
-const platforms = [
-	{
-		name: "WordPress",
-		icons: [WordPressIcon],
-		body: "Official plugin on WordPress.org. Install it, paste your project key under Settings — no code, and it survives theme changes.",
-		href: WORDPRESS_PLUGIN_URL,
-		cta: "Get the plugin",
-	},
-	{
-		name: "Shopify",
-		icons: [ShopifyIcon],
-		body: "A zero-permission app embed for your storefront — App Store listing coming soon. The script tag works on any store today.",
-		href: `${DOCS_URL}/integrations/shopify`,
-		cta: "See the Shopify guide",
-	},
-	{
-		name: "React, Python & Ruby",
-		icons: [ReactIcon, NextJsIcon, PythonIcon, RubyIcon],
-		body: `One server component from the official ${RSC_PACKAGE} npm package — plus a pip package, a Ruby gem, and a Composer package that render the snippet from your backend.`,
-		href: `${DOCS_URL}/sdks`,
-		cta: "Read the SDK docs",
-	},
-	{
-		name: "Everything else",
-		icons: [CodeIcon],
-		body: "Webflow, Framer, plain HTML — the script tag on the left works anywhere you can edit the page.",
-		href: `${DOCS_URL}/getting-started`,
-		cta: "Follow the setup guide",
-	},
+// Official install surfaces — a compact row, each linking to its guide.
+const installLinks = [
+	{ label: "WordPress plugin", href: WORDPRESS_PLUGIN_URL },
+	{ label: "Shopify", href: `${DOCS_URL}/integrations/shopify` },
+	{ label: "React / Next.js", href: `${DOCS_URL}/sdks` },
+	{ label: "Python", href: `${DOCS_URL}/sdks` },
+	{ label: "Ruby", href: `${DOCS_URL}/sdks` },
+	{ label: "Plain HTML", href: `${DOCS_URL}/getting-started` },
 ];
 
-// Bento spans over the FEATURES order — the wide cells go to the two lead
-// stories (docs-grounded answers, human escalation).
-const BENTO_SPANS = [
-	"lg:col-span-1",
-	"lg:col-span-2",
-	"lg:col-span-2",
-	"lg:col-span-1",
-	"lg:col-span-1",
-	"lg:col-span-2",
-];
+function SectionHead({
+	index,
+	title,
+	sub,
+}: {
+	index: string;
+	title: React.ReactNode;
+	sub?: string;
+}) {
+	return (
+		<div className="section-rule">
+			<span className="shrink-0 font-mono text-sm font-semibold text-accent">
+				§ {index}
+			</span>
+			<div>
+				<h2 className="font-display text-3xl font-semibold leading-[1.05] tracking-tight-display text-ink sm:text-5xl">
+					{title}
+				</h2>
+				{sub && (
+					<p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">
+						{sub}
+					</p>
+				)}
+			</div>
+		</div>
+	);
+}
 
 export default function Home() {
 	return (
@@ -186,294 +228,299 @@ export default function Home() {
 			<SiteHeader active="features" />
 
 			<main>
-				{/* ── Hero — the offer up front: trial, risk reversal, live demo ── */}
+				{/* ── Hero — pain headline left, the product actually working right ── */}
 				<section className="relative overflow-hidden">
 					<GridPattern
 						width={44}
 						height={44}
 						strokeDasharray="2 3"
-						className="pointer-events-none absolute inset-0 stroke-rule/60 [mask-image:radial-gradient(46rem_circle_at_50%_-4rem,white,transparent)]"
+						className="pointer-events-none absolute inset-0 stroke-rule/60 [mask-image:radial-gradient(50rem_circle_at_25%_-6rem,white,transparent)]"
 					/>
-					<div className="relative mx-auto flex max-w-3xl flex-col items-center px-6 pb-28 pt-24 text-center sm:pt-36">
-						<span className="animate-rise-in inline-flex items-center gap-2 rounded-full border border-rule bg-paper-card/60 px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted">
-							<span className="size-1.5 rounded-full bg-accent shadow-[0_0_10px_2px_rgba(46,107,255,0.7)]" />
-							<AnimatedGradientText className="[--color-from:#1D4FD7] [--color-to:#2E6BFF] dark:[--color-from:#7CA2FF] dark:[--color-to:#2E6BFF]">
-								Free for {TRIAL_PERIOD_DAYS} days · Live in minutes
-							</AnimatedGradientText>
-						</span>
-
-						<h1 className="font-display animate-rise-in mt-7 text-balance text-5xl font-semibold leading-[1.02] tracking-tight-display text-ink [animation-delay:80ms] sm:text-7xl">
-							AI support that actually{" "}
-							<span className="bg-gradient-to-r from-accent-soft to-accent bg-clip-text text-transparent">
-								escalates
-							</span>
-							.
-						</h1>
-
-						<p className="animate-rise-in mt-7 max-w-xl text-pretty text-lg leading-relaxed text-muted [animation-delay:140ms]">
-							It answers from your docs, offers a human the moment your customer
-							asks, and threads every reply through email — so no customer is
-							left talking to a wall, and nothing lands in a black hole.
-						</p>
-
-						<div className="animate-rise-in mt-10 [animation-delay:200ms]">
-							<ShimmerCta
-								href={SIGNUP_URL}
-								event={ANALYTICS_EVENTS.signupStarted}
-								eventProps={{ source: "home_hero" }}
-							>
-								Start your free trial
-								<span aria-hidden>→</span>
-							</ShimmerCta>
-						</div>
-
-						<p className="animate-rise-in mt-5 text-[0.8rem] text-faint [animation-delay:260ms]">
-							{TRIAL_PERIOD_DAYS} days free on every plan · Cancel anytime ·
-							Open source — self-host free
-						</p>
-					</div>
-				</section>
-
-				{/* ── The handoff — the thesis as a picture ────────────── */}
-				<section className="mx-auto max-w-6xl px-6 pb-24">
-					<div className="mx-auto max-w-2xl text-center">
-						<p className="kicker">The handoff</p>
-						<h2 className="font-display mt-3 text-3xl font-semibold leading-tight tracking-tight-display text-ink sm:text-4xl">
-							Answers when it can. Hands off when asked.
-						</h2>
-						<p className="mt-3 text-sm leading-relaxed text-muted">
-							The agent only speaks from your knowledge base. The moment a
-							conversation needs a person, it lands in your inbox — full
-							context, nothing lost.
-						</p>
-					</div>
-					<div className="mt-12">
-						<DeferredHandoffBeam />
-					</div>
-				</section>
-
-				{/* ── Install — the one-script-tag moment ──────────────── */}
-				<section className="border-y border-rule bg-paper-deep/60">
-					<div className="mx-auto max-w-6xl px-6 py-24">
-						<p className="kicker">From zero to live</p>
-						<h2 className="font-display mt-3 max-w-2xl text-3xl font-semibold leading-tight tracking-tight-display text-ink sm:text-4xl">
-							One script tag. About five minutes.
-						</h2>
-
-						<div className="mt-12 grid items-start gap-10 lg:grid-cols-[1.4fr_1fr]">
-							<DeferredInstallTerminal />
-							<ol className="flex flex-col gap-6">
-								{steps.map((s) => (
-									<li key={s.title} className="flex gap-4">
-										<span className="font-mono mt-0.5 shrink-0 text-[0.68rem] uppercase tracking-[0.14em] text-accent-soft">
-											{s.k}
-										</span>
-										<div>
-											<h3 className="font-display text-lg font-semibold tracking-tight-display text-ink">
-												{s.title}
-											</h3>
-											<p className="mt-1 text-sm leading-relaxed text-muted">
-												{s.body}
-											</p>
-										</div>
-									</li>
-								))}
-							</ol>
-						</div>
-
-						{/* ── Official platform installs ─────────────────────── */}
-						<div className="mt-14 border-t border-rule pt-10">
-							<h3 className="font-display text-xl font-semibold tracking-tight-display text-ink">
-								On WordPress or Shopify? Skip the snippet.
-							</h3>
-							<p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
-								Official integrations put the same agent on your site without
-								touching code.
+					<div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 pb-20 pt-16 sm:pt-24 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+						<div>
+							<p className="animate-rise-in kicker">
+								Open-source AI support agent · One script tag
 							</p>
-							<div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-								{platforms.map((p) => (
-									<a
-										key={p.name}
-										href={p.href}
-										className="group flex flex-col rounded-2xl border border-rule bg-paper-card/50 p-5 transition-colors hover:border-accent/40"
-									>
-										<div className="flex items-center gap-2.5 text-muted transition-colors group-hover:text-ink">
-											{p.icons.map((Icon, i) => (
-												<Icon key={i} className="size-6" />
-											))}
-										</div>
-										<h4 className="font-display mt-3 text-base font-semibold tracking-tight-display text-ink">
-											{p.name}
-										</h4>
-										<p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
-											{p.body}
+
+							<h1 className="font-display animate-rise-in mt-5 text-balance text-[3.1rem] font-semibold leading-[0.98] tracking-tight-display text-ink [animation-delay:80ms] sm:text-[4.6rem]">
+								Stop answering the same question{" "}
+								<em className="wonk text-accent">twice.</em>
+							</h1>
+
+							<p className="animate-rise-in mt-6 max-w-xl text-pretty text-lg leading-relaxed text-muted [animation-delay:140ms]">
+								Clanker answers the repeats straight from your docs — and hands
+								the hard ones to your team with the whole thread attached.
+								Customers never hit a dead end. Your team never starts cold.
+							</p>
+
+							<div className="animate-rise-in mt-8 flex flex-wrap items-center gap-5 [animation-delay:200ms]">
+								<ShimmerCta
+									href={SIGNUP_URL}
+									event={ANALYTICS_EVENTS.signupStarted}
+									eventProps={{ source: "home_hero" }}
+								>
+									Start your {TRIAL_PERIOD_DAYS}-day free trial
+									<span aria-hidden>→</span>
+								</ShimmerCta>
+								<a
+									href="#demo"
+									className="text-sm font-medium text-ink-soft underline decoration-rule underline-offset-4 transition-colors hover:text-ink hover:decoration-accent lg:hidden"
+								>
+									Watch it handle a refund ↓
+								</a>
+							</div>
+
+							<p className="animate-rise-in mt-4 text-[0.82rem] text-faint [animation-delay:240ms]">
+								${BILLING_TIERS.starter.priceUsdMonthly}/mo after the trial · No
+								per-seat fees · Cancel anytime
+							</p>
+						</div>
+
+						<div id="demo" className="animate-rise-in [animation-delay:220ms]">
+							<InlineDemo />
+						</div>
+					</div>
+				</section>
+
+				{/* ── The repeats, scrolling past like a ticker ─────────── */}
+				<QuestionTicker />
+
+				{/* ── § 01 · The problem, as this morning's inbox ───────── */}
+				<section className="mx-auto max-w-6xl px-6 pt-20">
+					<SectionHead
+						index="01"
+						title={
+							<>
+								This was your inbox <em className="wonk">at 8 a.m.</em>
+							</>
+						}
+						sub="Three of these four never needed a person. The fourth needed one immediately — with the context intact, not a summary."
+					/>
+					<div className="mt-12">
+						<TicketWall />
+					</div>
+					<p className="font-display mx-auto mt-12 max-w-2xl text-center text-2xl font-medium italic leading-snug text-ink-soft">
+						The repeats drown you; the real problems wait behind them.{" "}
+						<span className="text-accent">Split the two automatically.</span>
+					</p>
+				</section>
+
+				{/* ── § 02 · How it works ───────────────────────────────── */}
+				<section className="mx-auto max-w-6xl px-6 pt-24">
+					<SectionHead
+						index="02"
+						title={
+							<>
+								One script tag between you and a{" "}
+								<em className="wonk text-accent">quieter inbox.</em>
+							</>
+						}
+					/>
+					<div className="mt-12 grid items-start gap-10 lg:grid-cols-[1.4fr_1fr]">
+						<DeferredInstallTerminal />
+						<ol className="flex flex-col divide-y divide-rule">
+							{steps.map((s) => (
+								<li key={s.n} className="flex gap-5 py-5 first:pt-0">
+									<span className="font-display text-3xl font-semibold text-rule">
+										{s.n}
+									</span>
+									<div>
+										<h3 className="font-display text-lg font-semibold tracking-tight-display text-ink">
+											{s.title}
+										</h3>
+										<p className="mt-1 text-sm leading-relaxed text-muted">
+											{s.body}
 										</p>
-										<span className="mt-4 text-sm font-medium text-accent-soft transition-colors group-hover:text-accent">
-											{p.cta} →
-										</span>
-									</a>
+									</div>
+								</li>
+							))}
+						</ol>
+					</div>
+					<p className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-rule pt-6 text-sm text-muted">
+						<span className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-faint">
+							Also official:
+						</span>
+						{installLinks.map((l) => (
+							<a
+								key={l.label}
+								href={l.href}
+								className="font-medium text-ink-soft underline decoration-rule underline-offset-4 transition-colors hover:text-ink hover:decoration-accent"
+							>
+								{l.label}
+							</a>
+						))}
+					</p>
+				</section>
+
+				{/* ── § 03 · Proof — real pixels of the hand-off ────────── */}
+				<section className="mx-auto max-w-6xl px-6 pt-24">
+					<SectionHead
+						index="03"
+						title={
+							<>
+								Where the hand-off <em className="wonk text-accent">lands.</em>
+							</>
+						}
+						sub="The demo above isn't a concept. Here's the same escalation sitting in the real team inbox, and the real widget mid-answer — actual screenshots, fictional persona data."
+					/>
+					<div className="mt-12">
+						<ProofSection bare />
+					</div>
+				</section>
+
+				{/* ── § 04 · What you get ───────────────────────────────── */}
+				<section className="mx-auto max-w-6xl px-6 pt-24">
+					<SectionHead
+						index="04"
+						title={
+							<>
+								Six things. <em className="wonk">Not sixty.</em>
+							</>
+						}
+						sub="A focused support tool — not another platform your team has to learn."
+					/>
+					<div className="mt-4 grid sm:grid-cols-2">
+						{FEATURES.map((f) => (
+							<Link
+								key={f.slug}
+								href={`/features/${f.slug}`}
+								className="group flex gap-5 border-b border-rule py-7 sm:odd:pr-10 sm:even:pl-10"
+							>
+								<span className="font-mono text-xs font-medium text-faint transition-colors group-hover:text-accent">
+									{f.num}
+								</span>
+								<div>
+									<h3 className="font-display text-xl font-semibold tracking-tight-display text-ink transition-colors group-hover:text-accent">
+										{f.name}
+									</h3>
+									<p className="mt-1.5 text-sm leading-relaxed text-muted">
+										{f.tagline}
+									</p>
+								</div>
+								<span
+									aria-hidden
+									className="ml-auto self-center text-accent opacity-0 transition-opacity group-hover:opacity-100"
+								>
+									→
+								</span>
+							</Link>
+						))}
+					</div>
+					<div className="mt-6 text-right">
+						<Link
+							href="/compare"
+							className="text-sm font-medium text-accent-soft transition-colors hover:text-accent"
+						>
+							See how it compares to Intercom, Fin &amp; friends →
+						</Link>
+					</div>
+				</section>
+
+				{/* ── § 05 · Pricing, on the page that gets the traffic ─── */}
+				<section className="mx-auto max-w-6xl px-6 pt-24">
+					<SectionHead
+						index="05"
+						title={
+							<>
+								Pricing that fits on a{" "}
+								<em className="wonk text-accent">sticky note.</em>
+							</>
+						}
+						sub="Flat monthly plans, whole team included. Or self-host the MIT-licensed stack for free with your own keys."
+					/>
+					<PricingPlans
+						tiers={homeTiers}
+						enterprise={ENTERPRISE_TIER}
+						signupUrl={SIGNUP_URL}
+						salesEmail={SALES_EMAIL}
+					/>
+					<p className="mt-6 text-center text-sm text-muted">
+						Full plan details, annual math, and the self-hosting guide live on{" "}
+						<Link
+							href="/pricing"
+							className="font-medium text-accent-soft transition-colors hover:text-accent"
+						>
+							the pricing page →
+						</Link>
+					</p>
+				</section>
+
+				{/* ── Fit + journal — compact link bands ────────────────── */}
+				<section className="mx-auto max-w-6xl px-6 pt-24">
+					<div className="flex flex-col gap-6 rounded-3xl border border-rule bg-paper-card/50 p-8 lg:flex-row lg:items-center lg:justify-between">
+						<div>
+							<p className="kicker">Fits your kind of business</p>
+							<div className="mt-4 flex flex-wrap gap-2.5">
+								{USE_CASES.map((u) => (
+									<Link
+										key={u.slug}
+										href={`/use-cases/${u.slug}`}
+										className="rounded-full border border-rule px-3.5 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-accent/40 hover:text-ink"
+									>
+										{u.name}
+									</Link>
 								))}
 							</div>
 						</div>
-					</div>
-				</section>
-
-				{/* ── Features — bento over the same FEATURES source ───── */}
-				<section id="features" className="mx-auto max-w-6xl px-6 py-24">
-					<div className="flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
-						<div>
-							<p className="kicker">What you get</p>
-							<h2 className="font-display mt-3 max-w-2xl text-3xl font-semibold leading-tight tracking-tight-display text-ink sm:text-4xl">
-								A focused support tool — not another platform to learn.
-							</h2>
-						</div>
 						<Link
-							href="/compare"
+							href="/use-cases"
 							className="shrink-0 text-sm font-medium text-accent-soft transition-colors hover:text-accent"
 						>
-							See how it compares →
+							All use cases →
 						</Link>
 					</div>
 
-					<BentoGrid className="mt-12 auto-rows-[15rem] lg:grid-cols-3">
-						{FEATURES.map((f, i) => (
-							<BentoCard
-								key={f.slug}
-								name={f.name}
-								eyebrow={f.num}
-								description={f.tagline}
-								href={`/features/${f.slug}`}
-								cta="Learn more"
-								className={BENTO_SPANS[i % BENTO_SPANS.length]}
-								background={
-									<div
-										aria-hidden
-										className="absolute inset-0 bg-[radial-gradient(24rem_10rem_at_80%_-20%,rgba(46,107,255,0.14),transparent_70%)] opacity-70 transition-opacity duration-300 group-hover:opacity-100"
-									/>
-								}
-							/>
-						))}
-					</BentoGrid>
-				</section>
-
-				{/* ── Product proof — real screenshots, framed ─────────── */}
-				<ProofSection />
-
-				{/* ── Pricing teaser — real tiers ──────────────────────── */}
-				<PricingTeaser />
-
-				{/* ── Use cases + compare band ─────────────────────────── */}
-				<section className="mx-auto max-w-6xl px-6 py-24">
-					<div className="flex flex-col rounded-3xl border border-rule bg-paper-card/50 p-8">
-						<div>
-							<p className="kicker">Use cases</p>
-							<h3 className="font-display mt-3 text-2xl font-semibold tracking-tight-display text-ink">
-								Built for your kind of business
-							</h3>
-							<p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
-								Clanker Support answers from your own docs and escalates to your
-								team, so it fits almost any business — from e-commerce and SaaS
-								to car rental, real estate, and hotels.
-							</p>
+					<div className="mt-14">
+						<div className="flex items-baseline justify-between gap-4">
+							<p className="kicker">From the journal</p>
+							<Link
+								href="/blog"
+								className="shrink-0 text-sm font-medium text-accent-soft transition-colors hover:text-accent"
+							>
+								All posts →
+							</Link>
 						</div>
-
-						<div className="mt-6 flex flex-wrap gap-2.5">
-							{USE_CASES.map((u) => (
+						<div className="mt-4 grid gap-x-10 border-t border-rule sm:grid-cols-3">
+							{latestPosts.map((post) => (
 								<Link
-									key={u.slug}
-									href={`/use-cases/${u.slug}`}
-									className="rounded-full border border-rule px-3.5 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-accent/40 hover:text-ink"
+									key={post.slug}
+									href={`/blog/${post.slug}`}
+									className="group flex flex-col border-b border-rule py-7"
 								>
-									{u.name}
+									<div className="flex items-center gap-2.5 font-mono text-[0.65rem] uppercase tracking-[0.14em]">
+										<span className="text-accent">{post.category}</span>
+										<span className="text-faint">
+											{formatDateShort(post.date)}
+										</span>
+									</div>
+									<h4 className="font-display mt-3 text-lg font-semibold leading-snug tracking-tight-display text-ink transition-colors group-hover:text-accent">
+										{post.title}
+									</h4>
 								</Link>
 							))}
 						</div>
-
-						<Link
-							href="/use-cases"
-							className="mt-6 text-sm font-medium text-accent-soft transition-colors hover:text-accent"
-						>
-							Browse all use cases →
-						</Link>
-					</div>
-
-					<div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-3xl border border-rule bg-paper-card/50 p-8 sm:flex-row sm:items-center">
-						<div>
-							<p className="kicker">Compare</p>
-							<h3 className="font-display mt-2 text-xl font-semibold tracking-tight-display text-ink">
-								vs. Chatbase, Fin, Intercom, Chatwoot &amp; Crisp — honestly.
-							</h3>
-						</div>
-						<div className="flex flex-wrap gap-4">
-							<Link
-								href="/compare"
-								className="text-sm font-medium text-accent-soft transition-colors hover:text-accent"
-							>
-								See the full matrix →
-							</Link>
-							<Link
-								href="/blog"
-								className="text-sm font-medium text-muted transition-colors hover:text-ink"
-							>
-								Read the blog →
-							</Link>
-						</div>
-					</div>
-				</section>
-
-				{/* ── From the Journal — latest posts ──────────────────── */}
-				<section className="mx-auto max-w-6xl px-6 pb-24">
-					<div className="flex items-center justify-between gap-4">
-						<div>
-							<p className="kicker">From the Journal</p>
-							<h3 className="font-display mt-3 text-2xl font-semibold tracking-tight-display text-ink">
-								Field notes on AI support
-							</h3>
-						</div>
-						<Link
-							href="/blog"
-							className="shrink-0 text-sm font-medium text-accent-soft transition-colors hover:text-accent"
-						>
-							All posts →
-						</Link>
-					</div>
-					<div className="mt-8 grid gap-x-10 border-t border-rule sm:grid-cols-3">
-						{latestPosts.map((post) => (
-							<Link
-								key={post.slug}
-								href={`/blog/${post.slug}`}
-								className="group flex flex-col border-b border-rule py-8"
-							>
-								<div className="flex items-center gap-2.5 font-mono text-[0.68rem] uppercase tracking-[0.14em]">
-									<span className="text-accent">{post.category}</span>
-									<span className="text-rule">·</span>
-									<span className="text-faint">{post.readingTime} min</span>
-								</div>
-								<h4 className="font-display mt-4 text-xl font-semibold leading-snug tracking-tight-display text-ink transition-colors group-hover:text-accent">
-									{post.title}
-								</h4>
-								<p className="mt-3 flex-1 text-sm leading-relaxed text-muted">
-									{post.description}
-								</p>
-								<div className="mt-5 flex items-center justify-between font-mono text-[0.7rem] uppercase tracking-[0.14em] text-faint">
-									<span>{formatDateShort(post.date)}</span>
-									<span className="text-accent opacity-0 transition-opacity group-hover:opacity-100">
-										Read →
-									</span>
-								</div>
-							</Link>
-						))}
 					</div>
 				</section>
 
 				{/* ── FAQ ──────────────────────────────────────────────── */}
-				<section className="mx-auto max-w-6xl px-6 pb-4">
+				<section className="mx-auto max-w-6xl px-6">
 					<FaqSection faqs={faqs} />
 				</section>
 
-				{/* ── Closing CTA ──────────────────────────────────────── */}
-				<section className="mx-auto max-w-6xl px-6 pb-28 pt-24">
-					<div className="relative overflow-hidden rounded-[2rem] border border-accent/30 bg-gradient-to-b from-paper-card to-paper px-8 py-20 text-center shadow-glow">
+				{/* ── Straight talk + closing CTA ───────────────────────── */}
+				<section className="mx-auto max-w-6xl px-6 pb-28 pt-20">
+					<p className="mx-auto max-w-2xl border-l-2 border-accent pl-5 text-sm leading-relaxed text-ink-soft">
+						<span className="font-mono text-[0.66rem] uppercase tracking-[0.14em] text-accent">
+							Straight talk ·{" "}
+						</span>
+						We&apos;re new, and we&apos;re not pretending otherwise: no logo
+						wall, no invented testimonials. The product is open source, the
+						pricing is public, the demo above is honest, and the trial
+						doesn&apos;t charge you until it ends. Judge the product, not the
+						badges.
+					</p>
+
+					<div className="relative mt-14 overflow-hidden rounded-[2rem] border border-accent/30 bg-gradient-to-b from-paper-card to-paper px-8 py-20 text-center shadow-glow">
 						<GridPattern
 							width={44}
 							height={44}
@@ -483,18 +530,17 @@ export default function Home() {
 						<div className="relative">
 							<p className="kicker">Ship support today</p>
 							<h2 className="font-display mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight-display text-ink sm:text-6xl">
-								Your docs already know the answers.
-								<br />
-								Let them reply.
+								Your docs already answer half your tickets.{" "}
+								<em className="wonk text-accent">Let them.</em>
 							</h2>
 							<div className="mt-10 flex flex-wrap justify-center gap-3">
 								<TrackedLink
 									href={SIGNUP_URL}
 									event={ANALYTICS_EVENTS.signupStarted}
 									eventProps={{ source: "home_closing" }}
-									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] transition-colors hover:bg-accent-deep"
+									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(234,88,12,0.7)] transition-colors hover:bg-accent-deep"
 								>
-									Start your free trial
+									Start your {TRIAL_PERIOD_DAYS}-day free trial
 									<span aria-hidden>→</span>
 								</TrackedLink>
 								<TrackedLink

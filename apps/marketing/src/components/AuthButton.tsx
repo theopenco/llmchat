@@ -7,7 +7,7 @@ import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { CANONICAL_DASHBOARD_URL, SIGNUP_URL } from "@/lib/site-urls";
 
 const primary =
-	"inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_-8px_rgba(46,107,255,0.6)] transition-colors hover:bg-accent-deep";
+	"inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_-8px_rgba(234,88,12,0.6)] transition-colors hover:bg-accent-deep";
 const ghost =
 	"inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink";
 

@@ -69,7 +69,7 @@ export function PricingPlans({
 								onClick={() => setInterval(value)}
 								className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors ${
 									active
-										? "bg-accent text-white shadow-[0_8px_24px_-10px_rgba(46,107,255,0.8)]"
+										? "bg-accent text-white shadow-[0_8px_24px_-10px_rgba(234,88,12,0.8)]"
 										: "text-muted hover:text-ink"
 								}`}
 							>
@@ -160,7 +160,7 @@ export function PricingPlans({
 								}}
 								className={`mt-8 inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition-colors ${
 									tier.highlight
-										? "bg-accent text-white shadow-[0_10px_30px_-8px_rgba(46,107,255,0.7)] hover:bg-accent-deep"
+										? "bg-accent text-white shadow-[0_10px_30px_-8px_rgba(234,88,12,0.7)] hover:bg-accent-deep"
 										: "border border-rule text-ink-soft hover:border-accent/40 hover:text-ink"
 								}`}
 							>

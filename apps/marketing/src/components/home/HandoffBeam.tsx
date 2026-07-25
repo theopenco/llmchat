@@ -78,9 +78,9 @@ export function HandoffBeam() {
 					fromRef={visitorRef}
 					toRef={agentRef}
 					curvature={-40}
-					pathColor="rgba(124,162,255,0.25)"
-					gradientStartColor="#2E6BFF"
-					gradientStopColor="#7CA2FF"
+					pathColor="rgba(251,146,60,0.25)"
+					gradientStartColor="#EA580C"
+					gradientStopColor="#FB923C"
 					duration={5}
 				/>
 				<AnimatedBeam
@@ -89,9 +89,9 @@ export function HandoffBeam() {
 					toRef={agentRef}
 					curvature={30}
 					reverse
-					pathColor="rgba(124,162,255,0.25)"
-					gradientStartColor="#7CA2FF"
-					gradientStopColor="#2E6BFF"
+					pathColor="rgba(251,146,60,0.25)"
+					gradientStartColor="#FB923C"
+					gradientStopColor="#EA580C"
 					duration={6}
 					delay={1}
 				/>
@@ -100,9 +100,9 @@ export function HandoffBeam() {
 					fromRef={agentRef}
 					toRef={inboxRef}
 					curvature={-40}
-					pathColor="rgba(124,162,255,0.25)"
-					gradientStartColor="#2E6BFF"
-					gradientStopColor="#7CA2FF"
+					pathColor="rgba(251,146,60,0.25)"
+					gradientStartColor="#EA580C"
+					gradientStopColor="#FB923C"
 					duration={5}
 					delay={2.5}
 				/>

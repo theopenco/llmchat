@@ -1,11 +1,7 @@
 import "./globals.css";
 
 import type { Metadata } from "next";
-import {
-	Bricolage_Grotesque,
-	Hanken_Grotesk,
-	JetBrains_Mono,
-} from "next/font/google";
+import { Fraunces, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CANONICAL_SITE_URL, X_HANDLE } from "@/lib/site-urls";
@@ -19,12 +15,16 @@ const GOOGLE_SITE_VERIFICATION =
 	process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ??
 	"Z-Xg-V6yXzYD8GD77wrhsV05ppS78u9NE25JXM_6l50";
 
-// Distinctive modern grotesque for display headlines.
-const display = Bricolage_Grotesque({
+// Warm editorial serif for display headlines — variable weight + optical
+// sizing, so hero sizes render with the high-contrast display cut.
+const display = Fraunces({
 	subsets: ["latin"],
-	weight: ["400", "500", "600", "700", "800"],
+	style: ["normal", "italic"],
 	variable: "--font-display",
 	display: "swap",
+	// opsz gives the high-contrast display cut at hero sizes; SOFT/WONK power
+	// the `.wonk` utility — the characterful letterforms on highlighted words.
+	axes: ["opsz", "SOFT", "WONK"],
 });
 
 // Clean, warm grotesque for body + UI.
@@ -128,7 +128,7 @@ export default function RootLayout({
 				/>
 				<ThemeProvider
 					attribute="class"
-					defaultTheme="dark"
+					defaultTheme="light"
 					enableSystem
 					disableTransitionOnChange
 				>
@@ -145,7 +145,7 @@ export default function RootLayout({
 					src="https://api.clankersupport.com/widget.js"
 					data-project="pk_adadae5c42fbc58d2e4927cac84a2131ae3bf042d8032187"
 					data-api="https://api.clankersupport.com"
-					data-brand="#2E6BFF"
+					data-brand="#EA580C"
 					data-theme="host"
 					async
 				/>
