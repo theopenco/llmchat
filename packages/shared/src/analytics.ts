@@ -52,6 +52,10 @@ export const ANALYTICS_EVENTS = {
 	// The agent performed a real-world action through an integration (booked a
 	// call, looked up an order, filed a return) — props: kind, tool, ok.
 	integrationActionUsed: "integration_action_used",
+	// An operator asked for an AI reply draft (Suggest with AI, #98). Captured
+	// server-side; properties are CONTENT-FREE by contract (pinned by test):
+	// project_id, workspace_id, model — never draft text.
+	aiSuggestionGenerated: "ai_suggestion_generated",
 } as const;
 
 export type AnalyticsEventName =

@@ -112,6 +112,9 @@ export const projects = new Hono<AppContext>()
 			.where(
 				and(
 					eq(usageEvent.workspaceId, workspaceId),
+					// "responses" means VISITOR responses — operator-side AI drafts
+					// (kind='suggestion', #98) are recorded but never counted here.
+					eq(usageEvent.kind, "chat"),
 					gte(usageEvent.createdAt, since),
 				),
 			)

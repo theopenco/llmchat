@@ -22,7 +22,8 @@ vi.mock("@/lib/kv", () => ({
 	shouldSendHolding: vi.fn(async () => true),
 }));
 // NOT mocked: @/lib/holding — the guard returns a REAL drainable UI message stream.
-vi.mock("@/lib/llm", () => ({
+vi.mock("@/lib/llm", async (orig) => ({
+	...(await orig<typeof import("@/lib/llm")>()),
 	streamChat: vi.fn(),
 	summarizeForVisitor: vi.fn(async () => null),
 }));

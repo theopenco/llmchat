@@ -465,6 +465,16 @@ export const usageEvent = sqliteTable(
 		conversationId: text().notNull(),
 		messageId: text().notNull(),
 		model: text().notNull(),
+		// Row class: 'chat' = a billable visitor response (the monthly-quota
+		// unit); 'suggestion' = an operator-side AI draft (#98) — recorded for
+		// cost visibility, excluded from the visitor quota (lib/plan.ts).
+		// SQL-level .default deliberately, NEVER $defaultFn: drizzle then omits
+		// the column from INSERTs that don't pass it, so the chat writer stays
+		// byte-compatible with a DB that hasn't applied 0025 yet (previews skip
+		// migrations; do NOT run drizzle-kit generate — 0025 is hand-authored).
+		kind: text({ enum: ["chat", "suggestion"] })
+			.notNull()
+			.default("chat"),
 		promptTokens: integer().notNull().default(0),
 		completionTokens: integer().notNull().default(0),
 		costUsd: real().notNull().default(0),
