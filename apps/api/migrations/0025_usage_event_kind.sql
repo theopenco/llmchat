@@ -1,0 +1,21 @@
+-- Suggest-with-AI (#98, R4): discriminate usage_event row classes so operator-side
+-- AI drafts can be RECORDED without being COUNTED as visitor responses.
+-- monthlyResponseCount (lib/plan.ts) counts every row for the workspace this
+-- month; without this column a suggestion row would consume the customer's
+-- included visitor quota (402 message_limit_reached silences their LIVE widget
+-- earlier on fixed tiers) and show phantom overage in the billing UI. 'chat' is
+-- the correct backfill for every historical row: the table has had exactly ONE
+-- production writer since introduction — the /v1/chat post-stream metering
+-- (routes/chat.ts) — so pre-0025 rows are all genuinely visitor-chat responses.
+--
+-- PHASE 1 of 2 (deliberate migrate-before-serve split, mirroring 0014/0015 and
+-- 0022). This PR ships ONLY the column — schema.ts is intentionally NOT changed.
+-- Unlike 0022 the hazard here is WRITE-side, not read-side: every usage_event
+-- reader is a projected select (none would name `kind`), but a schema field
+-- would appear in INSERTs. The follow-up PR therefore declares the field with a
+-- SQL-level .default("chat") (never $defaultFn), so the existing chat writer
+-- keeps omitting the column and only the new suggest endpoint's own insert names
+-- it — after this column is live in prod. The suggest endpoint, the
+-- kind='chat' quota filters (lib/plan.ts, routes/projects.ts), and the dashboard
+-- UI all land in that follow-up.
+ALTER TABLE usage_event ADD COLUMN kind text NOT NULL DEFAULT 'chat';
