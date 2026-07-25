@@ -2,6 +2,7 @@
 title: "Setting up email threading for your support widget"
 description: "A step-by-step guide to configuring inbound email so customer replies thread back into the same conversation."
 date: "2026-05-05"
+author: "Ismail Ghallou"
 category: "Guides"
 featured: false
 ---

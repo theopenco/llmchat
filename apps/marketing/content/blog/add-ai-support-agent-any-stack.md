@@ -3,6 +3,7 @@ title: "Add an AI support agent to Next.js, WordPress, Shopify, or any site"
 description: "One hub for every install path we ship: the universal script tag, the React Server Components SDK, the WordPress plugin, the Shopify app embed, and the iframe. Working code for each, plus a candid guide to picking one."
 seoDescription: "How to add an AI support agent to any stack: one script tag, a Next.js RSC SDK, a WordPress plugin, a Shopify app embed, or an iframe. Real code for each."
 date: "2026-07-11"
+author: "Ismail Ghallou"
 category: "Guides"
 featured: false
 cover: "/blog/add-ai-support-agent-any-stack.jpg"

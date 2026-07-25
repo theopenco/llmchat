@@ -2,6 +2,7 @@
 title: "The case for self-hostable AI support"
 description: "Why open architecture matters for tools that sit between you and your customers."
 date: "2026-04-28"
+author: "Ismail Ghallou"
 category: "Engineering"
 featured: false
 ---

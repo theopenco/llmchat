@@ -43,9 +43,11 @@ const mono = JetBrains_Mono({
 	display: "swap",
 });
 
-const TITLE = "Clanker Support — AI support, dropped in";
+// Category-keyword-first title (the brand has no search volume yet) + a
+// description that matches the pain-first positioning on the page itself.
+const TITLE = "Open-Source AI Customer Support Widget — Clanker Support";
 const DESCRIPTION =
-	"One script tag. Your choice of model. An AI-powered support agent that answers from your docs and escalates to your team — with no lost threads.";
+	"Open-source AI support widget: answers customers from your docs, escalates to your team with full context. One script tag, live in minutes, from $19/mo.";
 
 export const metadata: Metadata = {
 	// Resolves relative canonical/OG URLs (set per page via pageMeta) to absolute.

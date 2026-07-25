@@ -2,6 +2,7 @@
 title: "Intercom Fin pricing in 2026: the real math behind $0.99"
 description: "A primary-source teardown of Intercom Fin's $0.99-per-resolution pricing: billable outcomes, assumed resolutions, seat costs, and the real monthly math."
 date: "2026-07-07"
+author: "Ismail Ghallou"
 category: "Guides"
 featured: false
 cover: "/blog/intercom-fin-pricing.jpg"

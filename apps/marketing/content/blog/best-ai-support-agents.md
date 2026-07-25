@@ -2,6 +2,7 @@
 title: "The best AI support agents in 2026 (real pricing compared)"
 description: "The best AI support agents in 2026, compared on real pricing — per-resolution vs per-seat vs flat, which LLM each tool runs on, and open-source options."
 date: "2026-07-07"
+author: "Ismail Ghallou"
 category: "Guides"
 featured: false
 cover: "/blog/best-ai-support-agents.jpg"

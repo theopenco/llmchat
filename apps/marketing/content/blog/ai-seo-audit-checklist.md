@@ -3,6 +3,7 @@ title: "A 9-point AI SEO audit checklist, run on our own site first"
 description: "Next.js merges route metadata shallowly, so every page built with our metadata helper — unless it passed a cover image of its own — shipped a Twitter card with no image for about a month. That was finding one of the SEO and AI-SEO audit we ran across our five domains this month, in two passes. Here is the whole audit as a checklist you can run on your own site, including the four findings that surprised us."
 seoDescription: "A 9-point AI SEO audit checklist: the Next.js og:image shallow-merge bug, robots vs noindex, product-minted URLs, llms-full.txt, and AI crawler access."
 date: "2026-07-20"
+author: "Ismail Ghallou"
 category: "Guides"
 featured: false
 cover: "/blog/ai-seo-audit-checklist.jpg"

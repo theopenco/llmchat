@@ -47,3 +47,11 @@ export const DISCORD_URL = "https://discord.gg/RnyjHWuTKP";
 export const X_URL = "https://x.com/ClankrSupport";
 /** The X handle for Twitter-card attribution (`twitter:site`). */
 export const X_HANDLE = "@ClankrSupport";
+
+/** Official third-party listings — entity anchors for Organization.sameAs. */
+export const PRODUCT_HUNT_URL =
+	"https://www.producthunt.com/products/clanker-support";
+export const PYPI_URL = "https://pypi.org/project/clankersupport/";
+export const RUBYGEMS_URL = "https://rubygems.org/gems/clankersupport";
+export const PACKAGIST_URL =
+	"https://packagist.org/packages/clankersupport/clankersupport-php";

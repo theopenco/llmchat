@@ -2,6 +2,7 @@
 title: "The best Intercom alternatives in 2026 (an honest comparison)"
 description: "Ten Intercom alternatives compared by pricing model — per-seat, per-resolution, flat monthly, and self-hosted — with honest cons and when to stay put."
 date: "2026-07-07"
+author: "Ismail Ghallou"
 category: "Guides"
 featured: false
 cover: "/blog/intercom-alternatives.jpg"
