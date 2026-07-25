@@ -9,11 +9,14 @@ function setup(
 		value?: string;
 		pending?: boolean;
 		mode?: "reply" | "note";
+		suggesting?: boolean;
+		aiDraft?: string | null;
 	} = {},
 ) {
 	const onChange = vi.fn();
 	const onSend = vi.fn();
 	const onModeChange = vi.fn();
+	const onSuggest = vi.fn();
 	render(
 		<ReplyComposer
 			value={props.value ?? ""}
@@ -23,9 +26,12 @@ function setup(
 			pending={props.pending ?? false}
 			mode={props.mode ?? "reply"}
 			onModeChange={onModeChange}
+			onSuggest={onSuggest}
+			suggesting={props.suggesting ?? false}
+			aiDraft={props.aiDraft ?? null}
 		/>,
 	);
-	return { onChange, onSend, onModeChange };
+	return { onChange, onSend, onModeChange, onSuggest };
 }
 
 describe("ReplyComposer", () => {
@@ -81,15 +87,61 @@ describe("ReplyComposer", () => {
 		).toBeInTheDocument();
 	});
 
-	it("ROADMAP: Suggest with AI / attach stay dimmed labels, never interactive controls", () => {
-		setup({ value: "hi" });
-		// The label renders for layout parity…
-		expect(screen.getByText("Suggest with AI")).toBeInTheDocument();
-		// …but it is NOT a button — the real controls are exactly the two mode
-		// tabs + Send.
+	it("LIVE (#98): Suggest with AI is a real button now — the old ROADMAP guard flips polarity; attach stays the pinned dimmed stub", async () => {
+		const { onSuggest } = setup({ value: "" });
+		// Four interactive controls: two mode tabs + Suggest + Send…
 		expect(
-			screen.queryByRole("button", { name: /suggest with ai/i }),
+			screen.getByRole("button", { name: /suggest with ai/i }),
+		).toBeInTheDocument();
+		expect(screen.getAllByRole("button")).toHaveLength(4);
+		await userEvent.click(
+			screen.getByRole("button", { name: /suggest with ai/i }),
+		);
+		expect(onSuggest).toHaveBeenCalledTimes(1);
+		// …while the attach paperclip remains a non-button, exactly as before.
+		expect(
+			screen.queryByRole("button", { name: /attach/i }),
 		).not.toBeInTheDocument();
-		expect(screen.getAllByRole("button")).toHaveLength(3);
+	});
+
+	it("LIVE (#98): Suggest is disabled in note mode — drafts are replies", () => {
+		setup({ value: "", mode: "note" });
+		expect(
+			screen.getByRole("button", { name: /suggest with ai/i }),
+		).toBeDisabled();
+	});
+
+	it("LIVE (#98): Suggest is disabled over operator-typed text (never destroys typing)", () => {
+		setup({ value: "my own words" });
+		expect(
+			screen.getByRole("button", { name: /suggest with ai/i }),
+		).toBeDisabled();
+	});
+
+	it("LIVE (#98): shows 'Drafting…' disabled while the request is in flight", () => {
+		setup({ value: "", suggesting: true });
+		expect(screen.getByRole("button", { name: /drafting/i })).toBeDisabled();
+	});
+
+	it("LIVE (#98): an UNEDITED AI draft shows the review chip and offers Regenerate", async () => {
+		const { onSuggest } = setup({ value: "AI text", aiDraft: "AI text" });
+		expect(
+			screen.getByText(/AI draft — review before sending/i),
+		).toBeInTheDocument();
+		const regen = screen.getByRole("button", { name: /regenerate/i });
+		expect(regen).toBeEnabled();
+		await userEvent.click(regen);
+		expect(onSuggest).toHaveBeenCalledTimes(1);
+	});
+
+	it("LIVE (#98): any edit clears the AI-marked treatment (value ≠ aiDraft)", () => {
+		setup({ value: "AI text, edited by me", aiDraft: "AI text" });
+		expect(
+			screen.queryByText(/AI draft — review before sending/i),
+		).not.toBeInTheDocument();
+		// And Suggest is back to disabled — there is operator text present.
+		expect(
+			screen.getByRole("button", { name: /suggest with ai/i }),
+		).toBeDisabled();
 	});
 });

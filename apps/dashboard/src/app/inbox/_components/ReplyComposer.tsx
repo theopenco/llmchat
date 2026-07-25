@@ -18,6 +18,15 @@ export interface ReplyComposerProps {
 	 * and visually unmistakable (amber). */
 	mode?: ComposerMode;
 	onModeChange?: (mode: ComposerMode) => void;
+	/** Suggest-with-AI (#98): request an AI reply draft. Absent = the control
+	 * renders disabled (no wiring, e.g. previews). */
+	onSuggest?: () => void;
+	/** True while the draft request is in flight ("Drafting…"). */
+	suggesting?: boolean;
+	/** The last accepted AI draft. `value === aiDraft` ⇒ the draft is UNEDITED:
+	 * the review chip shows and Suggest becomes "Regenerate". Any edit makes
+	 * them diverge and the treatment clears itself — derived, never synced. */
+	aiDraft?: string | null;
 }
 
 export function ReplyComposer({
@@ -28,9 +37,21 @@ export function ReplyComposer({
 	pending = false,
 	mode = "reply",
 	onModeChange,
+	onSuggest,
+	suggesting = false,
+	aiDraft = null,
 }: ReplyComposerProps) {
 	const canSend = value.trim().length > 0 && !pending;
 	const isNote = mode === "note";
+	const isUneditedDraft = aiDraft !== null && value === aiDraft;
+	// Never destroy operator typing: with text present, Suggest only stays
+	// active as "Regenerate" over its own unedited draft. Note mode: drafts are
+	// visitor-facing replies, so the control is disabled there (R3).
+	const canSuggest =
+		!!onSuggest &&
+		!isNote &&
+		!suggesting &&
+		(value.trim().length === 0 || isUneditedDraft);
 
 	function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
 		// Enter sends; Shift+Enter inserts a newline.
@@ -83,9 +104,19 @@ export function ReplyComposer({
 					"rounded-[12px] border bg-ck-card",
 					isNote
 						? "border-amber-500/50 bg-amber-500/5 focus-within:border-amber-500"
-						: "border-ck-border focus-within:border-ck-accent",
+						: isUneditedDraft
+							? "border-ck-accent/60 bg-ck-accent/5 focus-within:border-ck-accent"
+							: "border-ck-border focus-within:border-ck-accent",
 				)}
 			>
+				{/* R3 — the review affordance: visible exactly while the draft is
+				    unedited; the first keystroke clears it (derived state). */}
+				{isUneditedDraft && !isNote && (
+					<div className="flex items-center gap-1.5 px-3 pt-2 text-[11px] font-medium text-ck-accent">
+						<Sparkles className="size-3.5" />
+						AI draft — review before sending
+					</div>
+				)}
 				<textarea
 					rows={2}
 					value={value}
@@ -96,7 +127,7 @@ export function ReplyComposer({
 				/>
 				<div className="flex items-center justify-between gap-2 px-2 pb-2">
 					<div className="flex items-center gap-1">
-						{/* ROADMAP — attachments + AI-suggest aren't built; dimmed + inert. */}
+						{/* ROADMAP — attachments aren't built; dimmed + inert. */}
 						<span
 							aria-disabled="true"
 							title="Attachments coming soon"
@@ -104,17 +135,35 @@ export function ReplyComposer({
 						>
 							<Paperclip className="size-4" />
 						</span>
-						<span
-							aria-disabled="true"
-							title="Coming soon"
-							className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-[8px] border border-dashed border-ck-border px-2.5 py-1 text-xs font-medium text-ck-disabled"
+						{/* LIVE (#98) — the old dimmed stub, polarity-flipped into a real
+						    control. Disabled in note mode and over operator-typed text. */}
+						<button
+							type="button"
+							onClick={onSuggest}
+							disabled={!canSuggest}
+							title={
+								isNote
+									? "Available in Reply mode"
+									: !canSuggest && value.trim().length > 0 && !suggesting
+										? "Clear the draft to suggest"
+										: undefined
+							}
+							className={cn(
+								"inline-flex items-center gap-1.5 rounded-[8px] border px-2.5 py-1 text-xs font-medium",
+								canSuggest
+									? "border-ck-accent/40 text-ck-accent hover:bg-ck-accent/10"
+									: "cursor-not-allowed border-dashed border-ck-border text-ck-disabled",
+							)}
 						>
-							<Sparkles className="size-3.5" />
-							Suggest with AI
-							<span className="text-[9px] font-semibold uppercase tracking-wide">
-								soon
-							</span>
-						</span>
+							<Sparkles
+								className={cn("size-3.5", suggesting && "animate-pulse")}
+							/>
+							{suggesting
+								? "Drafting…"
+								: isUneditedDraft
+									? "Regenerate"
+									: "Suggest with AI"}
+						</button>
 					</div>
 					<Button size="sm" onClick={onSend} disabled={!canSend}>
 						{pending
