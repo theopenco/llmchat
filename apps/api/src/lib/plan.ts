@@ -133,8 +133,12 @@ export async function memberCount(
 	return row?.n ?? 0;
 }
 
-/** Bot responses metered this calendar month for a workspace. One usageEvent is
- * written per assistant reply, so this is the billable response count. */
+/** Billable VISITOR responses metered this calendar month for a workspace: one
+ * kind='chat' usageEvent per assistant reply. Other row classes — operator-side
+ * AI drafts (kind='suggestion', #98) — are recorded for cost visibility but
+ * deliberately EXCLUDED here: they must never consume the visitor quota (the
+ * 402 gate), inflate responsesThisMonth on the billing screen, or show phantom
+ * overage. */
 export async function monthlyResponseCount(
 	env: Env,
 	workspaceId: string,
@@ -146,6 +150,7 @@ export async function monthlyResponseCount(
 		.where(
 			and(
 				eq(usageEvent.workspaceId, workspaceId),
+				eq(usageEvent.kind, "chat"),
 				gte(usageEvent.createdAt, new Date(startOfUtcMonth(now) * 1000)),
 			),
 		);

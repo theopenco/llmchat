@@ -9,8 +9,12 @@ import {
 } from "@/lib/conversation-summary";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { db } from "@/lib/db";
+import { rateLimit } from "@/lib/kv";
+import { generateSuggestion, resolveServableModel } from "@/lib/llm";
 import { insertMessage } from "@/lib/messages";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
+import { resolveAccess } from "@/lib/plan";
+import { captureEvent } from "@/lib/posthog";
 import {
 	MAX_MATCH_CONVERSATIONS,
 	buildSnippet,
@@ -40,7 +44,9 @@ import {
 	readStatus,
 	sql,
 	tag as tagTable,
+	usageEvent,
 } from "@llmchat/db";
+import { ANALYTICS_EVENTS, isPaidPlan, RECAP_ROLES } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 
@@ -55,6 +61,16 @@ type SearchMatch = { field: "body" | "name" | "email"; snippet: string };
  * generous enough for pasted stack traces / order dumps, bounded against DB
  * abuse. The visitor-side cap is 8k (chat.ts MAX_MESSAGE_TEXT). */
 const MESSAGE_CONTENT_MAX = 10_000;
+
+// Suggest-with-AI (#98): the api's first AUTHENTICATED spend path — every other
+// rateLimit caller guards public /v1. Both buckets fail CLOSED: a STATE outage
+// degrades a convenience feature, it must never open unbounded spend on the
+// shared gateway key (the agent-action guards' posture, the opposite of the
+// public widget's fail-open).
+const SUGGEST_RATE_MAX = 10;
+const SUGGEST_RATE_WINDOW = 5 * 60;
+const SUGGEST_DAILY_MAX = 200;
+const SUGGEST_DAILY_WINDOW = 24 * 60 * 60;
 
 export const conversations = new Hono<AppContext>()
 	.use("*", requireSession, requireWorkspace)
@@ -628,6 +644,167 @@ export const conversations = new Hono<AppContext>()
 				},
 				201,
 			);
+		},
+	)
+	// Suggest-with-AI (#98): draft the team's next reply from the project's
+	// knowledge base + the RECAP_ROLES-filtered history. Returns TEXT ONLY —
+	// structurally this handler contains no insertMessage/sendEmail/Slack code
+	// (the /notes philosophy), so nothing visitor-visible can fire: no message
+	// row, no email, no conversation mutation, no summary regeneration. Metering
+	// is recorded as kind='suggestion', which every visitor-response counter
+	// (lib/plan.ts, /projects/usage) excludes by design, and NO Stripe meter
+	// event is reported — a draft must never bill an overage customer.
+	.post(
+		"/projects/:projectId/conversations/:id/suggest",
+		requireRole("agent"),
+		async (c) => {
+			const { projectId, id } = c.req.param();
+			const userId = c.get("userId");
+			const workspaceId = c.get("workspaceId");
+
+			const proj = await db(c.env).query.project.findFirst({
+				where: (pt, { and: a, eq: e }) =>
+					a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+			});
+			if (!proj) {
+				return c.json({ error: "not found" }, 404);
+			}
+			const conv = await db(c.env).query.conversation.findFirst({
+				where: (ct, { and: a, eq: e }) =>
+					a(e(ct.id, id), e(ct.projectId, projectId)),
+			});
+			if (!conv) {
+				return c.json({ error: "not found" }, 404);
+			}
+
+			// Drafts spend real inference on the shared key: unpaid workspaces are
+			// gated exactly like the live agent (402) — but a fixed tier OVER its
+			// visitor quota may still draft (suggestions are excluded from that
+			// quota, and the rate limits below bound spend). Locked decisions,
+			// docs/goals/98-suggest-with-ai-phase1.md §8 Q1/Q2.
+			const { exempt, plan } = await resolveAccess(c.env, workspaceId);
+			if (!exempt && !isPaidPlan(plan)) {
+				return c.json({ error: "subscription_required" }, 402);
+			}
+
+			const perOperator = await rateLimit(
+				c.env,
+				`suggest:${proj.id}:${userId}`,
+				SUGGEST_RATE_MAX,
+				SUGGEST_RATE_WINDOW,
+				{ failClosed: true },
+			);
+			if (!perOperator.ok) {
+				return c.json({ error: "rate limit exceeded" }, 429);
+			}
+			const perWorkspaceDaily = await rateLimit(
+				c.env,
+				`suggest-day:${workspaceId}`,
+				SUGGEST_DAILY_MAX,
+				SUGGEST_DAILY_WINDOW,
+				{ failClosed: true },
+			);
+			if (!perWorkspaceDaily.ok) {
+				return c.json({ error: "rate limit exceeded" }, 429);
+			}
+
+			// R1 — the allowlist lives in the SQL WHERE: internal notes (and any
+			// future role) never reach worker memory for this request, let alone
+			// the model. System markers are events, not conversation content.
+			const rows = await db(c.env).query.message.findMany({
+				where: (m, { and: a, eq: e, inArray: inA }) =>
+					a(e(m.conversationId, conv.id), inA(m.role, [...RECAP_ROLES])),
+				orderBy: (m, { asc: ascOp }) => ascOp(m.sequence),
+				columns: { role: true, content: true },
+			});
+			if (!rows.some((m) => m.role === "user" && m.content.trim())) {
+				return c.json(
+					{ error: "nothing to draft from", code: "empty_conversation" },
+					422,
+				);
+			}
+
+			// Same prompt inputs as the live agent: active system-prompt variant,
+			// active sources, stored identity — so the draft says what the bot
+			// would say, reviewed by a human instead of streamed to the visitor.
+			let activePromptContent = proj.systemPrompt;
+			if (proj.activeSystemPromptId) {
+				const active = await db(c.env).query.systemPrompt.findFirst({
+					where: (sp, { and: a, eq: e }) =>
+						a(e(sp.id, proj.activeSystemPromptId!), e(sp.projectId, proj.id)),
+				});
+				if (active) activePromptContent = active.content;
+			}
+			const activeSources = await db(c.env).query.source.findMany({
+				where: (s, { and: a, eq: e }) =>
+					a(e(s.projectId, proj.id), e(s.active, true)),
+			});
+
+			const model = resolveServableModel(proj, plan, exempt);
+			let result: Awaited<ReturnType<typeof generateSuggestion>>;
+			try {
+				result = await generateSuggestion(c.env, {
+					model,
+					systemPrompt: activePromptContent,
+					knowledgeText: proj.knowledgeText,
+					sources: activeSources.map((s) => ({
+						title: s.title || s.url || "",
+						url: s.url ?? "",
+						content: s.content,
+					})),
+					identity: { name: conv.name, email: conv.email },
+					messages: rows,
+				});
+			} catch (err) {
+				console.error("suggest: model call failed", err);
+				return c.json({ error: "assistant unavailable" }, 502);
+			}
+			if (!result) {
+				// Empty transcript survived the check above (whitespace-only) or the
+				// model returned nothing — honesty rail: never a fabricated draft.
+				return c.json({ error: "assistant unavailable" }, 502);
+			}
+			const { draft, usage } = result;
+
+			// Record-but-never-count (R4): one kind='suggestion' usage row +
+			// a CONTENT-FREE analytics event. Detached from the response like
+			// chat's metering; the fallback float mirrors captureInBackground
+			// (tests invoke routes without an ExecutionContext).
+			const record = (async () => {
+				try {
+					await db(c.env)
+						.insert(usageEvent)
+						.values({
+							workspaceId,
+							projectId: proj.id,
+							conversationId: conv.id,
+							messageId: "",
+							model,
+							kind: "suggestion",
+							promptTokens: usage.inputTokens ?? 0,
+							completionTokens: usage.outputTokens ?? 0,
+							costUsd: 0,
+						});
+					await captureEvent(c.env, {
+						event: ANALYTICS_EVENTS.aiSuggestionGenerated,
+						distinctId: userId,
+						properties: {
+							project_id: proj.id,
+							workspace_id: workspaceId,
+							model,
+						},
+					});
+				} catch (err) {
+					console.error("suggest: usage record failed", err);
+				}
+			})();
+			try {
+				c.executionCtx.waitUntil(record);
+			} catch {
+				void record;
+			}
+
+			return c.json({ draft, model });
 		},
 	)
 	.patch(

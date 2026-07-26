@@ -465,6 +465,22 @@ export const usageEvent = sqliteTable(
 		conversationId: text().notNull(),
 		messageId: text().notNull(),
 		model: text().notNull(),
+		// Row class: 'chat' = a billable visitor response (the monthly-quota
+		// unit); 'suggestion' = an operator-side AI draft (#98) — recorded for
+		// cost visibility, excluded from the visitor quota (lib/plan.ts).
+		// NOTE (empirically probed, drizzle-orm 0.45.2): declaring this field
+		// makes EVERY generated usage_event INSERT name the `kind` column —
+		// drizzle binds .default()/".$defaultFn" values as params and never omits
+		// a schema column. A DB that hasn't applied 0025 therefore rejects these
+		// INSERTs — which is why 0025 shipped and was verified in prod BEFORE
+		// this field landed (migrate-before-serve, mirroring 0014/0015 + 0022).
+		// On previews (which skip migrations) the failures are contained: both
+		// writers run detached with their own catch, and the quota gate reading
+		// `kind` fails open (do NOT run drizzle-kit generate — 0025 is
+		// hand-authored).
+		kind: text({ enum: ["chat", "suggestion"] })
+			.notNull()
+			.default("chat"),
 		promptTokens: integer().notNull().default(0),
 		completionTokens: integer().notNull().default(0),
 		costUsd: real().notNull().default(0),

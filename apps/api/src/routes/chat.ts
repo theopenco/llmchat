@@ -21,7 +21,11 @@ import {
 	reserveOnce,
 	shouldSendHolding,
 } from "@/lib/kv";
-import { streamChat, summarizeForVisitor } from "@/lib/llm";
+import {
+	resolveServableModel,
+	streamChat,
+	summarizeForVisitor,
+} from "@/lib/llm";
 import {
 	confirmReturnVerification,
 	isReturnVerified,
@@ -43,10 +47,7 @@ import {
 } from "@llmchat/db";
 import {
 	ANALYTICS_EVENTS,
-	DEFAULT_MODEL,
-	effectiveModel,
 	HISTORY_ROLES,
-	isModelAllowed,
 	isPaidPlan,
 	isQuotableRole,
 	isRecapRole,
@@ -454,26 +455,10 @@ export const chat = new Hono<AppContext>()
 			},
 		});
 
-		// Guard the live bot against a project stuck on a model that's no longer
-		// a valid web-search model (e.g. a pre-web-search saved value): run the
-		// default for this request instead of letting the gateway call fail.
-		let model = effectiveModel(project.model);
-		if (model !== project.model) {
-			console.warn(
-				`chat: project ${project.id} model "${project.model}" is not a web-search model; using "${model}"`,
-			);
-		}
-		// Tier model-access safety net: if the saved model isn't allowed on the
-		// current plan (e.g. a Growth→Starter downgrade left the project on a
-		// premium model), degrade to the basic default rather than serve a model
-		// they no longer pay for — and never take the live agent down with a 402.
-		// Exempt workspaces run any model.
-		if (!exempt && !isModelAllowed(plan, model)) {
-			console.warn(
-				`chat: project ${project.id} model "${model}" not allowed on plan "${plan}"; using "${DEFAULT_MODEL}"`,
-			);
-			model = DEFAULT_MODEL;
-		}
+		// Web-search coercion + tier model-access safety net, shared with the
+		// suggest endpoint so drafts run the same model that answers live
+		// (never throws, never 402s — degrading beats downing the agent).
+		const model = resolveServableModel(project, plan, exempt);
 
 		let result: Awaited<ReturnType<typeof streamChat>>;
 		try {

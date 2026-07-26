@@ -46,6 +46,7 @@ import { InboxStats } from "./_components/InboxStats";
 import { ListFilters } from "./_components/ListFilters";
 import { LoadMore } from "./_components/LoadMore";
 import { MessageThread } from "./_components/MessageThread";
+import { useComposerDraft } from "./_components/useComposerDraft";
 import {
 	appendOptimisticNote,
 	appendOptimisticReply,
@@ -86,7 +87,10 @@ function InboxPageInner() {
 	const searchParams = useSearchParams();
 	const [projectId, setProjectId] = useState<string | null>(null);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
-	const [reply, setReply] = useState("");
+	// Composer text + AI-draft marker (#98): an unedited AI draft clears on
+	// conversation switch; typed text keeps its historical carry-over.
+	const composer = useComposerDraft(selectedId);
+	const { value: reply, setValue: setReply } = composer;
 	// Composer mode: "reply" goes to the visitor, "note" is team-only. Reset to
 	// reply on conversation switch so a lingering note mode can't surprise.
 	const [composerMode, setComposerMode] = useState<ComposerMode>("reply");
@@ -500,7 +504,7 @@ function InboxPageInner() {
 				workspaceId: workspaceId!,
 			}),
 		onSuccess: () => {
-			setReply("");
+			composer.clear();
 			toast.success("Reply sent");
 			track(ANALYTICS_EVENTS.replySent);
 			// The reply bumps updatedAt + the preview. Revalidate the HEAD only (not
@@ -531,7 +535,7 @@ function InboxPageInner() {
 				workspaceId: workspaceId!,
 			}),
 		onSuccess: () => {
-			setReply("");
+			composer.clear();
 			toast.success("Note added");
 			track(ANALYTICS_EVENTS.noteAdded);
 			// A note bumps updatedAt/messageCount server-side (teammates' unread +
@@ -541,6 +545,34 @@ function InboxPageInner() {
 			});
 		},
 		onError: (e) => toast.error(describeApiError(e, "Failed to add note")),
+	});
+
+	// Suggest-with-AI (#98): a plain mutation — the endpoint writes no message
+	// row and changes no server state the UI caches, so there is nothing to be
+	// optimistic about and nothing to invalidate. The draft lands in the
+	// composer AI-marked (clears on edit / send / conversation switch).
+	// The mutation is BOUND to the conversation it was fired for (vars, not the
+	// selectedId closure): acceptDraft drops a response that lands after the
+	// operator switched conversations or started typing during "Drafting…".
+	const suggestMut = useMutation({
+		mutationFn: (vars: { conversationId: string }) =>
+			api<{ draft: string; model: string }>(
+				`/api/projects/${projectId}/conversations/${vars.conversationId}/suggest`,
+				{ method: "POST", workspaceId: workspaceId! },
+			),
+		onSuccess: (data, vars) =>
+			composer.acceptDraft(data.draft, vars.conversationId),
+		onError: (e) => {
+			const msg =
+				e instanceof ApiError && e.status === 429
+					? "Suggestion limit reached — try again in a few minutes"
+					: e instanceof ApiError && e.status === 422
+						? "Nothing to draft from yet — wait for a visitor message"
+						: e instanceof ApiError && e.status === 402
+							? "AI drafting needs an active plan — upgrade in Settings → Billing"
+							: describeApiError(e, "Couldn't draft a reply");
+			toast.error(msg);
+		},
 	});
 
 	// Optimistic archive/restore + delete: the row leaves the current list the
@@ -775,6 +807,14 @@ function InboxPageInner() {
 							pending={replyMut.isPending || noteMut.isPending}
 							mode={composerMode}
 							onModeChange={setComposerMode}
+							onSuggest={() =>
+								selectedId && suggestMut.mutate({ conversationId: selectedId })
+							}
+							suggesting={
+								suggestMut.isPending &&
+								suggestMut.variables?.conversationId === selectedId
+							}
+							aiDraft={composer.aiDraft}
 							placeholder={
 								composerMode === "note"
 									? "Add an internal note — visible to your team only"
