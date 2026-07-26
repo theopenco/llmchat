@@ -135,6 +135,25 @@ genuinely a chat response (single production writer since introduction, git-veri
   logs a background write failure; the draft itself still returns). Prod ordering
   still follows the locked two-phase rule: **PR-A merged + deployed before PR-B**
   (0022/0014-15 precedent).
+
+  > **CORRECTION (pre-PR regression verification, 2026-07-26):** the
+  > `.default()`-omission claim above is **false** — empirically probed against the
+  > real `usageEvent` table (drizzle-orm 0.45.2, `drizzle-orm/d1`,
+  > `casing: "snake_case"`): drizzle names **every** schema column in generated
+  > INSERTs and binds the `.default()` value as a param when not passed
+  > (`dialect.cjs` `buildInsertQuery` maps all `colEntries` unconditionally), so
+  > `.default()` vs `$defaultFn` makes no difference to the column list. The
+  > migrate-before-serve conclusion is unchanged — prod had 0025 live before any
+  > PR-B code deployed — but the *preview* story is narrower than claimed: on an
+  > un-migrated preview DB the chat writer's usage insert now fails too, contained
+  > by the `waitUntil` catch (`chat.ts` — assistant-message persistence happens
+  > first and is unaffected), the suggest writer's failure is contained by its own
+  > detached catch, `isResponseBlocked` fails open, and `/projects/usage` +
+  > `/billing/usage` (the two kind-filtered reads) error on previews until their
+  > DBs gain the column. The schema comment in `packages/db/src/schema.ts` now
+  > states the probed behavior; the merged 0025 header retains the original
+  > (over-optimistic) wording — corrected here rather than editing an applied
+  > migration.
 - **Reader-by-reader decision** (all consumers enumerated by the census):
   - `monthlyResponseCount` (`plan.ts:143-151`): add `eq(usageEvent.kind, "chat")` —
     fixes the quota gate, `/billing/usage` `responsesThisMonth`, the sidebar

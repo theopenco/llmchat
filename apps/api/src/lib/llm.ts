@@ -479,7 +479,6 @@ function normalizeTranscriptLine(raw: string): string {
 	return (
 		raw
 			// eslint-disable-next-line no-control-regex
-			// eslint-disable-next-line no-control-regex
 			.replace(/[\u0000-\u001f\u007f-\u009f]/g, " ")
 			.replace(/[«»<>`]/g, "")
 			.replace(/\s+/g, " ")
@@ -507,14 +506,17 @@ export function buildSuggestTranscript(
 	if (lines.length === 0) return "";
 	const joined = lines.join("\n");
 	if (joined.length <= SUGGEST_TRANSCRIPT_CHAR_BUDGET) return joined;
-	const head = lines[0].slice(0, SUGGEST_TRANSCRIPT_CHAR_BUDGET);
-	// Reserve the full "\n…\n" separator (3 chars) so the result never
+	// Reserve the "\n…\n" separator (3 chars) up front so the result never
 	// exceeds the budget — a hard bound, unlike the sibling's soft one.
+	const head = lines[0].slice(0, SUGGEST_TRANSCRIPT_CHAR_BUDGET - 3);
 	const tailBudget = Math.max(
 		0,
 		SUGGEST_TRANSCRIPT_CHAR_BUDGET - head.length - 3,
 	);
-	const tail = lines.slice(1).join("\n").slice(-tailBudget);
+	// slice(-0) === slice(0) — a zero budget must yield NO tail, not the whole
+	// thing (reachable: a single inbound-email message can exceed the budget).
+	const tail =
+		tailBudget > 0 ? lines.slice(1).join("\n").slice(-tailBudget) : "";
 	return `${head}\n…\n${tail}`;
 }
 
