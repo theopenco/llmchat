@@ -256,10 +256,18 @@ function productLabel(host: string): string | undefined {
 		?.label;
 }
 
+/** Outcome of the weekly showcase-demo health probe (see probeShowcaseWidget). */
+export interface ShowcaseProbeResult {
+	ok: boolean;
+	/** Short human detail for the digest line, e.g. "config 200 · chat 200". */
+	detail: string;
+}
+
 /** Render the report embed from the raw (positional) HogQL rows. Pure. */
 export function buildTrafficEmbed(
 	window: ReportWindow,
 	data: TrafficData,
+	showcaseProbe?: ShowcaseProbeResult | null,
 ): DiscordEmbed {
 	// Overview: current vs previous totals.
 	const overall: Record<string, Totals> = {};
@@ -371,6 +379,13 @@ export function buildTrafficEmbed(
 		codeBlock(sources),
 		`**Traffic mix** · ${automatedShare}% automated`,
 		codeBlock(trafficMix),
+		// A dead public demo must be a Monday digest line, not a quarterly-audit
+		// discovery (the showcase key has shipped dead twice — task #125).
+		...(showcaseProbe
+			? [
+					`**Showcase demo** · ${showcaseProbe.ok ? "✅ PASS" : "❌ FAIL"} — ${showcaseProbe.detail}`,
+				]
+			: []),
 	].join("\n");
 
 	return {
@@ -380,6 +395,76 @@ export function buildTrafficEmbed(
 		footer: { text: "Clanker Support · PostHog analytics" },
 		timestamp: new Date().toISOString(),
 	};
+}
+
+// Bound the two probe requests independently: config is a DB lookup, chat is a
+// full model round-trip that can legitimately take tens of seconds.
+const PROBE_CONFIG_TIMEOUT_MS = 15_000;
+const PROBE_CHAT_TIMEOUT_MS = 60_000;
+
+/**
+ * Live-probe the public showcase demo (task #125 regression guard): the
+ * marketing homepage's only labeled no-signup path points at the showcase,
+ * whose widget key has shipped dead twice without anyone noticing. Two checks
+ * against the public API: GET /v1/config/{key} (does the key resolve to a
+ * project?) and one POST /v1/chat round-trip (does the whole serving path —
+ * key → project → gateway → stream — actually answer?). The fixed clientId
+ * makes every weekly probe land in ONE conversation (conversations are keyed
+ * by (projectId, clientId)), so the demo inbox gets a single probe thread,
+ * not 52 new ones a year. A FAIL is report DATA — this never throws; the
+ * digest line is the alarm.
+ */
+export async function probeShowcaseWidget(
+	apiOrigin: string,
+	widgetKey: string,
+): Promise<ShowcaseProbeResult> {
+	try {
+		const configRes = await fetch(
+			`${apiOrigin}/v1/config/${encodeURIComponent(widgetKey)}`,
+			{ signal: AbortSignal.timeout(PROBE_CONFIG_TIMEOUT_MS) },
+		);
+		if (!configRes.ok) {
+			return {
+				ok: false,
+				detail: `config ${configRes.status} — widget key resolves to no project`,
+			};
+		}
+		const chatRes = await fetch(`${apiOrigin}/v1/chat`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				projectKey: widgetKey,
+				clientId: "traffic-report-probe",
+				messages: [
+					{
+						id: `probe-${Date.now()}`,
+						role: "user",
+						parts: [
+							{
+								type: "text",
+								text: "Automated weekly health check — please reply with one short sentence.",
+							},
+						],
+					},
+				],
+			}),
+			signal: AbortSignal.timeout(PROBE_CHAT_TIMEOUT_MS),
+		});
+		if (!chatRes.ok) {
+			return { ok: false, detail: `config 200 · chat ${chatRes.status}` };
+		}
+		// Drain the stream: a 200 that yields no bytes is still a dead demo.
+		const body = await chatRes.text();
+		if (body.trim().length === 0) {
+			return { ok: false, detail: "config 200 · chat 200 but empty stream" };
+		}
+		return { ok: true, detail: "config 200 · chat 200" };
+	} catch (err) {
+		return {
+			ok: false,
+			detail: `probe error — ${err instanceof Error ? err.message : String(err)}`,
+		};
+	}
 }
 
 interface PosthogQueryConfig {
@@ -447,21 +532,38 @@ export async function runTrafficReport(
 
 	const window = buildWindow(period, now);
 	const queries = buildQueries(window);
-	const [perHost, overall, events, sources, botSplit] = await Promise.all([
-		runHogql(cfg, queries.perHost),
-		runHogql(cfg, queries.overall),
-		runHogql(cfg, queries.events),
-		runHogql(cfg, queries.sources),
-		runHogql(cfg, queries.botSplit),
-	]);
+	// Weekly only, and only when the probe key is configured (self-hosters and
+	// local dev skip, like every other integration). Runs alongside the HogQL
+	// queries; probeShowcaseWidget never throws, so a dead demo posts as a
+	// digest FAIL line instead of failing the cron.
+	const probePromise =
+		period === "week" && env.vars.SHOWCASE_WIDGET_KEY
+			? probeShowcaseWidget(
+					env.vars.API_PUBLIC_ORIGIN || "https://api.clankersupport.com",
+					env.vars.SHOWCASE_WIDGET_KEY,
+				)
+			: Promise.resolve(null);
+	const [perHost, overall, events, sources, botSplit, showcaseProbe] =
+		await Promise.all([
+			runHogql(cfg, queries.perHost),
+			runHogql(cfg, queries.overall),
+			runHogql(cfg, queries.events),
+			runHogql(cfg, queries.sources),
+			runHogql(cfg, queries.botSplit),
+			probePromise,
+		]);
 
-	const embed = buildTrafficEmbed(window, {
-		perHost,
-		overall,
-		events,
-		sources,
-		botSplit,
-	});
+	const embed = buildTrafficEmbed(
+		window,
+		{
+			perHost,
+			overall,
+			events,
+			sources,
+			botSplit,
+		},
+		showcaseProbe,
+	);
 	await postDiscordWebhook(DISCORD_TRAFFIC_NOTIFICATION_URL, {
 		embeds: [embed],
 	});

@@ -48,6 +48,12 @@ declare module "@meetploy/nextjs" {
 			POSTHOG_PERSONAL_API_KEY?: string;
 			POSTHOG_PROJECT_ID?: string;
 			POSTHOG_QUERY_HOST?: string;
+			// Weekly showcase-demo health probe (traffic-report cron): the PUBLIC
+			// widget key the live showcase serves, and an optional override for the
+			// API origin the probe calls (defaults to the prod origin). Unset ⇒
+			// probe skipped (self-hosters / local dev).
+			SHOWCASE_WIDGET_KEY?: string;
+			API_PUBLIC_ORIGIN?: string;
 			GOOGLE_CLIENT_ID?: string;
 			GOOGLE_CLIENT_SECRET?: string;
 			GITHUB_CLIENT_ID?: string;
@@ -111,6 +117,12 @@ declare global {
 			POSTHOG_PERSONAL_API_KEY?: string;
 			POSTHOG_PROJECT_ID?: string;
 			POSTHOG_QUERY_HOST?: string;
+			// Weekly showcase-demo health probe (traffic-report cron): the PUBLIC
+			// widget key the live showcase serves, and an optional override for the
+			// API origin the probe calls (defaults to the prod origin). Unset ⇒
+			// probe skipped (self-hosters / local dev).
+			SHOWCASE_WIDGET_KEY?: string;
+			API_PUBLIC_ORIGIN?: string;
 			GOOGLE_CLIENT_ID?: string;
 			GOOGLE_CLIENT_SECRET?: string;
 			GITHUB_CLIENT_ID?: string;
