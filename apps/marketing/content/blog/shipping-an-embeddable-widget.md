@@ -3,6 +3,7 @@ title: "Everything that broke while shipping an embeddable AI widget"
 description: "A support widget runs inside a DOM you don't control. Here's every way host pages broke ours — :empty selectors, 62.5% root font-sizes, null currentScript — and the rule we extracted from each fix."
 seoDescription: "War stories from shipping an embeddable widget: Shopify Dawn's div:empty bug, rem vs shadow DOM, currentScript timing, and serving JS with no filesystem."
 date: "2026-07-11"
+updated: "2026-07-26"
 category: "Engineering"
 featured: false
 cover: "/blog/shipping-an-embeddable-widget.jpg"
@@ -135,7 +136,7 @@ Our API runs on workerd — the Cloudflare-workers-compatible runtime — where 
 
 The answer is unglamorous: after `vite build`, a script reads `dist/widget.js` and writes it into a generated TypeScript module as one JSON-stringified constant. The API imports that module and serves the string from memory with `content-type: application/javascript`, `x-content-type-options: nosniff`, and `cache-control: public, max-age=300`. The generated file is gitignored; the API's deploy pipeline builds the widget first, so the constant is always fresh.
 
-The five-minute cache is a deliberate embed-specific choice. Host pages pin your URL in their HTML forever — you can't cache-bust an asset whose URL is copy-pasted into `<script>` tags in HTML you don't control. Short max-age means a shipped fix (like either Dawn fix) reaches every embed within minutes, at the cost of more origin hits. For a support widget, that trade is easy.
+The short cache lifetime is a deliberate embed-specific choice. Host pages pin your URL in their HTML forever — you can't cache-bust an asset whose URL is copy-pasted into `<script>` tags in HTML you don't control. The code sets a five-minute max-age (at the cost of more origin hits); in production our platform's edge cache rewrites it upward (`max-age=3600, s-maxage=14400`), so real propagation of a shipped fix (like either Dawn fix) is minutes to hours. Still far better than an immutable fingerprinted URL you can never re-point. For a support widget, that trade is easy.
 
 **Rule: an embed URL is immutable to you, so keep its cache lifetime short.**
 
@@ -165,7 +166,7 @@ One subtle line in that page: the widget script src is _relative_, not an absolu
 - **Ship px, not rem.** Inside an embed, rem is a dependency on the host page's root font-size — even through shadow DOM.
 - **Capture `document.currentScript` synchronously.** It's null by the time `DOMContentLoaded` fires.
 - **Default your API origin to `new URL(script.src).origin`.** Never a hardcoded host; keep an explicit override attribute.
-- **Serve the bundle from your API's origin with a short max-age.** Embed URLs are pinned in HTML you don't control; five minutes is our propagation ceiling for fixes.
+- **Serve the bundle from your API's origin with a short max-age.** Embed URLs are pinned in HTML you don't control; the cache header is your only re-point mechanism. Ours asks for five minutes, and production's edge cache stretches that to hours — check what your platform actually serves, not what your code sets.
 - **If you offer an iframe mode, invert the CSP.** `frame-ancestors *` on purpose, everything else `'none'` or `'self'`, and a relative script src so TLS-terminating proxies can't hand you mixed content.
 
 All of this code is public — the widget, the stub, both Dawn fixes with their commit messages — in the [repo](https://github.com/theopenco/llmchat), and you can poke the live widget at [showcase.clankersupport.com](https://showcase.clankersupport.com). If you're building your own embed, steal the rules; we already paid for them, one Dawn dev store at a time.
