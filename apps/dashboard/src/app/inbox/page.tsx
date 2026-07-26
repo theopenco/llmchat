@@ -551,20 +551,26 @@ function InboxPageInner() {
 	// row and changes no server state the UI caches, so there is nothing to be
 	// optimistic about and nothing to invalidate. The draft lands in the
 	// composer AI-marked (clears on edit / send / conversation switch).
+	// The mutation is BOUND to the conversation it was fired for (vars, not the
+	// selectedId closure): acceptDraft drops a response that lands after the
+	// operator switched conversations or started typing during "Drafting…".
 	const suggestMut = useMutation({
-		mutationFn: () =>
+		mutationFn: (vars: { conversationId: string }) =>
 			api<{ draft: string; model: string }>(
-				`/api/projects/${projectId}/conversations/${selectedId}/suggest`,
+				`/api/projects/${projectId}/conversations/${vars.conversationId}/suggest`,
 				{ method: "POST", workspaceId: workspaceId! },
 			),
-		onSuccess: (data) => composer.acceptDraft(data.draft),
+		onSuccess: (data, vars) =>
+			composer.acceptDraft(data.draft, vars.conversationId),
 		onError: (e) => {
 			const msg =
 				e instanceof ApiError && e.status === 429
 					? "Suggestion limit reached — try again in a few minutes"
 					: e instanceof ApiError && e.status === 422
 						? "Nothing to draft from yet — wait for a visitor message"
-						: describeApiError(e, "Couldn't draft a reply");
+						: e instanceof ApiError && e.status === 402
+							? "AI drafting needs an active plan — upgrade in Settings → Billing"
+							: describeApiError(e, "Couldn't draft a reply");
 			toast.error(msg);
 		},
 	});
@@ -801,8 +807,13 @@ function InboxPageInner() {
 							pending={replyMut.isPending || noteMut.isPending}
 							mode={composerMode}
 							onModeChange={setComposerMode}
-							onSuggest={() => suggestMut.mutate()}
-							suggesting={suggestMut.isPending}
+							onSuggest={() =>
+								selectedId && suggestMut.mutate({ conversationId: selectedId })
+							}
+							suggesting={
+								suggestMut.isPending &&
+								suggestMut.variables?.conversationId === selectedId
+							}
 							aiDraft={composer.aiDraft}
 							placeholder={
 								composerMode === "note"

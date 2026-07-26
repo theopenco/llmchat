@@ -32,8 +32,19 @@ export function useComposerDraft(selectedId: string | null) {
 		setAiDraft(null);
 	}, [selectedId]);
 
-	/** An accepted suggestion: fills the composer AND marks it as an AI draft. */
-	function acceptDraft(draft: string) {
+	/**
+	 * An accepted suggestion: fills the composer AND marks it as an AI draft.
+	 * `forId` is the conversation the draft was REQUESTED for — a response that
+	 * lands after the operator switched conversations, or after they started
+	 * typing during "Drafting…", is dropped: a draft generated for A must never
+	 * appear in B's composer, and an in-flight suggestion must never clobber
+	 * operator-typed text. (Still accepted over an unedited earlier AI draft —
+	 * the Regenerate path.)
+	 */
+	function acceptDraft(draft: string, forId: string | null) {
+		if (forId === null || forId !== selectedId) return;
+		const current = valueRef.current;
+		if (current.trim().length > 0 && current !== draftRef.current) return;
 		setValue(draft);
 		setAiDraft(draft);
 	}
