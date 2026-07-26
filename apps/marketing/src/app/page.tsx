@@ -108,12 +108,12 @@ const faqs: Faq[] = [
 	},
 	{
 		question: "How do I add Clanker Support to my site?",
-		answer: `Paste one script tag before the closing </body> tag — the widget mounts in an isolated shadow DOM, inherits your brand color, and needs no build step. On WordPress, skip the code entirely: install the official plugin from the WordPress.org directory and paste your project key under Settings. On Shopify, a zero-permission app embed is coming to the App Store — the script tag works on any storefront today. On Next.js or any React 19 app, use the official ${RSC_PACKAGE} npm package. Most teams are live in about five minutes.`,
+		answer: `Paste one script tag before the closing </body> tag — the widget mounts in an isolated shadow DOM, inherits your brand color, and needs no build step. On WordPress, skip the code entirely: install the official plugin from the WordPress.org directory and paste your project key under Settings. On Shopify, an app embed is coming to the App Store — the script tag works on any storefront today. On Next.js or any React 19 app, use the official ${RSC_PACKAGE} npm package. Setup takes about five minutes: one script tag.`,
 	},
 	{
 		question: "Which AI models does Clanker Support support?",
 		answer:
-			"A curated catalog of web-search-capable models through LLM Gateway — GPT, Claude, Gemini and more. You choose the model per project and can swap it with a config change — no code edits — running a cost-efficient model for routine questions and a more capable one where it matters. Starter includes the lighter model class; Growth and Scale unlock the full catalog.",
+			"A curated catalog of web-search-capable models through LLM Gateway — GPT, Claude, Gemini and more. You choose the model per project and can swap it with a config change — no code edits — a cost-efficient model for one project, a more capable one for another. Starter includes the lighter model class; Growth and Scale unlock the full catalog.",
 	},
 	{
 		question: "What happens when the AI can't answer?",
@@ -265,8 +265,8 @@ export default function Home() {
 							</h1>
 
 							<p className="animate-rise-in mt-6 max-w-xl text-pretty text-lg leading-relaxed text-muted [animation-delay:140ms]">
-								Clanker answers the repeats straight from your docs — and hands
-								the hard ones to your team with the whole thread attached.
+								Clanker answers the repeats straight from your docs — so the
+								hard ones reach your team with the whole thread attached.
 								Customers never hit a dead end. Your team never starts cold.
 							</p>
 
@@ -318,7 +318,10 @@ export default function Home() {
 					</div>
 					<p className="font-display mx-auto mt-12 max-w-2xl text-center text-2xl font-medium italic leading-snug text-ink-soft">
 						The repeats drown you; the real problems wait behind them.{" "}
-						<span className="text-accent">Split the two automatically.</span>
+						<span className="text-accent">
+							Let the agent absorb the repeats — the real problems reach your
+							team.
+						</span>
 					</p>
 				</section>
 
@@ -378,7 +381,7 @@ export default function Home() {
 								Where the hand-off <em className="wonk text-accent">lands.</em>
 							</>
 						}
-						sub="The demo above isn't a concept. Here's the same escalation sitting in the real team inbox, and the real widget mid-answer — actual screenshots, fictional persona data."
+						sub="The demo above isn't a concept. Here's a real escalation sitting in the real team inbox, and the real widget mid-answer — actual screenshots, fictional persona data."
 					/>
 					<div className="mt-12">
 						<ProofSection bare />
