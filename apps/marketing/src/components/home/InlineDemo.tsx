@@ -5,20 +5,22 @@ import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 
 /**
  * The hero demo: a scripted, clickable rehearsal of the product's whole
- * argument — docs-grounded answers for the repeats, an honest hand-off with
- * the thread attached for the rest. No backend, no signup, nothing leaves the
- * page; the real widget (bottom-right) is one click away for the skeptics.
+ * argument — docs-grounded answers for the repeats, an honest hand-off for the
+ * rest. The escalation beat mirrors the real mechanics exactly: the agent
+ * OFFERS a human, the widget surfaces [Talk to a human], and the VISITOR taps
+ * it — the agent never escalates on its own, so the demo must not either
+ * (homepage claim-check, 2026-07-26). No backend, no signup, nothing leaves
+ * the page; the real widget (bottom-right) is one click away for the skeptics.
  *
- * Auto-plays the escalation script once when scrolled into view (that's the
- * differentiator), then lets the visitor click the other questions. Respects
- * prefers-reduced-motion by rendering final states instantly.
+ * Auto-plays the escalation script once when scrolled into view, then lets the
+ * visitor click the other questions. Respects prefers-reduced-motion by
+ * rendering final states instantly.
  */
 
 type Script = {
 	id: string;
 	q: string;
 	a: string;
-	source: string;
 	escalates?: boolean;
 	human?: string;
 };
@@ -27,8 +29,7 @@ const SCRIPTS: Script[] = [
 	{
 		id: "refund",
 		q: "Can I get a refund 45 days after purchase?",
-		a: "Our refund policy covers 30 days, and I don't see a documented exception for day 45 — I won't guess on this one. Looping in the team now.",
-		source: "refund-policy.md",
+		a: "Our refund policy covers 30 days, and I don't see a documented exception for day 45 — I won't guess on this one. Want me to bring in a human?",
 		escalates: true,
 		human:
 			"Hi — Priya from support. I've read the thread above, so you don't need to repeat anything. Let's sort your refund out.",
@@ -37,23 +38,25 @@ const SCRIPTS: Script[] = [
 		id: "order",
 		q: "Where's my order?",
 		a: "Orders ship within 24 hours and tracking lands in your inbox the moment the label prints. Lost the email? Your account's Orders page has a “Resend tracking” button.",
-		source: "shipping-faq.md",
 	},
 	{
 		id: "nextjs",
 		q: "Do you support Next.js?",
 		a: "Yes — install the official server component with `npm i @clankersupport/widget-rsc`, drop it in your root layout, and the widget ships with your app.",
-		source: "sdks/react.mdx",
 	},
 ];
 
-// Playback phases, in order. Each script walks the prefix it needs.
+// Playback phases, in order. Each script walks the prefix it needs; the
+// escalation script alone continues past "answered": the hand-off is offered,
+// the visitor taps, and only then does the thread escalate.
 type Phase =
 	| "idle"
 	| "asked"
 	| "thinking"
 	| "answering"
 	| "answered"
+	| "offered"
+	| "tapped"
 	| "escalated"
 	| "human-typing"
 	| "resolved";
@@ -102,9 +105,11 @@ export function InlineDemo() {
 				} else {
 					setPhase("answered");
 					if (s.escalates) {
-						later(() => setPhase("escalated"), 700);
-						later(() => setPhase("human-typing"), 1600);
-						later(() => setPhase("resolved"), 2800);
+						later(() => setPhase("offered"), 600);
+						later(() => setPhase("tapped"), 1800);
+						later(() => setPhase("escalated"), 2500);
+						later(() => setPhase("human-typing"), 3400);
+						later(() => setPhase("resolved"), 4600);
 					}
 				}
 			};
@@ -147,6 +152,8 @@ export function InlineDemo() {
 	const showAnswer =
 		phase === "answering" ||
 		phase === "answered" ||
+		phase === "offered" ||
+		phase === "tapped" ||
 		phase === "escalated" ||
 		phase === "human-typing" ||
 		phase === "resolved";
@@ -191,18 +198,34 @@ export function InlineDemo() {
 							<div className="rounded-2xl rounded-bl-md bg-paper-raise px-4 py-2.5 text-[0.9rem] leading-snug text-ink-soft">
 								{typed}
 							</div>
-							{(phase === "answered" ||
-								phase === "escalated" ||
-								phase === "human-typing" ||
-								phase === "resolved") && (
-								<div className="mt-1.5 flex items-center gap-2 pl-1 font-mono text-[0.62rem] text-faint">
-									<span>source: {script.source}</span>
-									{!script.escalates && (
-										<span aria-hidden className="tracking-wider">
-											· 👍 👎
-										</span>
-									)}
-								</div>
+							{!script.escalates &&
+								(phase === "answered" || phase === "resolved") && (
+									<div
+										aria-hidden
+										className="mt-1.5 pl-1 font-mono text-[0.62rem] tracking-wider text-faint"
+									>
+										👍 👎
+									</div>
+								)}
+						</div>
+					)}
+
+					{/* The hand-off, as it actually works: the widget surfaces the
+					    button, and the VISITOR taps it. Decorative — the ripple dot is
+					    the scripted visitor's tap. */}
+					{(phase === "offered" || phase === "tapped") && (
+						<div aria-hidden className="relative self-start pl-1">
+							<span
+								className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-[0.8rem] font-medium transition-all duration-200 ${
+									phase === "tapped"
+										? "scale-95 border-accent bg-accent/15 text-accent"
+										: "animate-rise-in border-accent/50 bg-paper-card text-accent-soft"
+								}`}
+							>
+								Talk to a human
+							</span>
+							{phase === "tapped" && (
+								<span className="absolute right-4 top-1/2 size-5 -translate-y-1/2 animate-ping rounded-full bg-accent/40 ring-2 ring-accent/60" />
 							)}
 						</div>
 					)}

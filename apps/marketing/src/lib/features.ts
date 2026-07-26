@@ -87,7 +87,7 @@ export const FEATURES: Feature[] = [
 		num: "02",
 		name: "Answers from your docs",
 		tagline:
-			"Paste your knowledge base or system prompt. The bot stays on-topic and admits when it doesn't know.",
+			"Paste your knowledge base or system prompt. The agent stays on-topic and admits when it doesn't know.",
 		headline: "Turn your docs into accurate, on-brand answers.",
 		lead: "Paste your knowledge base or a system prompt and the bot answers from it — staying on topic, and saying so when it doesn't know.",
 		problem:

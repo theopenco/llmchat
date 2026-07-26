@@ -9,10 +9,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
  * initial hydration — the hero and LCP stay untouched. Wrappers reserve height
  * so late mounting can't shift layout.
  */
-const HandoffBeamInner = dynamic(
-	() => import("./HandoffBeam").then((m) => m.HandoffBeam),
-	{ ssr: false, loading: () => null },
-);
 const InstallTerminalInner = dynamic(
 	() => import("./InstallTerminal").then((m) => m.InstallTerminal),
 	{ ssr: false, loading: () => null },
@@ -54,14 +50,6 @@ function InView({
 		<div ref={ref} className={className} style={{ minHeight }}>
 			{show ? children : null}
 		</div>
-	);
-}
-
-export function DeferredHandoffBeam() {
-	return (
-		<InView minHeight={280}>
-			<HandoffBeamInner />
-		</InView>
 	);
 }
 

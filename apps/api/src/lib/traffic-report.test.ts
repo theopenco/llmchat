@@ -9,6 +9,7 @@ import {
 	formatDelta,
 	hogqlTimestamp,
 	periodForCron,
+	probeShowcaseWidget,
 	renderTable,
 	runTrafficReport,
 } from "./traffic-report";
@@ -250,5 +251,159 @@ describe("runTrafficReport", () => {
 		await expect(runTrafficReport(env(CONFIGURED), "week")).rejects.toThrow(
 			/PostHog query failed: 500/,
 		);
+	});
+});
+
+// The weekly showcase-demo health probe (task #125 regression guard): a dead
+// public demo must surface as a Monday digest line, never fail the cron.
+describe("probeShowcaseWidget", () => {
+	it("PASSes when the key resolves and one chat round-trip streams a body", async () => {
+		const calls: string[] = [];
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (url: string | URL, init?: RequestInit) => {
+				calls.push(String(url));
+				if (String(url).includes("/v1/config/")) {
+					return Response.json({ brandColor: "#123456" });
+				}
+				expect(String(url)).toContain("/v1/chat");
+				const body = JSON.parse(String(init?.body));
+				// The fixed clientId keeps every weekly probe in ONE conversation.
+				expect(body.clientId).toBe("traffic-report-probe");
+				expect(body.projectKey).toBe("pk_test");
+				return new Response("data: hello");
+			}),
+		);
+		const result = await probeShowcaseWidget("https://api.example", "pk_test");
+		expect(result).toEqual({ ok: true, detail: "config 200 · chat 200" });
+		expect(calls).toHaveLength(2);
+	});
+
+	it("FAILs fast on a dead key (config 404) without spending a chat call", async () => {
+		const fetchSpy = vi.fn(async () => new Response(null, { status: 404 }));
+		vi.stubGlobal("fetch", fetchSpy);
+		const result = await probeShowcaseWidget("https://api.example", "pk_dead");
+		expect(result.ok).toBe(false);
+		expect(result.detail).toContain("config 404");
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	it("FAILs on a chat error status and on an empty stream", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (url: string | URL) =>
+				String(url).includes("/v1/config/")
+					? Response.json({})
+					: new Response("nope", { status: 429 }),
+			),
+		);
+		expect(
+			(await probeShowcaseWidget("https://api.example", "pk_test")).detail,
+		).toContain("chat 429");
+
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (url: string | URL) =>
+				String(url).includes("/v1/config/")
+					? Response.json({})
+					: new Response("   "),
+			),
+		);
+		expect(
+			(await probeShowcaseWidget("https://api.example", "pk_test")).detail,
+		).toContain("empty stream");
+	});
+
+	it("never throws — network errors become the digest FAIL detail", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () => {
+				throw new Error("connection refused");
+			}),
+		);
+		const result = await probeShowcaseWidget("https://api.example", "pk_test");
+		expect(result.ok).toBe(false);
+		expect(result.detail).toContain("connection refused");
+	});
+});
+
+describe("showcase probe wiring", () => {
+	const DATA = {
+		perHost: [],
+		overall: [],
+		events: [],
+		sources: [],
+		botSplit: [],
+	};
+
+	it("buildTrafficEmbed appends the PASS/FAIL line only when a probe ran", () => {
+		const window = buildWindow("week", new Date("2026-07-01T00:00:00Z"));
+		expect(buildTrafficEmbed(window, DATA).description).not.toContain(
+			"Showcase demo",
+		);
+		expect(
+			buildTrafficEmbed(window, DATA, {
+				ok: true,
+				detail: "config 200 · chat 200",
+			}).description,
+		).toContain("**Showcase demo** · ✅ PASS — config 200 · chat 200");
+		expect(
+			buildTrafficEmbed(window, DATA, { ok: false, detail: "config 404" })
+				.description,
+		).toContain("**Showcase demo** · ❌ FAIL — config 404");
+	});
+
+	it("weekly report with SHOWCASE_WIDGET_KEY probes and posts the digest line", async () => {
+		const calls: string[] = [];
+		let discordBody = "";
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (url: string | URL, init?: RequestInit) => {
+				const u = String(url);
+				calls.push(u);
+				if (u.includes("discord.com")) {
+					discordBody = String(init?.body);
+					return new Response(null, { status: 204 });
+				}
+				if (u.includes("/v1/config/")) {
+					return Response.json({});
+				}
+				if (u.includes("/v1/chat")) {
+					return new Response("data: hi");
+				}
+				return Response.json({ results: [] });
+			}),
+		);
+		await runTrafficReport(
+			env({ ...CONFIGURED, SHOWCASE_WIDGET_KEY: "pk_probe" }),
+			"week",
+		);
+		// Defaults to the prod public origin when API_PUBLIC_ORIGIN is unset.
+		expect(calls).toContain(
+			"https://api.clankersupport.com/v1/config/pk_probe",
+		);
+		expect(calls).toContain("https://api.clankersupport.com/v1/chat");
+		expect(JSON.parse(discordBody).embeds[0].description).toContain(
+			"**Showcase demo** · ✅ PASS",
+		);
+	});
+
+	it("monthly runs and unset keys never probe", async () => {
+		const calls: string[] = [];
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (url: string | URL) => {
+				calls.push(String(url));
+				return String(url).includes("discord.com")
+					? new Response(null, { status: 204 })
+					: Response.json({ results: [] });
+			}),
+		);
+		await runTrafficReport(
+			env({ ...CONFIGURED, SHOWCASE_WIDGET_KEY: "pk_probe" }),
+			"month",
+		);
+		await runTrafficReport(env(CONFIGURED), "week");
+		expect(calls.some((u) => u.includes("/v1/"))).toBe(false);
 	});
 });
