@@ -8,6 +8,8 @@ import {
 } from "@llmchat/shared";
 import { z } from "zod";
 
+import { api } from "@/lib/api";
+
 // Re-exported so existing imports keep resolving from this module; the values
 // themselves live in @llmchat/shared (the single source of truth).
 export { DEFAULT_MODEL, isWebSearchModel, WEB_SEARCH_MODEL_IDS };
@@ -53,7 +55,8 @@ const gatewayResponseSchema = z.object({
 export type GatewayProvider = z.infer<typeof gatewayProviderSchema>;
 export type GatewayModel = z.infer<typeof gatewayModelSchema>;
 
-const GATEWAY_URL = "https://api.llmgateway.io/v1/models";
+// Proxied through our own api (session-gated, STATE-cached): the gateway's
+// /v1/models sends no CORS headers, so a direct browser fetch is blocked.
 
 /**
  * Validate an untrusted gateway payload into a clean model list. Throws when the
@@ -74,11 +77,8 @@ export function useGatewayModels() {
 	return useQuery({
 		queryKey: ["gateway-models"],
 		staleTime: 1000 * 60 * 30,
-		queryFn: async (): Promise<GatewayModel[]> => {
-			const res = await fetch(GATEWAY_URL);
-			if (!res.ok) throw new Error(`Gateway ${res.status}`);
-			return parseGatewayModels(await res.json());
-		},
+		queryFn: async (): Promise<GatewayModel[]> =>
+			parseGatewayModels(await api<unknown>("/api/models")),
 	});
 }
 
