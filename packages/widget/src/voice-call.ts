@@ -160,6 +160,8 @@ export class VoiceCallClient {
 	private playing: AudioBufferSourceNode[] = [];
 	private nextPlayTime = 0;
 	private speakingUntil: ReturnType<typeof setTimeout> | null = null;
+	private greetFallback: ReturnType<typeof setTimeout> | null = null;
+	private greeted = false;
 	private stopped = false;
 	private micMuted = false;
 
@@ -223,8 +225,12 @@ export class VoiceCallClient {
 						},
 					}),
 				);
-				// Have the agent greet the visitor instead of opening on silence.
-				ws.send(JSON.stringify({ type: "response.create" }));
+				// The greeting response is NOT requested here: response.create in
+				// the same breath can race the session.update above, and a model
+				// with no instructions yet greets ungrounded (arbitrary language).
+				// It fires on the session.updated ack (handleEvent) — with a timer
+				// fallback in case the ack never comes.
+				this.greetFallback = setTimeout(() => this.greet(), 2_000);
 				this.startCapture();
 				this.handlers.onStatus("listening");
 				resolve();
@@ -267,6 +273,10 @@ export class VoiceCallClient {
 	}
 
 	private releaseAudio() {
+		if (this.greetFallback) {
+			clearTimeout(this.greetFallback);
+			this.greetFallback = null;
+		}
 		this.cancelPlayback();
 		this.processor?.disconnect();
 		this.source?.disconnect();
@@ -321,6 +331,12 @@ export class VoiceCallClient {
 			return;
 		}
 		switch (event.type) {
+			case "session.updated": {
+				// Instructions/voice are confirmed applied — NOW the greeting is
+				// grounded in the support prompt instead of an empty context.
+				this.greet();
+				break;
+			}
 			case "response.output_audio.delta": {
 				if (typeof event.delta === "string") {
 					this.schedulePlayback(event.delta);
@@ -335,13 +351,35 @@ export class VoiceCallClient {
 				break;
 			}
 			case "error": {
-				// Session-fatal errors surface via onclose; per-event errors (an
-				// invalid client event) are recoverable — log-free no-op keeps the
-				// embed silent on customer consoles.
+				// Surfaced (not swallowed): a rejected session.update leaves the
+				// agent running WITHOUT the operator's instructions — the one
+				// warn keeps that diagnosable on any embed. Session-fatal errors
+				// additionally surface via onclose.
+				console.warn(
+					"clanker voice: realtime error event",
+					(event as { error?: { message?: string } }).error?.message ??
+						e.data,
+				);
 				break;
 			}
 			default:
 				break;
+		}
+	}
+
+	/** Request the agent's opening greeting exactly once — on the
+	 * session.updated ack, or the connect-time fallback timer. */
+	private greet() {
+		if (this.greetFallback) {
+			clearTimeout(this.greetFallback);
+			this.greetFallback = null;
+		}
+		if (this.greeted || this.stopped) {
+			return;
+		}
+		this.greeted = true;
+		if (this.ws?.readyState === WebSocket.OPEN) {
+			this.ws.send(JSON.stringify({ type: "response.create" }));
 		}
 	}
 
