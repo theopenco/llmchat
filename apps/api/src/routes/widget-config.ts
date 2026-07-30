@@ -34,6 +34,11 @@ export const widgetConfig = new Hono<AppContext>().get(
 		const { entitlements } = await resolveAccess(c.env, project.workspaceId);
 		return c.json({
 			showBranding: entitlements.branding === "badge",
+			// Live AI voice calls — Scale-only (internal carries it too). Server-
+			// authoritative like branding: the widget only shows the call button on
+			// an explicit true, and /v1/voice/session re-checks the entitlement, so
+			// a forged config can't actually mint a session.
+			voiceEnabled: entitlements.voiceCalls === true,
 			// Null → the widget links its privacy notice to its built-in default.
 			privacyPolicyUrl: project.privacyPolicyUrl ?? null,
 			// Starter-question chips the widget offers before the first message.

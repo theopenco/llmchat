@@ -6,6 +6,7 @@ import {
 	INTERNAL_ENTITLEMENTS,
 	PAID_PLANS,
 	UNLIMITED,
+	canUseVoiceCalls,
 	isInternalEmail,
 	isModelAllowed,
 	isOverResponseQuota,
@@ -95,7 +96,15 @@ describe("tier shape invariants", () => {
 			allowOverage: true,
 			modelAccess: "all",
 			branding: "custom",
+			voiceCalls: true,
 		});
+	});
+
+	it("reserves AI voice calls for Scale — the premium differentiator", () => {
+		expect(BILLING_TIERS.none.voiceCalls).toBe(false);
+		expect(BILLING_TIERS.starter.voiceCalls).toBe(false);
+		expect(BILLING_TIERS.growth.voiceCalls).toBe(false);
+		expect(BILLING_TIERS.scale.voiceCalls).toBe(true);
 	});
 
 	it("annual is 10× monthly — two months free — on every paid tier", () => {
@@ -210,6 +219,23 @@ describe("showPoweredByBadge", () => {
 		expect(showPoweredByBadge("none")).toBe(true);
 		expect(showPoweredByBadge("free")).toBe(true);
 		expect(showPoweredByBadge(undefined)).toBe(true);
+	});
+});
+
+describe("canUseVoiceCalls", () => {
+	it("is true only on Scale (and internal entitlements)", () => {
+		expect(canUseVoiceCalls("scale")).toBe(true);
+		expect(INTERNAL_ENTITLEMENTS.voiceCalls).toBe(true);
+		expect(canUseVoiceCalls("starter")).toBe(false);
+		expect(canUseVoiceCalls("growth")).toBe(false);
+	});
+
+	it("never leaks to unpaid/unknown/legacy plans", () => {
+		expect(canUseVoiceCalls("none")).toBe(false);
+		expect(canUseVoiceCalls("free")).toBe(false);
+		expect(canUseVoiceCalls("enterprise")).toBe(false);
+		expect(canUseVoiceCalls(null)).toBe(false);
+		expect(canUseVoiceCalls(undefined)).toBe(false);
 	});
 });
 

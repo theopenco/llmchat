@@ -21,6 +21,7 @@ import { search } from "@/routes/search";
 import { sources } from "@/routes/sources";
 import { systemPrompts } from "@/routes/system-prompts";
 import { tags } from "@/routes/tags";
+import { voice } from "@/routes/voice";
 import { widgetAsset } from "@/routes/widget-asset";
 import { widgetConfig } from "@/routes/widget-config";
 import { widgetCsat } from "@/routes/widget-csat";
@@ -103,6 +104,7 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => {
 });
 
 app.route("/v1", chat);
+app.route("/v1", voice);
 app.route("/v1", widgetConfig);
 app.route("/v1", widgetMessages);
 app.route("/v1", widgetRating);

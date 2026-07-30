@@ -49,7 +49,19 @@ function features(plan: PaidPlan, extra: string[]): string[] {
 			: t.branding === "off"
 				? "No “Powered by” badge"
 				: "“Powered by” badge";
-	return [responses, overage, projects, seats, models, branding, ...extra];
+	// Voice is the Scale differentiator — derived from the entitlement so the
+	// bullet can never advertise a plan the server would 402.
+	const voice = t.voiceCalls ? ["Live AI voice calls in the widget"] : [];
+	return [
+		responses,
+		overage,
+		projects,
+		seats,
+		models,
+		branding,
+		...voice,
+		...extra,
+	];
 }
 
 export const TIERS: TierDisplay[] = [
