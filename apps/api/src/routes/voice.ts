@@ -25,9 +25,15 @@ import type { AppContext } from "@/env";
  * ship to a browser — the ephemeral secret is the browser-safe credential, and
  * the gateway's own per-session caps (duration + spend) bound a runaway call.
  *
- * The session's model, voice, and instructions are all fixed HERE at mint
- * time — the gateway locks the model at connection (`model_locked`), so a
- * visitor holding the socket can't trade up to a pricier model.
+ * The gateway's mint endpoint accepts ONLY `{ type, model }` (probed: any
+ * other key — instructions, voice, audio — is a 400); per its docs, session
+ * configuration happens over the WebSocket via `session.update`. So the MODEL
+ * is locked at mint (a session.update changing it is rejected with
+ * `model_locked` — a visitor can't trade up to a pricier model), while the
+ * assembled instructions + voice are returned to the widget to apply on
+ * connect. That hands the prompt text to the client — acceptable: the visitor
+ * holds the socket and could session.update their own instructions regardless,
+ * and spend stays bounded by the gateway's per-session caps + the budgets here.
  */
 
 // The realtime model every voice session runs. Deliberately NOT the project's
@@ -173,13 +179,10 @@ export const voice = new Hono<AppContext>().post(
 					authorization: `Bearer ${c.env.vars.LLMGATEWAY_API_KEY}`,
 					"content-type": "application/json",
 				},
+				// Minimal by the gateway's schema — model only; instructions and
+				// voice ride the response below for the widget's session.update.
 				body: JSON.stringify({
-					session: {
-						type: "realtime",
-						model: REALTIME_MODEL,
-						instructions,
-						audio: { output: { voice: REALTIME_VOICE } },
-					},
+					session: { type: "realtime", model: REALTIME_MODEL },
 				}),
 			});
 			if (!res.ok) {
@@ -268,6 +271,10 @@ export const voice = new Hono<AppContext>().post(
 			clientSecret: secret,
 			expiresAt,
 			model: REALTIME_MODEL,
+			// Applied by the widget in its post-connect session.update — the
+			// gateway's mint endpoint doesn't accept either (see module comment).
+			instructions,
+			voice: REALTIME_VOICE,
 		});
 	},
 );

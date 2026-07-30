@@ -21,6 +21,11 @@ export interface VoiceSessionInfo {
 	url: string;
 	clientSecret: string;
 	model: string;
+	/** Server-assembled agent instructions, applied via session.update on
+	 * connect — the gateway's mint endpoint doesn't accept them. */
+	instructions: string;
+	/** Output voice name, same session.update path. */
+	voice: string;
 }
 
 /** The api refused (or failed) to mint a session — carries the HTTP status so
@@ -51,6 +56,8 @@ export async function requestVoiceSession(
 		url?: unknown;
 		clientSecret?: unknown;
 		model?: unknown;
+		instructions?: unknown;
+		voice?: unknown;
 	};
 	if (typeof data.url !== "string" || typeof data.clientSecret !== "string") {
 		throw new Error("voice session response malformed");
@@ -59,6 +66,9 @@ export async function requestVoiceSession(
 		url: data.url,
 		clientSecret: data.clientSecret,
 		model: typeof data.model === "string" ? data.model : "",
+		instructions:
+			typeof data.instructions === "string" ? data.instructions : "",
+		voice: typeof data.voice === "string" ? data.voice : "",
 	};
 }
 
@@ -180,14 +190,18 @@ export class VoiceCallClient {
 			]);
 			this.ws = ws;
 			ws.addEventListener("open", () => {
-				// Model + instructions are locked at mint time server-side; this
-				// only declares the audio wire format and hands turn-taking to
-				// server VAD.
+				// The model is locked at mint time; everything else is configured
+				// here per the gateway's docs — the server-assembled instructions
+				// and voice (its mint endpoint accepts neither), the audio wire
+				// format, and server-VAD turn-taking.
 				ws.send(
 					JSON.stringify({
 						type: "session.update",
 						session: {
 							type: "realtime",
+							...(this.session.instructions
+								? { instructions: this.session.instructions }
+								: {}),
 							audio: {
 								input: {
 									format: {
@@ -201,6 +215,9 @@ export class VoiceCallClient {
 										type: "audio/pcm",
 										rate: REALTIME_SAMPLE_RATE,
 									},
+									...(this.session.voice
+										? { voice: this.session.voice }
+										: {}),
 								},
 							},
 						},

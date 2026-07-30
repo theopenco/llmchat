@@ -139,14 +139,21 @@ describe("POST /voice/session — Scale-only realtime voice", () => {
 		const { ctx, settle } = makeCtx();
 		const res = await send(ctx);
 		expect(res.status).toBe(200);
-		expect(await res.json()).toEqual({
+		const body = (await res.json()) as Record<string, unknown>;
+		expect(body).toMatchObject({
 			url: "wss://api.llmgateway.io/v1/realtime?model=gpt-realtime",
 			clientSecret: "ek_test_123",
 			expiresAt: 1_900_000_000,
 			model: "gpt-realtime",
+			voice: "marin",
 		});
+		// The assembled agent instructions ride the RESPONSE (the widget applies
+		// them via session.update — the gateway mint accepts model only).
+		expect(body.instructions).toContain("be nice");
+		expect(body.instructions).toContain("# Voice call");
 		// Server-to-server mint carries the LONG-LIVED key (never returned to
-		// the browser) and fixes model + instructions at mint time.
+		// the browser) and pins the model — the gateway's schema takes NOTHING
+		// else (any extra key is a 400, empirically probed).
 		const [url, init] = fetchMock.mock.calls[0] as unknown as [
 			string,
 			RequestInit,
@@ -156,9 +163,9 @@ describe("POST /voice/session — Scale-only realtime voice", () => {
 			"Bearer llmgw_test",
 		);
 		const minted = JSON.parse(String(init.body));
-		expect(minted.session.model).toBe("gpt-realtime");
-		expect(minted.session.instructions).toContain("be nice");
-		expect(minted.session.instructions).toContain("# Voice call");
+		expect(minted).toEqual({
+			session: { type: "realtime", model: "gpt-realtime" },
+		});
 		// Bookkeeping: one kind='voice' usage row (excluded from the text quota).
 		await settle();
 		expect(inserted).toHaveLength(1);
