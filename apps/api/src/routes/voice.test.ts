@@ -176,6 +176,36 @@ describe("POST /voice/session — Scale-only realtime voice", () => {
 		);
 	});
 
+	it("falls back to the default gateway base when LLMGATEWAY_BASE_URL is unset", async () => {
+		// Prod regression: the env var was missing and the undefined dereference
+		// 500'd the route while chat kept working on the provider's own default.
+		const fetchMock = mockMint();
+		mockDb();
+		setPlan("scale");
+		const { ctx } = makeCtx();
+		const envWithoutBase = {
+			vars: { LLMGATEWAY_API_KEY: "llmgw_test" },
+			DB: {},
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any;
+		const res = await voice.request(
+			"/voice/session",
+			{
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ projectKey: "pk_live", clientId: "c1" }),
+			},
+			envWithoutBase,
+			ctx as unknown as CtxArg,
+		);
+		expect(res.status).toBe(200);
+		const [url] = fetchMock.mock.calls[0] as unknown as [string];
+		expect(url).toBe("https://api.llmgateway.io/v1/realtime/client_secrets");
+		expect(((await res.json()) as { url: string }).url).toBe(
+			"wss://api.llmgateway.io/v1/realtime?model=gpt-realtime",
+		);
+	});
+
 	it("accepts the nested { client_secret: { value } } mint response shape", async () => {
 		mockMint({ client_secret: { value: "ek_nested", expires_at: 42 } });
 		mockDb();

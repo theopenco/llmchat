@@ -45,6 +45,13 @@ const REALTIME_MODEL = "gpt-realtime";
 // Default output voice (gateway/OpenAI catalog).
 const REALTIME_VOICE = "marin";
 
+// Fallback when LLMGATEWAY_BASE_URL is unset in the runtime env — the same
+// default the AI SDK provider applies for chat, so voice and chat can never
+// disagree about where the gateway lives. (Prod initially shipped without the
+// var; chat kept working on the provider default while this route 500'd on
+// the undefined dereference.)
+const DEFAULT_GATEWAY_BASE = "https://api.llmgateway.io/v1";
+
 // Voice sessions cost realtime-audio money on the shared operator key (the
 // gateway's default per-session spend cap alone is $10), so the budgets are far
 // tighter than chat's 20/hr — and FAIL CLOSED, like the integration-action
@@ -167,7 +174,9 @@ export const voice = new Hono<AppContext>().post(
 
 		// Mint the ephemeral client secret server-to-server. The base URL
 		// already carries /v1 (see .env.example), same as the chat provider.
-		const base = c.env.vars.LLMGATEWAY_BASE_URL.replace(/\/$/, "");
+		const base = (
+			c.env.vars.LLMGATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE
+		).replace(/\/$/, "");
 		let minted: {
 			value?: unknown;
 			expires_at?: unknown;
