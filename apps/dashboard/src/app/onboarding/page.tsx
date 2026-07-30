@@ -209,8 +209,8 @@ function OnboardingFlow() {
 
 			{/* Brand glow — low-opacity radial blobs that read on both themes. */}
 			<div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
-				<div className="absolute left-1/2 top-[-8rem] h-[36rem] w-[60rem] -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl dark:bg-indigo-500/20" />
-				<div className="absolute right-[-6rem] top-1/3 h-[28rem] w-[28rem] rounded-full bg-violet-600/10 blur-3xl dark:bg-violet-600/15" />
+				<div className="absolute left-1/2 top-[-8rem] h-[36rem] w-[60rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
+				<div className="absolute right-[-6rem] top-1/3 h-[28rem] w-[28rem] rounded-full bg-amber-500/10 blur-3xl dark:bg-amber-500/15" />
 			</div>
 
 			{/* Escape hatch: a no-plan user stranded on the paywall can still reach
