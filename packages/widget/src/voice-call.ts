@@ -23,8 +23,18 @@ export interface VoiceSessionInfo {
 	model: string;
 }
 
-/** Mint a voice session via the api. Throws on any non-OK response — including
- * the 402 that means the plan lost voice between config load and the click. */
+/** The api refused (or failed) to mint a session — carries the HTTP status so
+ * the UI can distinguish "plan gate" (402), "budget hit" (429), and "gateway
+ * down" (502) instead of blaming the microphone. */
+export class VoiceSessionError extends Error {
+	constructor(public readonly status: number) {
+		super(`voice session request failed (${status})`);
+	}
+}
+
+/** Mint a voice session via the api. Throws VoiceSessionError on any non-OK
+ * response — including the 402 that means the plan lost voice between config
+ * load and the click. */
 export async function requestVoiceSession(
 	apiUrl: string,
 	body: { projectKey: string; clientId: string },
@@ -35,7 +45,7 @@ export async function requestVoiceSession(
 		body: JSON.stringify(body),
 	});
 	if (!res.ok) {
-		throw new Error(`voice session request failed (${res.status})`);
+		throw new VoiceSessionError(res.status);
 	}
 	const data = (await res.json()) as {
 		url?: unknown;

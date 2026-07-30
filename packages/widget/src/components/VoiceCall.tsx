@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import {
 	requestVoiceSession,
 	VoiceCallClient,
+	VoiceSessionError,
 	type VoiceCallStatus,
 } from "../voice-call";
 import { MicIcon, MicOffIcon, PhoneOffIcon } from "./icons";
@@ -14,6 +15,30 @@ const STATUS_LABEL: Record<VoiceCallStatus, string> = {
 	ended: "Call ended",
 	error: "Call failed",
 };
+
+/** Human hint per failure cause — the mic is only ever blamed when the mic
+ * permission actually failed, never for a server/plan/connection fault. */
+function failureHint(err: unknown): string {
+	if (err instanceof VoiceSessionError) {
+		if (err.status === 402) {
+			return "Voice calls aren't available on this plan.";
+		}
+		if (err.status === 429) {
+			return "The call limit has been reached — please try again later, or keep chatting below.";
+		}
+		return "The voice service is unavailable right now. Please try again later, or keep chatting below.";
+	}
+	if (
+		err instanceof DOMException &&
+		(err.name === "NotAllowedError" || err.name === "SecurityError")
+	) {
+		return "We couldn't access your microphone. Allow microphone access for this site and try again.";
+	}
+	if (err instanceof DOMException && err.name === "NotFoundError") {
+		return "No microphone was found. Connect one and try again.";
+	}
+	return "The call couldn't connect. Please try again, or keep chatting below.";
+}
 
 /**
  * The in-panel voice-call screen (Scale-only). Owns the whole call lifecycle:
@@ -33,6 +58,7 @@ export function VoiceCall({
 }) {
 	const [status, setStatus] = useState<VoiceCallStatus>("connecting");
 	const [muted, setMuted] = useState(false);
+	const [hint, setHint] = useState<string | null>(null);
 	const clientRef = useRef<VoiceCallClient | null>(null);
 
 	useEffect(() => {
@@ -58,10 +84,12 @@ export function VoiceCall({
 				});
 				clientRef.current = client;
 				await client.start();
-			} catch {
-				// Mic denied, mint 402/429, or the socket failed — one terminal
-				// state; the visitor can retry from the header button.
+			} catch (err) {
+				// Mint refused, mic denied, or the socket failed — one terminal
+				// state, but the hint names the actual cause (a mint failure must
+				// never read as a microphone problem).
 				if (!cancelled) {
+					setHint(failureHint(err));
 					setStatus("error");
 				}
 				client?.stop();
@@ -105,8 +133,7 @@ export function VoiceCall({
 			</p>
 			{status === "error" && (
 				<p className="llmchat-voice-hint">
-					We couldn't start the call. Check your microphone permission and try
-					again, or keep chatting below.
+					{hint ?? "We couldn't start the call. Please try again."}
 				</p>
 			)}
 			<div className="llmchat-voice-controls">
