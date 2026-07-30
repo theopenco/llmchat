@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Design-system button for the Clanker restyle. Generic + token-driven.
- * Variants: solid indigo `primary`, bordered `outline`, quiet `ghost`, and a
+ * Variants: solid ember `primary`, bordered `outline`, quiet `ghost`, and a
  * bordered `pill` for switcher/menu triggers (label · chevron). Sizes include
  * `icon` for square icon buttons (e.g. the top-bar Help control). Shared.
  */

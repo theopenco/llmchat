@@ -12,8 +12,7 @@ import {
 	modelCapabilities,
 } from "./model-data";
 
-const WEB_SEARCH_CLASS =
-	"gap-1 border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400";
+const WEB_SEARCH_CLASS = "gap-1 border-primary/20 bg-primary/10 text-primary";
 
 /**
  * Capability badges rendered straight from the gateway's metadata — shared by

@@ -4,36 +4,36 @@
 
 @layer base {
 	/*
-	 * Tokens mirror apps/marketing's "Clean Slate" design language so the
-	 * dashboard and marketing read as one product. Dark mode maps 1:1 onto the
-	 * marketing slate + indigo palette; light mode is a coherent counterpart in
-	 * the same hue family (marketing itself is dark-only). Aligning these
-	 * variables is the leverage point — shadcn primitives inherit automatically.
+	 * Tokens mirror apps/marketing's "Warm Press" design language so the
+	 * dashboard and marketing read as one product. Light maps 1:1 onto the
+	 * marketing :root (cream paper + espresso ink + ember accent), dark onto its
+	 * .dark set (warm espresso, not blue-black). Aligning these variables is the
+	 * leverage point — shadcn primitives inherit automatically.
 	 */
 	/*
-	 * LIGHT is now the default (Chatbase-style adoption): a warm near-white
-	 * canvas, white cards, hairline borders, and a MONOCHROME near-black primary
-	 * (Chatbase uses black buttons + black user bubbles, not a color brand). These
-	 * shadcn tokens drive components/ui/* (dialogs, Sheet, ⌘K palette, Sonner,
-	 * auth pages); they're kept in lockstep with the --ck-* set below so those
-	 * surfaces match the shell/inbox. Semantic destructive/success/warning/info
-	 * stay colored.
+	 * "Warm Press" palette, mapped from apps/marketing's tokens so the dashboard
+	 * and marketing read as one product: cream paper surfaces, espresso ink, and
+	 * the ember (#EA580C) brand accent. Light mirrors marketing's :root, dark its
+	 * .dark set. These shadcn tokens drive components/ui/* (dialogs, Sheet, ⌘K
+	 * palette, Sonner, auth pages); they're kept in lockstep with the --ck-* set
+	 * below so those surfaces match the shell/inbox. Semantic destructive/
+	 * success/warning/info stay colored.
 	 */
 	:root {
-		--background: 60 6% 97%; /* #F7F7F6 warm near-white canvas */
-		--foreground: 0 0% 10%; /* #1A1A1A near-black text */
-		--card: 0 0% 100%;
-		--card-foreground: 0 0% 10%;
-		--popover: 0 0% 100%;
-		--popover-foreground: 0 0% 10%;
-		--primary: 0 0% 10%; /* near-black primary (Chatbase) */
-		--primary-foreground: 0 0% 100%;
-		--secondary: 0 0% 96%;
-		--secondary-foreground: 0 0% 10%;
-		--muted: 0 0% 96%;
-		--muted-foreground: 0 0% 45%; /* #737373 muted gray */
-		--accent: 0 0% 96%;
-		--accent-foreground: 0 0% 10%;
+		--background: 38.2 57.9% 96.3%; /* paper #FBF7F0 */
+		--foreground: 30 19.2% 10.2%; /* ink #1F1A15 */
+		--card: 42.9 100% 98.6%; /* paper-card #FFFDF8 */
+		--card-foreground: 30 19.2% 10.2%;
+		--popover: 42.9 100% 98.6%;
+		--popover-foreground: 30 19.2% 10.2%;
+		--primary: 17.8 89.4% 44.3%; /* accent (ember) #D6480C */
+		--primary-foreground: 42.9 100% 98.6%;
+		--secondary: 37.1 46.7% 91.2%; /* paper-raise #F3EBDE */
+		--secondary-foreground: 30 13.8% 25.5%; /* ink-soft #4A4138 */
+		--muted: 36.7 47.4% 92.5%; /* paper-deep #F5EEE3 */
+		--muted-foreground: 31.2 13.2% 37.1%; /* muted #6B5F52 */
+		--accent: 37.1 46.7% 91.2%; /* paper-raise — hover surface */
+		--accent-foreground: 30 19.2% 10.2%;
 		--destructive: 0 84.2% 60.2%;
 		--destructive-foreground: 210 40% 98%;
 		--success: 142.1 71% 40%;
@@ -42,35 +42,35 @@
 		--warning-foreground: 48 96% 89%;
 		--info: 221.2 83.2% 53.3%;
 		--info-foreground: 210 40% 98%;
-		--border: 0 0% 92%; /* #EBEBEB hairline */
-		--input: 0 0% 92%;
-		--ring: 0 0% 10%;
+		--border: 37.8 35.1% 84.9%; /* rule #E6DCCB hairline */
+		--input: 37.8 35.1% 84.9%;
+		--ring: 17.8 89.4% 44.3%;
 		--radius: 0.5rem;
-		--sidebar-background: 60 6% 97%;
-		--sidebar-foreground: 0 0% 35%;
-		--sidebar-primary: 0 0% 10%;
+		--sidebar-background: 36.7 47.4% 92.5%; /* paper-deep */
+		--sidebar-foreground: 30 13.8% 25.5%;
+		--sidebar-primary: 17.8 89.4% 44.3%;
 		--sidebar-primary-foreground: 0 0% 100%;
-		--sidebar-accent: 0 0% 94%;
-		--sidebar-accent-foreground: 0 0% 10%;
-		--sidebar-border: 0 0% 92%;
-		--sidebar-ring: 0 0% 10%;
+		--sidebar-accent: 37.1 46.7% 91.2%;
+		--sidebar-accent-foreground: 30 19.2% 10.2%;
+		--sidebar-border: 37.8 35.1% 84.9%;
+		--sidebar-ring: 17.8 89.4% 44.3%;
 	}
 
 	.dark {
-		--background: 220 29% 6%; /* paper #0B0E14 */
-		--foreground: 220 50% 98%; /* ink #F6F8FC */
-		--card: 222 30% 11%; /* paper-card #141925 */
-		--card-foreground: 220 50% 98%;
-		--popover: 222 30% 11%;
-		--popover-foreground: 220 50% 98%;
-		--primary: 239 84% 67%; /* indigo-500 #6366F1 — marketing brand accent */
+		--background: 22.5 21.1% 7.5%; /* paper #17120F — warm espresso, not blue-black */
+		--foreground: 36 45.5% 93.5%; /* ink #F6F0E7 */
+		--card: 25 20.7% 11.4%; /* paper-card #231C17 */
+		--card-foreground: 36 45.5% 93.5%;
+		--popover: 25 20.7% 11.4%;
+		--popover-foreground: 36 45.5% 93.5%;
+		--primary: 20.5 90.2% 48.2%; /* accent (ember) #EA580C */
 		--primary-foreground: 0 0% 100%;
-		--secondary: 223 31% 15%; /* paper-raise #1B2233 */
-		--secondary-foreground: 219 22% 82%; /* ink-soft #C7CEDB */
-		--muted: 222 28% 9%; /* subtle fill between canvas and card */
-		--muted-foreground: 221 14% 60%; /* muted #8A93A6 */
-		--accent: 223 31% 15%; /* paper-raise — hover surface */
-		--accent-foreground: 220 50% 98%;
+		--secondary: 28.2 22.7% 14.7%; /* paper-raise #2E251D */
+		--secondary-foreground: 35 24.5% 80.8%; /* ink-soft #DAD0C2 */
+		--muted: 24 20.8% 9.4%; /* subtle fill between canvas and card */
+		--muted-foreground: 34 14.7% 60%; /* muted #A89B8A */
+		--accent: 28.2 22.7% 14.7%; /* paper-raise — hover surface */
+		--accent-foreground: 36 45.5% 93.5%;
 		--destructive: 0 62.8% 45%;
 		--destructive-foreground: 210 40% 98%;
 		--success: 142.1 70.6% 45.3%;
@@ -79,17 +79,17 @@
 		--warning-foreground: 38 96% 11%;
 		--info: 217.2 91.2% 59.8%;
 		--info-foreground: 210 40% 98%;
-		--border: 222 20% 16%; /* subtle low-contrast slate hairline */
-		--input: 222 22% 20%; /* form fields need a touch more definition */
-		--ring: 239 84% 67%;
-		--sidebar-background: 218 31% 5%; /* paper-deep #090C11 */
-		--sidebar-foreground: 219 22% 82%;
-		--sidebar-primary: 239 84% 67%;
+		--border: 27 20% 19.6%; /* rule #3C3128 — low-contrast warm hairline */
+		--input: 27.5 19.4% 24.3%; /* form fields need a touch more definition */
+		--ring: 20.5 90.2% 48.2%;
+		--sidebar-background: 20 21.4% 5.5%; /* paper-deep #110D0B */
+		--sidebar-foreground: 35 24.5% 80.8%;
+		--sidebar-primary: 20.5 90.2% 48.2%;
 		--sidebar-primary-foreground: 0 0% 100%;
-		--sidebar-accent: 223 31% 15%;
-		--sidebar-accent-foreground: 220 50% 98%;
-		--sidebar-border: 221 30% 15%; /* rule-soft #1A2130 */
-		--sidebar-ring: 239 84% 67%;
+		--sidebar-accent: 28.2 22.7% 14.7%;
+		--sidebar-accent-foreground: 36 45.5% 93.5%;
+		--sidebar-border: 26.3 22.2% 14.1%; /* rule-soft #2C231C */
+		--sidebar-ring: 20.5 90.2% 48.2%;
 	}
 
 	/*
@@ -108,44 +108,44 @@
 	 * bare in raw CSS; go through a `ck-*` utility, or wrap it `rgb(var(--ck-*))`.
 	 */
 	:root {
-		--ck-board: 244 244 243;
-		--ck-app: 247 247 246; /* #F7F7F6 canvas */
-		--ck-sidebar: 247 247 246; /* match app so the white active pill pops */
-		--ck-topbar: 255 255 255;
-		--ck-border: 236 236 236; /* #ECECEC hairline */
-		--ck-text: 26 26 26; /* #1A1A1A */
-		--ck-muted: 122 122 125; /* #7A7A7D */
-		--ck-faint: 150 150 155;
-		--ck-disabled: 182 182 186;
-		--ck-navhover: 240 240 239;
-		--ck-card: 255 255 255;
-		--ck-track: 234 234 233;
-		--ck-chip: 241 241 240; /* gray AI/visitor bubble + subtle fills */
-		--ck-accent: 26 26 26; /* near-black — Chatbase primary (black buttons/bubbles) */
-		--ck-accent-hover: 60 60 66; /* black can't darken → hover lightens */
+		--ck-board: 245 238 227; /* paper-deep */
+		--ck-app: 251 247 240; /* paper — cream canvas */
+		--ck-sidebar: 251 247 240; /* match app so the card-white active pill pops */
+		--ck-topbar: 255 253 248; /* paper-card */
+		--ck-border: 230 220 203; /* rule hairline */
+		--ck-text: 31 26 21; /* ink */
+		--ck-muted: 107 95 82; /* muted */
+		--ck-faint: 143 130 114; /* faint */
+		--ck-disabled: 178 167 152;
+		--ck-navhover: 243 235 222; /* paper-raise */
+		--ck-card: 255 253 248; /* paper-card */
+		--ck-track: 241 234 220; /* rule-soft */
+		--ck-chip: 243 235 222; /* AI/visitor bubble + subtle fills */
+		--ck-accent: 214 72 12; /* ember — marketing brand accent */
+		--ck-accent-hover: 187 62 12; /* darken toward accent-soft */
 		--ck-good: 22 163 74; /* #16A34A — CSAT / resolved / positive */
-		--ck-link: 37 99 235; /* #2563EB — text links */
+		--ck-link: 164 55 12; /* accent-soft — text links, as on marketing */
 		--ck-warn: 180 83 9; /* amber #b45309 — escalated only, never a fake limit */
 	}
 
 	.dark {
-		--ck-board: 10 11 13;
-		--ck-app: 15 17 22;
-		--ck-sidebar: 20 22 27;
-		--ck-topbar: 16 18 24;
-		--ck-border: 35 38 46;
-		--ck-text: 233 234 236;
-		--ck-muted: 154 157 164;
-		--ck-faint: 98 100 108;
-		--ck-disabled: 77 81 89;
-		--ck-navhover: 27 30 37;
-		--ck-card: 20 22 27;
-		--ck-track: 37 40 50;
-		--ck-chip: 27 30 37;
-		--ck-accent: 99 102 241; /* indigo-500 #6366f1 — dark-mode accent (kept) */
-		--ck-accent-hover: 118 121 242; /* #7679f2 */
+		--ck-board: 17 13 11; /* paper-deep */
+		--ck-app: 23 18 15; /* paper — warm espresso */
+		--ck-sidebar: 30 24 20;
+		--ck-topbar: 28 22 18;
+		--ck-border: 60 49 40; /* rule */
+		--ck-text: 246 240 231; /* ink */
+		--ck-muted: 168 155 138; /* muted */
+		--ck-faint: 122 109 93; /* faint */
+		--ck-disabled: 90 78 66;
+		--ck-navhover: 44 35 28; /* rule-soft */
+		--ck-card: 35 28 23; /* paper-card */
+		--ck-track: 52 42 34;
+		--ck-chip: 44 35 28;
+		--ck-accent: 234 88 12; /* ember #EA580C */
+		--ck-accent-hover: 245 115 45; /* ember can't darken on dark → lighten */
 		--ck-good: 74 222 128; /* green — CSAT / resolved / positive */
-		--ck-link: 96 165 250; /* blue — links */
+		--ck-link: 251 146 60; /* accent-soft — links */
 		--ck-warn: 224 161 63; /* #e0a13f */
 	}
 
@@ -189,21 +189,34 @@ body {
 		color: hsl(var(--primary));
 	}
 
-	/* Indigo aurora atmosphere — confined to auth / empty-state screens. The
-	   working dashboard canvas (inbox, tables, settings) stays a flat slate. */
-	.dark .aurora {
+	/* Ember aurora atmosphere (marketing's) — confined to auth / empty-state
+	   screens. The working dashboard canvas (inbox, tables, settings) stays flat. */
+	.aurora {
 		background-image:
 			radial-gradient(
 				60rem 40rem at 50% -10%,
-				rgba(99, 102, 241, 0.1),
+				rgba(214, 72, 12, 0.07),
 				transparent 60%
 			),
 			radial-gradient(
 				40rem 30rem at 100% 0%,
-				rgba(79, 70, 229, 0.07),
+				rgba(235, 160, 70, 0.09),
 				transparent 55%
 			);
 		background-repeat: no-repeat;
 		background-attachment: fixed;
+	}
+	.dark .aurora {
+		background-image:
+			radial-gradient(
+				60rem 40rem at 50% -10%,
+				rgba(234, 88, 12, 0.13),
+				transparent 60%
+			),
+			radial-gradient(
+				40rem 30rem at 100% 0%,
+				rgba(251, 146, 60, 0.07),
+				transparent 55%
+			);
 	}
 }
