@@ -1248,6 +1248,91 @@ export const widgetStyles = `
 	display: inline-block;
 }
 
+/* ── Voice call (Scale-only realtime) ──────────────────────────────── */
+.llmchat-voice {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 16px;
+	padding: 32px 24px;
+	text-align: center;
+}
+.llmchat-voice-orb {
+	width: 88px;
+	height: 88px;
+	border-radius: 9999px;
+	background: color-mix(in srgb, var(--brand) 85%, #fff);
+	box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 35%, transparent);
+}
+.llmchat-voice-orb--listening {
+	animation: llmchat-voice-pulse 2.4s ease-in-out infinite;
+}
+.llmchat-voice-orb--speaking {
+	animation: llmchat-voice-pulse 0.9s ease-in-out infinite;
+}
+@keyframes llmchat-voice-pulse {
+	0% {
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 35%, transparent);
+	}
+	70% {
+		box-shadow: 0 0 0 18px color-mix(in srgb, var(--brand) 0%, transparent);
+	}
+	100% {
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 0%, transparent);
+	}
+}
+.llmchat-voice-status {
+	margin: 0;
+	font-size: 15.2px;
+	font-weight: 600;
+}
+.llmchat-voice-hint {
+	margin: 0;
+	font-size: 13.6px;
+	color: var(--tx-4);
+	max-width: 260px;
+}
+.llmchat-voice-controls {
+	display: flex;
+	gap: 12px;
+	margin-top: 8px;
+}
+.llmchat-voice-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	border-radius: 9999px;
+	border: 1px solid color-mix(in srgb, var(--brand) 35%, transparent);
+	background: color-mix(in srgb, var(--brand) 8%, transparent);
+	color: var(--brand);
+	cursor: pointer;
+	transition:
+		background 0.15s ease,
+		transform 0.1s ease;
+}
+.llmchat-voice-btn:hover {
+	background: color-mix(in srgb, var(--brand) 16%, transparent);
+}
+.llmchat-voice-btn:active {
+	transform: scale(0.94);
+}
+.llmchat-voice-btn:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.llmchat-voice-btn--end {
+	background: #dc2626;
+	border-color: #dc2626;
+	color: #fff;
+}
+.llmchat-voice-btn--end:hover {
+	background: #b91c1c;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.llmchat *,
 	.llmchat *::before,

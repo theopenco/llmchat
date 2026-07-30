@@ -467,7 +467,9 @@ export const usageEvent = sqliteTable(
 		model: text().notNull(),
 		// Row class: 'chat' = a billable visitor response (the monthly-quota
 		// unit); 'suggestion' = an operator-side AI draft (#98) — recorded for
-		// cost visibility, excluded from the visitor quota (lib/plan.ts).
+		// cost visibility, excluded from the visitor quota (lib/plan.ts);
+		// 'voice' = a realtime voice-call session (Scale-only, routes/voice.ts) —
+		// one row per minted session, likewise excluded from the text quota.
 		// NOTE (empirically probed, drizzle-orm 0.45.2): declaring this field
 		// makes EVERY generated usage_event INSERT name the `kind` column —
 		// drizzle binds .default()/".$defaultFn" values as params and never omits
@@ -478,7 +480,7 @@ export const usageEvent = sqliteTable(
 		// writers run detached with their own catch, and the quota gate reading
 		// `kind` fails open (do NOT run drizzle-kit generate — 0025 is
 		// hand-authored).
-		kind: text({ enum: ["chat", "suggestion"] })
+		kind: text({ enum: ["chat", "suggestion", "voice"] })
 			.notNull()
 			.default("chat"),
 		promptTokens: integer().notNull().default(0),

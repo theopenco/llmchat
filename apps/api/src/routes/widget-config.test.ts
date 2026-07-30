@@ -13,12 +13,13 @@ const ENV = {} as unknown as Parameters<typeof widgetConfig.request>[2];
 function mockProject(
 	project: Record<string, unknown> | undefined,
 	branding: "badge" | "none" = "badge",
+	voiceCalls = false,
 ) {
 	vi.mocked(db).mockReturnValue({
 		query: { project: { findFirst: async () => project } },
 	} as unknown as ReturnType<typeof db>);
 	vi.mocked(resolveAccess).mockResolvedValue({
-		entitlements: { branding },
+		entitlements: { branding, voiceCalls },
 	} as unknown as Awaited<ReturnType<typeof resolveAccess>>);
 }
 
@@ -36,11 +37,37 @@ describe("GET /config/:key — public widget config", () => {
 		expect(res.status).toBe(200);
 		expect(await res.json()).toEqual({
 			showBranding: true,
+			voiceEnabled: false,
 			privacyPolicyUrl: null,
 			suggestedQuestions: ["Pricing?", "Refunds?"],
 			collectIdentity: false,
 			welcomeMessage: "Welcome to Acme!",
 		});
+	});
+
+	it("enables voice only when the resolved entitlements carry voiceCalls", async () => {
+		mockProject(
+			{ workspaceId: "ws1", privacyPolicyUrl: null, suggestedQuestions: [] },
+			"none",
+			true,
+		);
+		const res = await widgetConfig.request("/config/pk_x", {}, ENV);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({ voiceEnabled: true });
+	});
+
+	it("degrades a missing voiceCalls entitlement to disabled, never a 500", async () => {
+		mockProject({
+			workspaceId: "ws1",
+			privacyPolicyUrl: null,
+			suggestedQuestions: [],
+		});
+		// Entitlements shape predating the field — voiceCalls absent entirely.
+		vi.mocked(resolveAccess).mockResolvedValue({
+			entitlements: { branding: "badge" },
+		} as unknown as Awaited<ReturnType<typeof resolveAccess>>);
+		const res = await widgetConfig.request("/config/pk_x", {}, ENV);
+		expect(await res.json()).toMatchObject({ voiceEnabled: false });
 	});
 
 	it("returns the configured welcomeMessage; degrades a legacy row to null", async () => {
