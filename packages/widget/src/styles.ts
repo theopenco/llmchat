@@ -98,7 +98,10 @@ export const widgetStyles = `
 /* ── Floating launcher ─────────────────────────────────────────────── */
 .llmchat-bubble {
 	position: fixed;
-	bottom: 20px;
+	/* 40px, not 20px: host pages (our own dashboard included) often keep a
+	   sticky action bar in the bottom-right corner; the extra clearance keeps
+	   the launcher off it. */
+	bottom: 40px;
 	right: 20px;
 	width: 56px;
 	height: 56px;
@@ -209,12 +212,12 @@ export const widgetStyles = `
 /* ── Panel ─────────────────────────────────────────────────────────── */
 .llmchat-panel {
 	position: fixed;
-	bottom: 88px;
+	bottom: 108px;
 	right: 20px;
 	width: 368px;
 	max-width: calc(100vw - 32px);
 	height: 544px;
-	max-height: calc(100vh - 112px);
+	max-height: calc(100vh - 132px);
 	background: var(--sf);
 	border-radius: 16px;
 	display: flex;
