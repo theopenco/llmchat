@@ -106,32 +106,41 @@ export const voice = new Hono<AppContext>().post(
 		// voiceCalls too via INTERNAL_ENTITLEMENTS). 402 matches the paywall
 		// convention — and the widget never shows the call button unless
 		// /v1/config said voiceEnabled, so hitting this means a forged request.
-		const { entitlements } = await resolveAccess(c.env, project.workspaceId);
+		const { exempt, entitlements } = await resolveAccess(
+			c.env,
+			project.workspaceId,
+		);
 		if (!entitlements.voiceCalls) {
 			return c.json({ error: "voice_not_available" }, 402);
 		}
 
 		// Tight, fail-closed budgets (see constants above): per-(project,IP)
 		// hourly AND a per-project daily aggregate against IP rotation.
-		const perIp = await rateLimit(
-			c.env,
-			`voice:${project.id}:${ip}`,
-			CALL_RATE_MAX,
-			CALL_RATE_WINDOW,
-			{ failClosed: true },
-		);
-		if (!perIp.ok) {
-			return c.json({ error: "rate limit exceeded" }, 429);
-		}
-		const perProjectDaily = await rateLimit(
-			c.env,
-			`voice-daily:${project.id}`,
-			CALL_DAILY_MAX,
-			CALL_DAILY_WINDOW,
-			{ failClosed: true },
-		);
-		if (!perProjectDaily.ok) {
-			return c.json({ error: "rate limit exceeded" }, 429);
+		// Internal/founder workspaces skip them — same as every other cap they're
+		// exempt from (paywall, quotas, metering): the spend lands on the
+		// operator's own key, dogfooding must never be throttled, and the
+		// gateway's per-session duration/spend caps still bound a runaway call.
+		if (!exempt) {
+			const perIp = await rateLimit(
+				c.env,
+				`voice:${project.id}:${ip}`,
+				CALL_RATE_MAX,
+				CALL_RATE_WINDOW,
+				{ failClosed: true },
+			);
+			if (!perIp.ok) {
+				return c.json({ error: "rate limit exceeded" }, 429);
+			}
+			const perProjectDaily = await rateLimit(
+				c.env,
+				`voice-daily:${project.id}`,
+				CALL_DAILY_MAX,
+				CALL_DAILY_WINDOW,
+				{ failClosed: true },
+			);
+			if (!perProjectDaily.ok) {
+				return c.json({ error: "rate limit exceeded" }, 429);
+			}
 		}
 
 		// Assemble the session instructions exactly like a chat turn: active
