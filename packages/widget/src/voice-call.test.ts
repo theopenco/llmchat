@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	floatToPcm16Base64,
+	frameRms,
 	pcm16Base64ToFloat,
 	resampleLinear,
 	REALTIME_SAMPLE_RATE,
@@ -63,5 +64,27 @@ describe("resampleLinear", () => {
 	it("handles the empty buffer without dividing by zero", () => {
 		const out = resampleLinear(new Float32Array(0), 48_000, 24_000);
 		expect(out.length).toBe(0);
+	});
+});
+
+describe("frameRms", () => {
+	it("is 0 for silence and empty frames", () => {
+		expect(frameRms(new Float32Array(0))).toBe(0);
+		expect(frameRms(new Float32Array(512))).toBe(0);
+	});
+
+	it("measures a constant signal's level exactly", () => {
+		expect(frameRms(new Float32Array(256).fill(0.5))).toBeCloseTo(0.5, 6);
+		expect(frameRms(new Float32Array(256).fill(-0.5))).toBeCloseTo(0.5, 6);
+	});
+
+	it("separates deliberate speech from quiet echo around the gate level", () => {
+		// A full-scale sine (deliberate, close speech) sits at ~0.707 RMS —
+		// far above the 0.07 gate; a -32 dBFS-ish murmur sits below it.
+		const loud = Float32Array.from({ length: 480 }, (_, i) =>
+			Math.sin((i / 480) * 2 * Math.PI * 10),
+		);
+		expect(frameRms(loud)).toBeGreaterThan(0.07);
+		expect(frameRms(new Float32Array(480).fill(0.02))).toBeLessThan(0.07);
 	});
 });

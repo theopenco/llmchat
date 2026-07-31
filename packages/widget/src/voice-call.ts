@@ -17,6 +17,29 @@ export const REALTIME_SAMPLE_RATE = 24_000;
 // keep the event loop light, small enough for conversational latency.
 const CAPTURE_BUFFER_SIZE = 4096;
 
+// Half-duplex echo gate. The agent's voice plays through WebAudio, which
+// Chrome's echo canceller does NOT cancel (it only covers WebRTC/media-element
+// output) — so on speakers the mic hears the agent back, server VAD reads the
+// echo as visitor speech, barges in on the answer, and the model ends up
+// responding to a garbled recording of itself. While agent audio is playing,
+// only frames at least this loud (RMS) pass — a deliberate, close-to-the-mic
+// interruption clears it; speaker echo and room noise don't. Off-air (agent
+// silent) every frame passes, so normal turns lose nothing.
+const BARGE_IN_RMS = 0.07;
+
+/** Root-mean-square level of a capture frame — the loudness measure behind the
+ * barge-in gate. 0 for an empty frame. Exported for tests. */
+export function frameRms(samples: Float32Array): number {
+	if (samples.length === 0) {
+		return 0;
+	}
+	let sum = 0;
+	for (let i = 0; i < samples.length; i++) {
+		sum += samples[i] * samples[i];
+	}
+	return Math.sqrt(sum / samples.length);
+}
+
 export interface VoiceSessionInfo {
 	url: string;
 	clientSecret: string;
@@ -217,9 +240,7 @@ export class VoiceCallClient {
 										type: "audio/pcm",
 										rate: REALTIME_SAMPLE_RATE,
 									},
-									...(this.session.voice
-										? { voice: this.session.voice }
-										: {}),
+									...(this.session.voice ? { voice: this.session.voice } : {}),
 								},
 							},
 						},
@@ -302,6 +323,14 @@ export class VoiceCallClient {
 				return;
 			}
 			const captured = e.inputBuffer.getChannelData(0);
+			// Echo gate (see BARGE_IN_RMS): while the agent is audibly speaking,
+			// drop frames that aren't loud enough to be a deliberate barge-in —
+			// otherwise the speaker echo of the agent's own voice re-enters the
+			// pipeline as "visitor speech" and derails the conversation.
+			const agentSpeaking = (this.ctx?.currentTime ?? 0) < this.nextPlayTime;
+			if (agentSpeaking && frameRms(captured) < BARGE_IN_RMS) {
+				return;
+			}
 			const resampled = resampleLinear(
 				captured,
 				this.ctx?.sampleRate ?? REALTIME_SAMPLE_RATE,
@@ -357,8 +386,7 @@ export class VoiceCallClient {
 				// additionally surface via onclose.
 				console.warn(
 					"clanker voice: realtime error event",
-					(event as { error?: { message?: string } }).error?.message ??
-						e.data,
+					(event as { error?: { message?: string } }).error?.message ?? e.data,
 				);
 				break;
 			}
