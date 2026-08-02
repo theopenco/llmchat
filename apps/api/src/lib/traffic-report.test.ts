@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { usageEvent } from "@llmchat/db";
+
 import { db } from "@/lib/db";
 
 import {
@@ -27,11 +29,40 @@ vi.mock("@/lib/db", () => ({
 	})),
 }));
 
-/** A one-query db stub whose count resolves to the given rows. */
-const chain = (rows: Array<{ n: number }>) =>
+type CapturedQuery = { table: unknown; where: unknown };
+
+/** A one-query db stub whose count resolves to rows, recording what it was
+ * asked (table + where expression) so tests can pin query SEMANTICS, not just
+ * call order. */
+const chain = (rows: Array<{ n: number }>, captured?: CapturedQuery[]) =>
 	({
-		select: () => ({ from: () => ({ where: async () => rows }) }),
+		select: () => ({
+			from: (table: unknown) => ({
+				where: async (where: unknown) => {
+					captured?.push({ table, where });
+					return rows;
+				},
+			}),
+		}),
 	}) as unknown as ReturnType<typeof db>;
+
+/** Recursively collect drizzle bound-Param values from an SQL expression tree
+ * (Param nodes carry a scalar/Date `value`; StringChunk `value`s are arrays
+ * and are skipped). */
+const paramValues = (node: unknown): unknown[] => {
+	if (!node || typeof node !== "object") {
+		return [];
+	}
+	const rec = node as { value?: unknown; queryChunks?: unknown[] };
+	const out: unknown[] = [];
+	if ("value" in rec && !Array.isArray(rec.value)) {
+		out.push(rec.value);
+	}
+	for (const child of rec.queryChunks ?? []) {
+		out.push(...paramValues(child));
+	}
+	return out;
+};
 
 const env = (vars: Record<string, string> = {}) => ({ vars }) as unknown as Env;
 
@@ -283,17 +314,40 @@ describe("voice mint line", () => {
 		botSplit: [],
 	};
 
-	it("voiceMintCounts returns current vs previous mint counts", async () => {
+	it("voiceMintCounts counts kind='voice' rows scoped to each window", async () => {
 		// countIn(current) issues the first db() call, countIn(previous) the
 		// second — Promise.all evaluates its arguments in order.
+		const captured: CapturedQuery[] = [];
 		vi.mocked(db)
-			.mockReturnValueOnce(chain([{ n: 7 }]))
-			.mockReturnValueOnce(chain([{ n: 3 }]));
+			.mockReturnValueOnce(chain([{ n: 7 }], captured))
+			.mockReturnValueOnce(chain([{ n: 3 }], captured));
 		const window = buildWindow("week", new Date("2026-07-29T09:00:00Z"));
 		await expect(voiceMintCounts(env(), window)).resolves.toEqual({
 			cur: 7,
 			prev: 3,
 		});
+		// Pin the query SEMANTICS, not just the call order: both counts hit the
+		// usage_event table filtered to kind='voice' (dropping that filter would
+		// count every chat/suggestion row and wildly inflate the spend bound),
+		// and 'cur' spans [curStart, curEnd) while 'prev' spans
+		// [prevStart, curStart).
+		expect(captured).toHaveLength(2);
+		for (const q of captured) {
+			expect(q.table).toBe(usageEvent);
+			expect(paramValues(q.where)).toContain("voice");
+		}
+		const windowTimes = (where: unknown) =>
+			paramValues(where)
+				.filter((v): v is Date => v instanceof Date)
+				.map((d) => d.getTime());
+		expect(windowTimes(captured[0]!.where)).toEqual([
+			window.curStart.getTime(),
+			window.curEnd.getTime(),
+		]);
+		expect(windowTimes(captured[1]!.where)).toEqual([
+			window.prevStart.getTime(),
+			window.curStart.getTime(),
+		]);
 	});
 
 	it("a DB failure is report data — null and a log line, never a throw", async () => {

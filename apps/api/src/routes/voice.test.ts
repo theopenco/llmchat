@@ -455,7 +455,7 @@ describe("per-workspace daily fleet bound", () => {
 		}
 	});
 
-	it("a workspace-bucket denial 429s the mint", async () => {
+	it("a workspace-bucket denial 429s the mint BEFORE any gateway call", async () => {
 		vi.mocked(publicLookupRateLimit).mockResolvedValue({
 			ok: true,
 			remaining: 1,
@@ -465,12 +465,15 @@ describe("per-workspace daily fleet bound", () => {
 				? { ok: false, remaining: 0 }
 				: { ok: true, remaining: 1 },
 		);
-		mockMint();
+		const fetchMock = mockMint();
 		mockDb();
 		setPlan("scale");
 		const { ctx } = makeCtx();
 		const res = await send(ctx);
 		expect(res.status).toBe(429);
+		// The fleet bound exists to gate operator-key gateway spend — a denial
+		// after the client_secrets mint would defeat its whole purpose.
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 });
 
