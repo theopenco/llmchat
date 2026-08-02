@@ -51,7 +51,7 @@ function features(plan: PaidPlan, extra: string[]): string[] {
 				: "“Powered by” badge";
 	// Voice is the Scale differentiator — derived from the entitlement so the
 	// bullet can never advertise a plan the server would 402.
-	const voice = t.voiceCalls ? ["Live AI voice calls in the widget"] : [];
+	const voice = t.voiceCalls ? ["Live voice calls in the widget"] : [];
 	return [
 		responses,
 		overage,

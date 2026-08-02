@@ -56,6 +56,13 @@ export interface LlmCallInput {
 // capped upstream at 16,384 tokens — see routes/voice.ts).
 const MAX_SOURCES_CHARS = 80_000;
 
+// Fallback when LLMGATEWAY_BASE_URL is unset in the runtime env — the same
+// default the AI SDK provider applies for chat, hoisted here so chat, voice,
+// and the models route can never disagree about where the gateway lives.
+// (Prod initially shipped without the var; chat kept working on the provider
+// default while the voice route 500'd on the undefined dereference.)
+export const DEFAULT_GATEWAY_BASE = "https://api.llmgateway.io/v1";
+
 /**
  * Non-negotiable role scaffold prepended to EVERY assembled system prompt, ahead of the
  * operator's own prompt (same pattern as llmgateway's support-bot BASE_SYSTEM_PROMPT, but
