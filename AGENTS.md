@@ -236,6 +236,8 @@ Event names live in `@llmchat/shared` (`ANALYTICS_EVENTS`, object-action / lower
 - The Ploy `db:` binding is the only database; the `state:` binding is for ephemeral data (rate limits, caches), not source-of-truth.
 - Resource names (right-hand side of binding maps) must be lowercase + underscores (e.g. `llmchat_db`, not `llmchat-db`). Ploy validation rejects hyphens.
 - Async/side-effect work in the api (DB writes after streaming, email, Slack, Discord, metering, analytics, summaries) runs inside `c.executionCtx.waitUntil(...)`. The only scheduled work is the traffic-report cron (`cron:` block in `apps/api/ploy.yaml` → the `scheduled` handler in `src/index.ts`); there are no queue/workflow handlers.
+- **Voice actions rail:** any future action/tool execution on voice calls must proxy through the server-side integration layer (OTP possession-proof + audit trail — the #128/#131 rails), NEVER realtime-native client-executed tools: the visitor holds the realtime socket, so anything client-executed is visitor-controlled.
+- **Drizzle preview-safety (the #167 correction):** drizzle `.default()`/`.$defaultFn()` does NOT omit the column from generated INSERTs — every generated INSERT names every declared column (probed empirically on drizzle-orm 0.45.2), so declaring a new column in `schema.ts` breaks INSERTs on preview DBs, which skip migrations. For preview-safe columns, use the `user.role` pattern (column absent from the drizzle table, referenced only via explicit `sql` projections) until prod has the migration.
 
 ## Commit workflow
 
