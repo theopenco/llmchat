@@ -49,6 +49,7 @@ env:
   POSTHOG_PROJECT_ID: $POSTHOG_PROJECT_ID
   POSTHOG_QUERY_HOST: $POSTHOG_QUERY_HOST
   SHOWCASE_WIDGET_KEY: $SHOWCASE_WIDGET_KEY
+  VOICE_RAISED_LIMIT_PROJECTS: $VOICE_RAISED_LIMIT_PROJECTS
   # TRUSTED integration upstream overrides (tests/self-host/demo mock). Leave
   # unset in prod: Shopify pins to the shop domain, Cal.com to api.cal.com.
   SHOPIFY_API_BASE: $SHOPIFY_API_BASE

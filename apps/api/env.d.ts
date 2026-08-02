@@ -54,6 +54,11 @@ declare module "@meetploy/nextjs" {
 			// probe skipped (self-hosters / local dev).
 			SHOWCASE_WIDGET_KEY?: string;
 			API_PUBLIC_ORIGIN?: string;
+			// Comma-separated project ids whose voice buckets are RAISED (not
+			// removed) — dogfood relief scoped to named projects, never to the
+			// internal workspace class (internal keys are published; audit
+			// finding 5). Unset/empty ⇒ zero exemptions anywhere.
+			VOICE_RAISED_LIMIT_PROJECTS?: string;
 			GOOGLE_CLIENT_ID?: string;
 			GOOGLE_CLIENT_SECRET?: string;
 			GITHUB_CLIENT_ID?: string;
@@ -123,6 +128,11 @@ declare global {
 			// probe skipped (self-hosters / local dev).
 			SHOWCASE_WIDGET_KEY?: string;
 			API_PUBLIC_ORIGIN?: string;
+			// Comma-separated project ids whose voice buckets are RAISED (not
+			// removed) — dogfood relief scoped to named projects, never to the
+			// internal workspace class (internal keys are published; audit
+			// finding 5). Unset/empty ⇒ zero exemptions anywhere.
+			VOICE_RAISED_LIMIT_PROJECTS?: string;
 			GOOGLE_CLIENT_ID?: string;
 			GOOGLE_CLIENT_SECRET?: string;
 			GITHUB_CLIENT_ID?: string;
