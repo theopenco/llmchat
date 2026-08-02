@@ -215,7 +215,10 @@ describe("VoiceCallClient setup-ack hardening", () => {
 	}
 
 	it("greets ONLY after session.updated, and mic frames wait for the ack", async () => {
-		const { ws, client } = await startClient();
+		const { ws, client, statuses } = await startClient();
+		// Status honesty: "Listening…" is a lie while the gate drops frames —
+		// the client stays "connecting" until the ack.
+		expect(statuses).toEqual(["connecting"]);
 		// The configuring update is the first and only frame so far…
 		expect(ws.sentTypes()).toEqual(["session.update"]);
 		const update = JSON.parse(ws.sent[0]) as {
@@ -228,6 +231,7 @@ describe("VoiceCallClient setup-ack hardening", () => {
 		// …and no greeting has been requested yet.
 		ws.emit("message", { data: JSON.stringify({ type: "session.updated" }) });
 		expect(ws.sentTypes()).toEqual(["session.update", "response.create"]);
+		expect(statuses).toContain("listening");
 		// After the ack, mic frames flow.
 		FakeAudioContext.lastProcessor?.onaudioprocess?.(loudFrame());
 		expect(ws.sentTypes()).toEqual([
@@ -274,5 +278,65 @@ describe("VoiceCallClient setup-ack hardening", () => {
 		expect(ws.closed).toBe(false);
 		expect(statuses).not.toContain("unavailable");
 		client.stop();
+	});
+
+	it("refuses to start a call with empty instructions — unavailable, no mic, no socket", async () => {
+		const statuses: VoiceCallStatus[] = [];
+		const client = new VoiceCallClient(
+			{
+				url: "wss://gw.test/v1/realtime",
+				clientSecret: "ek_test",
+				model: "gpt-realtime",
+				instructions: "",
+				voice: "marin",
+			},
+			{ onStatus: (s) => statuses.push(s) },
+		);
+		await client.start();
+		expect(statuses).toEqual(["unavailable"]);
+		expect(FakeWebSocket.instances).toHaveLength(0);
+	});
+
+	it("stop() during the mic-permission prompt never leaves a hot mic or a socket", async () => {
+		const track = { stop: vi.fn() };
+		let grant: (s: unknown) => void = () => {};
+		vi.stubGlobal("navigator", {
+			mediaDevices: {
+				getUserMedia: () =>
+					new Promise((resolve) => {
+						grant = resolve;
+					}),
+			},
+		});
+		const client = new VoiceCallClient(
+			{
+				url: "wss://gw.test/v1/realtime",
+				clientSecret: "ek_test",
+				model: "gpt-realtime",
+				instructions: "GROUNDED",
+				voice: "marin",
+			},
+			{ onStatus: () => {} },
+		);
+		const started = client.start();
+		client.stop(); // visitor closed the panel while the permission prompt was up
+		grant({ getTracks: () => [track] }); // then granted the permission
+		await started;
+		expect(track.stop).toHaveBeenCalled(); // the just-granted mic is released…
+		expect(FakeWebSocket.instances).toHaveLength(0); // …and no socket ever opens
+	});
+
+	it("server close BEFORE the ack is a failed setup (unavailable), after it a normal end", async () => {
+		const early = await startClient();
+		early.ws.emit("close", {});
+		expect(early.statuses[early.statuses.length - 1]).toBe("unavailable");
+
+		FakeWebSocket.instances = [];
+		const late = await startClient();
+		late.ws.emit("message", {
+			data: JSON.stringify({ type: "session.updated" }),
+		});
+		late.ws.emit("close", {});
+		expect(late.statuses[late.statuses.length - 1]).toBe("ended");
 	});
 });

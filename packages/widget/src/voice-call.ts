@@ -209,12 +209,29 @@ export class VoiceCallClient {
 	) {}
 
 	async start(): Promise<void> {
+		// A call with no instructions IS an ungrounded call — refuse before any
+		// mic prompt or socket exists (the mint always assembles at least the
+		// base scaffold, so an empty string means a malformed response).
+		if (!this.session.instructions) {
+			this.stopped = true;
+			this.handlers.onStatus("unavailable");
+			return;
+		}
 		this.handlers.onStatus("connecting");
 		// Mic first: a permission denial should fail the call before any socket
 		// or gateway spend exists.
 		this.stream = await navigator.mediaDevices.getUserMedia({
 			audio: { echoCancellation: true, noiseSuppression: true },
 		});
+		// stop() may have run while the permission prompt was open — with no
+		// stream to release yet, it couldn't stop these tracks. Without this
+		// re-check the call would come up headless: live hot mic, open socket,
+		// no UI owning either.
+		if (this.stopped) {
+			this.stream.getTracks().forEach((t) => t.stop());
+			this.stream = null;
+			return;
+		}
 		// Ask for the realtime rate; fall back to the device default and
 		// resample in the capture callback (see resampleLinear).
 		try {
@@ -230,6 +247,12 @@ export class VoiceCallClient {
 			]);
 			this.ws = ws;
 			ws.addEventListener("open", () => {
+				// stop() during the connect handshake: close and bow out.
+				if (this.stopped) {
+					ws.close();
+					resolve();
+					return;
+				}
 				// The model is locked at mint time; everything else is configured
 				// here per the gateway's docs — the server-assembled instructions
 				// and voice (its mint endpoint accepts neither), the audio wire
@@ -274,7 +297,9 @@ export class VoiceCallClient {
 					SETUP_ACK_TIMEOUT_MS,
 				);
 				this.startCapture();
-				this.handlers.onStatus("listening");
+				// Status stays "connecting" until the ack — the capture gate is
+				// dropping every frame, and claiming "Listening…" here would be
+				// a lie the visitor can see.
 				resolve();
 			});
 			ws.addEventListener("message", (e) => this.handleEvent(e));
@@ -288,7 +313,10 @@ export class VoiceCallClient {
 				if (!this.stopped) {
 					this.stopped = true;
 					this.releaseAudio();
-					this.handlers.onStatus("ended");
+					// A server-side close BEFORE the session was configured is a
+					// failed setup, not a finished call — "Call ended" would tell
+					// the visitor a call happened.
+					this.handlers.onStatus(this.configured ? "ended" : "unavailable");
 				}
 			});
 		});
@@ -414,6 +442,7 @@ export class VoiceCallClient {
 					clearTimeout(this.setupTimeout);
 					this.setupTimeout = null;
 				}
+				this.handlers.onStatus("listening");
 				this.greet();
 				break;
 			}

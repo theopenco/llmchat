@@ -368,10 +368,11 @@ describe("voice instruction budget — the realtime 16,384-token cap (item 0)", 
 });
 
 describe("estimateRealtimeTokens / boundVoiceInstructions (pure)", () => {
-	it("estimates ASCII at ~4 chars/token and non-ASCII at a full token each", () => {
+	it("estimates ASCII at 3 chars/token (dense-ASCII bias) and non-ASCII at a full token each", () => {
 		expect(estimateRealtimeTokens("")).toBe(0);
-		expect(estimateRealtimeTokens("abcd")).toBe(1);
-		expect(estimateRealtimeTokens("abcde")).toBe(2);
+		expect(estimateRealtimeTokens("abc")).toBe(1);
+		expect(estimateRealtimeTokens("abcd")).toBe(2);
+		expect(estimateRealtimeTokens("abcdef")).toBe(2);
 		expect(estimateRealtimeTokens("支支支")).toBe(3);
 		expect(estimateRealtimeTokens("ab支")).toBe(2);
 	});
@@ -404,5 +405,19 @@ describe("estimateRealtimeTokens / boundVoiceInstructions (pure)", () => {
 		expect(a.truncated).toBe(true);
 		expect(a.estimatedTokens).toBeLessThanOrEqual(VOICE_TOKEN_CEILING);
 		expect(a.instructions.endsWith("# Voice call")).toBe(true);
+	});
+
+	it("never cuts between the halves of a surrogate pair", () => {
+		// An all-emoji base makes every code unit cost 1 est token; with an
+		// odd remaining budget the walk lands exactly mid-pair, so without the
+		// guard the kept prefix ends in a lone high surrogate — ill-formed
+		// Unicode that strict upstream JSON parsers reject wholesale.
+		const addendum = "# Voice call";
+		const a = boundVoiceInstructions("😀".repeat(10_000), addendum);
+		expect(a.truncated).toBe(true);
+		const cut = a.instructions.slice(0, -(addendum.length + 2));
+		const last = cut.charCodeAt(cut.length - 1);
+		expect(last >= 0xd800 && last <= 0xdbff).toBe(false);
+		expect(a.estimatedTokens).toBeLessThanOrEqual(VOICE_TOKEN_CEILING);
 	});
 });

@@ -83,11 +83,16 @@ const VOICE_MAX_KNOWLEDGE_CHARS = 8_000;
 export const VOICE_TOKEN_CEILING = 12_288;
 
 /**
- * Worst-case-biased token estimate for realtime instructions: ASCII at the
- * usual ~4 chars/token, every non-ASCII code unit counted as a FULL token —
- * CJK and other token-dense scripts really do approach 1 token/char, and the
- * cost of overestimating is a shorter KB, while underestimating means the
- * upstream rejects the session and the call runs ungrounded. Pure.
+ * Worst-case-biased token estimate for realtime instructions: ASCII at 3
+ * chars/token — NOT the usual prose average of ~4, because operator content
+ * is often token-dense ASCII (hex ids, base64 blobs, code, numeric tables)
+ * that real BPE tokenizers price at ~2-3 chars/token — and every non-ASCII
+ * code unit counted as a FULL token (CJK really does approach 1 token/char).
+ * Overestimating costs a shorter KB; underestimating ships an update the
+ * upstream rejects. Content denser than 2.25 chars/token (36,864 chars at
+ * the 12,288 ceiling vs the real 16,384 cap) can still slip past — and then
+ * fails CLOSED in the widget (terminal "unavailable"), never ungrounded.
+ * Pure.
  */
 export function estimateRealtimeTokens(text: string): number {
 	let ascii = 0;
@@ -96,7 +101,7 @@ export function estimateRealtimeTokens(text: string): number {
 		if (text.charCodeAt(i) <= 0x7f) ascii++;
 		else wide++;
 	}
-	return Math.ceil(ascii / 4) + wide;
+	return Math.ceil(ascii / 3) + wide;
 }
 
 /**
@@ -119,17 +124,27 @@ export function boundVoiceInstructions(
 	}
 	const reserved = estimateRealtimeTokens(`\n\n${addendum}`);
 	const budget = VOICE_TOKEN_CEILING - reserved;
-	// Walk the base accumulating the estimator's per-char cost until the
-	// remaining budget is spent. Fractional ASCII cost is accumulated exactly
-	// (¼ token per char) so the walk agrees with estimateRealtimeTokens' ceil.
-	let spent = 0;
+	// Walk the base one code unit at a time, recomputing the estimator's own
+	// integer arithmetic (ceil(ascii/3) + wide) on running counts — exact
+	// agreement with estimateRealtimeTokens by construction, no accumulated
+	// float drift.
+	let ascii = 0;
+	let wide = 0;
 	let end = 0;
 	while (end < base.length) {
-		const cost = base.charCodeAt(end) <= 0x7f ? 0.25 : 1;
-		if (Math.ceil(spent + cost) > budget) break;
-		spent += cost;
+		const isAscii = base.charCodeAt(end) <= 0x7f;
+		const next =
+			Math.ceil((ascii + (isAscii ? 1 : 0)) / 3) + wide + (isAscii ? 0 : 1);
+		if (next > budget) break;
+		if (isAscii) ascii++;
+		else wide++;
 		end++;
 	}
+	// Never cut between the halves of a surrogate pair — a trailing lone high
+	// surrogate is ill-formed Unicode, and strict JSON parsers upstream reject
+	// the whole session.update that carries it.
+	const lastKept = end > 0 ? base.charCodeAt(end - 1) : 0;
+	if (lastKept >= 0xd800 && lastKept <= 0xdbff) end--;
 	const instructions = `${base.slice(0, end)}\n\n${addendum}`;
 	return {
 		instructions,
