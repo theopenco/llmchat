@@ -13,6 +13,7 @@ const STATUS_LABEL: Record<VoiceCallStatus, string> = {
 	listening: "Listening…",
 	speaking: "Speaking…",
 	ended: "Call ended",
+	unavailable: "Voice is unavailable",
 	error: "Call failed",
 };
 
@@ -134,6 +135,11 @@ export function VoiceCall({
 			{status === "error" && (
 				<p className="llmchat-voice-hint">
 					{hint ?? "We couldn't start the call. Please try again."}
+				</p>
+			)}
+			{status === "unavailable" && (
+				<p className="llmchat-voice-hint">
+					Voice is unavailable right now — please keep chatting below.
 				</p>
 			)}
 			<div className="llmchat-voice-controls">
