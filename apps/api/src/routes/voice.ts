@@ -428,7 +428,7 @@ export const voice = new Hono<AppContext>().post(
 						await insertMessage(c.env, {
 							conversationId: conv.id,
 							role: "system",
-							content: "Visitor started a voice call with the AI agent",
+							content: "Visitor started a voice call with the support agent",
 						});
 					}
 					await captureEvent(c.env, {
