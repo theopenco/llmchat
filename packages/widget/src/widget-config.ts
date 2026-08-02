@@ -16,6 +16,10 @@ export interface WidgetConfig {
 	/** Operator-configured greeting shown before the first message, or null to
 	 * use the widget's built-in default. */
 	welcomeMessage: string | null;
+	/** Whether live AI voice calls are available (Scale-only, plan-gated
+	 * server-side). Fail-safe default false: a failed/slow config fetch must
+	 * never surface a premium affordance the server would 402. */
+	voiceEnabled: boolean;
 }
 
 /**
@@ -37,6 +41,7 @@ export function useWidgetConfig(
 		suggestedQuestions: [],
 		collectIdentity: false,
 		welcomeMessage: null,
+		voiceEnabled: false,
 	});
 	useEffect(() => {
 		let active = true;
@@ -50,6 +55,7 @@ export function useWidgetConfig(
 						suggestedQuestions?: unknown;
 						collectIdentity?: unknown;
 						welcomeMessage?: unknown;
+						voiceEnabled?: unknown;
 					} | null,
 				) => {
 					if (!active || !data) return;
@@ -75,6 +81,10 @@ export function useWidgetConfig(
 							typeof data.welcomeMessage === "string"
 								? data.welcomeMessage
 								: prev.welcomeMessage,
+						voiceEnabled:
+							typeof data.voiceEnabled === "boolean"
+								? data.voiceEnabled
+								: prev.voiceEnabled,
 					}));
 				},
 			)

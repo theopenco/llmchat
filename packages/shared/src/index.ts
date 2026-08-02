@@ -26,6 +26,7 @@ export {
 	PAID_PLANS,
 	TRIAL_PERIOD_DAYS,
 	UNLIMITED,
+	canUseVoiceCalls,
 	isInternalEmail,
 	isModelAllowed,
 	isOverResponseQuota,

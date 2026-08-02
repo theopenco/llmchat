@@ -56,6 +56,10 @@ export const ANALYTICS_EVENTS = {
 	// server-side; properties are CONTENT-FREE by contract (pinned by test):
 	// project_id, workspace_id, model — never draft text.
 	aiSuggestionGenerated: "ai_suggestion_generated",
+	// A visitor started a live AI voice call (Scale-only realtime feature).
+	// Captured server-side when the session secret is minted — the api never
+	// sees the audio, so this is the only reliable signal.
+	voiceCallStarted: "voice_call_started",
 } as const;
 
 export type AnalyticsEventName =

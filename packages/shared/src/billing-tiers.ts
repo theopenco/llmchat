@@ -40,6 +40,10 @@ export interface TierEntitlements {
 	 * `"custom"`— no badge; custom branding permitted.
 	 */
 	branding: "badge" | "off" | "custom";
+	/** Whether the widget may start a live AI voice call (LLM Gateway realtime
+	 * models). Premium: Scale (and internal) only — realtime audio minutes cost
+	 * far more than text responses on the shared operator key. */
+	voiceCalls: boolean;
 	/** Display price in whole USD per month (billed monthly). 0 for the unpaid
 	 * state. Must match the Stripe price behind this tier's STRIPE_PRICE_* id. */
 	priceUsdMonthly: number;
@@ -91,6 +95,7 @@ export const BILLING_TIERS: Record<Plan, TierEntitlements> = {
 		allowOverage: false,
 		modelAccess: "basic",
 		branding: "badge",
+		voiceCalls: false,
 		priceUsdMonthly: 0,
 		priceUsdAnnual: 0,
 	},
@@ -101,6 +106,7 @@ export const BILLING_TIERS: Record<Plan, TierEntitlements> = {
 		allowOverage: false, // hard stop at the cap — no overage
 		modelAccess: "basic",
 		branding: "badge",
+		voiceCalls: false,
 		priceUsdMonthly: 19,
 		priceUsdAnnual: 190, // 10× monthly — two months free
 	},
@@ -114,6 +120,7 @@ export const BILLING_TIERS: Record<Plan, TierEntitlements> = {
 		allowOverage: true,
 		modelAccess: "all",
 		branding: "off",
+		voiceCalls: false,
 		priceUsdMonthly: 89,
 		priceUsdAnnual: 890, // 10× monthly — two months free
 	},
@@ -127,6 +134,8 @@ export const BILLING_TIERS: Record<Plan, TierEntitlements> = {
 		allowOverage: true,
 		modelAccess: "all",
 		branding: "custom",
+		// The premium differentiator: live AI voice calls (realtime models).
+		voiceCalls: true,
 		priceUsdMonthly: 299,
 		priceUsdAnnual: 2_990, // 10× monthly — two months free
 	},
@@ -146,6 +155,7 @@ export const INTERNAL_ENTITLEMENTS: TierEntitlements = {
 	allowOverage: false,
 	modelAccess: "all",
 	branding: "custom",
+	voiceCalls: true,
 	priceUsdMonthly: 0,
 	priceUsdAnnual: 0,
 };
@@ -223,6 +233,14 @@ export function isModelAllowed(
 	const t = planEntitlements(plan);
 	if (t.modelAccess === "all") return true;
 	return isBasicModel(modelId);
+}
+
+/** Whether the widget may offer a live AI voice call at `plan`. Unknown/legacy
+ * plans resolve to `none` (false), so voice can never leak below Scale. */
+export function canUseVoiceCalls(
+	plan: Plan | string | null | undefined,
+): boolean {
+	return planEntitlements(plan).voiceCalls;
 }
 
 /** Whether the live widget must show the non-removable "Powered by" badge. */

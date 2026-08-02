@@ -3,6 +3,7 @@ title: "We moved our SaaS backend to workerd and every Node SDK broke"
 description: "The Resend SDK, the Stripe Node SDK, and Better Auth's passkey plugin all got cut from our workerd build — each over something the package dragged in, not code we call. Here is each casualty, the fetch-and-crypto.subtle code that replaced it, and an honest accounting of whether it was worth it."
 seoDescription: "What actually breaks when you move a Node backend to workerd: the deps we cut (Resend SDK, Stripe SDK, passkeys) and the fetch clients we wrote instead."
 date: "2026-07-11"
+updated: "2026-07-26"
 category: "Engineering"
 featured: false
 cover: "/blog/cloudflare-workers-every-node-sdk-broke.jpg"
@@ -54,7 +55,7 @@ The big one. Stripe's Node SDK pulls in Node built-ins that don't bundle on work
 // with form-encoded bodies + Web Crypto signature verification.
 ```
 
-The whole file is 289 lines and covers everything our metered billing needs: `createCustomer`, `createCheckoutSession`, `createPortalSession`, `retrieveSubscription`, `reportMeterEvent`, and webhook signature verification. Three parts were genuinely annoying to reimplement.
+The whole file is just under 300 lines and covers everything our metered billing needs: `createCustomer`, `createCheckoutSession`, `createPortalSession`, `retrieveSubscription`, `reportMeterEvent`, and webhook signature verification. Three parts were genuinely annoying to reimplement.
 
 ### Part one: Stripe's bracketed form encoding
 
@@ -182,7 +183,7 @@ The story is not "nothing works on workerd". It's that the failures concentrate 
 What we got:
 
 - **Deploys that can't half-work.** If it bundles, it runs. The API is the one app in our monorepo that always deploys cleanly, and that's not luck — the runtime rejects the entire class of "works on my machine, dies on the server" dependency problems at build time.
-- **A dramatically smaller dependency surface.** The Stripe integration went from an SDK and its tree to 289 lines we can read in one sitting. Every HTTP call our billing system makes is visible in one file.
+- **A dramatically smaller dependency surface.** The Stripe integration went from an SDK and its tree to just under 300 lines we can read in one sitting. Every HTTP call our billing system makes is visible in one file.
 - **Web-standard portability.** Everything is `fetch` and `crypto.subtle`. The same code would run on Cloudflare Workers, Deno, or anything else that speaks the Web Platform — which matters for a product whose [pitch includes self-hosting](/blog/the-case-for-self-hostable-ai-support).
 
 What we paid:

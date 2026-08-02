@@ -6,7 +6,7 @@ import { Composer } from "./components/Composer";
 import { CsatStep } from "./components/CsatStep";
 import { EscalationNotice } from "./components/EscalationNotice";
 import { EscalationSection } from "./components/EscalationSection";
-import { ComposeIcon } from "./components/icons";
+import { ComposeIcon, PhoneIcon } from "./components/icons";
 import { IdentifyForm } from "./components/IdentifyForm";
 import { MessageList } from "./components/MessageList";
 import { PoweredBy } from "./components/PoweredBy";
@@ -15,6 +15,7 @@ import { ReplyingTo } from "./components/ReplyingTo";
 import { ResolvedNotice } from "./components/ResolvedNotice";
 import { ResolveSection } from "./components/ResolveSection";
 import { SuggestedQuestions } from "./components/SuggestedQuestions";
+import { VoiceCall } from "./components/VoiceCall";
 import { WidgetFrame } from "./components/WidgetFrame";
 import { rateConversation, shouldPromptCsat } from "./csat";
 import { requestEscalation } from "./escalation";
@@ -218,6 +219,10 @@ function LiveWidget({
 	// True while the CSAT prompt is the exit gate of "start a new conversation":
 	// once rated/skipped, the conversation resets to a fresh one.
 	const [pendingNew, setPendingNew] = useState(false);
+	// Live AI voice call in progress (Scale-only; the button only renders when
+	// the server config says voiceEnabled). The call screen replaces the chat
+	// body; ending or erroring returns to it.
+	const [inCall, setInCall] = useState(false);
 
 	useEffect(() => {
 		setClientId(getOrCreateClientId());
@@ -251,6 +256,7 @@ function LiveWidget({
 		suggestedQuestions,
 		collectIdentity,
 		welcomeMessage,
+		voiceEnabled,
 	} = useWidgetConfig(apiUrl, projectKey);
 	// The pre-chat name/email form is opt-in per project (collectIdentity).
 	// Off (the default), the widget opens straight into the conversation; a
@@ -517,6 +523,7 @@ function LiveWidget({
 	// per-conversation flag. The fresh greeting + suggestion chips return.
 	function resetConversation() {
 		setPendingNew(false);
+		setInCall(false);
 		setCsatStep("hidden");
 		setCsatRated(false);
 		setEscalatedLocal(false);
@@ -545,6 +552,10 @@ function LiveWidget({
 	// as skipping it: finish the reset so reopening starts fresh.
 	function handleOpenChange(next: boolean) {
 		if (!next) {
+			// Closing the panel hangs up: a live mic must never outlive a visible
+			// call screen (VoiceCall's unmount also stops it — this makes the
+			// intent explicit and covers the inline layout, which never unmounts).
+			setInCall(false);
 			if (pendingNew) {
 				resetConversation();
 			} else {
@@ -672,21 +683,47 @@ function LiveWidget({
 			onOpenChange={handleOpenChange}
 			unreadCount={unreadCount}
 			actions={
-				canStartNew ? (
-					<button
-						type="button"
-						className="llmchat-icon-btn"
-						onClick={startNewConversation}
-						aria-label="Start a new conversation"
-						title="Start a new conversation"
-					>
-						<ComposeIcon />
-					</button>
-				) : undefined
+				<>
+					{/* Voice call (Scale-only): only on an explicit server-config
+					    true, never mid-call/CSAT/identity-form. The api re-checks
+					    the entitlement, so this is UX gating, not security. */}
+					{voiceEnabled &&
+						!inCall &&
+						!needsIdentity &&
+						csatStep === "hidden" && (
+							<button
+								type="button"
+								className="llmchat-icon-btn"
+								onClick={() => setInCall(true)}
+								aria-label="Start a voice call"
+								title="Start a voice call"
+							>
+								<PhoneIcon />
+							</button>
+						)}
+					{canStartNew && (
+						<button
+							type="button"
+							className="llmchat-icon-btn"
+							onClick={startNewConversation}
+							aria-label="Start a new conversation"
+							title="Start a new conversation"
+						>
+							<ComposeIcon />
+						</button>
+					)}
+				</>
 			}
 			footer={showBranding ? <PoweredBy /> : null}
 		>
-			{csatStep !== "hidden" ? (
+			{inCall ? (
+				<VoiceCall
+					apiUrl={apiUrl}
+					projectKey={projectKey}
+					clientId={clientId}
+					onClose={() => setInCall(false)}
+				/>
+			) : csatStep !== "hidden" ? (
 				<CsatStep step={csatStep} onRate={submitCsat} onSkip={skipCsat} />
 			) : needsIdentity ? (
 				<IdentifyForm

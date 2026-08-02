@@ -2,8 +2,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * The Clanker Support product mark, rendered faithfully from `public/logo.svg`
- * (a cached static asset, not in the JS bundle). The file is brand-indigo,
- * which reads on both light and dark surfaces. On the indigo onboarding orb,
+ * (a cached static asset, not in the JS bundle). The file is brand-ember,
+ * which reads on both light and dark surfaces. On a solid accent surface,
  * pass `invert` to flip it to white. Size is set by the caller (e.g. `size-8`).
  */
 export function BrandLogo({

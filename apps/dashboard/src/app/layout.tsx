@@ -4,20 +4,19 @@ import { QueryProvider } from "@/lib/query";
 import { WorkspaceProvider } from "@/lib/workspace";
 
 import type { Metadata } from "next";
-import {
-	Bricolage_Grotesque,
-	Hanken_Grotesk,
-	JetBrains_Mono,
-} from "next/font/google";
+import { Fraunces, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { PostHogProvider } from "@/components/PostHogProvider";
 
-const display = Bricolage_Grotesque({
+// Warm editorial serif for display headlines — same cut as marketing, so the
+// two apps read as one product. Variable weight + optical sizing.
+const display = Fraunces({
 	subsets: ["latin"],
-	weight: ["400", "500", "600", "700"],
+	style: ["normal", "italic"],
 	variable: "--font-display",
 	display: "swap",
+	axes: ["opsz", "SOFT", "WONK"],
 });
 const sans = Hanken_Grotesk({
 	subsets: ["latin"],
@@ -109,7 +108,7 @@ export default function RootLayout({
 					src="https://api.clankersupport.com/widget.js"
 					data-project="pk_adadae5c42fbc58d2e4927cac84a2131ae3bf042d8032187"
 					data-api="https://api.clankersupport.com"
-					data-brand="#6366F1"
+					data-brand="#EA580C"
 					data-theme="host"
 					async
 				/>
