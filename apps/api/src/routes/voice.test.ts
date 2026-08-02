@@ -11,6 +11,7 @@ import { planEntitlements } from "@llmchat/shared";
 import {
 	boundVoiceInstructions,
 	estimateRealtimeTokens,
+	resolveVoiceBudgets,
 	voice,
 	VOICE_CALL_STYLE_PROMPT,
 	VOICE_TOKEN_CEILING,
@@ -285,6 +286,110 @@ describe("POST /voice/session — Scale-only realtime voice", () => {
 		const { ctx } = makeCtx();
 		const res = await send(ctx);
 		expect(res.status).toBe(429);
+	});
+});
+
+describe("voice budget relief — named projects ONLY (audit finding 5 guard)", () => {
+	function primeGates() {
+		vi.mocked(rateLimit).mockResolvedValue({ ok: true, remaining: 1 });
+		vi.mocked(publicLookupRateLimit).mockResolvedValue({
+			ok: true,
+			remaining: 1,
+		});
+	}
+
+	async function mintWith(raisedList: string | undefined, exempt = false) {
+		primeGates();
+		mockMint();
+		mockDb();
+		setPlan("scale", exempt);
+		const env = {
+			vars: {
+				LLMGATEWAY_API_KEY: "llmgw_test",
+				LLMGATEWAY_BASE_URL: "https://api.llmgateway.io/v1",
+				...(raisedList !== undefined
+					? { VOICE_RAISED_LIMIT_PROJECTS: raisedList }
+					: {}),
+			},
+			DB: {},
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any;
+		const { ctx } = makeCtx();
+		const res = await voice.request(
+			"/voice/session",
+			{
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ projectKey: "pk_live", clientId: "c1" }),
+			},
+			env,
+			ctx as unknown as CtxArg,
+		);
+		expect(res.status).toBe(200);
+		return env;
+	}
+
+	function expectBuckets(env: unknown, hourly: number, daily: number) {
+		expect(rateLimit).toHaveBeenNthCalledWith(
+			1,
+			env,
+			"voice:p1:1.2.3.4",
+			hourly,
+			60 * 60,
+			{ failClosed: true },
+		);
+		expect(rateLimit).toHaveBeenNthCalledWith(
+			2,
+			env,
+			"voice-daily:p1",
+			daily,
+			24 * 60 * 60,
+			{ failClosed: true },
+		);
+	}
+
+	it("a LISTED project gets the raised — still enforced, still fail-closed — buckets", async () => {
+		const env = await mintWith(" p-other , p1 ");
+		expectBuckets(env, 60, 500);
+	});
+
+	it("an UNLISTED project on an EXEMPT internal workspace keeps the standard caps", async () => {
+		// THE finding-5 guard: internal project keys are published in public
+		// page source (marketing self-dogfood), so relief must never key off
+		// the workspace's internal/exempt status — only off an explicit
+		// project-id listing. 661cd84's workspace-scoped exemption fails here.
+		const env = await mintWith("p-some-other-project", true);
+		expectBuckets(env, 4, 20);
+	});
+
+	it("unset or empty env means zero exemptions anywhere", async () => {
+		const unset = await mintWith(undefined);
+		expectBuckets(unset, 4, 20);
+		vi.clearAllMocks();
+		const empty = await mintWith("");
+		expectBuckets(empty, 4, 20);
+	});
+
+	it("resolveVoiceBudgets (pure): exact-id match, whitespace-tolerant, empty ⇒ standard", () => {
+		expect(resolveVoiceBudgets("p1", undefined)).toEqual({
+			raised: false,
+			hourlyMax: 4,
+			dailyMax: 20,
+		});
+		expect(resolveVoiceBudgets("p1", "")).toEqual({
+			raised: false,
+			hourlyMax: 4,
+			dailyMax: 20,
+		});
+		expect(resolveVoiceBudgets("p1", " p1 , p2 ")).toEqual({
+			raised: true,
+			hourlyMax: 60,
+			dailyMax: 500,
+		});
+		// Exact-id match only — "p1" in the list must not cover "p10".
+		expect(resolveVoiceBudgets("p10", "p1").raised).toBe(false);
+		// A stray comma never becomes an empty-string wildcard.
+		expect(resolveVoiceBudgets("", "p1,,p2").raised).toBe(false);
 	});
 });
 

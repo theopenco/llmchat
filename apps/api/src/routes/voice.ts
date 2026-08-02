@@ -61,6 +61,43 @@ const CALL_RATE_WINDOW = 60 * 60;
 const CALL_DAILY_MAX = 20;
 const CALL_DAILY_WINDOW = 24 * 60 * 60;
 
+// --- Named-project budget relief (supersedes 661cd84's workspace-scoped
+// exemption) ------------------------------------------------------------------
+//
+// Dogfooding needs more headroom than 4/hr + 20/day, but relief must NEVER key
+// off the workspace's internal status: internal project keys are deliberately
+// published (the marketing site self-dogfoods its embed key in public page
+// source), so any workspace-scoped raise converts dogfood relief into
+// anonymous public minting on the operator key — thousands of dollars/day at
+// the gateway's per-session caps. Relief is therefore granted only to project
+// ids explicitly listed in VOICE_RAISED_LIMIT_PROJECTS (Ploy-set; unset or
+// empty ⇒ zero exemptions anywhere), and listed projects keep ENFORCED,
+// fail-closed buckets — the constants change, the structure doesn't.
+const VOICE_RAISED_HOURLY = 60;
+const VOICE_RAISED_DAILY = 500;
+
+/** Resolve the two voice-bucket ceilings for a project: raised for ids listed
+ * in VOICE_RAISED_LIMIT_PROJECTS (comma-separated, whitespace-tolerant,
+ * exact-id match only), standard for everyone else — including internal
+ * workspaces and the published dogfood keys. Pure. */
+export function resolveVoiceBudgets(
+	projectId: string,
+	raisedList: string | undefined,
+): { raised: boolean; hourlyMax: number; dailyMax: number } {
+	const listed = (raisedList ?? "")
+		.split(",")
+		.map((s) => s.trim())
+		.filter(Boolean)
+		.includes(projectId);
+	return listed
+		? {
+				raised: true,
+				hourlyMax: VOICE_RAISED_HOURLY,
+				dailyMax: VOICE_RAISED_DAILY,
+			}
+		: { raised: false, hourlyMax: CALL_RATE_MAX, dailyMax: CALL_DAILY_MAX };
+}
+
 // --- Voice instruction budget -----------------------------------------------
 //
 // The realtime API hard-caps session instructions (+ tools) at 16,384 tokens;
@@ -203,12 +240,18 @@ export const voice = new Hono<AppContext>().post(
 			return c.json({ error: "voice_not_available" }, 402);
 		}
 
-		// Tight, fail-closed budgets (see constants above): per-(project,IP)
-		// hourly AND a per-project daily aggregate against IP rotation.
+		// Tight, fail-closed budgets (standard, or raised for explicitly listed
+		// project ids — never for a workspace class; see resolveVoiceBudgets):
+		// per-(project,IP) hourly AND a per-project daily aggregate against IP
+		// rotation.
+		const budgets = resolveVoiceBudgets(
+			project.id,
+			c.env.vars.VOICE_RAISED_LIMIT_PROJECTS,
+		);
 		const perIp = await rateLimit(
 			c.env,
 			`voice:${project.id}:${ip}`,
-			CALL_RATE_MAX,
+			budgets.hourlyMax,
 			CALL_RATE_WINDOW,
 			{ failClosed: true },
 		);
@@ -218,7 +261,7 @@ export const voice = new Hono<AppContext>().post(
 		const perProjectDaily = await rateLimit(
 			c.env,
 			`voice-daily:${project.id}`,
-			CALL_DAILY_MAX,
+			budgets.dailyMax,
 			CALL_DAILY_WINDOW,
 			{ failClosed: true },
 		);
