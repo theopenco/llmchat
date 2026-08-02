@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { publicLookupRateLimit, rateLimit } from "@/lib/kv";
-import { buildSystem } from "@/lib/llm";
+import { DEFAULT_GATEWAY_BASE, buildSystem } from "@/lib/llm";
 import { insertMessage } from "@/lib/messages";
 import { resolveAccess } from "@/lib/plan";
 import { captureEvent } from "@/lib/posthog";
@@ -44,13 +44,6 @@ const REALTIME_MODEL = "gpt-realtime";
 
 // Default output voice (gateway/OpenAI catalog).
 const REALTIME_VOICE = "marin";
-
-// Fallback when LLMGATEWAY_BASE_URL is unset in the runtime env — the same
-// default the AI SDK provider applies for chat, so voice and chat can never
-// disagree about where the gateway lives. (Prod initially shipped without the
-// var; chat kept working on the provider default while this route 500'd on
-// the undefined dereference.)
-const DEFAULT_GATEWAY_BASE = "https://api.llmgateway.io/v1";
 
 // Voice sessions cost realtime-audio money on the shared operator key (the
 // gateway's default per-session spend cap alone is $10), so the budgets are far
