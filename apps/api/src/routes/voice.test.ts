@@ -8,7 +8,13 @@ import { captureEvent } from "@/lib/posthog";
 
 import { planEntitlements } from "@llmchat/shared";
 
-import { voice } from "./voice";
+import {
+	boundVoiceInstructions,
+	estimateRealtimeTokens,
+	voice,
+	VOICE_CALL_STYLE_PROMPT,
+	VOICE_TOKEN_CEILING,
+} from "./voice";
 
 vi.mock("@/lib/db", () => ({ db: vi.fn() }));
 vi.mock("@/lib/kv", () => ({
@@ -42,13 +48,18 @@ const project = {
 function mockDb({
 	hasProject = true,
 	conv = null as Record<string, unknown> | null,
+	sources = [] as Record<string, unknown>[],
+	projectOverrides = {} as Record<string, unknown>,
 } = {}) {
 	const inserted: unknown[] = [];
 	vi.mocked(db).mockReturnValue({
 		query: {
-			project: { findFirst: async () => (hasProject ? project : undefined) },
+			project: {
+				findFirst: async () =>
+					hasProject ? { ...project, ...projectOverrides } : undefined,
+			},
 			systemPrompt: { findFirst: async () => undefined },
-			source: { findMany: async () => [] },
+			source: { findMany: async () => sources },
 			conversation: { findFirst: async () => conv ?? undefined },
 		},
 		insert: () => ({
@@ -274,5 +285,124 @@ describe("POST /voice/session — Scale-only realtime voice", () => {
 		const { ctx } = makeCtx();
 		const res = await send(ctx);
 		expect(res.status).toBe(429);
+	});
+});
+
+describe("voice instruction budget — the realtime 16,384-token cap (item 0)", () => {
+	async function mintInstructions(opts: Parameters<typeof mockDb>[0]) {
+		// Earlier describes leave ok:false implementations on the gate mocks
+		// (clearAllMocks clears calls, not implementations) — re-prime them.
+		vi.mocked(rateLimit).mockResolvedValue({ ok: true, remaining: 1 });
+		vi.mocked(publicLookupRateLimit).mockResolvedValue({
+			ok: true,
+			remaining: 1,
+		});
+		mockMint();
+		mockDb(opts);
+		setPlan("scale");
+		const { ctx } = makeCtx();
+		const res = await send(ctx);
+		expect(res.status).toBe(200);
+		return ((await res.json()) as { instructions: string }).instructions;
+	}
+
+	it("keeps 80k of source content under the token ceiling via the voice even-split", async () => {
+		// The text path's worst case: 8 sources × 10k chars = 80k, which the old
+		// assembly shipped whole (~20k tokens — upstream rejects >16,384 and the
+		// call ran ungrounded). The voice budget must split floor(16000/8) =
+		// 2000 chars per source.
+		const sources = Array.from({ length: 8 }, (_, i) => ({
+			title: `Doc ${i}`,
+			url: `https://acme.test/${i}`,
+			content: `S${i}-${"x".repeat(9_980)}-TAIL${i}`,
+			active: true,
+		}));
+		const instructions = await mintInstructions({ sources });
+		expect(estimateRealtimeTokens(instructions)).toBeLessThanOrEqual(
+			VOICE_TOKEN_CEILING,
+		);
+		// Every source keeps its head (even split — no source crowds out another)…
+		expect(instructions).toContain("S0-");
+		expect(instructions).toContain("S7-");
+		// …and none ships past its floor(16000/8)=2000-char share.
+		for (let i = 0; i < 8; i++) {
+			expect(instructions).not.toContain(`TAIL${i}`);
+		}
+		// The spoken-delivery addendum always survives.
+		expect(instructions).toContain("# Voice call");
+	});
+
+	it("hard-slices knowledgeText for voice (uncapped on the text path)", async () => {
+		const instructions = await mintInstructions({
+			projectOverrides: {
+				knowledgeText: `${"k".repeat(8_000)}KNOWLEDGE-OVERFLOW`,
+			},
+		});
+		expect(instructions).not.toContain("KNOWLEDGE-OVERFLOW");
+		expect(estimateRealtimeTokens(instructions)).toBeLessThanOrEqual(
+			VOICE_TOKEN_CEILING,
+		);
+	});
+
+	it("backstop: truncates over-ceiling instructions at mint and logs a content-free counter", async () => {
+		// A giant operator prompt has no layer-1 budget of its own — the token
+		// backstop is what guarantees the mint NEVER ships instructions it
+		// expects the session to reject.
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const instructions = await mintInstructions({
+			projectOverrides: { systemPrompt: "y".repeat(60_000) },
+		});
+		expect(estimateRealtimeTokens(instructions)).toBeLessThanOrEqual(
+			VOICE_TOKEN_CEILING,
+		);
+		// Deterministic truncation preserves the spoken-delivery addendum whole.
+		expect(instructions.endsWith(VOICE_CALL_STYLE_PROMPT)).toBe(true);
+		// The counter fires exactly once and never carries prompt content.
+		const truncationWarns = warn.mock.calls.filter(
+			(c) => typeof c[0] === "string" && c[0].includes("over token ceiling"),
+		);
+		expect(truncationWarns).toHaveLength(1);
+		expect(String(truncationWarns[0][0])).not.toContain("yyy");
+		warn.mockRestore();
+	});
+});
+
+describe("estimateRealtimeTokens / boundVoiceInstructions (pure)", () => {
+	it("estimates ASCII at ~4 chars/token and non-ASCII at a full token each", () => {
+		expect(estimateRealtimeTokens("")).toBe(0);
+		expect(estimateRealtimeTokens("abcd")).toBe(1);
+		expect(estimateRealtimeTokens("abcde")).toBe(2);
+		expect(estimateRealtimeTokens("支支支")).toBe(3);
+		expect(estimateRealtimeTokens("ab支")).toBe(2);
+	});
+
+	it("passes under-ceiling instructions through untouched", () => {
+		const r = boundVoiceInstructions("base prompt", "# Voice call");
+		expect(r).toEqual({
+			instructions: "base prompt\n\n# Voice call",
+			truncated: false,
+			estimatedTokens: estimateRealtimeTokens("base prompt\n\n# Voice call"),
+		});
+	});
+
+	it("truncates deterministically to the ceiling, keeping the addendum whole", () => {
+		const base = "z".repeat(60_000); // est 15k tokens — over the 12,288 ceiling
+		const addendum = "# Voice call\nSpeak naturally.";
+		const a = boundVoiceInstructions(base, addendum);
+		const b = boundVoiceInstructions(base, addendum);
+		expect(a).toEqual(b); // same input, same output — deterministic
+		expect(a.truncated).toBe(true);
+		expect(a.estimatedTokens).toBeLessThanOrEqual(VOICE_TOKEN_CEILING);
+		// The walk fills the budget rather than wildly undershooting it…
+		expect(a.estimatedTokens).toBeGreaterThanOrEqual(VOICE_TOKEN_CEILING - 2);
+		// …and the addendum survives whole at the tail.
+		expect(a.instructions.endsWith(`\n\n${addendum}`)).toBe(true);
+	});
+
+	it("handles token-dense (non-ASCII) bases with the same guarantee", () => {
+		const a = boundVoiceInstructions("支".repeat(20_000), "# Voice call");
+		expect(a.truncated).toBe(true);
+		expect(a.estimatedTokens).toBeLessThanOrEqual(VOICE_TOKEN_CEILING);
+		expect(a.instructions.endsWith("# Voice call")).toBe(true);
 	});
 });

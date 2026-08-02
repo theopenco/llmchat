@@ -51,7 +51,9 @@ export interface LlmCallInput {
 
 // Cap aggregate source content to keep system prompts bounded. ~80k chars
 // ≈ 20k tokens — well below typical 128k context windows but leaves room
-// for knowledge base + conversation history.
+// for knowledge base + conversation history. Text-path default; the voice
+// mint passes its own far smaller budget (realtime instructions are hard-
+// capped upstream at 16,384 tokens — see routes/voice.ts).
 const MAX_SOURCES_CHARS = 80_000;
 
 /**
@@ -249,6 +251,10 @@ export function buildSystem(
 	// exact same knowledge/sources/identity assembly below — one assembler, two
 	// audiences, never two diverging copies of the KB rendering.
 	basePrompt: string = SUPPORT_AGENT_BASE_PROMPT,
+	// Aggregate source budget. The voice mint passes a much smaller number
+	// (its instructions must clear the realtime API's 16,384-token cap) while
+	// reusing this exact even-split — one budgeting discipline, two sizes.
+	maxSourcesChars: number = MAX_SOURCES_CHARS,
 ) {
 	// Base guardrail FIRST, operator prompt second: the scaffold defines the job
 	// (support only), the operator prompt customizes persona/business within it.
@@ -263,7 +269,7 @@ export function buildSystem(
 	if (usable.length > 0) {
 		// Distribute the budget across sources so a single huge page can't
 		// crowd out the rest.
-		const perSource = Math.floor(MAX_SOURCES_CHARS / usable.length);
+		const perSource = Math.floor(maxSourcesChars / usable.length);
 		const rendered = usable
 			.map((s, i) => {
 				const body =
