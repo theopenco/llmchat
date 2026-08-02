@@ -483,12 +483,13 @@ export const MAX_SUGGEST_OUTPUT_TOKENS = 1_000;
 const SUGGEST_TRANSCRIPT_CHAR_BUDGET = 12_000;
 
 // Sibling of normalizeIdentityValue for transcript lines: strips C0/C1 + DEL
-// control chars and the «»<>` glyphs that could forge the data fence or open a
-// code block, collapses whitespace. Applied PER MESSAGE, unlike the summary
-// paths' buildTranscript (which strips nothing) — this transcript is rendered
-// INSIDE «conversation» markers, so content must never be able to close the
-// fence and continue as a free-standing directive.
-function normalizeTranscriptLine(raw: string): string {
+// control chars and the «»<>` glyphs that could forge a data fence or open a
+// code block, collapses whitespace. Applied PER MESSAGE. Shared by the suggest
+// transcript (rendered INSIDE «conversation» markers, where content must never
+// be able to close the fence and continue as a free-standing directive) and —
+// backported, #171 — the summary paths' buildTranscript, which previously
+// relied on prompt framing alone.
+export function normalizeTranscriptLine(raw: string): string {
 	return (
 		raw
 			// eslint-disable-next-line no-control-regex
