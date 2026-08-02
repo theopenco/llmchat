@@ -61,6 +61,98 @@ const CALL_RATE_WINDOW = 60 * 60;
 const CALL_DAILY_MAX = 20;
 const CALL_DAILY_WINDOW = 24 * 60 * 60;
 
+// --- Voice instruction budget -----------------------------------------------
+//
+// The realtime API hard-caps session instructions (+ tools) at 16,384 tokens;
+// an oversized session.update is REJECTED upstream and the call would run
+// ungrounded. The text path's budgets (80k source chars, uncapped knowledge)
+// were sized for 128k-context chat models and blow straight through that cap,
+// which is exactly the bug this bounds out: the mint must NEVER ship
+// instructions it expects the session to reject.
+//
+// Layer 1 — voice-sized budgets. Sources reuse buildSystem's even-split
+// discipline with a smaller constant; knowledgeText (uncapped on the text
+// path) gets a hard slice here.
+const VOICE_MAX_SOURCES_CHARS = 16_000;
+const VOICE_MAX_KNOWLEDGE_CHARS = 8_000;
+// Layer 2 — the by-construction guarantee. Estimated instruction tokens must
+// clear this ceiling or the assembled prompt is truncated server-side before
+// it ships: 12,288 = 75% of the upstream 16,384 cap, a 4,096-token margin for
+// estimator error. The estimator is worst-case-biased (see below), so typical
+// Latin-script prompts sit far beneath the real cap.
+export const VOICE_TOKEN_CEILING = 12_288;
+
+/**
+ * Worst-case-biased token estimate for realtime instructions: ASCII at 3
+ * chars/token — NOT the usual prose average of ~4, because operator content
+ * is often token-dense ASCII (hex ids, base64 blobs, code, numeric tables)
+ * that real BPE tokenizers price at ~2-3 chars/token — and every non-ASCII
+ * code unit counted as a FULL token (CJK really does approach 1 token/char).
+ * Overestimating costs a shorter KB; underestimating ships an update the
+ * upstream rejects. Content denser than 2.25 chars/token (36,864 chars at
+ * the 12,288 ceiling vs the real 16,384 cap) can still slip past — and then
+ * fails CLOSED in the widget (terminal "unavailable"), never ungrounded.
+ * Pure.
+ */
+export function estimateRealtimeTokens(text: string): number {
+	let ascii = 0;
+	let wide = 0;
+	for (let i = 0; i < text.length; i++) {
+		if (text.charCodeAt(i) <= 0x7f) ascii++;
+		else wide++;
+	}
+	return Math.ceil(ascii / 3) + wide;
+}
+
+/**
+ * Bound assembled voice instructions to VOICE_TOKEN_CEILING. The spoken-style
+ * addendum ALWAYS survives whole (it's what makes the call sound like a call);
+ * when the estimate is over the ceiling, the base prompt (scaffold + operator
+ * prompt + KB) is cut at the exact prefix whose estimated tokens fit the
+ * remainder — a single deterministic left-to-right walk, so the same input
+ * always yields the same output. Pure; the caller logs the (content-free)
+ * truncation counter.
+ */
+export function boundVoiceInstructions(
+	base: string,
+	addendum: string,
+): { instructions: string; truncated: boolean; estimatedTokens: number } {
+	const joined = `${base}\n\n${addendum}`;
+	const total = estimateRealtimeTokens(joined);
+	if (total <= VOICE_TOKEN_CEILING) {
+		return { instructions: joined, truncated: false, estimatedTokens: total };
+	}
+	const reserved = estimateRealtimeTokens(`\n\n${addendum}`);
+	const budget = VOICE_TOKEN_CEILING - reserved;
+	// Walk the base one code unit at a time, recomputing the estimator's own
+	// integer arithmetic (ceil(ascii/3) + wide) on running counts — exact
+	// agreement with estimateRealtimeTokens by construction, no accumulated
+	// float drift.
+	let ascii = 0;
+	let wide = 0;
+	let end = 0;
+	while (end < base.length) {
+		const isAscii = base.charCodeAt(end) <= 0x7f;
+		const next =
+			Math.ceil((ascii + (isAscii ? 1 : 0)) / 3) + wide + (isAscii ? 0 : 1);
+		if (next > budget) break;
+		if (isAscii) ascii++;
+		else wide++;
+		end++;
+	}
+	// Never cut between the halves of a surrogate pair — a trailing lone high
+	// surrogate is ill-formed Unicode, and strict JSON parsers upstream reject
+	// the whole session.update that carries it.
+	const lastKept = end > 0 ? base.charCodeAt(end - 1) : 0;
+	if (lastKept >= 0xd800 && lastKept <= 0xdbff) end--;
+	const instructions = `${base.slice(0, end)}\n\n${addendum}`;
+	return {
+		instructions,
+		truncated: true,
+		estimatedTokens: estimateRealtimeTokens(instructions),
+	};
+}
+
 /**
  * Spoken-channel addendum appended after the assembled support prompt. The
  * base scaffold + operator prompt + knowledge assembly is byte-identical to
@@ -158,19 +250,36 @@ export const voice = new Hono<AppContext>().post(
 				a(e(ct.projectId, project.id), e(ct.clientId, clientId)),
 		});
 
-		const instructions = [
-			buildSystem(
-				activePromptContent,
-				project.knowledgeText,
-				activeSources.map((s) => ({
-					title: s.title || s.url || "",
-					url: s.url ?? "",
-					content: s.content,
-				})),
-				conv ? { name: conv.name, email: conv.email } : undefined,
-			),
-			VOICE_CALL_STYLE_PROMPT,
-		].join("\n\n");
+		// Same assembler as text chat, but with the VOICE budgets (see the
+		// constants above): a smaller even-split source budget, a hard knowledge
+		// slice, and a token-ceiling backstop — the upstream realtime API rejects
+		// instructions over 16,384 tokens, and a rejected update means an
+		// ungrounded call.
+		const assembled = buildSystem(
+			activePromptContent,
+			project.knowledgeText.slice(0, VOICE_MAX_KNOWLEDGE_CHARS),
+			activeSources.map((s) => ({
+				title: s.title || s.url || "",
+				url: s.url ?? "",
+				content: s.content,
+			})),
+			conv ? { name: conv.name, email: conv.email } : undefined,
+			undefined,
+			undefined,
+			VOICE_MAX_SOURCES_CHARS,
+		);
+		const bounded = boundVoiceInstructions(assembled, VOICE_CALL_STYLE_PROMPT);
+		if (bounded.truncated) {
+			// Content-free counter: sizes only, never prompt text. Firing at all
+			// means a project's prompt+KB outgrew even the voice budgets (token-
+			// dense scripts can) — worth noticing, not worth failing the call.
+			console.warn(
+				`voice: instructions over token ceiling at mint (est ${estimateRealtimeTokens(
+					`${assembled}\n\n${VOICE_CALL_STYLE_PROMPT}`,
+				)} > ${VOICE_TOKEN_CEILING}); truncated to est ${bounded.estimatedTokens}`,
+			);
+		}
+		const instructions = bounded.instructions;
 
 		// Mint the ephemeral client secret server-to-server. The base URL
 		// already carries /v1 (see .env.example), same as the chat provider.

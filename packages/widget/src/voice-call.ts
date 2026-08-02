@@ -156,11 +156,22 @@ export function resampleLinear(
 	return out;
 }
 
+// How long the client waits for the session.updated ack of its configuring
+// session.update before declaring the call unusable. Generous against slow
+// networks; the alternative to giving up is a live call with NO operator
+// instructions, which is never acceptable.
+export const SETUP_ACK_TIMEOUT_MS = 5_000;
+
 export type VoiceCallStatus =
 	| "connecting"
 	| "listening"
 	| "speaking"
 	| "ended"
+	// Terminal: the session refused (or never acknowledged) the configuring
+	// session.update that carries the operator's instructions. The call is
+	// closed rather than run ungrounded — an absent feature is honest, a
+	// hallucinating one is not.
+	| "unavailable"
 	| "error";
 
 interface VoiceCallHandlers {
@@ -183,7 +194,11 @@ export class VoiceCallClient {
 	private playing: AudioBufferSourceNode[] = [];
 	private nextPlayTime = 0;
 	private speakingUntil: ReturnType<typeof setTimeout> | null = null;
-	private greetFallback: ReturnType<typeof setTimeout> | null = null;
+	private setupTimeout: ReturnType<typeof setTimeout> | null = null;
+	/** True once session.updated confirmed the instructions were applied. Until
+	 * then no greeting is requested and no mic audio is appended — the model
+	 * must never take a turn before it is grounded. */
+	private configured = false;
 	private greeted = false;
 	private stopped = false;
 	private micMuted = false;
@@ -194,12 +209,29 @@ export class VoiceCallClient {
 	) {}
 
 	async start(): Promise<void> {
+		// A call with no instructions IS an ungrounded call — refuse before any
+		// mic prompt or socket exists (the mint always assembles at least the
+		// base scaffold, so an empty string means a malformed response).
+		if (!this.session.instructions) {
+			this.stopped = true;
+			this.handlers.onStatus("unavailable");
+			return;
+		}
 		this.handlers.onStatus("connecting");
 		// Mic first: a permission denial should fail the call before any socket
 		// or gateway spend exists.
 		this.stream = await navigator.mediaDevices.getUserMedia({
 			audio: { echoCancellation: true, noiseSuppression: true },
 		});
+		// stop() may have run while the permission prompt was open — with no
+		// stream to release yet, it couldn't stop these tracks. Without this
+		// re-check the call would come up headless: live hot mic, open socket,
+		// no UI owning either.
+		if (this.stopped) {
+			this.stream.getTracks().forEach((t) => t.stop());
+			this.stream = null;
+			return;
+		}
 		// Ask for the realtime rate; fall back to the device default and
 		// resample in the capture callback (see resampleLinear).
 		try {
@@ -215,6 +247,12 @@ export class VoiceCallClient {
 			]);
 			this.ws = ws;
 			ws.addEventListener("open", () => {
+				// stop() during the connect handshake: close and bow out.
+				if (this.stopped) {
+					ws.close();
+					resolve();
+					return;
+				}
 				// The model is locked at mint time; everything else is configured
 				// here per the gateway's docs — the server-assembled instructions
 				// and voice (its mint endpoint accepts neither), the audio wire
@@ -246,14 +284,22 @@ export class VoiceCallClient {
 						},
 					}),
 				);
-				// The greeting response is NOT requested here: response.create in
-				// the same breath can race the session.update above, and a model
-				// with no instructions yet greets ungrounded (arbitrary language).
-				// It fires on the session.updated ack (handleEvent) — with a timer
-				// fallback in case the ack never comes.
-				this.greetFallback = setTimeout(() => this.greet(), 2_000);
+				// NOTHING else happens until the session.updated ack confirms the
+				// instructions above were applied (handleEvent): the greeting is
+				// requested there, and the capture callback drops frames until then.
+				// If the ack never comes — the upstream REJECTS oversized/invalid
+				// instructions with an error event and no ack — the call is torn
+				// down as "unavailable" instead of running ungrounded. There is
+				// deliberately no greet-anyway fallback: it produced live calls
+				// that knew nothing about the business.
+				this.setupTimeout = setTimeout(
+					() => this.failSetup(),
+					SETUP_ACK_TIMEOUT_MS,
+				);
 				this.startCapture();
-				this.handlers.onStatus("listening");
+				// Status stays "connecting" until the ack — the capture gate is
+				// dropping every frame, and claiming "Listening…" here would be
+				// a lie the visitor can see.
 				resolve();
 			});
 			ws.addEventListener("message", (e) => this.handleEvent(e));
@@ -267,7 +313,10 @@ export class VoiceCallClient {
 				if (!this.stopped) {
 					this.stopped = true;
 					this.releaseAudio();
-					this.handlers.onStatus("ended");
+					// A server-side close BEFORE the session was configured is a
+					// failed setup, not a finished call — "Call ended" would tell
+					// the visitor a call happened.
+					this.handlers.onStatus(this.configured ? "ended" : "unavailable");
 				}
 			});
 		});
@@ -293,10 +342,27 @@ export class VoiceCallClient {
 		this.handlers.onStatus("ended");
 	}
 
+	/** Terminal setup failure: the configuring session.update was rejected or
+	 * never acknowledged. Close everything and surface "unavailable" — the one
+	 * state this client refuses to be in is a live, ungrounded call. */
+	private failSetup() {
+		if (this.stopped) {
+			return;
+		}
+		this.stopped = true;
+		try {
+			this.ws?.close();
+		} catch {
+			// Already closed/failed — releasing the audio below is what matters.
+		}
+		this.releaseAudio();
+		this.handlers.onStatus("unavailable");
+	}
+
 	private releaseAudio() {
-		if (this.greetFallback) {
-			clearTimeout(this.greetFallback);
-			this.greetFallback = null;
+		if (this.setupTimeout) {
+			clearTimeout(this.setupTimeout);
+			this.setupTimeout = null;
 		}
 		this.cancelPlayback();
 		this.processor?.disconnect();
@@ -320,6 +386,13 @@ export class VoiceCallClient {
 		this.processor = this.ctx.createScriptProcessor(CAPTURE_BUFFER_SIZE, 1, 1);
 		this.processor.onaudioprocess = (e) => {
 			if (this.micMuted || this.ws?.readyState !== WebSocket.OPEN) {
+				return;
+			}
+			// No audio before the session.updated ack: an unconfigured session
+			// answering committed speech is an ungrounded turn (same reference
+			// behavior as the gateway's own playground client, which drops mic
+			// frames until the session is live).
+			if (!this.configured) {
 				return;
 			}
 			const captured = e.inputBuffer.getChannelData(0);
@@ -361,8 +434,15 @@ export class VoiceCallClient {
 		}
 		switch (event.type) {
 			case "session.updated": {
-				// Instructions/voice are confirmed applied — NOW the greeting is
-				// grounded in the support prompt instead of an empty context.
+				// Instructions/voice are confirmed applied — the call is grounded.
+				// Only now do mic frames flow (see startCapture) and the greeting
+				// get requested.
+				this.configured = true;
+				if (this.setupTimeout) {
+					clearTimeout(this.setupTimeout);
+					this.setupTimeout = null;
+				}
+				this.handlers.onStatus("listening");
 				this.greet();
 				break;
 			}
@@ -380,14 +460,19 @@ export class VoiceCallClient {
 				break;
 			}
 			case "error": {
-				// Surfaced (not swallowed): a rejected session.update leaves the
-				// agent running WITHOUT the operator's instructions — the one
-				// warn keeps that diagnosable on any embed. Session-fatal errors
-				// additionally surface via onclose.
 				console.warn(
 					"clanker voice: realtime error event",
 					(event as { error?: { message?: string } }).error?.message ?? e.data,
 				);
+				// Before the session.updated ack, an error event is the upstream
+				// rejecting our configuring update (oversized/invalid instructions
+				// — no ack will ever come): tear the call down instead of letting
+				// it run without the operator's instructions. After the ack the
+				// session is grounded, so later errors stay non-fatal (fatal ones
+				// surface via onclose).
+				if (!this.configured) {
+					this.failSetup();
+				}
 				break;
 			}
 			default:
@@ -395,13 +480,10 @@ export class VoiceCallClient {
 		}
 	}
 
-	/** Request the agent's opening greeting exactly once — on the
-	 * session.updated ack, or the connect-time fallback timer. */
+	/** Request the agent's opening greeting exactly once — ONLY on the
+	 * session.updated ack. There is no unacked path here by design: a greeting
+	 * before the instructions apply is an ungrounded turn. */
 	private greet() {
-		if (this.greetFallback) {
-			clearTimeout(this.greetFallback);
-			this.greetFallback = null;
-		}
 		if (this.greeted || this.stopped) {
 			return;
 		}

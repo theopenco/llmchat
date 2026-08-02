@@ -13,6 +13,7 @@ const STATUS_LABEL: Record<VoiceCallStatus, string> = {
 	listening: "Listening…",
 	speaking: "Speaking…",
 	ended: "Call ended",
+	unavailable: "Voice is unavailable",
 	error: "Call failed",
 };
 
@@ -87,12 +88,13 @@ export function VoiceCall({
 			} catch (err) {
 				// Mint refused, mic denied, or the socket failed — one terminal
 				// state, but the hint names the actual cause (a mint failure must
-				// never read as a microphone problem).
+				// never read as a microphone problem). stop() FIRST: it emits
+				// "ended", which must not clobber the "error" set here.
+				client?.stop();
 				if (!cancelled) {
 					setHint(failureHint(err));
 					setStatus("error");
 				}
-				client?.stop();
 			}
 		})();
 		return () => {
@@ -134,6 +136,11 @@ export function VoiceCall({
 			{status === "error" && (
 				<p className="llmchat-voice-hint">
 					{hint ?? "We couldn't start the call. Please try again."}
+				</p>
+			)}
+			{status === "unavailable" && (
+				<p className="llmchat-voice-hint">
+					Voice is unavailable right now — please keep chatting below.
 				</p>
 			)}
 			<div className="llmchat-voice-controls">
