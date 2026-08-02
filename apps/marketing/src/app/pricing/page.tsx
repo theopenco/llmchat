@@ -87,7 +87,7 @@ function tierFeatures(plan: PaidPlan): string[] {
 				: "“Powered by” badge",
 		// Derived from the entitlement (like every bullet above) so the page can
 		// never advertise voice on a plan the server would 402.
-		...(t.voiceCalls ? ["Live AI voice calls in the widget"] : []),
+		...(t.voiceCalls ? ["Live voice calls in the widget"] : []),
 		TIER_META[plan].extra,
 	];
 }

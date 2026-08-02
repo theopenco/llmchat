@@ -393,6 +393,90 @@ describe("voice budget relief — named projects ONLY (audit finding 5 guard)", 
 	});
 });
 
+describe("per-workspace daily fleet bound", () => {
+	function primeGates() {
+		vi.mocked(rateLimit).mockResolvedValue({ ok: true, remaining: 1 });
+		vi.mocked(publicLookupRateLimit).mockResolvedValue({
+			ok: true,
+			remaining: 1,
+		});
+	}
+
+	it("a standard mint passes a shared per-WORKSPACE daily bucket — 100/day, fail-closed", async () => {
+		primeGates();
+		mockMint();
+		mockDb();
+		setPlan("scale");
+		const { ctx } = makeCtx();
+		const res = await send(ctx);
+		expect(res.status).toBe(200);
+		expect(rateLimit).toHaveBeenNthCalledWith(
+			3,
+			ENV,
+			"voice-ws-daily:ws_1",
+			100,
+			24 * 60 * 60,
+			{ failClosed: true },
+		);
+	});
+
+	it("a LISTED project skips the workspace bucket — its vetted 500/day is the bound", async () => {
+		// The raised list is a per-id vetting with its own enforced ceiling;
+		// sharing the fleet bucket would either nullify the relief (500 > 100)
+		// or let one dogfood project starve its workspace siblings.
+		primeGates();
+		mockMint();
+		mockDb();
+		setPlan("scale");
+		const env = {
+			vars: {
+				LLMGATEWAY_API_KEY: "llmgw_test",
+				LLMGATEWAY_BASE_URL: "https://api.llmgateway.io/v1",
+				VOICE_RAISED_LIMIT_PROJECTS: "p1",
+			},
+			DB: {},
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any;
+		const { ctx } = makeCtx();
+		const res = await voice.request(
+			"/voice/session",
+			{
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ projectKey: "pk_live", clientId: "c1" }),
+			},
+			env,
+			ctx as unknown as CtxArg,
+		);
+		expect(res.status).toBe(200);
+		expect(rateLimit).toHaveBeenCalledTimes(2);
+		for (const call of vi.mocked(rateLimit).mock.calls) {
+			expect(String(call[1])).not.toMatch(/^voice-ws-daily:/);
+		}
+	});
+
+	it("a workspace-bucket denial 429s the mint BEFORE any gateway call", async () => {
+		vi.mocked(publicLookupRateLimit).mockResolvedValue({
+			ok: true,
+			remaining: 1,
+		});
+		vi.mocked(rateLimit).mockImplementation(async (_env, key) =>
+			String(key).startsWith("voice-ws-daily:")
+				? { ok: false, remaining: 0 }
+				: { ok: true, remaining: 1 },
+		);
+		const fetchMock = mockMint();
+		mockDb();
+		setPlan("scale");
+		const { ctx } = makeCtx();
+		const res = await send(ctx);
+		expect(res.status).toBe(429);
+		// The fleet bound exists to gate operator-key gateway spend — a denial
+		// after the client_secrets mint would defeat its whole purpose.
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+});
+
 describe("voice instruction budget — the realtime 16,384-token cap (item 0)", () => {
 	async function mintInstructions(opts: Parameters<typeof mockDb>[0]) {
 		// Earlier describes leave ok:false implementations on the gate mocks

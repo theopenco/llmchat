@@ -1,5 +1,7 @@
+import { and, count, eq, gte, lt, usageEvent } from "@llmchat/db";
 import { ANALYTICS_EVENTS } from "@llmchat/shared";
 
+import { db } from "@/lib/db";
 import { postDiscordWebhook } from "@/lib/discord";
 
 import type { Env } from "@/env";
@@ -256,6 +258,54 @@ function productLabel(host: string): string | undefined {
 		?.label;
 }
 
+// The gateway's default per-session spend cap — the multiplier for the
+// worst-case realtime-spend bound in the digest. The audio never transits the
+// api (tokens/cost on the 'voice' usage rows are 0 by design), so the gateway
+// is the system of record for ACTUAL spend; this line is the honest local
+// bound: mints × the per-session cap.
+const VOICE_SESSION_SPEND_CAP_USD = 10;
+
+/** Voice-call session mints in the current vs previous period. */
+export interface VoiceMintCounts {
+	cur: number;
+	prev: number;
+}
+
+/**
+ * Count voice-call session mints for the report window from the usage_event
+ * table (kind='voice', one row per minted session — routes/voice.ts). Like
+ * the showcase probe, a failure here is report DATA, not a cron failure:
+ * returns null and the digest omits the line.
+ */
+export async function voiceMintCounts(
+	env: Env,
+	window: ReportWindow,
+): Promise<VoiceMintCounts | null> {
+	try {
+		const countIn = async (from: Date, to: Date) => {
+			const rows = await db(env)
+				.select({ n: count() })
+				.from(usageEvent)
+				.where(
+					and(
+						eq(usageEvent.kind, "voice"),
+						gte(usageEvent.createdAt, from),
+						lt(usageEvent.createdAt, to),
+					),
+				);
+			return num(rows[0]?.n);
+		};
+		const [cur, prev] = await Promise.all([
+			countIn(window.curStart, window.curEnd),
+			countIn(window.prevStart, window.curStart),
+		]);
+		return { cur, prev };
+	} catch (err) {
+		console.error("traffic-report: voice mint count failed", err);
+		return null;
+	}
+}
+
 /** Outcome of the weekly showcase-demo health probe (see probeShowcaseWidget). */
 export interface ShowcaseProbeResult {
 	ok: boolean;
@@ -268,6 +318,7 @@ export function buildTrafficEmbed(
 	window: ReportWindow,
 	data: TrafficData,
 	showcaseProbe?: ShowcaseProbeResult | null,
+	voiceMints?: VoiceMintCounts | null,
 ): DiscordEmbed {
 	// Overview: current vs previous totals.
 	const overall: Record<string, Totals> = {};
@@ -379,6 +430,14 @@ export function buildTrafficEmbed(
 		codeBlock(sources),
 		`**Traffic mix** · ${automatedShare}% automated`,
 		codeBlock(trafficMix),
+		// Realtime-spend visibility (voice audit fast-follow): voice mints carry
+		// zero token counts locally, so the line reports the count plus the only
+		// honest local bound — mints × the gateway's per-session spend cap.
+		...(voiceMints
+			? [
+					`**Voice calls** · ${fmt(voiceMints.cur)} minted (prev ${fmt(voiceMints.prev)}, ${formatDelta(voiceMints.cur, voiceMints.prev)}) · worst-case realtime spend ≤ $${fmt(voiceMints.cur * VOICE_SESSION_SPEND_CAP_USD)} (gateway $${VOICE_SESSION_SPEND_CAP_USD}/session cap)`,
+				]
+			: []),
 		// A dead public demo must be a Monday digest line, not a quarterly-audit
 		// discovery (the showcase key has shipped dead twice — task #125).
 		...(showcaseProbe
@@ -543,7 +602,7 @@ export async function runTrafficReport(
 					env.vars.SHOWCASE_WIDGET_KEY,
 				)
 			: Promise.resolve(null);
-	const [perHost, overall, events, sources, botSplit, showcaseProbe] =
+	const [perHost, overall, events, sources, botSplit, showcaseProbe, voice] =
 		await Promise.all([
 			runHogql(cfg, queries.perHost),
 			runHogql(cfg, queries.overall),
@@ -551,6 +610,7 @@ export async function runTrafficReport(
 			runHogql(cfg, queries.sources),
 			runHogql(cfg, queries.botSplit),
 			probePromise,
+			voiceMintCounts(env, window),
 		]);
 
 	const embed = buildTrafficEmbed(
@@ -563,6 +623,7 @@ export async function runTrafficReport(
 			botSplit,
 		},
 		showcaseProbe,
+		voice,
 	);
 	await postDiscordWebhook(DISCORD_TRAFFIC_NOTIFICATION_URL, {
 		embeds: [embed],

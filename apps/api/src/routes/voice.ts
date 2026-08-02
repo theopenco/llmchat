@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { publicLookupRateLimit, rateLimit } from "@/lib/kv";
-import { buildSystem } from "@/lib/llm";
+import { DEFAULT_GATEWAY_BASE, buildSystem } from "@/lib/llm";
 import { insertMessage } from "@/lib/messages";
 import { resolveAccess } from "@/lib/plan";
 import { captureEvent } from "@/lib/posthog";
@@ -45,13 +45,6 @@ const REALTIME_MODEL = "gpt-realtime";
 // Default output voice (gateway/OpenAI catalog).
 const REALTIME_VOICE = "marin";
 
-// Fallback when LLMGATEWAY_BASE_URL is unset in the runtime env — the same
-// default the AI SDK provider applies for chat, so voice and chat can never
-// disagree about where the gateway lives. (Prod initially shipped without the
-// var; chat kept working on the provider default while this route 500'd on
-// the undefined dereference.)
-const DEFAULT_GATEWAY_BASE = "https://api.llmgateway.io/v1";
-
 // Voice sessions cost realtime-audio money on the shared operator key (the
 // gateway's default per-session spend cap alone is $10), so the budgets are far
 // tighter than chat's 20/hr — and FAIL CLOSED, like the integration-action
@@ -60,6 +53,14 @@ const CALL_RATE_MAX = 4;
 const CALL_RATE_WINDOW = 60 * 60;
 const CALL_DAILY_MAX = 20;
 const CALL_DAILY_WINDOW = 24 * 60 * 60;
+
+// Workspace-wide daily aggregate on top of the per-project caps: voice is
+// Scale-only (maxProjects 20), so per-project buckets alone leave 20 × 20 =
+// 400 mints/day of workspace blast radius (~$4k at the gateway's $10
+// per-session spend cap). One shared fail-closed bucket bounds a workspace's
+// fleet at ~$1k/day worst case while still letting five projects run at
+// their full per-project cap simultaneously.
+const VOICE_WORKSPACE_DAILY_MAX = 100;
 
 // --- Named-project budget relief (supersedes 661cd84's workspace-scoped
 // exemption) ------------------------------------------------------------------
@@ -268,6 +269,23 @@ export const voice = new Hono<AppContext>().post(
 		if (!perProjectDaily.ok) {
 			return c.json({ error: "rate limit exceeded" }, 429);
 		}
+		// Fleet bound: one shared per-WORKSPACE daily bucket across all its
+		// projects (see VOICE_WORKSPACE_DAILY_MAX). Raised (listed) projects
+		// skip it: their relief is vetted per id and carries its own enforced
+		// 500/day — routing it through this bucket would either nullify the
+		// relief or let one dogfood project starve its workspace siblings.
+		if (!budgets.raised) {
+			const perWorkspaceDaily = await rateLimit(
+				c.env,
+				`voice-ws-daily:${project.workspaceId}`,
+				VOICE_WORKSPACE_DAILY_MAX,
+				CALL_DAILY_WINDOW,
+				{ failClosed: true },
+			);
+			if (!perWorkspaceDaily.ok) {
+				return c.json({ error: "rate limit exceeded" }, 429);
+			}
+		}
 
 		// Assemble the session instructions exactly like a chat turn: active
 		// prompt variant, knowledge base, active sources, and the STORED
@@ -410,7 +428,7 @@ export const voice = new Hono<AppContext>().post(
 						await insertMessage(c.env, {
 							conversationId: conv.id,
 							role: "system",
-							content: "Visitor started a voice call with the AI agent",
+							content: "Visitor started a voice call with the support agent",
 						});
 					}
 					await captureEvent(c.env, {

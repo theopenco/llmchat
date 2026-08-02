@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 
+import { DEFAULT_GATEWAY_BASE } from "@/lib/llm";
 import { requireSession } from "@/middleware/session";
 
 import type { AppContext, Env } from "@/env";
@@ -56,8 +57,7 @@ export const models = new Hono<AppContext>().get(
 			return c.body(cached.body, 200, jsonHeaders);
 		}
 
-		const base =
-			c.env.vars.LLMGATEWAY_BASE_URL || "https://api.llmgateway.io/v1";
+		const base = c.env.vars.LLMGATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE;
 		try {
 			const res = await fetch(`${base.replace(/\/+$/, "")}/models`);
 			if (!res.ok) {
