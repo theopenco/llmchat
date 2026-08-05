@@ -634,6 +634,14 @@ export const widgetStyles = `
 	border-radius: 9999px;
 	padding: 4px 12px;
 }
+/* Multi-line system rows (the voice-call transcript): the pill opens into a
+   left-aligned card, still in the muted system voice. */
+.llmchat-msg-system--block {
+	border-radius: 12px;
+	padding: 8px 12px;
+	text-align: left;
+	max-width: 90%;
+}
 
 /* ── Markdown bodies (assistant/agent replies, rendered by Streamdown) ──
    Streamdown emits Tailwind class names we don't ship, so the rendered

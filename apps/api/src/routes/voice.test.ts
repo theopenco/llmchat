@@ -8,10 +8,14 @@ import { captureEvent } from "@/lib/posthog";
 
 import { planEntitlements } from "@llmchat/shared";
 
+import { reserveOnce } from "@/lib/kv";
+
 import {
 	boundVoiceInstructions,
 	estimateRealtimeTokens,
+	formatTranscriptMessage,
 	resolveVoiceBudgets,
+	TRANSCRIPT_HEADER,
 	voice,
 	VOICE_CALL_STYLE_PROMPT,
 	VOICE_TOKEN_CEILING,
@@ -21,6 +25,7 @@ vi.mock("@/lib/db", () => ({ db: vi.fn() }));
 vi.mock("@/lib/kv", () => ({
 	rateLimit: vi.fn(async () => ({ ok: true })),
 	publicLookupRateLimit: vi.fn(async () => ({ ok: true })),
+	reserveOnce: vi.fn(async () => true),
 }));
 vi.mock("@/lib/plan", () => ({ resolveAccess: vi.fn() }));
 vi.mock("@/lib/posthog", () => ({ captureEvent: vi.fn(async () => {}) }));
@@ -66,7 +71,12 @@ function mockDb({
 		insert: () => ({
 			values: (v: unknown) => {
 				inserted.push(v);
-				return Promise.resolve([]);
+				// Awaitable directly (the usage-event insert) AND .returning()-capable
+				// (findOrCreateConversation's conversation insert).
+				const rows = [{ id: "conv_new", ...(v as Record<string, unknown>) }];
+				return Object.assign(Promise.resolve(rows), {
+					returning: async () => rows,
+				});
 			},
 		}),
 	} as unknown as ReturnType<typeof db>);
@@ -608,5 +618,190 @@ describe("estimateRealtimeTokens / boundVoiceInstructions (pure)", () => {
 		const last = cut.charCodeAt(cut.length - 1);
 		expect(last >= 0xd800 && last <= 0xdbff).toBe(false);
 		expect(a.estimatedTokens).toBeLessThanOrEqual(VOICE_TOKEN_CEILING);
+	});
+});
+
+describe("formatTranscriptMessage (pure)", () => {
+	it("renders Visitor/Agent lines under the transcript header", () => {
+		const out = formatTranscriptMessage([
+			{ role: "user", content: "How much does it cost?" },
+			{ role: "assistant", content: "Starts at $29 a month." },
+		]);
+		expect(out).toBe(
+			`${TRANSCRIPT_HEADER}\n\nVisitor: How much does it cost?\n\nAgent: Starts at $29 a month.`,
+		);
+	});
+
+	it("drops whitespace-only entries; all-empty input renders nothing", () => {
+		expect(
+			formatTranscriptMessage([
+				{ role: "user", content: "  " },
+				{ role: "assistant", content: "\n" },
+			]),
+		).toBe("");
+		const out = formatTranscriptMessage([
+			{ role: "user", content: "  hi  " },
+			{ role: "assistant", content: " " },
+		]);
+		expect(out).toBe(`${TRANSCRIPT_HEADER}\n\nVisitor: hi`);
+	});
+
+	it("over budget: drops the OLDEST turns behind an explicit omission note", () => {
+		const entries = Array.from({ length: 20 }, (_, i) => ({
+			role: (i % 2 === 0 ? "user" : "assistant") as "user" | "assistant",
+			content: `${i}:${"x".repeat(1_000)}`,
+		}));
+		const out = formatTranscriptMessage(entries);
+		expect(out.length).toBeLessThanOrEqual(16_000);
+		expect(out).toContain("earlier part of the call omitted");
+		// The tail (the resolution) survives; the head is what's gone.
+		expect(out).toContain(": 19:");
+		expect(out).not.toContain(": 0:");
+	});
+
+	it("hard-cuts a single runaway line that alone exceeds the budget", () => {
+		const out = formatTranscriptMessage([
+			{ role: "assistant", content: "y".repeat(40_000) },
+		]);
+		expect(out.length).toBe(16_000);
+		expect(out.startsWith(TRANSCRIPT_HEADER)).toBe(true);
+	});
+});
+
+describe("POST /voice/transcript — persists the call into the conversation", () => {
+	function sendTranscript(
+		ctx: ReturnType<typeof makeCtx>["ctx"],
+		overrides: Record<string, unknown> = {},
+	) {
+		return voice.request(
+			"/voice/transcript",
+			{
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({
+					projectKey: "pk_live",
+					clientId: "client_1",
+					callId: "call_1",
+					entries: [
+						{ role: "user", content: "Do you ship to Canada?" },
+						{ role: "assistant", content: "We do — takes 3 to 5 days." },
+					],
+					...overrides,
+				}),
+			},
+			ENV,
+			ctx as unknown as CtxArg,
+		);
+	}
+
+	it("appends one system transcript row to the existing conversation", async () => {
+		const inserted = mockDb({ conv: { id: "c1" } });
+		setPlan("scale");
+		const { ctx, settle } = makeCtx();
+		const res = await sendTranscript(ctx);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ ok: true, stored: true });
+		expect(insertMessage).toHaveBeenCalledTimes(1);
+		expect(insertMessage).toHaveBeenCalledWith(
+			ENV,
+			expect.objectContaining({
+				conversationId: "c1",
+				role: "system",
+				content: `${TRANSCRIPT_HEADER}\n\nVisitor: Do you ship to Canada?\n\nAgent: We do — takes 3 to 5 days.`,
+			}),
+		);
+		// An existing conversation is reused, never re-inserted.
+		expect(inserted).toHaveLength(0);
+		await settle();
+		expect(captureEvent).toHaveBeenCalledWith(
+			ENV,
+			expect.objectContaining({
+				event: "voice_call_transcribed",
+				properties: expect.objectContaining({ entry_count: 2 }),
+			}),
+		);
+	});
+
+	it("creates the conversation when the visitor called before ever typing", async () => {
+		const inserted = mockDb({ conv: null });
+		setPlan("scale");
+		const { ctx } = makeCtx();
+		const res = await sendTranscript(ctx);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ ok: true, stored: true });
+		expect(inserted).toHaveLength(1);
+		expect(inserted[0]).toMatchObject({
+			projectId: "p1",
+			clientId: "client_1",
+			messageCount: 0,
+		});
+		expect(insertMessage).toHaveBeenCalledWith(
+			ENV,
+			expect.objectContaining({ conversationId: "conv_new", role: "system" }),
+		);
+	});
+
+	it("402s below Scale — a transcript for a call that could never have happened", async () => {
+		mockDb({ conv: { id: "c1" } });
+		setPlan("growth");
+		const { ctx } = makeCtx();
+		const res = await sendTranscript(ctx);
+		expect(res.status).toBe(402);
+		expect(insertMessage).not.toHaveBeenCalled();
+	});
+
+	it("404s an unknown project key", async () => {
+		mockDb({ hasProject: false });
+		setPlan("scale");
+		const { ctx } = makeCtx();
+		const res = await sendTranscript(ctx);
+		expect(res.status).toBe(404);
+	});
+
+	it("exactly-once per callId: a raced duplicate stores nothing", async () => {
+		mockDb({ conv: { id: "c1" } });
+		setPlan("scale");
+		vi.mocked(reserveOnce).mockResolvedValueOnce(false);
+		const { ctx } = makeCtx();
+		const res = await sendTranscript(ctx);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ ok: true, stored: false });
+		expect(insertMessage).not.toHaveBeenCalled();
+	});
+
+	it("whitespace-only transcripts store nothing (and burn no dedupe slot)", async () => {
+		mockDb({ conv: { id: "c1" } });
+		setPlan("scale");
+		const { ctx } = makeCtx();
+		const res = await sendTranscript(ctx, {
+			entries: [{ role: "assistant", content: "   " }],
+		});
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ ok: true, stored: false });
+		expect(insertMessage).not.toHaveBeenCalled();
+		expect(reserveOnce).not.toHaveBeenCalled();
+	});
+
+	it("429s when the per-project transcript bucket is exhausted", async () => {
+		mockDb({ conv: { id: "c1" } });
+		setPlan("scale");
+		vi.mocked(rateLimit).mockResolvedValue({ ok: false, remaining: 0 });
+		const { ctx } = makeCtx();
+		const res = await sendTranscript(ctx);
+		expect(res.status).toBe(429);
+		expect(insertMessage).not.toHaveBeenCalled();
+	});
+
+	it("rejects oversized bodies at the schema (201 entries)", async () => {
+		mockDb({ conv: { id: "c1" } });
+		setPlan("scale");
+		const { ctx } = makeCtx();
+		const res = await sendTranscript(ctx, {
+			entries: Array.from({ length: 201 }, () => ({
+				role: "user",
+				content: "x",
+			})),
+		});
+		expect(res.status).toBe(400);
 	});
 });

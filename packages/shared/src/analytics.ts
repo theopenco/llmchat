@@ -60,6 +60,10 @@ export const ANALYTICS_EVENTS = {
 	// Captured server-side when the session secret is minted — the api never
 	// sees the audio, so this is the only reliable signal.
 	voiceCallStarted: "voice_call_started",
+	// A finished voice call's transcript was persisted into the conversation
+	// (widget-reported at call end). Props are CONTENT-FREE: project_id,
+	// workspace_id, entry_count — never transcript text.
+	voiceCallTranscribed: "voice_call_transcribed",
 } as const;
 
 export type AnalyticsEventName =
