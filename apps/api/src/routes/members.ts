@@ -51,9 +51,15 @@ async function otherOwnerCount(
 	return row?.n ?? 0;
 }
 
+// Middleware is attached PER ROUTE, never via `.use("*")`. A sub-app's
+// wildcard middleware is registered at the mount prefix (`/api/*`), so it also
+// runs for sibling sub-apps mounted at `/api` AFTER this one — which would put
+// requireWorkspace in front of `/api/invites/accept`, whose whole point is that
+// a brand-new invitee has no workspace yet. Route-scoped middleware makes the
+// mount order in index.ts irrelevant (pinned by the accept test, which composes
+// the app in production order).
 export const members = new Hono<AppContext>()
-	.use("*", requireSession, requireWorkspace)
-	.get("/members", async (c) => {
+	.get("/members", requireSession, requireWorkspace, async (c) => {
 		const workspaceId = c.get("workspaceId");
 		const rows = await db(c.env)
 			.select({
@@ -80,6 +86,8 @@ export const members = new Hono<AppContext>()
 	})
 	.patch(
 		"/members/:userId",
+		requireSession,
+		requireWorkspace,
 		requireOwner,
 		zValidator("json", roleInput),
 		async (c) => {
@@ -111,7 +119,7 @@ export const members = new Hono<AppContext>()
 			return c.json({ member: updated });
 		},
 	)
-	.delete("/members/:userId", async (c) => {
+	.delete("/members/:userId", requireSession, requireWorkspace, async (c) => {
 		const workspaceId = c.get("workspaceId");
 		const callerId = c.get("userId");
 		const targetUserId = c.req.param("userId");

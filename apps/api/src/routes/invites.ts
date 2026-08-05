@@ -11,7 +11,7 @@ import {
 	sha256Hex,
 } from "@/lib/invites";
 import { rateLimit } from "@/lib/kv";
-import { isUniqueViolation } from "@/lib/messages";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { memberCount, resolveAccess } from "@/lib/plan";
 import { captureInBackground } from "@/lib/posthog";
 import { clientIp } from "@/lib/request";

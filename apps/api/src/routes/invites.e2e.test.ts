@@ -49,6 +49,7 @@ import { captureInBackground } from "@/lib/posthog";
 
 import { invites } from "./invites";
 import { members } from "./members";
+import { workspaces } from "./workspaces";
 
 // ─── real sqlite via proxy (same rig as internal-notes.e2e) ─────────────────
 function applyMigrations(sqlite: DatabaseSync) {
@@ -169,9 +170,16 @@ function makeEnv(
 	} as unknown as Env;
 }
 
+// Mounted in the SAME ORDER as index.ts — workspaces, then members, then
+// invites. This is load-bearing, not cosmetic: a sub-app's `.use("*")`
+// middleware is registered at the mount prefix and also runs for sibling
+// sub-apps mounted at `/api` afterwards. Composing invites-first in the test
+// would hide a requireWorkspace bleeding onto /api/invites/accept, which must
+// work for an invitee who belongs to no workspace yet.
 const app = new Hono<AppContext>();
-app.route("/api", invites);
+app.route("/api", workspaces);
 app.route("/api", members);
+app.route("/api", invites);
 
 let sqlite: DatabaseSync;
 let ENV: Env;
@@ -410,6 +418,28 @@ describe("accept — possession, single-use, tenant isolation", () => {
 		const row = inviteRow(created.invite.id)!;
 		expect(row.accepted_at).not.toBeNull();
 		expect(row.accepted_by).toBe("u_new");
+	});
+
+	it("works with NO x-workspace-id header at all — the brand-new-invitee case", async () => {
+		// The invitee belongs to no workspace, so their client cannot send a
+		// workspace header. Any middleware demanding one (incl. one bleeding in
+		// from a sibling sub-app mounted earlier at /api) breaks the whole
+		// token-bearer flow; this is the regression pin for that.
+		const created = (await (await createInvite()).json()) as { link: string };
+		const token = tokenFromLink(created.link);
+		const preview = await app.request(
+			"/api/invites/preview",
+			{
+				method: "POST",
+				headers: asUser("u_new"),
+				body: JSON.stringify({ token }),
+			},
+			ENV,
+		);
+		expect(preview.status).toBe(200);
+		const res = await accept(token, "u_new");
+		expect(res.status).toBe(200);
+		expect(memberRow("ws_1", "u_new")).toBeDefined();
 	});
 
 	it("ignores x-workspace-id entirely: membership lands in the token's workspace", async () => {
