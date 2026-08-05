@@ -71,7 +71,11 @@ export function requireRole(min: Role) {
 	return createMiddleware<AppContext>(async (c, next) => {
 		const result = await resolveMembership(c);
 		if (result instanceof Response) return result;
-		if (ROLE_RANK[result] < ROLE_RANK[min]) {
+		// Member rows can be inserted outside the app (prod has hand-inserted
+		// rows), so `result` may hold a string outside the Role enum. An unknown
+		// role must rank BELOW every gate — without the ?? 0, its undefined rank
+		// makes the < comparison false and the gate silently passes.
+		if ((ROLE_RANK[result] ?? 0) < ROLE_RANK[min]) {
 			return c.json(
 				{ error: "forbidden", code: "insufficient_role", required: min },
 				403,
