@@ -9,6 +9,9 @@ export interface BootConfig {
 	mode: "bubble" | "inline";
 	/** Color scheme: light (default) | dark | auto (follows the OS). */
 	theme: WidgetTheme;
+	/** Proactive teaser bubbles above the closed launcher — on by default,
+	 * disabled with data-teaser="off". */
+	teaser: boolean;
 	/** Messages before the human-handoff prompt appears; undefined → widget default. */
 	escalationThreshold?: number;
 }
@@ -28,6 +31,8 @@ export function resolveConfig(script: HTMLScriptElement | null): BootConfig {
 	const mode = script?.dataset.mode === "inline" ? "inline" : "bubble";
 	// data-theme → light | dark | auto; anything else (or absent) stays light.
 	const theme = parseTheme(script?.dataset.theme);
+	// Teaser is opt-OUT: only the literal "off" disables it.
+	const teaser = script?.dataset.teaser !== "off";
 	if (!projectKey) {
 		throw new Error("[llmchat] missing data-project on widget script tag");
 	}
@@ -40,5 +45,13 @@ export function resolveConfig(script: HTMLScriptElement | null): BootConfig {
 	const escalationThreshold = Number.isFinite(parsedThreshold)
 		? parsedThreshold
 		: undefined;
-	return { projectKey, apiUrl, brandColor, mode, theme, escalationThreshold };
+	return {
+		projectKey,
+		apiUrl,
+		brandColor,
+		mode,
+		theme,
+		teaser,
+		escalationThreshold,
+	};
 }

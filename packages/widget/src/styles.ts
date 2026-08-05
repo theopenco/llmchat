@@ -194,6 +194,110 @@ export const widgetStyles = `
 	}
 }
 
+/* ── Proactive teaser ──────────────────────────────────────────────────
+   Floating message bubbles above the closed launcher (Chatbase-style): white
+   cards that invite the visitor in. Clicking a bubble opens the panel; the ×
+   dismisses for the session. Stacks bottom-up, right-aligned with the
+   launcher. */
+.llmchat-teaser {
+	position: fixed;
+	bottom: 108px;
+	right: 20px;
+	/* Below the launcher/panel so it can never cover either. */
+	z-index: 2147483645;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 8px;
+	max-width: min(340px, calc(100vw - 40px));
+}
+.llmchat-teaser-bubble {
+	background: var(--sf);
+	color: var(--tx);
+	border: none;
+	border-radius: 22px;
+	padding: 13px 17px;
+	font: inherit;
+	/* px, never rem — see the root comment (host pages rescale rem). */
+	font-size: 14.4px;
+	line-height: 1.45;
+	text-align: left;
+	cursor: pointer;
+	box-shadow:
+		0 12px 32px -12px rgba(0, 0, 0, 0.35),
+		0 0 0 1px rgba(0, 0, 0, 0.05);
+	/* "backwards" fill keeps a stagger-delayed bubble invisible until its turn
+	   (the second bubble's animation-delay is set inline by Teaser.tsx). */
+	animation: llmchat-teaser-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+	transition:
+		transform 0.15s ease,
+		box-shadow 0.15s ease;
+}
+.llmchat-teaser-bubble:hover {
+	transform: translateY(-1px);
+	box-shadow:
+		0 16px 36px -12px rgba(0, 0, 0, 0.4),
+		0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+.llmchat-teaser-bubble:focus-visible {
+	outline: none;
+	box-shadow:
+		0 12px 32px -12px rgba(0, 0, 0, 0.35),
+		0 0 0 2px var(--brand);
+}
+@keyframes llmchat-teaser-in {
+	from {
+		opacity: 0;
+		transform: translateY(10px) scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+/* Dismiss × — quiet until the visitor shows intent (hover/focus); always
+   visible where there is no hover to reveal it (touch). */
+.llmchat-teaser-dismiss {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: none;
+	border-radius: 9999px;
+	background: var(--sf);
+	color: var(--tx-4);
+	cursor: pointer;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.18),
+		0 0 0 1px rgba(0, 0, 0, 0.05);
+	opacity: 0;
+	transition:
+		opacity 0.15s ease,
+		color 0.15s ease;
+}
+.llmchat-teaser:hover .llmchat-teaser-dismiss,
+.llmchat-teaser-dismiss:focus-visible {
+	opacity: 1;
+}
+.llmchat-teaser-dismiss:hover {
+	color: var(--tx-2);
+}
+.llmchat-teaser-dismiss:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--brand);
+}
+.llmchat-teaser-dismiss svg {
+	width: 12px;
+	height: 12px;
+}
+@media (hover: none) {
+	.llmchat-teaser-dismiss {
+		opacity: 1;
+	}
+}
+
 /* Announced, never seen: the live region that tells a screen reader a reply
    arrived while the panel was closed. */
 .llmchat-sr-only {
