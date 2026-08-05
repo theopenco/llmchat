@@ -5,8 +5,8 @@ import {
 	DISCOUNT_ACTIVE,
 	DISCOUNT_PERCENT,
 	TRIAL_PERIOD_DAYS,
-	discountedUsd,
 	formatUsd,
+	originalUsd,
 } from "@llmchat/shared";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import { TrackedLink } from "@/components/TrackedLink";
@@ -65,13 +65,13 @@ export function PricingTeaser() {
 								</span>
 								<div className="mt-4 flex items-baseline gap-1.5">
 									<span className="font-display text-4xl font-semibold text-ink">
-										${formatUsd(discountedUsd(tier.priceUsdMonthly))}
+										${formatUsd(tier.priceUsdMonthly)}
 									</span>
 									<span className="text-sm text-muted">/month</span>
 									{DISCOUNT_ACTIVE && (
 										<>
 											<span className="text-sm text-faint line-through">
-												${formatUsd(tier.priceUsdMonthly)}
+												${formatUsd(originalUsd(tier.priceUsdMonthly))}
 											</span>
 											<span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-accent">
 												{DISCOUNT_PERCENT}% off

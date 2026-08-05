@@ -15,7 +15,6 @@ import {
 	BILLING_TIERS,
 	DISCOUNT_ACTIVE,
 	DISCOUNT_PERCENT,
-	discountedUsd,
 	formatUsd,
 } from "@llmchat/shared";
 
@@ -36,11 +35,11 @@ export interface LlmsTxtInput {
 	tools: { slug: string; name: string; tagline: string }[];
 }
 
-// Prices come from the shared entitlement table (discounted while a promotion
-// runs) so this file can never advertise a number the product doesn't charge.
-const STARTER = formatUsd(discountedUsd(BILLING_TIERS.starter.priceUsdMonthly));
-const GROWTH = formatUsd(discountedUsd(BILLING_TIERS.growth.priceUsdMonthly));
-const SCALE = formatUsd(discountedUsd(BILLING_TIERS.scale.priceUsdMonthly));
+// Prices come from the shared entitlement table (already the charged promo
+// prices) so this file can never advertise a number the product doesn't charge.
+const STARTER = formatUsd(BILLING_TIERS.starter.priceUsdMonthly);
+const GROWTH = formatUsd(BILLING_TIERS.growth.priceUsdMonthly);
+const SCALE = formatUsd(BILLING_TIERS.scale.priceUsdMonthly);
 const OFF = DISCOUNT_ACTIVE ? ` (${DISCOUNT_PERCENT}% off right now)` : "";
 const TWO_MONTHS_FREE = (
 	[BILLING_TIERS.starter, BILLING_TIERS.growth, BILLING_TIERS.scale] as const

@@ -9,8 +9,8 @@ import {
 	PAID_PLANS,
 	UNLIMITED,
 	canUseVoiceCalls,
-	discountedUsd,
 	formatUsd,
+	originalUsd,
 	isInternalEmail,
 	isModelAllowed,
 	isOverResponseQuota,
@@ -126,32 +126,33 @@ describe("promotion pricing", () => {
 		expect(DISCOUNT_ACTIVE).toBe(true);
 	});
 
-	it("discounts every paid tier's display price to whole cents", () => {
-		expect(discountedUsd(BILLING_TIERS.starter.priceUsdMonthly)).toBe(9.5);
-		expect(discountedUsd(BILLING_TIERS.growth.priceUsdMonthly)).toBe(44.5);
-		expect(discountedUsd(BILLING_TIERS.scale.priceUsdMonthly)).toBe(149.5);
-		expect(discountedUsd(BILLING_TIERS.starter.priceUsdAnnual)).toBe(95);
-		expect(discountedUsd(BILLING_TIERS.growth.priceUsdAnnual)).toBe(445);
-		expect(discountedUsd(BILLING_TIERS.scale.priceUsdAnnual)).toBe(1_495);
+	it("derives every paid tier's pre-promotion original price (2× at 50%)", () => {
+		// The tier table holds what Stripe charges TODAY; the struck-through
+		// original is derived, never stored.
+		expect(originalUsd(BILLING_TIERS.starter.priceUsdMonthly)).toBe(38);
+		expect(originalUsd(BILLING_TIERS.growth.priceUsdMonthly)).toBe(178);
+		expect(originalUsd(BILLING_TIERS.scale.priceUsdMonthly)).toBe(598);
+		expect(originalUsd(BILLING_TIERS.starter.priceUsdAnnual)).toBe(380);
+		expect(originalUsd(BILLING_TIERS.growth.priceUsdAnnual)).toBe(1_780);
+		expect(originalUsd(BILLING_TIERS.scale.priceUsdAnnual)).toBe(5_980);
 	});
 
-	it("formats whole dollars bare and discounted amounts with cents", () => {
+	it("formats whole dollars bare and fractional amounts with cents", () => {
 		expect(formatUsd(19)).toBe("19");
 		expect(formatUsd(9.5)).toBe("9.50");
-		expect(formatUsd(149.5)).toBe("149.50");
 		expect(formatUsd(1_495)).toBe("1,495");
-		expect(formatUsd(2_990)).toBe("2,990");
+		expect(formatUsd(5_980)).toBe("5,980");
 	});
 
-	it("phrases a discounted price with its list price for text surfaces", () => {
+	it("phrases a charged price with its original price for text surfaces", () => {
 		// While the promotion runs the phrase must carry BOTH numbers, so no text
 		// surface (FAQ, llms.txt, pricing.md) ever states the discount without the
 		// original price it's relative to.
 		expect(usdPhrase(BILLING_TIERS.starter.priceUsdMonthly)).toBe(
-			"$9.50 (normally $19)",
+			"$19 (normally $38)",
 		);
 		expect(usdPhrase(BILLING_TIERS.scale.priceUsdAnnual)).toBe(
-			"$1,495 (normally $2,990)",
+			"$2,990 (normally $5,980)",
 		);
 	});
 });

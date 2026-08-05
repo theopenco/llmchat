@@ -1,15 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { BILLING_TIERS, discountedUsd, formatUsd } from "@llmchat/shared";
+import { BILLING_TIERS, formatUsd } from "@llmchat/shared";
 import { fieldInput, fieldLabel } from "@/components/tools/field";
 import { useToolUsedOnce } from "@/components/tools/CopyButton";
 
 const TOOL = "support-roi-calculator";
 
-// What Starter actually costs right now (discounted while a promo runs) — the
-// honest denominator for "pays for itself N×".
-const starterPrice = discountedUsd(BILLING_TIERS.starter.priceUsdMonthly);
+const starterPrice = BILLING_TIERS.starter.priceUsdMonthly;
 const starterPriceLabel = formatUsd(starterPrice);
 
 const usd = new Intl.NumberFormat("en-US", {

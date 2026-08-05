@@ -6,8 +6,8 @@ import {
 	DISCOUNT_ACTIVE,
 	DISCOUNT_PERCENT,
 	TRIAL_PERIOD_DAYS,
-	discountedUsd,
 	formatUsd,
+	originalUsd,
 	type BillingInterval,
 } from "@llmchat/shared";
 
@@ -98,15 +98,15 @@ export function PricingPlans({
 			{/* Hosted tiers */}
 			<section className="mt-12 grid gap-6 lg:grid-cols-3">
 				{tiers.map((tier) => {
-					// List price for the cadence; what's charged is the discounted price
-					// (identical when no promotion runs — discountedUsd is the identity).
-					const listPrice = perMonth(tier, interval);
-					const price = discountedUsd(listPrice);
+					// What's charged for the cadence (the tier table already holds the
+					// promo price — it matches Stripe).
+					const price = perMonth(tier, interval);
 					const perDay = (price / 30).toFixed(2);
-					// Struck-through comparison: the list price while the promotion runs;
-					// otherwise (annual only) the monthly price the cadence undercuts.
+					// Struck-through comparison: the pre-promotion original price while
+					// the promotion runs; otherwise (annual only) the monthly price the
+					// cadence undercuts.
 					const struck = DISCOUNT_ACTIVE
-						? listPrice
+						? originalUsd(price)
 						: annual
 							? tier.priceMonthly
 							: null;
@@ -153,7 +153,7 @@ export function PricingPlans({
 							</div>
 							<p className="mt-1.5 text-[0.78rem] text-faint">
 								{annual
-									? `$${formatUsd(discountedUsd(tier.priceAnnual))} billed yearly · about $${perDay}/day`
+									? `$${formatUsd(tier.priceAnnual)} billed yearly · about $${perDay}/day`
 									: `About $${perDay}/day to deflect tickets`}
 							</p>
 

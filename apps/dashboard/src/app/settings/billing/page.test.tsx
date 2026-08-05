@@ -125,19 +125,19 @@ describe("BillingPage", () => {
 
 	// Data honesty: no free TIER (a free trial exists, a free plan doesn't), and
 	// the displayed prices are the real ones from the shared tier table (which
-	// match Stripe) — not fabricated. While the promotion runs, the discounted
-	// price is the current one and the list price renders struck through.
-	it("shows the real (discounted) tier prices and never a Free tier", () => {
+	// match Stripe) — not fabricated. While the promotion runs, the derived
+	// pre-promotion original price renders struck through beside each.
+	it("shows the real tier prices and never a Free tier", () => {
 		setWorkspace("none");
 		renderPage();
 		expect(screen.queryByText(/free (tier|plan)/i)).not.toBeInTheDocument();
-		expect(screen.getByText("$9.50")).toBeInTheDocument();
-		expect(screen.getByText("$44.50")).toBeInTheDocument();
-		expect(screen.getByText("$149.50")).toBeInTheDocument();
-		// The struck-through list prices stay visible for comparison.
 		expect(screen.getByText("$19")).toBeInTheDocument();
 		expect(screen.getByText("$89")).toBeInTheDocument();
 		expect(screen.getByText("$299")).toBeInTheDocument();
+		// The struck-through pre-promotion originals (2× at 50% off).
+		expect(screen.getByText("$38")).toBeInTheDocument();
+		expect(screen.getByText("$178")).toBeInTheDocument();
+		expect(screen.getByText("$598")).toBeInTheDocument();
 		expect(
 			screen.getByText(/a card is required to start/i),
 		).toBeInTheDocument();

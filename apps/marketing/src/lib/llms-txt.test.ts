@@ -1,4 +1,4 @@
-import { BILLING_TIERS, discountedUsd, formatUsd } from "@llmchat/shared";
+import { BILLING_TIERS, formatUsd } from "@llmchat/shared";
 import { describe, expect, it } from "vitest";
 
 import { buildLlmsTxt } from "./llms-txt";
@@ -116,9 +116,7 @@ describe("buildLlmsTxt", () => {
 	});
 
 	it("derives prices from BILLING_TIERS so the summary can never drift", () => {
-		// The advertised number is what's actually charged: the discounted price
-		// while a promotion runs (identity otherwise), never the bare list price.
-		const now = (n: number) => `$${formatUsd(discountedUsd(n))}/mo`;
+		const now = (n: number) => `$${formatUsd(n)}/mo`;
 		expect(out).toContain(now(BILLING_TIERS.starter.priceUsdMonthly));
 		expect(out).toContain(now(BILLING_TIERS.growth.priceUsdMonthly));
 		expect(out).toContain(now(BILLING_TIERS.scale.priceUsdMonthly));

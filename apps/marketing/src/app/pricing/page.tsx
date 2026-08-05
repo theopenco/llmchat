@@ -7,9 +7,9 @@ import {
 	ENTERPRISE_TIER,
 	PAID_PLANS,
 	TRIAL_PERIOD_DAYS,
-	discountedUsd,
 	formatUsd,
 	isUnlimited,
+	originalUsd,
 	usdPhrase,
 	type PaidPlan,
 } from "@llmchat/shared";
@@ -28,13 +28,12 @@ import {
 import { PricingPlans, type PlanCard } from "./PricingPlans";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
+// What Starter costs (the tier table holds the charged promo price).
 const starterPrice = BILLING_TIERS.starter.priceUsdMonthly;
-/** What Starter actually costs right now — discounted while the promo runs. */
-const starterNow = formatUsd(discountedUsd(starterPrice));
 
 export const metadata = pageMeta({
 	title: "Pricing — flat monthly or annual plans, free to self-host",
-	description: `Clanker Support pricing: flat plans from $${starterNow}/mo${
+	description: `Clanker Support pricing: flat plans from $${formatUsd(starterPrice)}/mo${
 		DISCOUNT_ACTIVE ? ` (${DISCOUNT_PERCENT}% off)` : ""
 	} with a 7-day free trial, no per-seat fees, two months free on annual, a 14-day money-back guarantee, or self-host free with your own keys.`,
 	path: "/pricing",
@@ -176,8 +175,7 @@ const pricingLd = {
 			return {
 				"@type": "Offer",
 				name: `${TIER_META[plan].name} (hosted)`,
-				// The amount actually charged — discounted while the promo runs.
-				price: String(discountedUsd(t.priceUsdMonthly)),
+				price: String(t.priceUsdMonthly),
 				priceCurrency: "USD",
 				description: `${fmt(t.maxResponsesPerMonth)} bot responses/mo, ${t.maxProjects} projects, ${seats}.`,
 			};
@@ -254,9 +252,9 @@ export default function PricingPage() {
 						The hosted product is paid-only — there&apos;s no free hosted tier,
 						so every plan above is paid. Each one starts with a{" "}
 						{TRIAL_PERIOD_DAYS}-day free trial (card required, no charge until
-						it ends), plans start at ${starterNow}/month
+						it ends), plans start at ${formatUsd(starterPrice)}/month
 						{DISCOUNT_ACTIVE &&
-							` (${DISCOUNT_PERCENT}% off the usual $${formatUsd(starterPrice)})`}{" "}
+							` (${DISCOUNT_PERCENT}% off the usual $${formatUsd(originalUsd(starterPrice))})`}{" "}
 						with no per-seat fees, and self-hosting stays free.
 					</p>
 				</section>

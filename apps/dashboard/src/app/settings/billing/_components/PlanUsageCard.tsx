@@ -1,8 +1,8 @@
 import {
 	DISCOUNT_ACTIVE,
-	discountedUsd,
 	formatUsd,
 	isPaidPlan,
+	originalUsd,
 	type TierEntitlements,
 } from "@llmchat/shared";
 
@@ -77,10 +77,10 @@ export function PlanUsageCard({
 							<span className="text-[13px] text-ck-muted">
 								{DISCOUNT_ACTIVE && (
 									<span className="mr-1 line-through opacity-70">
-										${formatUsd(priceUsdMonthly)}
+										${formatUsd(originalUsd(priceUsdMonthly))}
 									</span>
 								)}
-								${formatUsd(discountedUsd(priceUsdMonthly))}/mo
+								${formatUsd(priceUsdMonthly)}/mo
 							</span>
 						)}
 					</div>

@@ -7,9 +7,9 @@ import {
 	ENTERPRISE_TIER,
 	PAID_PLANS,
 	TRIAL_PERIOD_DAYS,
-	discountedUsd,
 	formatUsd,
 	isUnlimited,
+	originalUsd,
 	usdPhrase,
 	type PaidPlan,
 } from "@llmchat/shared";
@@ -293,13 +293,13 @@ export default function Home() {
 							<p className="animate-rise-in mt-4 text-[0.82rem] text-faint [animation-delay:240ms]">
 								{DISCOUNT_ACTIVE && (
 									<span className="mr-1 line-through">
-										${formatUsd(BILLING_TIERS.starter.priceUsdMonthly)}
+										$
+										{formatUsd(
+											originalUsd(BILLING_TIERS.starter.priceUsdMonthly),
+										)}
 									</span>
 								)}
-								$
-								{formatUsd(
-									discountedUsd(BILLING_TIERS.starter.priceUsdMonthly),
-								)}
+								${formatUsd(BILLING_TIERS.starter.priceUsdMonthly)}
 								/mo after the trial · No per-seat fees · Cancel anytime
 							</p>
 						</div>

@@ -6,8 +6,8 @@ import {
 	DISCOUNT_ACTIVE,
 	DISCOUNT_PERCENT,
 	TRIAL_PERIOD_DAYS,
-	discountedUsd,
 	formatUsd,
+	originalUsd,
 	isPaidPlan,
 	type BillingInterval,
 	type PaidPlan,
@@ -58,14 +58,14 @@ export function PlanTiers({
 				const pending = selecting === tier.plan;
 				// Annual = the yearly price spread across 12 (rounded for display);
 				// the exact yearly total is shown beneath, so rounding is never charged.
-				// The charged price is the discounted one (identity when no promo runs);
-				// the list price renders struck through beside it.
-				const listPerMonth = annual
+				// The tier table already holds the charged promo price; the struck-out
+				// comparison is the derived pre-promotion original (or, outside a
+				// promo, the monthly price the annual cadence undercuts).
+				const perMonth = annual
 					? Math.round(tier.priceUsdAnnual / 12)
 					: tier.priceUsdMonthly;
-				const perMonth = discountedUsd(listPerMonth);
 				const struck = DISCOUNT_ACTIVE
-					? listPerMonth
+					? originalUsd(perMonth)
 					: annual
 						? tier.priceUsdMonthly
 						: null;
@@ -107,7 +107,7 @@ export function PlanTiers({
 						</div>
 						<p className="mt-1 text-[13px] text-ck-muted">
 							{annual
-								? `$${formatUsd(discountedUsd(tier.priceUsdAnnual))}/yr · 2 months free`
+								? `$${formatUsd(tier.priceUsdAnnual)}/yr · 2 months free`
 								: tier.tagline}
 						</p>
 
