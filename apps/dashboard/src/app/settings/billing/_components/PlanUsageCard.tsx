@@ -1,4 +1,10 @@
-import { isPaidPlan, type TierEntitlements } from "@llmchat/shared";
+import {
+	DISCOUNT_ACTIVE,
+	discountedUsd,
+	formatUsd,
+	isPaidPlan,
+	type TierEntitlements,
+} from "@llmchat/shared";
 
 import { Button, Card, Progress } from "@/components/ds";
 import type { UsageSummary } from "@/lib/billing";
@@ -69,7 +75,12 @@ export function PlanUsageCard({
 						</span>
 						{subscribed && !exempt && priceUsdMonthly != null && (
 							<span className="text-[13px] text-ck-muted">
-								${priceUsdMonthly}/mo
+								{DISCOUNT_ACTIVE && (
+									<span className="mr-1 line-through opacity-70">
+										${formatUsd(priceUsdMonthly)}
+									</span>
+								)}
+								${formatUsd(discountedUsd(priceUsdMonthly))}/mo
 							</span>
 						)}
 					</div>

@@ -11,7 +11,13 @@
 // "Recrawl" on the llms.txt source in the dashboard — URL sources are stored
 // snapshots, not live fetches, so the agent stays stale until re-synced.
 
-import { BILLING_TIERS } from "@llmchat/shared";
+import {
+	BILLING_TIERS,
+	DISCOUNT_ACTIVE,
+	DISCOUNT_PERCENT,
+	discountedUsd,
+	formatUsd,
+} from "@llmchat/shared";
 
 import {
 	CANONICAL_SHOWCASE_URL,
@@ -30,16 +36,17 @@ export interface LlmsTxtInput {
 	tools: { slug: string; name: string; tagline: string }[];
 }
 
-// Prices come from the shared entitlement table so this file can never
-// advertise a number the product doesn't charge.
-const STARTER = BILLING_TIERS.starter.priceUsdMonthly;
-const GROWTH = BILLING_TIERS.growth.priceUsdMonthly;
-const SCALE = BILLING_TIERS.scale.priceUsdMonthly;
+// Prices come from the shared entitlement table (discounted while a promotion
+// runs) so this file can never advertise a number the product doesn't charge.
+const STARTER = formatUsd(discountedUsd(BILLING_TIERS.starter.priceUsdMonthly));
+const GROWTH = formatUsd(discountedUsd(BILLING_TIERS.growth.priceUsdMonthly));
+const SCALE = formatUsd(discountedUsd(BILLING_TIERS.scale.priceUsdMonthly));
+const OFF = DISCOUNT_ACTIVE ? ` (${DISCOUNT_PERCENT}% off right now)` : "";
 const TWO_MONTHS_FREE = (
 	[BILLING_TIERS.starter, BILLING_TIERS.growth, BILLING_TIERS.scale] as const
 ).every((t) => t.priceUsdAnnual === t.priceUsdMonthly * 10);
 
-export const SUMMARY = `An AI-powered support agent for your site — install it with one script tag or one React Server Component (${RSC_PACKAGE} on npm). It answers from your docs and sources, then escalates to your team. Open source (MIT) and self-hostable (bring your own keys); the hosted version has flat monthly plans from $${STARTER}/mo with no per-seat fees.`;
+export const SUMMARY = `An AI-powered support agent for your site — install it with one script tag or one React Server Component (${RSC_PACKAGE} on npm). It answers from your docs and sources, then escalates to your team. Open source (MIT) and self-hostable (bring your own keys); the hosted version has flat monthly plans from $${STARTER}/mo${OFF} with no per-seat fees.`;
 
 const DETAILS = [
 	"Official ways to install:",
@@ -68,7 +75,7 @@ export function buildLlmsTxt(siteUrl: string, input: LlmsTxtInput): string {
 		`- [Live demo](${CANONICAL_SHOWCASE_URL}): The real widget running on a first-party demo page — try it before installing.`,
 		`- [Templates](${siteUrl}/templates): One-click deploy starters — Next.js, TanStack Start, React Router, Laravel, and FastAPI — with the support agent pre-wired.`,
 		`- [Compare](${siteUrl}/compare): How Clanker Support compares to other AI support tools.`,
-		`- [Pricing](${siteUrl}/pricing.md): Machine-readable plans — self-host free; hosted Starter $${STARTER}/mo, Growth $${GROWTH}/mo, Scale $${SCALE}/mo${TWO_MONTHS_FREE ? " (annual = two months free)" : ""}.`,
+		`- [Pricing](${siteUrl}/pricing.md): Machine-readable plans — self-host free; hosted Starter $${STARTER}/mo, Growth $${GROWTH}/mo, Scale $${SCALE}/mo${OFF}${TWO_MONTHS_FREE ? " (annual = two months free)" : ""}.`,
 	];
 
 	if (input.features.length) {

@@ -3,7 +3,11 @@ import { Check } from "lucide-react";
 import { Badge, Button } from "@/components/ds";
 import { cn } from "@/lib/utils";
 import {
+	DISCOUNT_ACTIVE,
+	DISCOUNT_PERCENT,
 	TRIAL_PERIOD_DAYS,
+	discountedUsd,
+	formatUsd,
 	isPaidPlan,
 	type BillingInterval,
 	type PaidPlan,
@@ -54,9 +58,17 @@ export function PlanTiers({
 				const pending = selecting === tier.plan;
 				// Annual = the yearly price spread across 12 (rounded for display);
 				// the exact yearly total is shown beneath, so rounding is never charged.
-				const perMonth = annual
+				// The charged price is the discounted one (identity when no promo runs);
+				// the list price renders struck through beside it.
+				const listPerMonth = annual
 					? Math.round(tier.priceUsdAnnual / 12)
 					: tier.priceUsdMonthly;
+				const perMonth = discountedUsd(listPerMonth);
+				const struck = DISCOUNT_ACTIVE
+					? listPerMonth
+					: annual
+						? tier.priceUsdMonthly
+						: null;
 				return (
 					<section
 						key={tier.plan}
@@ -79,18 +91,23 @@ export function PlanTiers({
 
 						<div className="mt-2 flex items-baseline gap-1.5">
 							<span className="text-[26px] font-extrabold tracking-[-0.02em] text-ck-text">
-								${perMonth}
+								${formatUsd(perMonth)}
 							</span>
 							<span className="text-[13px] text-ck-faint">/mo</span>
-							{annual && (
+							{struck != null && (
 								<span className="text-[12px] text-ck-faint line-through">
-									${tier.priceUsdMonthly}
+									${formatUsd(struck)}
+								</span>
+							)}
+							{DISCOUNT_ACTIVE && (
+								<span className="rounded-full bg-ck-accent/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em] text-ck-accent">
+									{DISCOUNT_PERCENT}% off
 								</span>
 							)}
 						</div>
 						<p className="mt-1 text-[13px] text-ck-muted">
 							{annual
-								? `$${tier.priceUsdAnnual}/yr · 2 months free`
+								? `$${formatUsd(discountedUsd(tier.priceUsdAnnual))}/yr · 2 months free`
 								: tier.tagline}
 						</p>
 

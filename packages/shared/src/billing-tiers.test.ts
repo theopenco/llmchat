@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import {
 	BILLING_TIERS,
+	DISCOUNT_ACTIVE,
+	DISCOUNT_PERCENT,
 	ENTERPRISE_TIER,
 	INTERNAL_ENTITLEMENTS,
 	PAID_PLANS,
 	UNLIMITED,
 	canUseVoiceCalls,
+	discountedUsd,
+	formatUsd,
 	isInternalEmail,
 	isModelAllowed,
 	isOverResponseQuota,
@@ -15,6 +19,7 @@ import {
 	isWithinLimit,
 	planEntitlements,
 	showPoweredByBadge,
+	usdPhrase,
 } from "./billing-tiers";
 
 describe("planEntitlements", () => {
@@ -112,6 +117,42 @@ describe("tier shape invariants", () => {
 			const t = BILLING_TIERS[plan];
 			expect(t.priceUsdAnnual).toBe(t.priceUsdMonthly * 10);
 		}
+	});
+});
+
+describe("promotion pricing", () => {
+	it("runs the 50%-off promotion (DISCOUNT_ACTIVE gates all discount UI)", () => {
+		expect(DISCOUNT_PERCENT).toBe(50);
+		expect(DISCOUNT_ACTIVE).toBe(true);
+	});
+
+	it("discounts every paid tier's display price to whole cents", () => {
+		expect(discountedUsd(BILLING_TIERS.starter.priceUsdMonthly)).toBe(9.5);
+		expect(discountedUsd(BILLING_TIERS.growth.priceUsdMonthly)).toBe(44.5);
+		expect(discountedUsd(BILLING_TIERS.scale.priceUsdMonthly)).toBe(149.5);
+		expect(discountedUsd(BILLING_TIERS.starter.priceUsdAnnual)).toBe(95);
+		expect(discountedUsd(BILLING_TIERS.growth.priceUsdAnnual)).toBe(445);
+		expect(discountedUsd(BILLING_TIERS.scale.priceUsdAnnual)).toBe(1_495);
+	});
+
+	it("formats whole dollars bare and discounted amounts with cents", () => {
+		expect(formatUsd(19)).toBe("19");
+		expect(formatUsd(9.5)).toBe("9.50");
+		expect(formatUsd(149.5)).toBe("149.50");
+		expect(formatUsd(1_495)).toBe("1,495");
+		expect(formatUsd(2_990)).toBe("2,990");
+	});
+
+	it("phrases a discounted price with its list price for text surfaces", () => {
+		// While the promotion runs the phrase must carry BOTH numbers, so no text
+		// surface (FAQ, llms.txt, pricing.md) ever states the discount without the
+		// original price it's relative to.
+		expect(usdPhrase(BILLING_TIERS.starter.priceUsdMonthly)).toBe(
+			"$9.50 (normally $19)",
+		);
+		expect(usdPhrase(BILLING_TIERS.scale.priceUsdAnnual)).toBe(
+			"$1,495 (normally $2,990)",
+		);
 	});
 });
 

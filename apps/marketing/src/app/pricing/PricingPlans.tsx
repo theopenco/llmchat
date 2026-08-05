@@ -3,7 +3,11 @@
 import { useState } from "react";
 import {
 	ANALYTICS_EVENTS,
+	DISCOUNT_ACTIVE,
+	DISCOUNT_PERCENT,
 	TRIAL_PERIOD_DAYS,
+	discountedUsd,
+	formatUsd,
 	type BillingInterval,
 } from "@llmchat/shared";
 
@@ -94,8 +98,18 @@ export function PricingPlans({
 			{/* Hosted tiers */}
 			<section className="mt-12 grid gap-6 lg:grid-cols-3">
 				{tiers.map((tier) => {
-					const price = perMonth(tier, interval);
+					// List price for the cadence; what's charged is the discounted price
+					// (identical when no promotion runs — discountedUsd is the identity).
+					const listPrice = perMonth(tier, interval);
+					const price = discountedUsd(listPrice);
 					const perDay = (price / 30).toFixed(2);
+					// Struck-through comparison: the list price while the promotion runs;
+					// otherwise (annual only) the monthly price the cadence undercuts.
+					const struck = DISCOUNT_ACTIVE
+						? listPrice
+						: annual
+							? tier.priceMonthly
+							: null;
 					return (
 						<div
 							key={tier.plan}
@@ -121,20 +135,25 @@ export function PricingPlans({
 
 							<div className="mt-5 flex items-baseline gap-2">
 								<span className="font-display text-4xl font-semibold tracking-tight-display text-ink">
-									${price}
+									${formatUsd(price)}
 								</span>
 								<span className="font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint">
 									/ mo
 								</span>
-								{annual && (
+								{struck != null && (
 									<span className="font-mono text-[0.7rem] text-faint line-through">
-										${tier.priceMonthly}
+										${formatUsd(struck)}
+									</span>
+								)}
+								{DISCOUNT_ACTIVE && (
+									<span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-accent">
+										{DISCOUNT_PERCENT}% off
 									</span>
 								)}
 							</div>
 							<p className="mt-1.5 text-[0.78rem] text-faint">
 								{annual
-									? `$${tier.priceAnnual} billed yearly · about $${perDay}/day`
+									? `$${formatUsd(discountedUsd(tier.priceAnnual))} billed yearly · about $${perDay}/day`
 									: `About $${perDay}/day to deflect tickets`}
 							</p>
 

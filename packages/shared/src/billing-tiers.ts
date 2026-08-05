@@ -72,6 +72,47 @@ export type BillingInterval = "month" | "year";
  */
 export const TRIAL_PERIOD_DAYS = 7;
 
+/**
+ * Active sitewide promotion — percent off every paid tier's price. The
+ * `priceUsd*` fields below stay the LIST prices (what Stripe's base prices are
+ * named after); while the promotion runs, Stripe charges the discounted
+ * amount, and every surface renders the list price struck through with the
+ * discounted price as the current one. Single source of truth so the pricing
+ * page, dashboard paywall/billing, and the machine-readable pricing surfaces
+ * never disagree. Set to 0 to end the promotion — every surface reverts to
+ * plain list prices (discountedUsd becomes the identity).
+ */
+export const DISCOUNT_PERCENT = 50;
+
+/** Whether a promotion is live. All discount UI (strikethroughs, "% off"
+ * badges, "normally $X" copy) is gated on this. */
+export const DISCOUNT_ACTIVE = DISCOUNT_PERCENT > 0;
+
+/** A display price with the active discount applied, kept to whole cents
+ * ($19 → $9.50). Identity when no promotion is running. */
+export function discountedUsd(price: number): number {
+	return Math.round(price * (100 - DISCOUNT_PERCENT)) / 100;
+}
+
+/** Format a USD amount for display: whole dollars stay bare ("19", "1,495"),
+ * discounted amounts keep their cents ("9.50"). No currency symbol — every
+ * surface already places its own "$". */
+export function formatUsd(n: number): string {
+	return n.toLocaleString("en-US", {
+		minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+		maximumFractionDigits: 2,
+	});
+}
+
+/** A price phrase for text surfaces (FAQ, llms.txt, pricing.md): the
+ * discounted amount with the list price alongside while the promotion runs
+ * ("$9.50 (normally $19)"), or just the plain price otherwise ("$19"). */
+export function usdPhrase(price: number): string {
+	return DISCOUNT_ACTIVE
+		? `$${formatUsd(discountedUsd(price))} (normally $${formatUsd(price)})`
+		: `$${formatUsd(price)}`;
+}
+
 /** Sentinel for an "unlimited" cap. Large enough that isWithinLimit() never
  * blocks, and recognized by isUnlimited() so the UI renders "Unlimited" instead
  * of a meaningless nine-digit number. */

@@ -21,12 +21,17 @@ export {
 } from "./models";
 export {
 	BILLING_TIERS,
+	DISCOUNT_ACTIVE,
+	DISCOUNT_PERCENT,
 	ENTERPRISE_TIER,
 	INTERNAL_ENTITLEMENTS,
 	PAID_PLANS,
 	TRIAL_PERIOD_DAYS,
 	UNLIMITED,
 	canUseVoiceCalls,
+	discountedUsd,
+	formatUsd,
+	usdPhrase,
 	isInternalEmail,
 	isModelAllowed,
 	isOverResponseQuota,

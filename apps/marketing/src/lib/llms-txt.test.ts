@@ -1,4 +1,4 @@
-import { BILLING_TIERS } from "@llmchat/shared";
+import { BILLING_TIERS, discountedUsd, formatUsd } from "@llmchat/shared";
 import { describe, expect, it } from "vitest";
 
 import { buildLlmsTxt } from "./llms-txt";
@@ -116,9 +116,12 @@ describe("buildLlmsTxt", () => {
 	});
 
 	it("derives prices from BILLING_TIERS so the summary can never drift", () => {
-		expect(out).toContain(`$${BILLING_TIERS.starter.priceUsdMonthly}/mo`);
-		expect(out).toContain(`$${BILLING_TIERS.growth.priceUsdMonthly}/mo`);
-		expect(out).toContain(`$${BILLING_TIERS.scale.priceUsdMonthly}/mo`);
+		// The advertised number is what's actually charged: the discounted price
+		// while a promotion runs (identity otherwise), never the bare list price.
+		const now = (n: number) => `$${formatUsd(discountedUsd(n))}/mo`;
+		expect(out).toContain(now(BILLING_TIERS.starter.priceUsdMonthly));
+		expect(out).toContain(now(BILLING_TIERS.growth.priceUsdMonthly));
+		expect(out).toContain(now(BILLING_TIERS.scale.priceUsdMonthly));
 	});
 
 	// The WordPress plugin ships in-repo but is pending wordpress.org review —
