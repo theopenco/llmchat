@@ -29,6 +29,7 @@ import {
 	user,
 	verification,
 	workspace,
+	workspaceInvite,
 	type Database,
 } from "@llmchat/db";
 import { isPaidPlan } from "@llmchat/shared";
@@ -47,7 +48,7 @@ export interface OwnedWorkspace {
 // ─── Statement builders (pure: build, don't execute) ──────────────────────────
 
 /**
- * The 11-step, child→parent, set-based delete set for ONE workspace. Every
+ * The 12-step, child→parent, set-based delete set for ONE workspace. Every
  * statement is `DELETE … WHERE … IN (SELECT …)` (or a direct workspace_id), so
  * the statement count is constant regardless of data volume. Child→parent order
  * means it's also correct if FK enforcement is unexpectedly ON (no RESTRICT).
@@ -78,6 +79,7 @@ export function workspaceDeleteStatements(db: Database, wsId: string) {
 		db.delete(tag).where(eq(tag.workspaceId, wsId)),
 		db.delete(project).where(eq(project.workspaceId, wsId)),
 		db.delete(member).where(eq(member.workspaceId, wsId)),
+		db.delete(workspaceInvite).where(eq(workspaceInvite.workspaceId, wsId)),
 		db.delete(workspace).where(eq(workspace.id, wsId)),
 	];
 }
@@ -98,6 +100,10 @@ export function userDeleteStatements(
 			.update(message)
 			.set({ authorUserId: null })
 			.where(eq(message.authorUserId, userId)),
+		db
+			.update(workspaceInvite)
+			.set({ createdBy: null })
+			.where(eq(workspaceInvite.createdBy, userId)),
 		db.delete(member).where(eq(member.userId, userId)),
 		db.delete(readStatus).where(eq(readStatus.userId, userId)),
 		db.delete(account).where(eq(account.userId, userId)),

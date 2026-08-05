@@ -143,6 +143,37 @@ export const member = sqliteTable(
 	(t) => [uniqueIndex("member_workspace_user").on(t.workspaceId, t.userId)],
 );
 
+// Member invites (docs/goals/invites.md; migration 0026). The token exists at
+// rest ONLY as a SHA-256 hash; status is modeled as timestamps — pending ≡
+// acceptedAt IS NULL AND revokedAt IS NULL AND expiresAt > now. createdBy is
+// nullable so account deletion can scrub it (the authorUserId S6 pattern);
+// acceptedBy is audit-only (no FK). New TABLE, so this declaration is
+// preview-safe (#167): un-migrated preview DBs degrade only invite queries.
+export const workspaceInvite = sqliteTable(
+	"workspace_invite",
+	{
+		id: id(),
+		workspaceId: text()
+			.notNull()
+			.references(() => workspace.id, { onDelete: "cascade" }),
+		email: text().notNull(),
+		role: text({ enum: ["admin", "agent"] })
+			.notNull()
+			.default("agent"),
+		tokenHash: text().notNull(),
+		createdBy: text().references(() => user.id),
+		acceptedBy: text(),
+		expiresAt: timestamp().notNull(),
+		acceptedAt: timestamp(),
+		revokedAt: timestamp(),
+		createdAt: createdAt(),
+	},
+	(t) => [
+		uniqueIndex("workspace_invite_token_hash").on(t.tokenHash),
+		index("workspace_invite_workspace").on(t.workspaceId),
+	],
+);
+
 export const project = sqliteTable(
 	"project",
 	{

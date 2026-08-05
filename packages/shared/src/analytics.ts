@@ -31,6 +31,11 @@ export const ANALYTICS_EVENTS = {
 	replySent: "reply_sent",
 	noteAdded: "note_added",
 	integrationConnected: "integration_connected",
+	// Member invites (docs/goals/invites.md). Captured server-side with
+	// distinct_id = workspace id; properties are workspace_id + role ONLY —
+	// never the invitee email and never any token material (R5, pinned by test).
+	inviteSent: "invite_sent",
+	inviteAccepted: "invite_accepted",
 
 	// ── Billing funnel ──────────────────────────────────────────────
 	// checkout_started fires client-side (dashboard, before the Stripe

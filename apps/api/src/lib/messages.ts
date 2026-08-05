@@ -21,7 +21,7 @@ export interface InsertMessageInput {
  * Walks the cause chain: drizzle 0.45 wraps EVERY driver error in
  * DrizzleQueryError ("Failed query: …") and the "UNIQUE constraint failed"
  * text lives only on err.cause — a message-only check never matches in prod. */
-function isUniqueViolation(err: unknown): boolean {
+export function isUniqueViolation(err: unknown): boolean {
 	const seen = new Set<unknown>();
 	for (let e: unknown = err; e && !seen.has(e); ) {
 		seen.add(e);
