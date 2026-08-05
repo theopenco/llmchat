@@ -52,7 +52,11 @@ const CREATE_PER_OPERATOR_MAX = 10; // per operator per workspace per hour
 const CREATE_PER_WORKSPACE_MAX = 50; // per workspace per day
 // Accept/preview probes per IP per hour (fail CLOSED): bounds token probing
 // and the DB lookups behind it; the 256-bit token is the real guessing bound.
-const REDEEM_PER_IP_MAX = 20;
+// SEPARATE buckets: a shared office NAT (or a self-host where clientIp falls
+// back to "unknown" for everyone) must not have its cheap preview reads eat
+// the budget that actual accepts need.
+const PREVIEW_PER_IP_MAX = 60;
+const ACCEPT_PER_IP_MAX = 20;
 
 type InviteRow = NonNullable<
 	Awaited<
@@ -89,6 +93,11 @@ async function unburn(env: Env, inviteId: string, userId: string) {
 				and(
 					eq(workspaceInvite.id, inviteId),
 					eq(workspaceInvite.acceptedBy, userId),
+					// If an operator revoked during the burn window their revoke
+					// found no pending row and silently no-op'd; un-burning here
+					// would resurrect an invite they meant to kill. Leaving it
+					// consumed is the fail-closed direction.
+					isNull(workspaceInvite.revokedAt),
 				),
 			);
 	} catch (err) {
@@ -239,6 +248,9 @@ export const invites = new Hono<AppContext>()
 			try {
 				await sendEmail(c.env, {
 					to: email,
+					// The body carries the bearer link: no dev-fallback body log, no
+					// provider error body in the thrown error.
+					sensitive: true,
 					...buildInviteEmail({
 						workspaceName: ws?.name ?? "your workspace",
 						inviterName: inviter?.name ?? null,
@@ -294,8 +306,8 @@ export const invites = new Hono<AppContext>()
 		async (c) => {
 			const gate = await rateLimit(
 				c.env,
-				`invite-accept:${clientIp(c)}`,
-				REDEEM_PER_IP_MAX,
+				`invite-preview:${clientIp(c)}`,
+				PREVIEW_PER_IP_MAX,
 				3600,
 				{ failClosed: true },
 			);
@@ -333,7 +345,7 @@ export const invites = new Hono<AppContext>()
 			const gate = await rateLimit(
 				c.env,
 				`invite-accept:${clientIp(c)}`,
-				REDEEM_PER_IP_MAX,
+				ACCEPT_PER_IP_MAX,
 				3600,
 				{ failClosed: true },
 			);
@@ -389,6 +401,12 @@ export const invites = new Hono<AppContext>()
 				return c.json({ error: why }, 410);
 			}
 
+			// The row's role decides the membership we mint, and nothing in SQLite
+			// constrains that column to the enum — a hand-inserted invite row (prod
+			// has hand-inserted MEMBER rows) could carry 'owner'. Re-validate here
+			// so the only roles this endpoint can ever grant are the invitable two.
+			const grantedRole = invite.role === "admin" ? "admin" : "agent";
+
 			// 2) Seat-guarded INSERT — count guard and insert are ONE statement
 			// (#146's per-statement atomicity), so parallel accepts cannot
 			// overshoot the cap. RETURNING says whether this request won a seat.
@@ -396,7 +414,7 @@ export const invites = new Hono<AppContext>()
 			try {
 				inserted = await db(c.env).all(sql`
 					INSERT INTO member (id, workspace_id, user_id, role, created_at)
-					SELECT ${crypto.randomUUID()}, ${invite.workspaceId}, ${userId}, ${invite.role}, unixepoch()
+					SELECT ${crypto.randomUUID()}, ${invite.workspaceId}, ${userId}, ${grantedRole}, unixepoch()
 					WHERE (SELECT COUNT(*) FROM member WHERE workspace_id = ${invite.workspaceId}) < ${cap}
 					RETURNING id
 				`);
@@ -422,7 +440,7 @@ export const invites = new Hono<AppContext>()
 			captureInBackground(c, {
 				event: ANALYTICS_EVENTS.inviteAccepted,
 				distinctId: invite.workspaceId,
-				properties: { workspace_id: invite.workspaceId, role: invite.role },
+				properties: { workspace_id: invite.workspaceId, role: grantedRole },
 			});
 			return c.json({ workspaceId: invite.workspaceId });
 		},

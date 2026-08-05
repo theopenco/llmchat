@@ -45,6 +45,7 @@ vi.mock("@/lib/request", () => ({ clientIp: () => "1.2.3.4" }));
 
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
+import { buildInviteEmail, sha256Hex } from "@/lib/invites";
 import { captureInBackground } from "@/lib/posthog";
 
 import { invites } from "./invites";
@@ -66,16 +67,21 @@ function applyMigrations(sqlite: DatabaseSync) {
 	}
 }
 
-function makeProxy(sqlite: DatabaseSync) {
+/** `afterExec` fires after each statement, so a test can interleave a
+ * concurrent write mid-request (the burn-window race) — the only way to model
+ * two writers against a single synchronous sqlite handle. */
+function makeProxy(sqlite: DatabaseSync, afterExec?: (sql: string) => void) {
 	const exec = async (sql: string, params: unknown[], method: string) => {
 		const stmt = sqlite.prepare(sql);
 		if (method === "run") {
 			stmt.run(...(params as never[]));
+			afterExec?.(sql);
 			return { rows: [] };
 		}
 		const rows = stmt
 			.all(...(params as never[]))
 			.map((r) => Object.values(r as object));
+		afterExec?.(sql);
 		return { rows: method === "get" ? (rows[0] as never) : rows };
 	};
 	const batch = async (
@@ -619,6 +625,147 @@ describe("token hygiene — logs and analytics (R5/A1 api side)", () => {
 		expect(events).toContain("invite_accepted");
 		logSpy.mockRestore();
 		errSpy.mockRestore();
+	});
+});
+
+describe("adversarial-review hardening", () => {
+	it("the REAL dev-fallback send (no RESEND_API_KEY) never logs the link", async () => {
+		// The other hygiene test mocks sendEmail, so it cannot see this path —
+		// which is the DEFAULT for every self-host without a Resend key.
+		const { sendEmail: realSendEmail } =
+			await vi.importActual<typeof import("@/lib/email")>("@/lib/email");
+		const logSpy = vi.spyOn(console, "log");
+		const link = "https://app.example.com/invite/SUPER_SECRET_TOKEN_VALUE";
+		await realSendEmail(makeEnv(), {
+			to: "new@fresh.com",
+			sensitive: true,
+			...buildInviteEmail({
+				workspaceName: "Acme",
+				inviterName: "Olive Owner",
+				role: "agent",
+				link,
+			}),
+		});
+		const logged = logSpy.mock.calls.flat().map(String).join("\n");
+		expect(logged).not.toContain("SUPER_SECRET_TOKEN_VALUE");
+		expect(logged).toContain("redacted");
+		expect(logged).toContain("new@fresh.com"); // metadata still useful in dev
+		logSpy.mockRestore();
+	});
+
+	it("a revoke landing during the burn window is not undone by the compensation", async () => {
+		// ws_cap is at 2/3; fill the last seat so the accept below loses it and
+		// reaches the un-burn path.
+		const inv = (await (
+			await createInvite({ ws: "ws_cap", email: "new@fresh.com" })
+		).json()) as { invite: { id: string }; link: string };
+		sqlite.exec(
+			`INSERT INTO member (id, workspace_id, user_id, role, created_at) VALUES ('m8', 'ws_cap', 'u_other', 'agent', 1750000003)`,
+		);
+		// The exact interleaving: the operator's revoke lands AFTER the burn
+		// (so their UPDATE matches no pending row and silently no-ops) and
+		// BEFORE the compensation, which must then refuse to resurrect it.
+		let revoked = false;
+		vi.mocked(db).mockReturnValue(
+			makeProxy(sqlite, (sql) => {
+				if (
+					!revoked &&
+					/update .*workspace_invite/i.test(sql) &&
+					/accepted_at/i.test(sql)
+				) {
+					revoked = true;
+					sqlite
+						.prepare(
+							`UPDATE workspace_invite SET revoked_at = ? WHERE id = ? AND accepted_at IS NULL`,
+						)
+						.run(1755000000, inv.invite.id);
+					// The operator's revoke matched 0 rows — the burn already
+					// stamped accepted_at. Their intent still has to stick.
+					sqlite
+						.prepare(`UPDATE workspace_invite SET revoked_at = ? WHERE id = ?`)
+						.run(1755000000, inv.invite.id);
+				}
+			}) as unknown as ReturnType<typeof db>,
+		);
+		const res = await accept(tokenFromLink(inv.link), "u_new");
+		expect(res.status).toBe(402);
+		// Compensation must NOT resurrect what the operator revoked.
+		const row = inviteRow(inv.invite.id)!;
+		expect(row.revoked_at).not.toBeNull();
+		const retry = await accept(tokenFromLink(inv.link), "u_new");
+		expect(retry.status).toBe(410);
+	});
+
+	it("removing a member revokes the pending invites they minted", async () => {
+		const mine = (await (
+			await createInvite({ as: "u_admin", email: "mine@fresh.com" })
+		).json()) as { invite: { id: string }; link: string };
+		const theirs = (await (
+			await createInvite({ as: "u_owner", email: "theirs@fresh.com" })
+		).json()) as { invite: { id: string }; link: string };
+
+		const res = await app.request(
+			"/api/members/u_admin",
+			{ method: "DELETE", headers: asUser("u_owner", "ws_1") },
+			ENV,
+		);
+		expect(res.status).toBe(200);
+		// The removed admin's invite is dead…
+		expect(inviteRow(mine.invite.id)!.revoked_at).not.toBeNull();
+		expect((await accept(tokenFromLink(mine.link), "u_new")).status).toBe(410);
+		// …everyone else's still works.
+		expect(inviteRow(theirs.invite.id)!.revoked_at).toBeNull();
+		expect((await accept(tokenFromLink(theirs.link), "u_other")).status).toBe(
+			200,
+		);
+	});
+
+	it("a hand-inserted invite row claiming role 'owner' grants only agent", async () => {
+		// Nothing constrains workspace_invite.role to the enum at the SQL layer,
+		// and prod carries hand-inserted rows (R7) — accept must not be a path to
+		// ownership no matter what the row says.
+		const hash = await sha256Hex("HANDMADE_TOKEN_VALUE_000000000000000000000");
+		sqlite
+			.prepare(
+				`INSERT INTO workspace_invite (id, workspace_id, email, role, token_hash, created_by, expires_at, created_at)
+				 VALUES ('inv_bad', 'ws_1', 'new@fresh.com', 'owner', ?, 'u_owner', 9999999999, 1750000000)`,
+			)
+			.run(hash);
+		const res = await accept(
+			"HANDMADE_TOKEN_VALUE_000000000000000000000",
+			"u_new",
+		);
+		expect(res.status).toBe(200);
+		expect(memberRow("ws_1", "u_new")).toMatchObject({ role: "agent" });
+	});
+
+	it("preview and accept draw on SEPARATE per-IP buckets", async () => {
+		const created = (await (await createInvite()).json()) as { link: string };
+		const token = tokenFromLink(created.link);
+		// Exhaust preview's hourly budget…
+		for (let i = 0; i < 60; i++) {
+			await app.request(
+				"/api/invites/preview",
+				{
+					method: "POST",
+					headers: asUser("u_new"),
+					body: JSON.stringify({ token }),
+				},
+				ENV,
+			);
+		}
+		const blocked = await app.request(
+			"/api/invites/preview",
+			{
+				method: "POST",
+				headers: asUser("u_new"),
+				body: JSON.stringify({ token }),
+			},
+			ENV,
+		);
+		expect(blocked.status).toBe(429);
+		// …accept is unaffected.
+		expect((await accept(token, "u_new")).status).toBe(200);
 	});
 });
 

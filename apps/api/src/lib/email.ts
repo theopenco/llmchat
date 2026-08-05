@@ -7,6 +7,11 @@ export interface SendArgs {
 	text?: string;
 	replyTo?: string;
 	headers?: Record<string, string>;
+	/** The body carries a credential (an invite link, a one-time code). The
+	 * dev fallback then logs metadata ONLY, and a send failure reports the
+	 * status without the response body — a bearer token must never reach the
+	 * log stream, on a self-host without RESEND_API_KEY least of all. */
+	sensitive?: boolean;
 }
 
 export async function sendEmail(env: Env, args: SendArgs) {
@@ -15,7 +20,11 @@ export async function sendEmail(env: Env, args: SendArgs) {
 		console.log(`[email] to: ${args.to}`);
 		console.log(`[email] subject: ${args.subject}`);
 		if (args.replyTo) console.log(`[email] reply-to: ${args.replyTo}`);
-		console.log(`[email] body: ${args.html}`);
+		console.log(
+			args.sensitive
+				? "[email] body: <redacted — contains a one-time credential>"
+				: `[email] body: ${args.html}`,
+		);
 		return { id: "dev-noop" };
 	}
 	const res = await fetch("https://api.resend.com/emails", {
@@ -35,6 +44,12 @@ export async function sendEmail(env: Env, args: SendArgs) {
 		}),
 	});
 	if (!res.ok) {
+		// A provider error body can echo the submitted payload back. For a
+		// credential-bearing send that would put the token in whatever logs the
+		// thrown error, so report the status alone.
+		if (args.sensitive) {
+			throw new Error(`Resend error ${res.status}`);
+		}
 		const body = await res.text();
 		throw new Error(`Resend error ${res.status}: ${body}`);
 	}

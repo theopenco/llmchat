@@ -17,11 +17,13 @@ import {
 	count,
 	eq,
 	inArray,
+	isNull,
 	member,
 	ne,
 	project,
 	readStatus,
 	user,
+	workspaceInvite,
 	type Database,
 } from "@llmchat/db";
 import { isUnlimited } from "@llmchat/shared";
@@ -165,6 +167,20 @@ export const members = new Hono<AppContext>()
 			.from(conversation)
 			.where(inArray(conversation.projectId, projIds));
 		await dbi.batch([
+			// Revoke the pending invites this person minted. Otherwise a removed
+			// admin keeps a live 7-day path back in: accept authorizes on
+			// possession of the token, not on who still works here.
+			dbi
+				.update(workspaceInvite)
+				.set({ revokedAt: new Date() })
+				.where(
+					and(
+						eq(workspaceInvite.workspaceId, workspaceId),
+						eq(workspaceInvite.createdBy, targetUserId),
+						isNull(workspaceInvite.acceptedAt),
+						isNull(workspaceInvite.revokedAt),
+					),
+				),
 			dbi
 				.delete(readStatus)
 				.where(
