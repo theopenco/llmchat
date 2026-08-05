@@ -97,10 +97,11 @@ async function unburn(env: Env, inviteId: string, userId: string) {
 				and(
 					eq(workspaceInvite.id, inviteId),
 					eq(workspaceInvite.acceptedBy, userId),
-					// If an operator revoked during the burn window their revoke
-					// found no pending row and silently no-op'd; un-burning here
-					// would resurrect an invite they meant to kill. Leaving it
-					// consumed is the fail-closed direction.
+					// Belt to revoke's braces. Revoke stamps revokedAt regardless of
+					// acceptedAt, so a revoked row is already dead at the burn guard
+					// and no mutation of this line alone changes an observable
+					// outcome — it is kept so the compensation stays correct on its
+					// own terms if revoke's predicate is ever narrowed again.
 					isNull(workspaceInvite.revokedAt),
 				),
 			);
