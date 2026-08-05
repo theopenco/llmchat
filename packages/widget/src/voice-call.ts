@@ -162,6 +162,125 @@ export function resampleLinear(
 // instructions, which is never acceptable.
 export const SETUP_ACK_TIMEOUT_MS = 5_000;
 
+// Input (visitor speech) transcription model, enabled via a second
+// session.update AFTER the configuring one is acked — see enableTranscription.
+const TRANSCRIPTION_MODEL = "whisper-1";
+
+// ── Call transcript ─────────────────────────────────────────────────────────
+
+export interface TranscriptEntry {
+	role: "user" | "assistant";
+	content: string;
+}
+
+/**
+ * Assembles the call transcript from realtime events, in CONVERSATION order —
+ * which is not arrival order: the visitor's input transcription (Whisper) often
+ * completes AFTER the agent's answer has already streamed its own transcript.
+ * Items are therefore anchored when the conversation item is announced
+ * (conversation.item.added/created) and their text filled in as transcripts
+ * land. Output deltas are kept as a fallback so a call that ends mid-response
+ * still captures the partial answer. Pure; exported for tests.
+ */
+export class TranscriptRecorder {
+	private order: string[] = [];
+	private items = new Map<
+		string,
+		{ role: "user" | "assistant"; text: string; deltas: string }
+	>();
+
+	/** Anchor (or fetch) an item slot. First sight fixes its position — an
+	 * item announced late (transcript before item.added) appends at the end,
+	 * which is the best remaining guess. */
+	private ensure(itemId: string, role: "user" | "assistant") {
+		let item = this.items.get(itemId);
+		if (!item) {
+			item = { role, text: "", deltas: "" };
+			this.items.set(itemId, item);
+			this.order.push(itemId);
+		}
+		return item;
+	}
+
+	addItem(itemId: string, role: "user" | "assistant") {
+		this.ensure(itemId, role);
+	}
+
+	appendAssistantDelta(itemId: string, delta: string) {
+		this.ensure(itemId, "assistant").deltas += delta;
+	}
+
+	setText(itemId: string, role: "user" | "assistant", text: string) {
+		this.ensure(itemId, role).text = text;
+	}
+
+	/** The transcript so far: conversation order, final text where it exists,
+	 * accumulated deltas otherwise, empty items dropped. */
+	entries(): TranscriptEntry[] {
+		return this.order
+			.map((id) => this.items.get(id)!)
+			.map((item) => ({
+				role: item.role,
+				content: (item.text || item.deltas).trim(),
+			}))
+			.filter((e) => e.content.length > 0);
+	}
+}
+
+// keepalive fetch (the transport that survives page dismissal) caps the body
+// at 64KB; stay safely under it. Recent turns win — on a support call the end
+// (the resolution) matters more than a long middle.
+const TRANSCRIPT_POST_MAX_ENTRY_CHARS = 2_000;
+const TRANSCRIPT_POST_MAX_BYTES = 56_000;
+
+/** Bound a transcript for the wire: per-entry cap, then drop OLDEST entries
+ * until the JSON payload fits the keepalive budget. Pure; exported for tests. */
+export function boundTranscriptForPost(
+	entries: TranscriptEntry[],
+): TranscriptEntry[] {
+	let bounded = entries.map((e) => ({
+		role: e.role,
+		content:
+			e.content.length > TRANSCRIPT_POST_MAX_ENTRY_CHARS
+				? e.content.slice(0, TRANSCRIPT_POST_MAX_ENTRY_CHARS)
+				: e.content,
+	}));
+	while (
+		bounded.length > 1 &&
+		new TextEncoder().encode(JSON.stringify(bounded)).length >
+			TRANSCRIPT_POST_MAX_BYTES
+	) {
+		bounded = bounded.slice(1);
+	}
+	return bounded;
+}
+
+/** Best-effort POST of the finished call's transcript. keepalive so the
+ * request survives the page being dismissed mid-flush (the pagehide path). */
+export async function postVoiceTranscript(
+	apiUrl: string,
+	body: {
+		projectKey: string;
+		clientId: string;
+		callId: string;
+		entries: TranscriptEntry[];
+	},
+): Promise<void> {
+	try {
+		await fetch(`${apiUrl}/v1/voice/transcript`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				...body,
+				entries: boundTranscriptForPost(body.entries),
+			}),
+			keepalive: true,
+		});
+	} catch {
+		// Transcript delivery is best-effort — never surface an error for it.
+	}
+}
+
 export type VoiceCallStatus =
 	| "connecting"
 	| "listening"
@@ -176,6 +295,10 @@ export type VoiceCallStatus =
 
 interface VoiceCallHandlers {
 	onStatus: (status: VoiceCallStatus) => void;
+	/** Fired exactly once, at call teardown (hang-up, server close, error) —
+	 * with the full transcript in conversation order. Never fired for an empty
+	 * transcript (e.g. a call that failed setup). */
+	onTranscript?: (entries: TranscriptEntry[]) => void;
 }
 
 /**
@@ -202,6 +325,9 @@ export class VoiceCallClient {
 	private greeted = false;
 	private stopped = false;
 	private micMuted = false;
+	/** Everything said on the call, assembled from transcript events. */
+	private recorder = new TranscriptRecorder();
+	private transcriptFlushed = false;
 
 	constructor(
 		private session: VoiceSessionInfo,
@@ -313,6 +439,7 @@ export class VoiceCallClient {
 				if (!this.stopped) {
 					this.stopped = true;
 					this.releaseAudio();
+					this.flushTranscript();
 					// A server-side close BEFORE the session was configured is a
 					// failed setup, not a finished call — "Call ended" would tell
 					// the visitor a call happened.
@@ -328,6 +455,24 @@ export class VoiceCallClient {
 		this.micMuted = muted;
 	}
 
+	/** The transcript recorded so far (conversation order). */
+	transcript(): TranscriptEntry[] {
+		return this.recorder.entries();
+	}
+
+	/** Hand the transcript to the owner exactly once, at teardown. Empty
+	 * transcripts (failed setup, silent call) are never delivered. */
+	private flushTranscript() {
+		if (this.transcriptFlushed) {
+			return;
+		}
+		this.transcriptFlushed = true;
+		const entries = this.recorder.entries();
+		if (entries.length > 0) {
+			this.handlers.onTranscript?.(entries);
+		}
+	}
+
 	stop() {
 		if (this.stopped) {
 			return;
@@ -339,6 +484,7 @@ export class VoiceCallClient {
 			// Already closed/failed — releasing the audio below is what matters.
 		}
 		this.releaseAudio();
+		this.flushTranscript();
 		this.handlers.onStatus("ended");
 	}
 
@@ -422,11 +568,50 @@ export class VoiceCallClient {
 		this.processor.connect(this.ctx.destination);
 	}
 
+	/**
+	 * Enable visitor-speech transcription with a SECOND session.update, only
+	 * after the configuring one is acked — deliberately never folded into the
+	 * first: if the gateway rejected an unsupported transcription model there,
+	 * no ack would ever come and the whole call would die "unavailable" for the
+	 * sake of a transcript. As a follow-up update a rejection is a non-fatal
+	 * post-ack error event: the call goes on, and the agent side of the
+	 * transcript (output transcripts, always emitted) is still captured.
+	 * Format + VAD are re-asserted verbatim so partial-update semantics can't
+	 * regress them.
+	 */
+	private enableTranscription() {
+		if (this.ws?.readyState !== WebSocket.OPEN) {
+			return;
+		}
+		this.ws.send(
+			JSON.stringify({
+				type: "session.update",
+				session: {
+					type: "realtime",
+					audio: {
+						input: {
+							format: { type: "audio/pcm", rate: REALTIME_SAMPLE_RATE },
+							turn_detection: { type: "server_vad" },
+							transcription: { model: TRANSCRIPTION_MODEL },
+						},
+					},
+				},
+			}),
+		);
+	}
+
 	private handleEvent(e: MessageEvent) {
 		if (typeof e.data !== "string") {
 			return; // binary frames are rejected by the gateway anyway
 		}
-		let event: { type?: string; audio?: string; delta?: string };
+		let event: {
+			type?: string;
+			audio?: string;
+			delta?: string;
+			transcript?: string;
+			item_id?: string;
+			item?: { id?: string; type?: string; role?: string };
+		};
 		try {
 			event = JSON.parse(e.data);
 		} catch {
@@ -434,6 +619,11 @@ export class VoiceCallClient {
 		}
 		switch (event.type) {
 			case "session.updated": {
+				// The transcription-enable update below is ALSO acked with
+				// session.updated — only the first ack configures the call.
+				if (this.configured) {
+					break;
+				}
 				// Instructions/voice are confirmed applied — the call is grounded.
 				// Only now do mic frames flow (see startCapture) and the greeting
 				// get requested.
@@ -443,7 +633,52 @@ export class VoiceCallClient {
 					this.setupTimeout = null;
 				}
 				this.handlers.onStatus("listening");
+				this.enableTranscription();
 				this.greet();
+				break;
+			}
+			// ── Transcript assembly (see TranscriptRecorder) ────────────────
+			case "conversation.item.added":
+			case "conversation.item.created": {
+				// Anchor the item's conversation position the moment it exists —
+				// its transcript may land much later (Whisper lag).
+				const item = event.item;
+				if (
+					item?.type === "message" &&
+					typeof item.id === "string" &&
+					(item.role === "user" || item.role === "assistant")
+				) {
+					this.recorder.addItem(item.id, item.role);
+				}
+				break;
+			}
+			case "conversation.item.input_audio_transcription.completed": {
+				if (
+					typeof event.item_id === "string" &&
+					typeof event.transcript === "string"
+				) {
+					this.recorder.setText(event.item_id, "user", event.transcript);
+				}
+				break;
+			}
+			case "response.output_audio_transcript.delta": {
+				// Kept as a fallback so hanging up mid-answer still captures the
+				// partial reply; the .done text replaces it when it arrives.
+				if (
+					typeof event.item_id === "string" &&
+					typeof event.delta === "string"
+				) {
+					this.recorder.appendAssistantDelta(event.item_id, event.delta);
+				}
+				break;
+			}
+			case "response.output_audio_transcript.done": {
+				if (
+					typeof event.item_id === "string" &&
+					typeof event.transcript === "string"
+				) {
+					this.recorder.setText(event.item_id, "assistant", event.transcript);
+				}
 				break;
 			}
 			case "response.output_audio.delta": {

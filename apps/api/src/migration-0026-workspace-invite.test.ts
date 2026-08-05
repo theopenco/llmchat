@@ -119,7 +119,11 @@ describe("0026 — workspace_invite table", () => {
 	it("token_hash is unique; workspace_id is indexed but NOT unique (many pending invites per workspace)", () => {
 		sqlite.exec(migrationSql(FILE_0026));
 		insertInvite(sqlite);
-		insertInvite(sqlite, { id: "inv2", email: "other@acme.com", token_hash: "h2" });
+		insertInvite(sqlite, {
+			id: "inv2",
+			email: "other@acme.com",
+			token_hash: "h2",
+		});
 		expect(() =>
 			insertInvite(sqlite, { id: "inv3", token_hash: "h1" }),
 		).toThrow(/UNIQUE/);

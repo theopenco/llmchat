@@ -21,6 +21,30 @@ export function ChatIcon({ className }: IconProps) {
 	);
 }
 
+/**
+ * Filled speech bubble with sparkle cutouts — the launcher / header mark.
+ * Drawn as one evenodd path so the sparkles punch through to the surface
+ * behind (brand-colored launcher, header avatar chip) at any size.
+ */
+export function SparkleChatIcon({ className }: IconProps) {
+	return (
+		<svg
+			className={className}
+			width="26"
+			height="26"
+			viewBox="0 0 24 24"
+			fill="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				fillRule="evenodd"
+				clipRule="evenodd"
+				d="M8 3h8c3.04 0 5.5 2.46 5.5 5.5V13c0 3.04-2.46 5.5-5.5 5.5h-5.6l-4.3 3.2c-.66.5-1.6.02-1.6-.8v-2.84C3.28 17.14 2.5 15.66 2.5 13V8.5C2.5 5.46 4.96 3 8 3Zm5.7 3.9c.38 2.25 1.65 3.52 3.9 3.9-2.25.38-3.52 1.65-3.9 3.9-.38-2.25-1.65-3.52-3.9-3.9 2.25-.38 3.52-1.65 3.9-3.9ZM8.05 12.1c.22 1.3.95 2.03 2.25 2.25-1.3.22-2.03.95-2.25 2.25-.22-1.3-.95-2.03-2.25-2.25 1.3-.22 2.03-.95 2.25-2.25Z"
+			/>
+		</svg>
+	);
+}
+
 export function CloseIcon({ className }: IconProps) {
 	return (
 		<svg
