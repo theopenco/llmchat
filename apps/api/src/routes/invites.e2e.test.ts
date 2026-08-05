@@ -70,18 +70,21 @@ function applyMigrations(sqlite: DatabaseSync) {
 /** `afterExec` fires after each statement, so a test can interleave a
  * concurrent write mid-request (the burn-window race) — the only way to model
  * two writers against a single synchronous sqlite handle. */
-function makeProxy(sqlite: DatabaseSync, afterExec?: (sql: string) => void) {
+function makeProxy(
+	sqlite: DatabaseSync,
+	afterExec?: (sql: string) => Promise<void> | void,
+) {
 	const exec = async (sql: string, params: unknown[], method: string) => {
 		const stmt = sqlite.prepare(sql);
 		if (method === "run") {
 			stmt.run(...(params as never[]));
-			afterExec?.(sql);
+			await afterExec?.(sql);
 			return { rows: [] };
 		}
 		const rows = stmt
 			.all(...(params as never[]))
 			.map((r) => Object.values(r as object));
-		afterExec?.(sql);
+		await afterExec?.(sql);
 		return { rows: method === "get" ? (rows[0] as never) : rows };
 	};
 	const batch = async (
@@ -662,38 +665,38 @@ describe("adversarial-review hardening", () => {
 		sqlite.exec(
 			`INSERT INTO member (id, workspace_id, user_id, role, created_at) VALUES ('m8', 'ws_cap', 'u_other', 'agent', 1750000003)`,
 		);
-		// The exact interleaving: the operator's revoke lands AFTER the burn
-		// (so their UPDATE matches no pending row and silently no-ops) and
-		// BEFORE the compensation, which must then refuse to resurrect it.
-		let revoked = false;
+		// The exact interleaving, driven through the REAL revoke endpoint: it
+		// runs after the burn UPDATE has landed (so the row momentarily LOOKS
+		// accepted even though no membership exists yet) and before the seat
+		// guard denies and the compensation runs.
+		let fired = false;
+		let revokeStatus = 0;
 		vi.mocked(db).mockReturnValue(
-			makeProxy(sqlite, (sql) => {
+			makeProxy(sqlite, async (sql) => {
 				if (
-					!revoked &&
+					!fired &&
 					/update .*workspace_invite/i.test(sql) &&
 					/accepted_at/i.test(sql)
 				) {
-					revoked = true;
-					sqlite
-						.prepare(
-							`UPDATE workspace_invite SET revoked_at = ? WHERE id = ? AND accepted_at IS NULL`,
-						)
-						.run(1755000000, inv.invite.id);
-					// The operator's revoke matched 0 rows — the burn already
-					// stamped accepted_at. Their intent still has to stick.
-					sqlite
-						.prepare(`UPDATE workspace_invite SET revoked_at = ? WHERE id = ?`)
-						.run(1755000000, inv.invite.id);
+					fired = true; // the revoke request re-enters this proxy; fire once
+					const r = await app.request(
+						`/api/invites/${inv.invite.id}/revoke`,
+						{ method: "POST", headers: asUser("u_owner", "ws_cap") },
+						ENV,
+					);
+					revokeStatus = r.status;
 				}
 			}) as unknown as ReturnType<typeof db>,
 		);
 		const res = await accept(tokenFromLink(inv.link), "u_new");
 		expect(res.status).toBe(402);
-		// Compensation must NOT resurrect what the operator revoked.
-		const row = inviteRow(inv.invite.id)!;
-		expect(row.revoked_at).not.toBeNull();
+		// The operator's revoke must SUCCEED, not report a misleading 404…
+		expect(revokeStatus).toBe(200);
+		// …and the compensation must not hand the invitation back.
+		expect(inviteRow(inv.invite.id)!.revoked_at).not.toBeNull();
 		const retry = await accept(tokenFromLink(inv.link), "u_new");
 		expect(retry.status).toBe(410);
+		expect(await retry.json()).toMatchObject({ error: "invite_revoked" });
 	});
 
 	it("removing a member revokes the pending invites they minted", async () => {

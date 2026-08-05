@@ -75,8 +75,12 @@ async function findByToken(env: Env, token: string) {
 function classifyGone(
 	invite: Pick<InviteRow, "acceptedAt" | "revokedAt" | "expiresAt">,
 ): "invite_used" | "invite_revoked" | "invite_expired" | null {
-	if (invite.acceptedAt) return "invite_used";
+	// Revoked wins over accepted. A burn that lost its seat leaves acceptedAt
+	// stamped on an invitation nobody actually used, so if an operator revoked
+	// it, "revoked" is the honest cause — "already used" would send the invitee
+	// chasing a teammate who never joined.
 	if (invite.revokedAt) return "invite_revoked";
+	if (invite.acceptedAt) return "invite_used";
 	if (invite.expiresAt.getTime() <= Date.now()) return "invite_expired";
 	return null;
 }
@@ -281,6 +285,14 @@ export const invites = new Hono<AppContext>()
 		async (c) => {
 			const workspaceId = c.get("workspaceId");
 			const { id } = c.req.param();
+			// Deliberately NOT conditioned on acceptedAt. An accept that burned the
+			// invite but then lost the seat un-burns it, so between those two
+			// statements the row LOOKS accepted while the invitation is in fact
+			// still live. Requiring acceptedAt IS NULL here would make the
+			// operator's revoke match zero rows, report a misleading 404, and let
+			// the compensation hand the invitation back. Stamping revokedAt
+			// regardless makes revoke authoritative in every interleaving; the
+			// un-burn then declines to resurrect a revoked row.
 			const revoked = await db(c.env)
 				.update(workspaceInvite)
 				.set({ revokedAt: new Date() })
@@ -288,7 +300,6 @@ export const invites = new Hono<AppContext>()
 					and(
 						eq(workspaceInvite.id, id),
 						eq(workspaceInvite.workspaceId, workspaceId),
-						isNull(workspaceInvite.acceptedAt),
 						isNull(workspaceInvite.revokedAt),
 					),
 				)
