@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { AuthLayout } from "@/components/auth-layout";
@@ -13,8 +14,10 @@ import { Input } from "@/components/ui/input";
 import { signIn } from "@/lib/auth-client";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { fieldErrors, signInSchema } from "@/lib/auth-schema";
+import { postAuthDestination, withInvite } from "@/lib/invite-return";
 
-export default function SignInPage() {
+function SignInForm() {
+	const searchParams = useSearchParams();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
@@ -50,7 +53,7 @@ export default function SignInPage() {
 		// "logged out" store and the auth gate bounces back here (the "press
 		// twice" bug). A full load re-initializes the session with the cookie
 		// present. (Revisit once crossSubDomainCookies is configured for prod.)
-		window.location.assign("/inbox");
+		window.location.assign(postAuthDestination(searchParams, "/inbox"));
 	}
 
 	return (
@@ -122,10 +125,26 @@ export default function SignInPage() {
 
 			<p className="mt-6 text-center text-sm text-muted-foreground">
 				Don&apos;t have an account?{" "}
-				<Link href="/sign-up" className="font-medium text-primary">
+				<Link
+					href={withInvite("/sign-up", searchParams)}
+					className="font-medium text-primary"
+				>
 					Sign up
 				</Link>
 			</p>
 		</AuthLayout>
+	);
+}
+
+/**
+ * useSearchParams() (we carry a pending invitation through auth) opts a route
+ * out of static prerendering unless it sits under a Suspense boundary — the
+ * same reason PostHogProvider wraps its pageview tracker.
+ */
+export default function SignInPage() {
+	return (
+		<Suspense fallback={null}>
+			<SignInForm />
+		</Suspense>
 	);
 }

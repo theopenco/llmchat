@@ -19,6 +19,9 @@ const ESCAPE_PREFIXES = [
 	"/settings/account",
 	"/settings/billing",
 	"/settings/workspaces",
+	// An invitee is joining a workspace that already has a plan; bouncing them
+	// to the first-project paywall mid-acceptance would strand them.
+	"/invite",
 ];
 
 /** Marks onboarding as dismissed so the redirect below stops firing. */
