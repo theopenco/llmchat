@@ -7,6 +7,7 @@ import {
 	buildTranscript,
 	SUMMARY_MIN_MESSAGES,
 } from "@/lib/conversation-summary";
+import { findOrCreateConversation } from "@/lib/conversations";
 import { db } from "@/lib/db";
 import { insertMessage } from "@/lib/messages";
 import { buildReplyToAddress, escapeHtml, sendEmail } from "@/lib/email";
@@ -146,34 +147,6 @@ async function loadProject(env: AppContext["Bindings"], publicKey: string) {
 		where: (pt, { eq: e }) => e(pt.publicKey, publicKey),
 	});
 	return p ?? null;
-}
-
-async function findOrCreateConversation(
-	env: AppContext["Bindings"],
-	projectId: string,
-	clientId: string,
-	meta: { name?: string; email?: string; ip: string; userAgent: string },
-) {
-	const existing = await db(env).query.conversation.findFirst({
-		where: (ct, { and, eq: e }) =>
-			and(e(ct.projectId, projectId), e(ct.clientId, clientId)),
-	});
-	if (existing) {
-		return { conversation: existing, created: false };
-	}
-	const [created] = await db(env)
-		.insert(conversation)
-		.values({
-			projectId,
-			clientId,
-			name: meta.name,
-			email: meta.email,
-			ipAddress: meta.ip,
-			userAgent: meta.userAgent,
-			messageCount: 0,
-		})
-		.returning();
-	return { conversation: created!, created: true };
 }
 
 export const chat = new Hono<AppContext>()
