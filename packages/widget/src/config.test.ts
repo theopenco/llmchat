@@ -60,6 +60,20 @@ describe("resolveConfig", () => {
 		);
 	});
 
+	it("teaser is on by default and only the literal off disables it", () => {
+		expect(resolveConfig(scriptTag({ "data-project": "pk" })).teaser).toBe(
+			true,
+		);
+		expect(
+			resolveConfig(scriptTag({ "data-project": "pk", "data-teaser": "off" }))
+				.teaser,
+		).toBe(false);
+		expect(
+			resolveConfig(scriptTag({ "data-project": "pk", "data-teaser": "OFF" }))
+				.teaser,
+		).toBe(true);
+	});
+
 	it("parses data-escalation-threshold as a number", () => {
 		const config = resolveConfig(
 			scriptTag({ "data-project": "pk", "data-escalation-threshold": "5" }),

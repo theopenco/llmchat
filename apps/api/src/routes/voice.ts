@@ -2,8 +2,9 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
+import { findOrCreateConversation } from "@/lib/conversations";
 import { db } from "@/lib/db";
-import { publicLookupRateLimit, rateLimit } from "@/lib/kv";
+import { publicLookupRateLimit, rateLimit, reserveOnce } from "@/lib/kv";
 import { DEFAULT_GATEWAY_BASE, buildSystem } from "@/lib/llm";
 import { insertMessage } from "@/lib/messages";
 import { resolveAccess } from "@/lib/plan";
@@ -211,10 +212,65 @@ const sessionBody = z.object({
 	clientId: z.string().max(128),
 });
 
-export const voice = new Hono<AppContext>().post(
-	"/voice/session",
-	zValidator("json", sessionBody),
-	async (c) => {
+// --- Call transcript ----------------------------------------------------------
+//
+// The api never hears the audio (widget ↔ gateway direct), so the CLIENT is the
+// only party that can report what was said: the widget assembles the transcript
+// from the realtime API's transcript events and posts it here when the call
+// ends. That makes the content client-reported by construction — the same trust
+// level as every chat message and the /v1/escalate messages array — so it is
+// persisted as a clearly-labeled `system` transcript row, never as authored
+// visitor/agent messages.
+
+const transcriptEntry = z.object({
+	role: z.enum(["user", "assistant"]),
+	content: z.string().max(4_000),
+});
+const transcriptBody = z.object({
+	projectKey: z.string().max(128),
+	clientId: z.string().max(128),
+	/** Client-minted id for THIS call — the exactly-once key for the teardown
+	 * paths that can race (unmount fetch vs pagehide keepalive). */
+	callId: z.string().min(1).max(64),
+	entries: z.array(transcriptEntry).min(1).max(200),
+});
+
+export const TRANSCRIPT_HEADER = "Voice call transcript";
+const TRANSCRIPT_OMISSION_NOTE = "… (earlier part of the call omitted)";
+// Bounds the system row a hostile client can write (the schema alone allows
+// 200 × 4k). Truncation drops the OLDEST turns — the end of a support call
+// (the resolution) is the part the operator needs.
+const TRANSCRIPT_MAX_CHARS = 16_000;
+
+/** Render transcript entries into the single system message persisted on the
+ * conversation. Empty entries drop out; over budget, oldest turns are omitted
+ * behind an explicit marker. Pure; exported for tests. */
+export function formatTranscriptMessage(
+	entries: { role: "user" | "assistant"; content: string }[],
+): string {
+	let lines = entries
+		.map((e) => ({ role: e.role, content: e.content.trim() }))
+		.filter((e) => e.content)
+		.map((e) => `${e.role === "user" ? "Visitor" : "Agent"}: ${e.content}`);
+	if (lines.length === 0) {
+		return "";
+	}
+	let omitted = false;
+	const assemble = () =>
+		`${TRANSCRIPT_HEADER}\n\n${omitted ? `${TRANSCRIPT_OMISSION_NOTE}\n\n` : ""}${lines.join("\n\n")}`;
+	while (lines.length > 1 && assemble().length > TRANSCRIPT_MAX_CHARS) {
+		lines = lines.slice(1);
+		omitted = true;
+	}
+	// A single line can still blow the budget on its own — hard-cut it.
+	const out = assemble();
+	return out.length > TRANSCRIPT_MAX_CHARS
+		? out.slice(0, TRANSCRIPT_MAX_CHARS)
+		: out;
+}
+
+export const voice = new Hono<AppContext>()
+	.post("/voice/session", zValidator("json", sessionBody), async (c) => {
 		const { projectKey, clientId } = c.req.valid("json");
 
 		// Per-IP gate BEFORE the project lookup — bounds invalid-key DB floods
@@ -456,5 +512,97 @@ export const voice = new Hono<AppContext>().post(
 			instructions,
 			voice: REALTIME_VOICE,
 		});
-	},
-);
+	})
+	.post("/voice/transcript", zValidator("json", transcriptBody), async (c) => {
+		const { projectKey, clientId, callId, entries } = c.req.valid("json");
+
+		// Per-IP gate BEFORE the project lookup — same shape as every other
+		// public /v1 endpoint.
+		const ip = clientIp(c);
+		const gate = await publicLookupRateLimit(c.env, ip);
+		if (!gate.ok) {
+			return c.json({ error: "rate limit exceeded" }, 429);
+		}
+
+		const project = await db(c.env).query.project.findFirst({
+			where: (pt, { eq: e }) => e(pt.publicKey, projectKey),
+		});
+		if (!project) {
+			return c.json({ error: "invalid project key" }, 404);
+		}
+
+		// Same entitlement gate as the mint: a workspace without voice can't have
+		// had a call, so a transcript for one is a forged request.
+		const { entitlements } = await resolveAccess(c.env, project.workspaceId);
+		if (!entitlements.voiceCalls) {
+			return c.json({ error: "voice_not_available" }, 402);
+		}
+
+		// One transcript per call ⇒ the mint's hourly ceiling fits here too
+		// (raised projects included). Fail-OPEN, unlike the mint: this is a
+		// bounded DB write, not gateway spend, and a STATE outage should not
+		// silently discard call records.
+		const budgets = resolveVoiceBudgets(
+			project.id,
+			c.env.vars.VOICE_RAISED_LIMIT_PROJECTS,
+		);
+		const rl = await rateLimit(
+			c.env,
+			`voice-transcript:${project.id}:${ip}`,
+			budgets.hourlyMax,
+			CALL_RATE_WINDOW,
+		);
+		if (!rl.ok) {
+			return c.json({ error: "rate limit exceeded" }, 429);
+		}
+
+		const content = formatTranscriptMessage(entries);
+		if (!content) {
+			// Whitespace-only entries — nothing worth a row.
+			return c.json({ ok: true, stored: false });
+		}
+
+		// Exactly-once per call: the widget's two teardown paths (unmount fetch
+		// and pagehide keepalive) can race, and a duplicate system row would read
+		// as two calls in the inbox. reserveOnce FAILS CLOSED on a STATE outage —
+		// there, dropping a transcript beats risking duplicates, and the call
+		// itself is still on record via the mint breadcrumb.
+		const fresh = await reserveOnce(
+			c.env,
+			`voice-transcript:${project.id}:${clientId}:${callId}`,
+		);
+		if (!fresh) {
+			return c.json({ ok: true, stored: false });
+		}
+
+		// A visitor can call without ever typing — create the conversation so
+		// the call still lands in the inbox. Identity (name/email) only ever
+		// comes from the stored conversation row, never from this request.
+		const { conversation: conv } = await findOrCreateConversation(
+			c.env,
+			project.id,
+			clientId,
+			{ ip, userAgent: c.req.header("user-agent") ?? "" },
+		);
+
+		await insertMessage(c.env, {
+			conversationId: conv.id,
+			role: "system",
+			content,
+		});
+
+		c.executionCtx.waitUntil(
+			captureEvent(c.env, {
+				event: ANALYTICS_EVENTS.voiceCallTranscribed,
+				distinctId: clientId,
+				// CONTENT-FREE by contract: counts only, never transcript text.
+				properties: {
+					project_id: project.id,
+					workspace_id: project.workspaceId,
+					entry_count: entries.length,
+				},
+			}),
+		);
+
+		return c.json({ ok: true, stored: true });
+	});
