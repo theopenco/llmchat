@@ -14,9 +14,11 @@ import { api } from "./api";
 import {
 	canManage,
 	resolveWorkspaceId,
+	shouldDeferDemotion,
 	type WorkspaceRole,
 	type WorkspaceSummary,
 	type WorkspacesResponse,
+	WORKSPACE_STORAGE_KEY as KEY,
 	WORKSPACES_KEY,
 } from "./workspace-utils";
 
@@ -41,8 +43,6 @@ const Ctx = createContext<WorkspaceCtx>({
 	canManage: false,
 });
 
-const KEY = "llmchat_workspace_id";
-
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 	const [workspaceId, set] = useState<string | null>(null);
 
@@ -54,7 +54,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
 	// Stable reference: keep the effect and every consumer from re-running on
 	// each render just because `.map()` produced a fresh array.
-	const { data, isLoading } = query;
+	const { data, isLoading, isFetching } = query;
 	const workspaces = useMemo(
 		() =>
 			data?.workspaces.map((w) => ({
@@ -67,9 +67,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		if (isLoading || !data) return;
+		const stored = localStorage.getItem(KEY);
+		// A stored id missing from the list may just mean the LIST is stale — a
+		// refetch is in flight (invite accept invalidates it right before
+		// selecting the joined workspace). Hold the demotion until fresh data
+		// lands; the effect re-runs when it does. See shouldDeferDemotion.
+		if (shouldDeferDemotion(stored, workspaces, isFetching)) return;
 		// Reconcile the persisted choice against the workspaces the user can
 		// actually see; see resolveWorkspaceId for the stale-selection rules.
-		const next = resolveWorkspaceId(localStorage.getItem(KEY), workspaces);
+		const next = resolveWorkspaceId(stored, workspaces);
 		if (next === workspaceId) return;
 		if (next === null) {
 			localStorage.removeItem(KEY);
@@ -77,8 +83,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 			localStorage.setItem(KEY, next);
 		}
 		set(next);
-	}, [isLoading, data, workspaces, workspaceId]);
+	}, [isLoading, isFetching, data, workspaces, workspaceId]);
 
+	// Persist + activate a workspace id. If the id may not be in the CACHED
+	// workspace list yet (just joined via invite, just created), the caller
+	// must first make it resolvable — patch the list cache (invite accept) or
+	// await the invalidation refetch (CreateWorkspaceDialog) — or the
+	// reconcile effect will demote the selection once fetching settles.
 	const setWorkspaceId = useCallback((id: string) => {
 		localStorage.setItem(KEY, id);
 		set(id);

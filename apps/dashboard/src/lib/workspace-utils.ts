@@ -46,6 +46,10 @@ export function canManage(role: WorkspaceRole | null | undefined): boolean {
  * against the same cache entry. */
 export const WORKSPACES_KEY = ["workspaces"] as const;
 
+/** localStorage key holding the active workspace id — single definition so
+ * tests and the provider can't drift apart on the literal. */
+export const WORKSPACE_STORAGE_KEY = "llmchat_workspace_id";
+
 /**
  * Decide which workspace should be active given the persisted selection and the
  * set the user currently belongs to.
@@ -63,6 +67,49 @@ export function resolveWorkspaceId(
 	if (workspaces.length === 0) return null;
 	if (stored && workspaces.some((w) => w.id === stored)) return stored;
 	return pickDefaultWorkspace(workspaces);
+}
+
+/**
+ * Whether the provider's reconcile effect should hold off on DEMOTING a stored
+ * selection that is missing from the workspace list. A missing id can mean
+ * stale STORAGE (the workspace really is gone — demote to a default) or a
+ * stale LIST (a membership was just added server-side and the list refetch is
+ * still in flight — accepting an invite is exactly this). Overriding the
+ * user's choice against a list we know is being replaced caused the invite
+ * first-run bug: the invitee's selection was demoted back to their
+ * auto-provisioned personal workspace. Keeping a stored id that IS in the
+ * list is always safe, so this only ever defers the demotion path.
+ */
+export function shouldDeferDemotion(
+	stored: string | null,
+	workspaces: WorkspaceSummary[],
+	isFetching: boolean,
+): boolean {
+	if (!stored || !isFetching) return false;
+	return !workspaces.some((w) => w.id === stored);
+}
+
+/**
+ * Add a provisional row for a workspace the server just confirmed membership
+ * of (an accepted invite) but the cached list predates. Only the id needs to
+ * resolve — the authoritative refetch replaces the row — so the placeholder
+ * plan/projectCount are deliberately minimal. No-op when the id is already
+ * present.
+ */
+export function upsertWorkspaceSummary(
+	prev: WorkspacesResponse | undefined,
+	entry: { id: string; name: string; role: WorkspaceRole },
+): WorkspacesResponse {
+	if (prev?.workspaces.some((r) => r.workspace.id === entry.id)) return prev;
+	return {
+		workspaces: [
+			...(prev?.workspaces ?? []),
+			{
+				workspace: { id: entry.id, name: entry.name, plan: "none" },
+				role: entry.role,
+			},
+		],
+	};
 }
 
 /**
