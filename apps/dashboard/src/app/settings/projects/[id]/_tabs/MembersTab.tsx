@@ -26,6 +26,7 @@ import {
 	type WorkspaceMember,
 } from "@/lib/members";
 import { dropById, mapById, useOptimisticMutation } from "@/lib/optimistic";
+import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace";
 
 function describeError(error: unknown, fallback: string) {
@@ -54,7 +55,10 @@ function MemberRow({
 			<span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ck-accent text-[11.5px] font-bold text-white">
 				{member.email.slice(0, 2).toUpperCase()}
 			</span>
-			<div className="min-w-0 flex-1">
+			{/* min-w floor (not min-w-0): a full-width sibling — the role select's
+			    dsInputClass carries w-full — must never flex this block down to
+			    zero and hide who the row is about. */}
+			<div className="min-w-24 flex-1">
 				<p className="truncate text-[13.5px] font-semibold text-ck-text">
 					{member.name || member.email}
 				</p>
@@ -68,7 +72,10 @@ function MemberRow({
 			{canAdminister && member.role !== "owner" ? (
 				<select
 					aria-label={`Role for ${member.email}`}
-					className={`${dsInputClass} h-8 w-28 py-0 text-[12.5px]`}
+					// cn (tailwind-merge) so w-28 actually beats dsInputClass's
+					// w-full — with a plain template literal both classes emit and
+					// stylesheet order let w-full win, which ate the whole row.
+					className={cn(dsInputClass, "h-8 w-28 py-0 text-[12.5px]")}
 					value={member.role}
 					disabled={busy}
 					onChange={(e) => onRoleChange(e.target.value as AssignableRole)}
