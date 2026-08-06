@@ -24,5 +24,6 @@ export {
 	isNull,
 	isNotNull,
 	gte,
+	gt,
 	lt,
 } from "drizzle-orm";

@@ -98,19 +98,6 @@ export function startOfUtcMonth(now: Date = new Date()): number {
 	);
 }
 
-/** The workspace's stored plan, or "none" if the row/column is missing. The
- * resolver in @llmchat/shared maps unknown/legacy values to a blocked tier. */
-export async function workspacePlan(
-	env: Env,
-	workspaceId: string,
-): Promise<Plan | string> {
-	const ws = await db(env).query.workspace.findFirst({
-		where: (w, { eq: e }) => e(w.id, workspaceId),
-		columns: { plan: true },
-	});
-	return ws?.plan ?? "none";
-}
-
 export async function projectCount(
 	env: Env,
 	workspaceId: string,
@@ -179,18 +166,6 @@ export async function isModelAllowedForWorkspace(
 ): Promise<boolean> {
 	const { exempt, plan } = await resolveAccess(env, workspaceId);
 	return exempt || isModelAllowed(plan, model);
-}
-
-/** Whether the workspace may add one more member (seat) at its current plan. */
-export async function canAddMember(
-	env: Env,
-	workspaceId: string,
-): Promise<boolean> {
-	const [plan, used] = await Promise.all([
-		workspacePlan(env, workspaceId),
-		memberCount(env, workspaceId),
-	]);
-	return isWithinLimit(used, planEntitlements(plan).maxMembers);
 }
 
 /**
