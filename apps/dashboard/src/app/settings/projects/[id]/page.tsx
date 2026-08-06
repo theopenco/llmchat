@@ -200,7 +200,7 @@ export default function ProjectSettingsPage() {
 						/>
 					)}
 					{tab === "members" && (
-						<MembersTab ownerEmail={accountQ.data?.email ?? null} role={role} />
+						<MembersTab currentUserEmail={accountQ.data?.email ?? null} />
 					)}
 				</div>
 			</div>
