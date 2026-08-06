@@ -1,9 +1,12 @@
 import {
 	BILLING_TIERS,
+	DISCOUNT_ACTIVE,
+	DISCOUNT_PERCENT,
 	ENTERPRISE_TIER,
 	PAID_PLANS,
 	TRIAL_PERIOD_DAYS,
 	isUnlimited,
+	usdPhrase,
 } from "@llmchat/shared";
 
 import { CANONICAL_SITE_URL, SALES_EMAIL } from "@/lib/site-urls";
@@ -37,7 +40,7 @@ function tierBlock(plan: (typeof PAID_PLANS)[number]): string {
 		? "unlimited team members"
 		: `${t.maxMembers} team members`;
 	return [
-		`### ${TIER_NAME[plan]} — $${t.priceUsdMonthly}/month (or $${fmt(t.priceUsdAnnual)}/year — two months free)`,
+		`### ${TIER_NAME[plan]} — ${usdPhrase(t.priceUsdMonthly)}/month (or ${usdPhrase(t.priceUsdAnnual)}/year — two months free)`,
 		`- ${overage}`,
 		`- ${t.maxProjects} projects, ${seats} (no per-seat fees)`,
 		`- ${t.modelAccess === "all" ? "All models" : "Basic models"}; ${branding}`,
@@ -58,7 +61,11 @@ Clanker Support is an AI-powered support agent. It is open and self-hostable, wi
 - Every plan starts with a ${TRIAL_PERIOD_DAYS}-day free trial: a card is required at signup, and the first charge happens when the trial ends. Cancel during the trial at no cost.
 - Flat monthly plans billed via Stripe; no per-seat fees (seats are included per plan).
 - Annual billing available on every plan at 10× the monthly price (two months free).
-- 14-day money-back guarantee; cancel anytime.
+- 14-day money-back guarantee; cancel anytime.${
+	DISCOUNT_ACTIVE
+		? `\n- All hosted plans are currently ${DISCOUNT_PERCENT}% off — the first price on each tier below is the discounted amount actually charged.`
+		: ""
+}
 
 ${PAID_PLANS.map(tierBlock).join("\n\n")}
 

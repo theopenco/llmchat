@@ -31,6 +31,7 @@ import {
 import { mergeMessages } from "./messages-sync";
 import { rateMessage, useMessageRatings } from "./rating";
 import { ShowcaseChat } from "./ShowcaseChat";
+import { teaserLines, useTeaser } from "./teaser";
 import { useEffectiveTheme } from "./theme";
 import {
 	BACKGROUND_POLL_INTERVAL_MS,
@@ -82,6 +83,9 @@ interface BaseWidgetProps {
 	mode?: WidgetLayout;
 	/** Color scheme: "light" (default) | "dark" | "auto" (follows the OS). */
 	theme?: WidgetTheme;
+	/** Proactive teaser bubbles above the closed launcher (default on);
+	 * embedders opt out with data-teaser="off". */
+	teaser?: boolean;
 }
 
 interface LiveWidgetProps extends BaseWidgetProps {
@@ -107,6 +111,7 @@ export function Widget(props: WidgetProps) {
 				brandColor={props.brandColor}
 				mode={props.mode}
 				theme={props.theme}
+				teaser={props.teaser}
 			/>
 		);
 	}
@@ -117,17 +122,34 @@ function ShowcaseWidget({
 	brandColor,
 	mode = "bubble",
 	theme = "light",
+	teaser = true,
 }: BaseWidgetProps) {
 	const inline = mode === "inline";
 	const [open, setOpen] = useState(inline);
 	const resolvedTheme = useEffectiveTheme(theme);
+	// "showcase" as the storage key: the demo has no project key, and one demo
+	// teaser per tab session is plenty.
+	const { show: teaserVisible, consume: consumeTeaser } = useTeaser(
+		"showcase",
+		teaser && !inline,
+	);
 	return (
 		<WidgetFrame
 			inline={inline}
 			brandColor={brandColor}
 			theme={resolvedTheme}
 			open={open}
-			onOpenChange={setOpen}
+			onOpenChange={(next) => {
+				if (next) {
+					consumeTeaser();
+				}
+				setOpen(next);
+			}}
+			teaser={
+				teaserVisible
+					? { lines: teaserLines(null), onDismiss: consumeTeaser }
+					: null
+			}
 			badge={<span className="llmchat-demo-badge">Demo mode</span>}
 		>
 			<ShowcaseChat />
@@ -181,6 +203,7 @@ function LiveWidget({
 	brandColor,
 	mode = "bubble",
 	theme = "light",
+	teaser = true,
 	escalationThreshold,
 }: LiveWidgetProps) {
 	const inline = mode === "inline";
@@ -223,6 +246,12 @@ function LiveWidget({
 	// the server config says voiceEnabled). The call screen replaces the chat
 	// body; ending or erroring returns to it.
 	const [inCall, setInCall] = useState(false);
+	// Proactive teaser above the closed launcher. Consumed (for the session)
+	// when dismissed or when the panel opens — see handleOpenChange.
+	const { show: teaserVisible, consume: consumeTeaser } = useTeaser(
+		projectKey,
+		teaser && !inline,
+	);
 
 	useEffect(() => {
 		setClientId(getOrCreateClientId());
@@ -551,6 +580,11 @@ function LiveWidget({
 	// prompt was pending (the visitor was mid "end conversation"), closing counts
 	// as skipping it: finish the reset so reopening starts fresh.
 	function handleOpenChange(next: boolean) {
+		if (next) {
+			// Opening the panel consumes the teaser for the session — whether the
+			// visitor came in through a teaser bubble or the launcher itself.
+			consumeTeaser();
+		}
 		if (!next) {
 			// Closing the panel hangs up: a live mic must never outlive a visible
 			// call screen (VoiceCall's unmount also stops it — this makes the
@@ -682,6 +716,14 @@ function LiveWidget({
 			open={open}
 			onOpenChange={handleOpenChange}
 			unreadCount={unreadCount}
+			teaser={
+				// Only tease a visitor with no conversation in this tab: a returning
+				// thread (snapshot) means the badge/thread is the re-entry point, and
+				// the teaser would just talk over it.
+				teaserVisible && snapshot == null
+					? { lines: teaserLines(welcomeMessage), onDismiss: consumeTeaser }
+					: null
+			}
 			actions={
 				<>
 					{/* Voice call (Scale-only): only on an explicit server-config

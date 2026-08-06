@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 import { badgeLabel, launcherLabel } from "../unread";
-import { ChatIcon, CloseIcon, CollapseIcon, ExpandIcon } from "./icons";
+import { CloseIcon, CollapseIcon, ExpandIcon, SparkleChatIcon } from "./icons";
+import { Teaser } from "./Teaser";
 
 import type { ReactNode } from "react";
 
@@ -29,6 +30,7 @@ export function WidgetFrame({
 	onOpenChange,
 	badge,
 	unreadCount = 0,
+	teaser,
 	actions,
 	footer,
 	children,
@@ -44,6 +46,10 @@ export function WidgetFrame({
 	/** Messages that arrived while the panel was closed — rendered as a count on
 	 * the launcher. Only meaningful in bubble layout (inline has no launcher). */
 	unreadCount?: number;
+	/** Proactive teaser bubbles above the closed launcher; null/absent renders
+	 * none. Visibility policy (delay, session persistence) is the caller's —
+	 * this only shows the stack while the panel is closed (bubble layout). */
+	teaser?: { lines: string[]; onDismiss: () => void } | null;
 	/** Optional header buttons rendered before the expand/close controls,
 	 * e.g. the "Start a new conversation" action. */
 	actions?: ReactNode;
@@ -110,6 +116,13 @@ export function WidgetFrame({
 							? `${unread} new ${unread === 1 ? "message" : "messages"} in the support chat`
 							: ""}
 					</span>
+					{!open && teaser && teaser.lines.length > 0 && (
+						<Teaser
+							lines={teaser.lines}
+							onOpen={() => onOpenChange(true)}
+							onDismiss={teaser.onDismiss}
+						/>
+					)}
 					<button
 						ref={launcherRef}
 						type="button"
@@ -119,7 +132,7 @@ export function WidgetFrame({
 						aria-expanded={open}
 					>
 						<span className="llmchat-bubble-icon">
-							{open ? <CloseIcon /> : <ChatIcon />}
+							{open ? <CloseIcon /> : <SparkleChatIcon />}
 						</span>
 						{unread > 0 && (
 							// Decorative — the number is already in the button's accessible
@@ -155,7 +168,7 @@ export function WidgetFrame({
 					<header className="llmchat-header">
 						<span className="llmchat-header-id">
 							<span className="llmchat-header-avatar" aria-hidden="true">
-								<ChatIcon />
+								<SparkleChatIcon />
 							</span>
 							<span className="llmchat-header-text">Support</span>
 						</span>

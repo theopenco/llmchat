@@ -2,10 +2,15 @@ import Link from "next/link";
 import {
 	ANALYTICS_EVENTS,
 	BILLING_TIERS,
+	DISCOUNT_ACTIVE,
+	DISCOUNT_PERCENT,
 	ENTERPRISE_TIER,
 	PAID_PLANS,
 	TRIAL_PERIOD_DAYS,
+	formatUsd,
 	isUnlimited,
+	originalUsd,
+	usdPhrase,
 	type PaidPlan,
 } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -23,12 +28,14 @@ import {
 import { PricingPlans, type PlanCard } from "./PricingPlans";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
+// What Starter costs (the tier table holds the charged promo price).
 const starterPrice = BILLING_TIERS.starter.priceUsdMonthly;
 
 export const metadata = pageMeta({
 	title: "Pricing — flat monthly or annual plans, free to self-host",
-	description:
-		"Clanker Support pricing: flat plans from $19/mo with a 7-day free trial, no per-seat fees, two months free on annual, a 14-day money-back guarantee, or self-host free with your own keys.",
+	description: `Clanker Support pricing: flat plans from $${formatUsd(starterPrice)}/mo${
+		DISCOUNT_ACTIVE ? ` (${DISCOUNT_PERCENT}% off)` : ""
+	} with a 7-day free trial, no per-seat fees, two months free on annual, a 14-day money-back guarantee, or self-host free with your own keys.`,
 	path: "/pricing",
 });
 
@@ -105,11 +112,11 @@ const hostedTiers: PlanCard[] = PAID_PLANS.map((plan) => ({
 const faqs: Faq[] = [
 	{
 		question: "How much does Clanker Support cost?",
-		answer: `Hosted plans are flat monthly: Starter at $${BILLING_TIERS.starter.priceUsdMonthly}, Growth at $${BILLING_TIERS.growth.priceUsdMonthly}, and Scale at $${BILLING_TIERS.scale.priceUsdMonthly} per month. Pay yearly and get two months free. There are no per-seat fees — seats are included in each plan. Prefer to run it yourself? Self-hosting is free with your own keys.`,
+		answer: `Hosted plans are flat monthly${DISCOUNT_ACTIVE ? ` — currently ${DISCOUNT_PERCENT}% off` : ""}: Starter at ${usdPhrase(BILLING_TIERS.starter.priceUsdMonthly)}, Growth at ${usdPhrase(BILLING_TIERS.growth.priceUsdMonthly)}, and Scale at ${usdPhrase(BILLING_TIERS.scale.priceUsdMonthly)} per month. Pay yearly and get two months free. There are no per-seat fees — seats are included in each plan. Prefer to run it yourself? Self-hosting is free with your own keys.`,
 	},
 	{
 		question: "Do you offer annual billing?",
-		answer: `Yes. Pay yearly and get two months free on every plan — Starter is $${fmt(BILLING_TIERS.starter.priceUsdAnnual)}/yr, Growth $${fmt(BILLING_TIERS.growth.priceUsdAnnual)}/yr, and Scale $${fmt(BILLING_TIERS.scale.priceUsdAnnual)}/yr. Switch between monthly and annual anytime from billing.`,
+		answer: `Yes. Pay yearly and get two months free on every plan — Starter is ${usdPhrase(BILLING_TIERS.starter.priceUsdAnnual)}/yr, Growth ${usdPhrase(BILLING_TIERS.growth.priceUsdAnnual)}/yr, and Scale ${usdPhrase(BILLING_TIERS.scale.priceUsdAnnual)}/yr. Switch between monthly and annual anytime from billing.`,
 	},
 	{
 		question: "Is there a free trial or a guarantee?",
@@ -245,8 +252,10 @@ export default function PricingPage() {
 						The hosted product is paid-only — there&apos;s no free hosted tier,
 						so every plan above is paid. Each one starts with a{" "}
 						{TRIAL_PERIOD_DAYS}-day free trial (card required, no charge until
-						it ends), plans start at ${starterPrice}/month with no per-seat
-						fees, and self-hosting stays free.
+						it ends), plans start at ${formatUsd(starterPrice)}/month
+						{DISCOUNT_ACTIVE &&
+							` (${DISCOUNT_PERCENT}% off the usual $${formatUsd(originalUsd(starterPrice))})`}{" "}
+						with no per-seat fees, and self-hosting stays free.
 					</p>
 				</section>
 

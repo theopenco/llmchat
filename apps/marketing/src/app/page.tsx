@@ -3,10 +3,14 @@ import { allPosts } from "content-collections";
 import {
 	ANALYTICS_EVENTS,
 	BILLING_TIERS,
+	DISCOUNT_ACTIVE,
 	ENTERPRISE_TIER,
 	PAID_PLANS,
 	TRIAL_PERIOD_DAYS,
+	formatUsd,
 	isUnlimited,
+	originalUsd,
+	usdPhrase,
 	type PaidPlan,
 } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -122,8 +126,7 @@ const faqs: Faq[] = [
 	},
 	{
 		question: "Is Clanker Support self-hostable?",
-		answer:
-			"Yes. Clanker Support is open and self-hostable — bring your own keys and run it on your own infrastructure for free. If you'd rather not operate it, the hosted version has flat monthly plans starting at $19, with no per-seat fees.",
+		answer: `Yes. Clanker Support is open and self-hostable — bring your own keys and run it on your own infrastructure for free. If you'd rather not operate it, the hosted version has flat monthly plans starting at ${usdPhrase(BILLING_TIERS.starter.priceUsdMonthly)}, with no per-seat fees.`,
 	},
 ];
 
@@ -288,8 +291,16 @@ export default function Home() {
 							</div>
 
 							<p className="animate-rise-in mt-4 text-[0.82rem] text-faint [animation-delay:240ms]">
-								${BILLING_TIERS.starter.priceUsdMonthly}/mo after the trial · No
-								per-seat fees · Cancel anytime
+								{DISCOUNT_ACTIVE && (
+									<span className="mr-1 line-through">
+										$
+										{formatUsd(
+											originalUsd(BILLING_TIERS.starter.priceUsdMonthly),
+										)}
+									</span>
+								)}
+								${formatUsd(BILLING_TIERS.starter.priceUsdMonthly)}
+								/mo after the trial · No per-seat fees · Cancel anytime
 							</p>
 						</div>
 

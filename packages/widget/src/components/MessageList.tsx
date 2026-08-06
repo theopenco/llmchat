@@ -201,11 +201,14 @@ export function MessageList({
 						</div>
 					);
 				}
+				// Multi-line system rows (the voice-call transcript) open the pill
+				// into a left-aligned block — a stadium pill can't hold paragraphs.
+				const systemBlock = m.role === "system" && m.content.includes("\n");
 				return (
 					<div key={m.id} className="llmchat-msg-group" data-role={m.role}>
 						{chip}
 						<div
-							className={`llmchat-msg llmchat-msg-${m.role}`}
+							className={`llmchat-msg llmchat-msg-${m.role}${systemBlock ? " llmchat-msg-system--block" : ""}`}
 							{...(m.id === lastUserId ? { "data-llmchat-anchor": "" } : {})}
 						>
 							<MessageBody role={m.role} content={m.content} />
