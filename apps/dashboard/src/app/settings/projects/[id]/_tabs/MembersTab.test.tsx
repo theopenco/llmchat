@@ -178,6 +178,27 @@ describe("MembersTab — role controls follow the server's rules", () => {
 	});
 });
 
+describe("MemberRow — identity never collapses next to the role select", () => {
+	// jsdom does no layout, so pin the CLASSES that caused the width-0 row:
+	// dsInputClass's w-full beat the appended w-28 (equal specificity,
+	// stylesheet order), the select ate the row, and the flex-1 min-w-0
+	// identity block collapsed to zero width.
+	it("the role select carries w-28 with the conflicting w-full merged away", async () => {
+		renderTab();
+		const select = await screen.findByLabelText("Role for agent@acme.com");
+		expect(select.className).toContain("w-28");
+		expect(select.className).not.toContain("w-full");
+	});
+
+	it("the identity block keeps a min-width floor instead of min-w-0", async () => {
+		renderTab();
+		const identity = (await screen.findByText("Aki Agent")).parentElement!;
+		expect(identity.className).toContain("flex-1");
+		expect(identity.className).toContain("min-w-24");
+		expect(identity.className).not.toContain("min-w-0");
+	});
+});
+
 describe("MembersTab — the one-time invite link (k1)", () => {
 	it("shows the link once after creation, with a copy control", async () => {
 		const user = userEvent.setup();

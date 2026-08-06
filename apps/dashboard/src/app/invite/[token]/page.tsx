@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -19,6 +19,11 @@ import {
 } from "@/lib/members";
 import { withInvite } from "@/lib/invite-return";
 import { useWorkspace } from "@/lib/workspace";
+import {
+	upsertWorkspaceSummary,
+	WORKSPACES_KEY,
+	type WorkspacesResponse,
+} from "@/lib/workspace-utils";
 
 function errorText(error: unknown, fallback: string) {
 	const code = error instanceof ApiError ? error.code : undefined;
@@ -40,6 +45,7 @@ export default function AcceptInvitePage() {
 	const params = useParams<{ token: string }>();
 	const token = params?.token ?? "";
 	const router = useRouter();
+	const qc = useQueryClient();
 	const { data: session, isPending: sessionPending } = useSession();
 	const { setWorkspaceId } = useWorkspace();
 
@@ -53,6 +59,20 @@ export default function AcceptInvitePage() {
 	const accept = useMutation({
 		mutationFn: () => acceptInvite(token),
 		onSuccess: ({ workspaceId }) => {
+			// The provider's reconcile validates the stored selection against the
+			// CACHED workspace list, which predates this membership — left alone
+			// it would demote the selection straight back to the auto-provisioned
+			// personal workspace (the first-run bug). Patch a provisional row in
+			// so the joined workspace resolves immediately, then refetch the
+			// authoritative list.
+			qc.setQueryData<WorkspacesResponse>(WORKSPACES_KEY, (prev) =>
+				upsertWorkspaceSummary(prev, {
+					id: workspaceId,
+					name: previewQ.data?.workspaceName ?? "Workspace",
+					role: previewQ.data?.role ?? "agent",
+				}),
+			);
+			void qc.invalidateQueries({ queryKey: WORKSPACES_KEY });
 			setWorkspaceId(workspaceId);
 			track(ANALYTICS_EVENTS.inviteAccepted);
 			toast.success("You're in — welcome to the team");

@@ -114,6 +114,11 @@ export function BehaviorTab({
 				>
 					{(id) => (
 						<div className="flex items-center gap-2">
+							{/* The appended w-24 loses to dsInputClass's w-full (stylesheet
+							    order) and the input renders wide — the shipped layout relies
+							    on that. If the compact width is ever wanted, route through
+							    cn(dsInputClass, "w-24") like MembersTab's role select (#193);
+							    doing it silently here would change this page's look. */}
 							<input
 								id={id}
 								type="number"
