@@ -99,7 +99,6 @@ function convPage(path: string) {
 		conversations: [
 			{
 				id: "c1",
-				clientId: "c",
 				name: "Bob",
 				email: null,
 				ipAddress: null,
@@ -141,7 +140,6 @@ function setupApi() {
 				return {
 					conversation: {
 						id: "c1",
-						clientId: "c",
 						name: "Bob",
 						email: null,
 						ipAddress: null,

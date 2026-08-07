@@ -9,7 +9,6 @@ import type { Conversation, Tag } from "./types";
 function conv(overrides: Partial<Conversation> = {}): Conversation {
 	return {
 		id: "c1",
-		clientId: "client",
 		name: "Ada Lovelace",
 		email: "ada@example.com",
 		ipAddress: "203.0.113.7",

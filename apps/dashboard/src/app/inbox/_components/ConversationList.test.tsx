@@ -9,7 +9,6 @@ import type { Conversation } from "./types";
 function conv(overrides: Partial<Conversation>): Conversation {
 	return {
 		id: crypto.randomUUID(),
-		clientId: "c",
 		name: "Ada Lovelace",
 		email: "ada@example.com",
 		ipAddress: null,

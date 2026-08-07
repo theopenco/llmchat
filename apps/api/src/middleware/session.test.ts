@@ -52,6 +52,22 @@ function gate(min: Role) {
 
 beforeEach(() => vi.clearAllMocks());
 
+describe("requireSession", () => {
+	it("401s an unauthenticated request with a machine-readable code", async () => {
+		const app = new Hono<AppContext>();
+		app.get("/gate", requireSession, (c) => c.json({ ok: true }));
+		// No x-test-user header ⇒ the mocked getSession returns null.
+		const res = await app.request("/gate", {}, ENV);
+		expect(res.status).toBe(401);
+		// The 401 body must carry `code` explicitly — every other error surface
+		// does, and the dashboard's ApiError branches on `code ?? error` (#195).
+		expect(await res.json()).toEqual({
+			error: "unauthorized",
+			code: "unauthorized",
+		});
+	});
+});
+
 describe("requireRole — hierarchy sanity", () => {
 	it("admits a role at the gate's rank and above", async () => {
 		mockMemberRole("admin");
