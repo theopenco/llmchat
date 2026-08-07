@@ -74,7 +74,8 @@ export async function resolveAdminIdentity(
 export const requireGlobalAdmin = createMiddleware<AppContext>(
 	async (c, next) => {
 		const identity = await resolveAdminIdentity(c);
-		if (!identity) return c.json({ error: "unauthorized" }, 401);
+		if (!identity)
+			return c.json({ error: "unauthorized", code: "unauthorized" }, 401);
 		if (!identity.isAdmin) {
 			return c.json({ error: "forbidden", code: "not_admin" }, 403);
 		}

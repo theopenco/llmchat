@@ -63,7 +63,8 @@ export const admin = new Hono<AppContext>()
 	// while a logged-out visitor still gets 401 (→ redirect to sign-in).
 	.get("/admin/me", async (c) => {
 		const identity = await resolveAdminIdentity(c);
-		if (!identity) return c.json({ error: "unauthorized" }, 401);
+		if (!identity)
+			return c.json({ error: "unauthorized", code: "unauthorized" }, 401);
 		return c.json({ email: identity.email, isAdmin: identity.isAdmin });
 	})
 
