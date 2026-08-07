@@ -2,10 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Github } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { inviteTokenFrom } from "@/lib/invite-return";
 import {
 	fetchOAuthProviders,
 	startSocialSignIn,
@@ -88,12 +90,20 @@ export function OAuthButtons() {
 		queryFn: fetchOAuthProviders,
 		staleTime: 5 * 60_000,
 	});
+	// Read the pending invite off THIS component's URL rather than taking it as
+	// a prop: both auth pages render these buttons, and a forgotten prop would
+	// silently drop the invite on the OAuth leg — the exact bug being fixed.
+	// (Both pages already sit under the Suspense boundary useSearchParams needs.)
+	const searchParams = useSearchParams();
 	const [pending, setPending] = useState<SocialProvider | null>(null);
 
 	async function handle(provider: SocialProvider) {
 		setPending(provider);
 		try {
-			const res = await startSocialSignIn(provider);
+			const res = await startSocialSignIn(
+				provider,
+				inviteTokenFrom(searchParams),
+			);
 			// On success the client redirects to the provider, so this only runs on
 			// an error response — re-enable and surface it.
 			if (res?.error) {

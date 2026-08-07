@@ -1,5 +1,6 @@
 import { apiBaseUrl } from "./api-base";
 import { authClient } from "./auth-client";
+import { stashPendingInvite } from "./invite-return";
 
 export type SocialProvider = "google" | "github";
 
@@ -30,11 +31,29 @@ export async function fetchOAuthProviders(): Promise<OAuthProviders> {
  * the onboarding guard provisions/redirects (a returning user is bounced to
  * /inbox). Absolute URL so Better Auth (served on the API origin) redirects to
  * the dashboard origin; it's a trusted origin.
+ *
+ * A pending invite can't ride the URL through this round-trip (the fixed
+ * callbackURL drops the auth page's query string), so it's stashed for the
+ * boot check on /onboarding to consume. Always called — with null when there
+ * is no invite — so a stale stash from an abandoned earlier attempt can never
+ * hijack a plain sign-in.
  */
-export function startSocialSignIn(provider: SocialProvider) {
+export function startSocialSignIn(
+	provider: SocialProvider,
+	inviteToken?: string | null,
+) {
+	stashPendingInvite(inviteToken ?? null);
+	// The error return must keep carrying the invite in the URL: a retry click
+	// on that page re-reads it from there (and re-stashes). Without it the
+	// retry would read "no invite" and its stale-stash clear would wipe the
+	// stash that had survived the failed attempt — the original bug, back on
+	// the first-retry journey.
+	const errorQuery = inviteToken
+		? `error=oauth&invite=${encodeURIComponent(inviteToken)}`
+		: "error=oauth";
 	return authClient.signIn.social({
 		provider,
 		callbackURL: `${window.location.origin}/onboarding`,
-		errorCallbackURL: `${window.location.origin}/sign-in?error=oauth`,
+		errorCallbackURL: `${window.location.origin}/sign-in?${errorQuery}`,
 	});
 }

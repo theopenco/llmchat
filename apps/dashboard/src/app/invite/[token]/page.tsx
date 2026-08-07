@@ -17,7 +17,11 @@ import {
 	describeInviteError,
 	previewInvite,
 } from "@/lib/members";
-import { withInvite } from "@/lib/invite-return";
+import {
+	peekPendingInvite,
+	stashPendingInvite,
+	withInvite,
+} from "@/lib/invite-return";
 import { useWorkspace } from "@/lib/workspace";
 import {
 	upsertWorkspaceSummary,
@@ -83,6 +87,15 @@ export default function AcceptInvitePage() {
 		onError: (error) =>
 			toast.error(errorText(error, "Couldn't accept that invitation.")),
 	});
+
+	// An abandoned OAuth attempt in this tab may have stashed this same token;
+	// now that the query-param path is carrying it, the stash is redundant and
+	// would go stale (→ a wrong redirect on a later /onboarding visit) the
+	// moment this invitation is used. A DIFFERENT token's stash is a separate
+	// pending carry and is left alone.
+	useEffect(() => {
+		if (peekPendingInvite() === token) stashPendingInvite(null);
+	}, [token]);
 
 	// Not signed in: send them to sign-up carrying the invite, so they come
 	// back here after creating an account.
