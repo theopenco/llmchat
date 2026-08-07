@@ -6,18 +6,17 @@ This file is the shared guidance for AI coding agents (Claude Code, Codex, etc.)
 
 **Clanker Support** is an open-source ([`theopenco/llmchat`](https://github.com/theopenco/llmchat)), self-hostable, embeddable AI customer-support widget. You drop a single `<script>` on your site; the widget answers visitor questions from your knowledge base (docs URLs, text snippets, hand-written Q&A) using **LLM Gateway** models, escalates to a human (email + Slack) when needed, and operators triage every conversation in a dashboard inbox. Replies by email thread back into the conversation. Billing is metered per AI response via Stripe.
 
-Production domains: `clankersupport.com` (marketing), `app.clankersupport.com` (dashboard), `api.clankersupport.com` (api), `showcase.clankersupport.com` (live demo), `admin.clankersupport.com` (internal admin console).
+Production domains: `clankersupport.com` (marketing), `app.clankersupport.com` (dashboard), `api.clankersupport.com` (api), `admin.clankersupport.com` (internal admin console).
 
 ## Repo layout
 
-pnpm workspaces + Turborepo. Seven apps, three packages (`apps/shopify` is a standalone pnpm workspace, see below):
+pnpm workspaces + Turborepo. Six apps, three packages (`apps/shopify` is a standalone pnpm workspace, see below):
 
 | Path              | Name                 | What                                                             | Dev port |
 | ----------------- | -------------------- | ---------------------------------------------------------------- | -------- |
 | `apps/api`        | `@llmchat/api`       | Hono backend worker (Ploy `kind: dynamic`, runs on workerd)      | 8787     |
 | `apps/dashboard`  | `@llmchat/dashboard` | Next.js 15 operator console (inbox, projects, billing)           | 3001     |
 | `apps/marketing`  | `@llmchat/marketing` | Next.js 15 marketing site + MDX/JSON content + SEO               | 3002     |
-| `apps/showcase`   | `@llmchat/showcase`  | Next.js 15 first-party "live demo" embedding the real widget     | 3003     |
 | `apps/admin`      | `@llmchat/admin`     | Next.js 15 internal admin console (signups / revenue / subs)     | 3004     |
 | `apps/docs`       | `@llmchat/docs`      | Fumadocs product docs / knowledge base (dashboard screenshots)   | 3005     |
 | `apps/shopify`    | `@llmchat/shopify`   | Shopify App Store connector (React Router + theme app extension) | 3006     |
@@ -33,7 +32,7 @@ pnpm workspaces + Turborepo. Seven apps, three packages (`apps/shopify` is a sta
 
 - pnpm workspaces + Turborepo. Node >=22, TypeScript 5.9, strict mode (see `tsconfig.base.json`). pnpm@10.
 - **api** runs on **workerd** via the **Ploy** platform (https://docs.meetploy.com), declared `kind: dynamic`. Each project has its own `ploy.yaml`; the repo root has a `ploy-workspace.yaml`.
-- **dashboard**, **marketing**, **showcase**, and **admin** are Next.js 15 / React 19 apps, declared `kind: nextjs`. Note: Ploy 1.35 workspace mode only launches `worker | dynamic | nextjs` — Vite apps are skipped, so anything that needs `pnpm dev` integration has to be Next.js.
+- **dashboard**, **marketing**, and **admin** are Next.js 15 / React 19 apps, declared `kind: nextjs`. Note: Ploy 1.35 workspace mode only launches `worker | dynamic | nextjs` — Vite apps are skipped, so anything that needs `pnpm dev` integration has to be Next.js.
 - **db** is a single Ploy `db:` binding (D1-compatible SQLite). Migrations live at `apps/api/migrations/` (Ploy auto-discovers and applies them on `ploy dev` and deploy). The Drizzle schema is in `packages/db/src/schema.ts` and emits SQL into that directory via `packages/db/drizzle.config.ts` (`out: ../../apps/api/migrations`).
 - **cache / rate-limit** uses a Ploy `state:` binding (KV-compatible API: `get`/`put`/`delete`/`list`).
 - Inference uses **LLM Gateway** via `@llmgateway/ai-sdk-provider` + `ai` (Vercel AI SDK v6 — `streamText`, `UIMessage`, `convertToModelMessages`).
@@ -57,7 +56,7 @@ The Ploy yaml schema only accepts the fields documented in `packages/tools/src/p
 
 ```sh
 pnpm install
-pnpm dev                                  # builds @llmchat/widget, then `ploy dev` — boots api :8787, dashboard :3001, marketing :3002, showcase :3003, docs :3005, Ploy dashboard :9787
+pnpm dev                                  # builds @llmchat/widget, then `ploy dev` — boots api :8787, dashboard :3001, marketing :3002, docs :3005, Ploy dashboard :9787
 pnpm build                                # turbo run build across all workspaces
 pnpm lint                                 # turbo run lint (prettier --check per package) + oxlint . (.oxlintrc.json at repo root)
 pnpm format                               # turbo run format (prettier --write)
@@ -88,14 +87,14 @@ The dev seed is **`apps/api/seed/dev-seed.sql`**, applied **only** by `pnpm seed
 
 - **Admin user:** `admin@example.com` / `admin@example.com` (Better Auth scrypt hash with a fixed salt — only matches that literal password, safe to commit).
 - **Dev workspace + owner member** for the user.
-- **Demo project** "Acme Tools (demo)" with `publicKey = local-dev-key`, `inboundEmailLocal = dev`, brand `#4f46e5`, and an "Acme Tools" support-bot system prompt (this is the only place the fictional "Acme Tools" persona lives — the showcase site itself is branded Clanker Support).
+- **Demo project** "Acme Tools (demo)" with `publicKey = local-dev-key`, `inboundEmailLocal = dev`, brand `#4f46e5`, and an "Acme Tools" support-bot system prompt (the only place the fictional "Acme Tools" persona lives).
 
 To exercise the full loop locally:
 
-1. `pnpm dev` — builds the widget, boots api/dashboard/marketing/showcase; Ploy applies the real schema migrations and creates the local DB at `.ploy/db/llmchat_db.db`.
+1. `pnpm dev` — builds the widget, boots api/dashboard/marketing/docs; Ploy applies the real schema migrations and creates the local DB at `.ploy/db/llmchat_db.db`.
 2. `pnpm seed` — once, in another terminal, to insert the admin/workspace/demo project (re-runnable; resolves the local DB, or `PLOY_DB_PATH=<file>` to override). Refuses to run under `NODE_ENV=production`.
-3. Open `http://localhost:3003` — the **showcase** (`apps/showcase`) is a first-party "live demo · real widget" page; the bottom-right bubble is the actual widget in **live** mode, pinned to `local-dev-key` and `http://localhost:8787` (talking to the seeded Acme Tools demo project).
-4. Chat with the bubble; escalate to trigger "Talk to a human".
+3. Open `http://localhost:8787/embed/local-dev-key` — the api's CSP-hardened full-page chat shell, talking to the seeded Acme Tools demo project. (The retired showcase app used to serve this role; the embed page is the local demo surface now.)
+4. Chat there; escalate to trigger "Talk to a human".
 5. Sign in at `http://localhost:3001` with the admin credentials to see the conversation in the dashboard inbox.
 
 `apps/api/src/seed.test.ts` enforces the contract: the committed migrations never create the admin/demo project, and the dev seed does (idempotently). The seed hash is computed for scrypt `{ N: 16384, r: 16, p: 1, dkLen: 64 }` — Better Auth's defaults via `@better-auth/utils/password`. If they ever change those params, regenerate the hash and update `apps/api/seed/dev-seed.sql`.
@@ -108,11 +107,11 @@ The api ships to workerd. Avoid Node-only deps — they fail to bundle. Already 
 
 ### Auth (`apps/api/src/auth.ts`)
 
-Better Auth with the Drizzle adapter. **Email+password plus Google and GitHub OAuth** (social providers are wired only when the matching `*_CLIENT_ID`/`*_CLIENT_SECRET` env vars are present; `/api/oauth-providers` tells the frontends which are enabled). The passkey plugin remains removed (Node deps). `createAuth(env)` is called **per-request** because env is a Ploy binding, not a module-scope value. `trustedOrigins` accepts the app origins (dashboard/marketing/showcase/admin, incl. Ploy preview hosts) **plus the API's own origin** — same-origin is CSRF-safe, and non-browser clients whose fetch stamps `Sec-Fetch-*` headers (Node's fetch → the MCP connector) present it to pass Better Auth's origin check (tested in `auth.test.ts`).
+Better Auth with the Drizzle adapter. **Email+password plus Google and GitHub OAuth** (social providers are wired only when the matching `*_CLIENT_ID`/`*_CLIENT_SECRET` env vars are present; `/api/oauth-providers` tells the frontends which are enabled). The passkey plugin remains removed (Node deps). `createAuth(env)` is called **per-request** because env is a Ploy binding, not a module-scope value. `trustedOrigins` accepts the app origins (dashboard/marketing/admin, incl. Ploy preview hosts) **plus the API's own origin** — same-origin is CSRF-safe, and non-browser clients whose fetch stamps `Sec-Fetch-*` headers (Node's fetch → the MCP connector) present it to pass Better Auth's origin check (tested in `auth.test.ts`).
 
 ### Request paths (`apps/api/src/index.ts`)
 
-CORS is tiered: `/v1/*` is open (`*`) for public widget embeds; `/api/*` is pinned to `DASHBOARD_URL` (with marketing/showcase also allowed on `/api/auth/*`); `/billing/webhook` has **no** CORS (Stripe server-to-server, raw signed body). All `/api/*` business routes sit behind `requireSession` + `requireWorkspace` (membership asserted via the `member` table using the `x-workspace-id` header) and, where noted, `requireRole` (`owner` > `admin` > `agent`). Route groups:
+CORS is tiered: `/v1/*` is open (`*`) for public widget embeds; `/api/*` is pinned to `DASHBOARD_URL` (with marketing/admin also allowed on `/api/auth/*`); `/billing/webhook` has **no** CORS (Stripe server-to-server, raw signed body). All `/api/*` business routes sit behind `requireSession` + `requireWorkspace` (membership asserted via the `member` table using the `x-workspace-id` header) and, where noted, `requireRole` (`owner` > `admin` > `agent`). Route groups:
 
 - **Public widget** (`/v1/*`, unauthenticated, gated by per-project public key + rate limiting):
   - `POST /v1/chat` — streams a UI message stream from the LLM to the embedded widget.
@@ -178,7 +177,7 @@ A Vite IIFE lib (`formats: ["iife"]`, `inlineDynamicImports: true`, `cssCodeSpli
 
 Three entry points via package `exports`:
 
-- `@llmchat/widget` → `src/widget.tsx` (the `Widget` React component, for in-tree consumers like `apps/showcase` and the dashboard onboarding preview).
+- `@llmchat/widget` → `src/widget.tsx` (the `Widget` React component, for in-tree consumers like the dashboard onboarding preview).
 - `@llmchat/widget/chat` → `src/chat.ts` (reusable `Composer` / `MessageList` / `WidgetFrame` primitives).
 - `@llmchat/widget/styles` → `src/styles.ts` (a `widgetStyles` string for injecting into a shadow root `<style>`).
 
@@ -201,10 +200,6 @@ Next.js 15 + **content-collections** (`content-collections.ts`, Zod-validated). 
 
 Next.js 15 / React 19 operator console. Auth via the Better Auth client (`src/lib/auth-client.ts`, base URL resolved at runtime for Ploy preview hosts) against `/api/auth/*`; every data call goes through the `fetch` wrapper in `src/lib/api.ts` (`credentials: "include"` + `x-workspace-id` header; `ApiError` carries a machine-readable `code`). `WorkspaceProvider` resolves the active workspace/role. Data layer is **`@tanstack/react-query`** (server-prefetch + dehydrate in the dashboard gate, optimistic mutations for inbox/projects/tags). Routes: `sign-in`, `sign-up`, `onboarding` (hard paywall before the first project), `inbox` (keyset list + ~5s head poll, thread, reply, tags, archive), and `settings/{projects, projects/[id], projects/[id]/sources, workspaces, account, billing}`. The onboarding paywall and billing page offer starter/growth/scale with a monthly/annual toggle → `POST /billing/checkout` → Stripe Checkout. A ⌘K command palette (`cmdk`) hits `/api/search`. The layout self-dogfoods the widget (same async `<script>`). PostHog + consent banner included.
 
-### Showcase app (`apps/showcase`)
-
-A first-party **"live demo · real widget"** page — not a fake third-party site. The bottom-right bubble is the actual widget in **live** mode, mounted into a shadow DOM by `WidgetMount.tsx` + `src/lib/shadow-mount.tsx`, pinned to `NEXT_PUBLIC_WIDGET_KEY` (`local-dev-key` in dev) and the API. There's also an `InlineShowcaseChat` (showcase mode — canned replies, local state). The demo project it talks to is the seeded "Acme Tools (demo)" persona. The public prod widget key and PostHog key are committed in `apps/showcase/.env.production` (same convention as a public embed key).
-
 ### Admin app (`apps/admin`)
 
 Internal **operations console** (`admin.clankersupport.com`) for the Clanker Support team — cross-tenant metrics: signups, revenue/subscriptions, workspaces, users. Dark-only "console" aesthetic (deliberately unlike the customer dashboard), Next.js 15 / React 19, `kind: nextjs`, dev port **3004**. Reuses the dashboard's auth-client + `credentials: "include"` fetch pattern, but the fetch wrapper sends **no `x-workspace-id`** (the admin routes are global, not workspace-scoped). Charts are hand-rolled SVG/CSS (no chart lib) to keep the bundle lean.
@@ -224,9 +219,9 @@ Public product docs / knowledge base built with **Fumadocs**, modeled on llmgate
 
 Event names live in `@llmchat/shared` (`ANALYTICS_EVENTS`, object-action / lowercase_snake). All instrumentation imports from there so names never drift. Analytics is **optional everywhere** — every integration no-ops when its key is unset, so local dev needs no PostHog setup.
 
-- **marketing**, **dashboard**, and **showcase** use `posthog-js` via a `PostHogProvider` (manual `$pageview` on App Router navigation, autocapture on). Marketing + showcase are anonymous (`person_profiles: "identified_only"`); the dashboard `identify()`s the Better Auth user. Fire custom events with the `track()` helper in each app's `src/lib/analytics.ts`; `<TrackedLink>` / `<TrackView>` (marketing) cover CTA clicks and page-view conversions. Env: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` (defaults to `https://eu.i.posthog.com` — EU cloud).
+- **marketing** and **dashboard** use `posthog-js` via a `PostHogProvider` (manual `$pageview` on App Router navigation, autocapture on). Marketing is anonymous (`person_profiles: "identified_only"`); the dashboard `identify()`s the Better Auth user. Fire custom events with the `track()` helper in each app's `src/lib/analytics.ts`; `<TrackedLink>` / `<TrackView>` (marketing) cover CTA clicks and page-view conversions. Env: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` (defaults to `https://eu.i.posthog.com` — EU cloud).
 - **api** (workerd) captures widget/server events (`conversation_started`, `widget_message_sent`, `conversation_escalated`) via a direct `fetch` to the PostHog capture API in `lib/posthog.ts` — the Node SDK's timers/batching don't fit a Worker. Always called inside `executionCtx.waitUntil(...)`, never PII (distinct_id = the widget's anonymous `clientId`). Env: `POSTHOG_API_KEY`, `POSTHOG_HOST`. The widget itself is **not** instrumented client-side — keeping its bundle lean — so its events come from the api.
-- **Privacy / consent:** no PII in event properties. EU/EEA + UK visitors get a cookie-consent banner and **nothing loads** until they opt in; elsewhere analytics loads on implied consent. Region is detected from the browser time zone and the decision stored in `localStorage`. Shared logic lives in `@llmchat/shared` (`isConsentRequiredRegion`, `getStoredConsent`, `setStoredConsent`); all three Next apps gate `posthog.init` inline in their `PostHogProvider` (which owns the `ConsentBanner`). PostHog is the only analytics tool — no Google Analytics.
+- **Privacy / consent:** no PII in event properties. EU/EEA + UK visitors get a cookie-consent banner and **nothing loads** until they opt in; elsewhere analytics loads on implied consent. Region is detected from the browser time zone and the decision stored in `localStorage`. Shared logic lives in `@llmchat/shared` (`isConsentRequiredRegion`, `getStoredConsent`, `setStoredConsent`); both instrumented Next apps (marketing + dashboard) gate `posthog.init` inline in their `PostHogProvider` (which owns the `ConsentBanner`). PostHog is the only analytics tool — no Google Analytics.
 
 ## Conventions
 

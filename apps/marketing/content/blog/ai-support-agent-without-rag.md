@@ -125,7 +125,7 @@ Our position is "you might not need RAG _yet_," not "you don't need RAG." The tr
 
 What we won't do is build it speculatively. Every week the pipeline doesn't exist is a week we don't debug sync drift, don't re-embed on edits, and don't explain retrieval misses. The constants in `llm.ts` are doing the job a vector database would do, in twelve lines, with unit tests pinning the behavior. When the ceiling stops being theoretical for our users, the code knows exactly where retrieval slots in.
 
-If you want to poke at the real thing, the agent answering questions on [our live demo](https://showcase.clankersupport.com) is running exactly the code quoted above, and the whole repo is MIT-licensed if you'd rather read the source than take our word for it.
+If you want to poke at the real thing, the agent answering questions in [the chat bubble on our homepage](https://clankersupport.com) is running exactly the code quoted above, and the whole repo is MIT-licensed if you'd rather read the source than take our word for it.
 
 ## FAQ
 

@@ -45,12 +45,10 @@ app.use(
 			// Data routes stay pinned to the dashboard origin.
 			if (c.req.path.startsWith("/api/auth")) {
 				const mkt = c.env.vars.MARKETING_URL || "http://localhost:3002";
-				const showcase = c.env.vars.SHOWCASE_URL || "http://localhost:3003";
 				// The admin console signs in through Better Auth too, so its origin
 				// must be allowed to read/write /api/auth/*.
 				return isAllowedOrigin(origin, dash) ||
 					isAllowedOrigin(origin, mkt) ||
-					isAllowedOrigin(origin, showcase) ||
 					isAllowedOrigin(origin, adminUrl(c.env))
 					? origin
 					: null;
@@ -88,7 +86,7 @@ app.use("/billing/portal", billingBrowserCors);
 app.use("/billing/usage", billingBrowserCors);
 
 // Admin console API: credentialed, pinned to the admin origin only (never the
-// dashboard/marketing/showcase). Preview deployments of the admin app match via
+// dashboard/marketing origins). Preview deployments of the admin app match via
 // isAllowedOrigin's preview-suffix logic. Auth is asserted per-route by
 // requireGlobalAdmin — this is just the browser-origin gate.
 app.use(

@@ -2,7 +2,7 @@ import { BILLING_TIERS, formatUsd } from "@llmchat/shared";
 import { describe, expect, it } from "vitest";
 
 import { buildLlmsTxt } from "./llms-txt";
-import { CANONICAL_SHOWCASE_URL, DOCS_URL } from "./site-urls";
+import { DOCS_URL } from "./site-urls";
 
 const BASE = "https://clankersupport.com";
 
@@ -108,8 +108,9 @@ describe("buildLlmsTxt", () => {
 		expect(out).toContain("(https://github.com/theopenco/llmchat)");
 	});
 
-	it("links the live demo and the legal pages (Optional section)", () => {
-		expect(out).toContain(`(${CANONICAL_SHOWCASE_URL})`);
+	it("points the live-agent entry at this site's own bubble and links the legal pages (Optional section)", () => {
+		expect(out).toContain("[Live agent]");
+		expect(out).not.toContain("showcase.");
 		expect(out).toContain("## Optional");
 		expect(out).toContain(`(${BASE}/privacy-policy)`);
 		expect(out).toContain(`(${BASE}/terms-of-use)`);

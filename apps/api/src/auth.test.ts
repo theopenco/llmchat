@@ -28,7 +28,6 @@ function vars(overrides: Partial<Env["vars"]> = {}): Env["vars"] {
 		BETTER_AUTH_URL: "http://localhost:8787",
 		DASHBOARD_URL: "http://localhost:3001",
 		MARKETING_URL: "http://localhost:3002",
-		SHOWCASE_URL: "http://localhost:3003",
 		...overrides,
 	} as Env["vars"];
 }
@@ -199,7 +198,6 @@ describe("trustedOrigins", () => {
 		const fallback = [
 			"http://localhost:3001",
 			"http://localhost:3002",
-			"http://localhost:3003",
 			"http://localhost:3004",
 		];
 		expect(resolve("https://evil.example")).toEqual(fallback);

@@ -18,7 +18,9 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
 const DASH = "http://localhost:3001";
-const SHOWCASE = "http://localhost:3003";
+// The local demo surface (the showcase app is retired): the api's
+// CSP-hardened full-page chat shell for the seeded demo project.
+const EMBED = "http://localhost:8787/embed/local-dev-key";
 const APIURL = "http://localhost:8787";
 const WS = "dev-workspace";
 const P = "dev-project";
@@ -300,7 +302,7 @@ const makeShots = (IDS) => [
 	},
 	{
 		name: "widget",
-		url: SHOWCASE,
+		url: EMBED,
 		prep: async (p) => {
 			const bubble = p
 				.locator("#llmchat-widget-root")

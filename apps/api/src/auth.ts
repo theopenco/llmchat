@@ -144,7 +144,6 @@ export function buildAuthOptions(env: Env) {
 			const origin = request?.headers.get("origin");
 			const dash = env.vars.DASHBOARD_URL;
 			const mkt = env.vars.MARKETING_URL || "http://localhost:3002";
-			const showcase = env.vars.SHOWCASE_URL || "http://localhost:3003";
 			const admin = adminUrl(env);
 			// The API's own origin is also trusted: same-origin requests are
 			// CSRF-safe by definition (a browser only sends Origin = this API from
@@ -158,12 +157,11 @@ export function buildAuthOptions(env: Env) {
 				(origin === self ||
 					isAllowedOrigin(origin, dash) ||
 					isAllowedOrigin(origin, mkt) ||
-					isAllowedOrigin(origin, showcase) ||
 					isAllowedOrigin(origin, admin))
 			) {
 				return [origin];
 			}
-			return [dash, mkt, showcase, admin];
+			return [dash, mkt, admin];
 		},
 	} satisfies Parameters<typeof betterAuth>[0];
 }

@@ -74,7 +74,6 @@ function makeEnv(STATE: unknown): Env {
 			BETTER_AUTH_URL: "http://localhost:8787",
 			DASHBOARD_URL: "http://localhost:3001",
 			MARKETING_URL: "http://localhost:3002",
-			SHOWCASE_URL: "http://localhost:3003",
 			TRUSTED_CLIENT_IP_HEADER: "cf-connecting-ip",
 		},
 		DB: {},

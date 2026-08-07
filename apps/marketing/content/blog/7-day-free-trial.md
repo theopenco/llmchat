@@ -45,7 +45,7 @@ Nothing about this changes the open-source side. Clanker Support is open source,
 
 ## How to start
 
-1. **See it working first, with no signup.** The [live demo](https://showcase.clankersupport.com) is the real widget running in your browser — open it and ask it something.
+1. **See it working first, with no signup.** The [live agent on our homepage](https://clankersupport.com) is the real widget running in your browser — the chat bubble in the corner; open it and ask it something.
 2. **Pick a plan on [/pricing](/pricing).** We'd suggest starting on Starter — $19 a month, 2,000 AI responses, no per-seat fees — and switching tiers later if you outgrow it. Annual billing gets you two months free. Your 7-day trial starts at checkout, automatically.
 3. **Drop in the script tag.** One script tag on your site; most teams are live in about five minutes. Then let it take your real conversations for a week.
 
@@ -73,6 +73,6 @@ Yes, forever. Open source, your own infrastructure, your own LLM keys.
 
 ## Start wherever you're comfortable
 
-There's a ladder here, and you can stop on any rung. Try the [live demo](https://showcase.clankersupport.com) with no signup at all. When you're curious what it does with your docs and your customers, take the 7 free days. And if by day seven your support agent already feels like yours — that's the point at which staying is the easy decision.
+There's a ladder here, and you can stop on any rung. Try the [live agent on our homepage](https://clankersupport.com) with no signup at all. When you're curious what it does with your docs and your customers, take the 7 free days. And if by day seven your support agent already feels like yours — that's the point at which staying is the easy decision.
 
 Pick your plan at [/pricing](/pricing). The trial starts the moment you do.

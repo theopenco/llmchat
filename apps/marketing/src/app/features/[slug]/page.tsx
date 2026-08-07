@@ -6,13 +6,10 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
 import { JsonLd } from "@/components/JsonLd";
 import { FaqSection } from "@/components/FaqSection";
+import { LiveAgentHint } from "@/components/LiveAgentHint";
 import { FEATURES, getFeature } from "@/lib/features";
 import { breadcrumbLd, faqPageLd, pageMeta } from "@/lib/seo";
-import {
-	CANONICAL_SHOWCASE_URL,
-	CANONICAL_SITE_URL,
-	SIGNUP_URL,
-} from "@/lib/site-urls";
+import { CANONICAL_SITE_URL, SIGNUP_URL } from "@/lib/site-urls";
 
 export function generateStaticParams() {
 	return FEATURES.map((f) => ({ slug: f.slug }));
@@ -108,13 +105,7 @@ export default async function FeaturePage({
 								Start your free trial
 								<span aria-hidden>→</span>
 							</TrackedLink>
-							<a
-								href={CANONICAL_SHOWCASE_URL}
-								className="inline-flex items-center gap-2 rounded-full border border-rule px-7 py-3.5 text-sm font-medium text-ink-soft transition-colors hover:border-accent/40 hover:text-ink"
-							>
-								<span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_2px_rgba(234,88,12,0.6)]" />
-								See it live
-							</a>
+							<LiveAgentHint />
 						</div>
 					</div>
 				</section>

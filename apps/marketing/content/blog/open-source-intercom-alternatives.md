@@ -105,7 +105,7 @@ Clanker Support is not a helpdesk platform. It's an AI support agent you add wit
 - **Hosted option:** flat plans from $19/month (annual = two months free), no per-seat or per-resolution fees; each tier includes a monthly AI-response quota — details on [pricing](/pricing)
 - **Best for:** developer-led teams that want an AI agent answering from their docs today, without adopting a platform
 
-What we don't do, stated plainly: web widget and email only — no WhatsApp, Messenger, Instagram, or voice. No CRM, no product tours, no outbound campaigns. It's a newer product with a smaller ecosystem than Chatwoot's. And the hosted version has no free tier — self-hosting is the free path. If you need omnichannel, pick Chatwoot — we mean that. Poke the real widget on our [live demo](https://showcase.clankersupport.com) before forming an opinion.
+What we don't do, stated plainly: web widget and email only — no WhatsApp, Messenger, Instagram, or voice. No CRM, no product tours, no outbound campaigns. It's a newer product with a smaller ecosystem than Chatwoot's. And the hosted version has no free tier — self-hosting is the free path. If you need omnichannel, pick Chatwoot — we mean that. Poke the real widget — [the chat bubble on our homepage](https://clankersupport.com) — before forming an opinion.
 
 ## The honest cost of self-hosting
 
