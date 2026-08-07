@@ -66,9 +66,13 @@ export default function OverviewPage() {
 								accent="pos"
 							/>
 							<StatCard
-								label="AI responses · 30d"
-								value={fmtCompact(data.usage.responses30d)}
-								hint={`${fmtUsdPrecise(data.usage.costUsd30d)} inference cost`}
+								label="Visitor responses · 30d"
+								value={fmtCompact(data.usage.byKind30d.chat)}
+								hint={`+${fmtCompact(
+									data.usage.byKind30d.suggestion,
+								)} operator drafts · ${fmtCompact(
+									data.usage.byKind30d.voice,
+								)} voice`}
 							/>
 						</div>
 
@@ -90,19 +94,23 @@ export default function OverviewPage() {
 							</Panel>
 
 							<Panel
-								title="AI responses · 30d"
+								title="Visitor responses · 30d"
 								right={
 									<span className="num text-sm text-muted">
-										{fmtCompact(data.usage.responses30d)}
+										{fmtCompact(data.usage.byKind30d.chat)}
 									</span>
 								}
 							>
 								<BarChart
-									values={data.usageSeries.map((p) => p.responses)}
+									values={data.usageSeries.map((p) => p.chat)}
 									labels={data.usageSeries.map((p) => p.date)}
 									colorClass="text-pos"
 								/>
 								<SeriesAxis series={data.usageSeries.map((p) => p.date)} />
+								<p className="mt-2 text-xs text-faint">
+									Bars count visitor chat only — operator drafts and voice are
+									metered separately and excluded here.
+								</p>
 							</Panel>
 						</div>
 
@@ -167,7 +175,21 @@ export default function OverviewPage() {
 									value={fmtInt(data.content.messages)}
 								/>
 								<Totline
-									label="AI responses (all-time)"
+									label="Visitor responses (all-time)"
+									value={fmtInt(data.usage.byKindTotal.chat)}
+								/>
+								<Totline
+									label="Operator drafts (all-time)"
+									value={fmtInt(data.usage.byKindTotal.suggestion)}
+								/>
+								<Totline
+									label="Voice sessions (all-time)"
+									value={fmtInt(data.usage.byKindTotal.voice)}
+								/>
+								{/* All-kind total: equals the three above unless a metered row
+								    carries a kind this build predates — the gap is the tell. */}
+								<Totline
+									label="Metered rows (all kinds)"
 									value={fmtInt(data.usage.responsesTotal)}
 								/>
 								<Totline
@@ -175,7 +197,7 @@ export default function OverviewPage() {
 									value={fmtCompact(data.usage.tokensTotal)}
 								/>
 								<Totline
-									label="Inference cost (all-time)"
+									label="Inference cost (not metered yet)"
 									value={fmtUsdPrecise(data.usage.costUsdTotal)}
 								/>
 								<Totline

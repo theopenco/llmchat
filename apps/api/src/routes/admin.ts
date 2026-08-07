@@ -5,7 +5,11 @@ import {
 	buildDayKeys,
 	densifySeries,
 	estimateMrrUsd,
+	foldUsageByDay,
+	foldWorkspaceUsage,
+	tallyKinds,
 	tallyPlans,
+	zeroUsageDay,
 } from "@/lib/admin-metrics";
 import { db } from "@/lib/db";
 import { requireGlobalAdmin, resolveAdminIdentity } from "@/middleware/admin";
@@ -109,20 +113,29 @@ export const admin = new Hono<AppContext>()
 				.select({ plan: workspace.plan, n: count() })
 				.from(workspace)
 				.groupBy(workspace.plan),
+			// Grouped by kind (#169) so visitor chat, operator drafts, and voice
+			// mints are labeled apart; grand totals are summed from these rows, so
+			// cost/tokens keep covering every kind. (NB: every writer currently
+			// inserts costUsd: 0 — the sums are structurally $0 until the gateway's
+			// cost lands, so no surface may present them as spend. See #206.)
 			d
 				.select({
-					responses: count(),
+					kind: usageEvent.kind,
+					n: count(),
 					tokens: sql<number>`coalesce(sum(${usageEvent.promptTokens} + ${usageEvent.completionTokens}), 0)`,
 					cost: sql<number>`coalesce(sum(${usageEvent.costUsd}), 0)`,
 				})
-				.from(usageEvent),
+				.from(usageEvent)
+				.groupBy(usageEvent.kind),
 			d
 				.select({
-					responses: count(),
+					kind: usageEvent.kind,
+					n: count(),
 					cost: sql<number>`coalesce(sum(${usageEvent.costUsd}), 0)`,
 				})
 				.from(usageEvent)
-				.where(gte(usageEvent.createdAt, since30d)),
+				.where(gte(usageEvent.createdAt, since30d))
+				.groupBy(usageEvent.kind),
 			d
 				.select({ day: signupDay, n: count() })
 				.from(user)
@@ -131,12 +144,13 @@ export const admin = new Hono<AppContext>()
 			d
 				.select({
 					day: usageDay,
+					kind: usageEvent.kind,
 					responses: count(),
 					cost: sql<number>`coalesce(sum(${usageEvent.costUsd}), 0)`,
 				})
 				.from(usageEvent)
 				.where(gte(usageEvent.createdAt, since30d))
-				.groupBy(usageDay),
+				.groupBy(usageDay, usageEvent.kind),
 			d
 				.select({
 					id: user.id,
@@ -154,10 +168,7 @@ export const admin = new Hono<AppContext>()
 		const signupsByDay: Record<string, { count: number }> = {};
 		for (const r of signupRows) signupsByDay[r.day] = { count: r.n };
 
-		const usageByDay: Record<string, { responses: number; cost: number }> = {};
-		for (const r of usageRows) {
-			usageByDay[r.day] = { responses: r.responses, cost: r.cost ?? 0 };
-		}
+		const usageByDay = foldUsageByDay(usageRows);
 
 		return c.json({
 			users: {
@@ -173,11 +184,13 @@ export const admin = new Hono<AppContext>()
 				estArrUsd: estimateMrrUsd(planCounts) * 12,
 			},
 			usage: {
-				responsesTotal: usageTotals[0]?.responses ?? 0,
-				responses30d: usage30[0]?.responses ?? 0,
-				tokensTotal: usageTotals[0]?.tokens ?? 0,
-				costUsdTotal: usageTotals[0]?.cost ?? 0,
-				costUsd30d: usage30[0]?.cost ?? 0,
+				responsesTotal: usageTotals.reduce((s, r) => s + r.n, 0),
+				responses30d: usage30.reduce((s, r) => s + r.n, 0),
+				tokensTotal: usageTotals.reduce((s, r) => s + (r.tokens ?? 0), 0),
+				costUsdTotal: usageTotals.reduce((s, r) => s + (r.cost ?? 0), 0),
+				costUsd30d: usage30.reduce((s, r) => s + (r.cost ?? 0), 0),
+				byKindTotal: tallyKinds(usageTotals),
+				byKind30d: tallyKinds(usage30),
 			},
 			content: {
 				workspaces: workspacesTotal,
@@ -186,10 +199,7 @@ export const admin = new Hono<AppContext>()
 				messages: messagesTotal,
 			},
 			signupsSeries: densifySeries(dayKeys, signupsByDay, { count: 0 }),
-			usageSeries: densifySeries(dayKeys, usageByDay, {
-				responses: 0,
-				cost: 0,
-			}),
+			usageSeries: densifySeries(dayKeys, usageByDay, zeroUsageDay()),
 			recentUsers,
 		});
 	})
@@ -222,33 +232,44 @@ export const admin = new Hono<AppContext>()
 				.select({ id: member.workspaceId, n: count() })
 				.from(member)
 				.groupBy(member.workspaceId),
+			// Grouped by kind (#169): the table labels visitor responses apart from
+			// operator drafts, while cost stays all-kind (and structurally $0 until
+			// costUsd is populated — see #206).
 			d
 				.select({
 					id: usageEvent.workspaceId,
+					kind: usageEvent.kind,
 					n: count(),
 					cost: sql<number>`coalesce(sum(${usageEvent.costUsd}), 0)`,
 				})
 				.from(usageEvent)
 				.where(gte(usageEvent.createdAt, since30d))
-				.groupBy(usageEvent.workspaceId),
+				.groupBy(usageEvent.workspaceId, usageEvent.kind),
 		]);
 
 		const projById = new Map(projRows.map((r) => [r.id, r.n]));
 		const memById = new Map(memRows.map((r) => [r.id, r.n]));
-		const respById = new Map(respRows.map((r) => [r.id, r]));
+		const respById = foldWorkspaceUsage(respRows);
 
-		const workspaces = rows.map((w) => ({
-			id: w.id,
-			name: w.name,
-			plan: w.plan,
-			ownerEmail: w.ownerEmail,
-			hasSubscription: Boolean(w.hasSubscription),
-			members: memById.get(w.id) ?? 0,
-			projects: projById.get(w.id) ?? 0,
-			responses30d: respById.get(w.id)?.n ?? 0,
-			costUsd30d: respById.get(w.id)?.cost ?? 0,
-			createdAt: w.createdAt,
-		}));
+		const workspaces = rows.map((w) => {
+			const usage = respById.get(w.id);
+			const byKind = usage?.byKind ?? tallyKinds([]);
+			return {
+				id: w.id,
+				name: w.name,
+				plan: w.plan,
+				ownerEmail: w.ownerEmail,
+				hasSubscription: Boolean(w.hasSubscription),
+				members: memById.get(w.id) ?? 0,
+				projects: projById.get(w.id) ?? 0,
+				responses30d: usage?.responses ?? 0,
+				chat30d: byKind.chat,
+				suggestion30d: byKind.suggestion,
+				voice30d: byKind.voice,
+				costUsd30d: usage?.cost ?? 0,
+				createdAt: w.createdAt,
+			};
+		});
 
 		return c.json({ workspaces });
 	})
