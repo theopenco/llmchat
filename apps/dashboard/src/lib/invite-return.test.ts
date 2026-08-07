@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+	consumePendingInvite,
 	inviteTokenFrom,
+	peekPendingInvite,
+	PENDING_INVITE_KEY,
 	postAuthDestination,
+	stashPendingInvite,
 	withInvite,
 } from "./invite-return";
 
@@ -47,5 +51,48 @@ describe("invite-return", () => {
 		expect(inviteTokenFrom("invite=TOK")).toBe("TOK");
 		expect(inviteTokenFrom(new URLSearchParams("invite=TOK"))).toBe("TOK");
 		expect(inviteTokenFrom(undefined)).toBeNull();
+	});
+});
+
+// The OAuth round-trip drops the query param (the hosted flow returns to a
+// fixed callbackURL), so the token crosses it via a sessionStorage stash that
+// the /onboarding boot check consumes.
+describe("pending-invite stash (the OAuth round-trip)", () => {
+	beforeEach(() => {
+		sessionStorage.clear();
+		vi.restoreAllMocks();
+	});
+
+	it("stashes, peeks without consuming, then consumes exactly once", () => {
+		stashPendingInvite("TOK123");
+		expect(peekPendingInvite()).toBe("TOK123");
+		expect(peekPendingInvite()).toBe("TOK123"); // peek is not destructive
+		expect(consumePendingInvite()).toBe("TOK123");
+		expect(peekPendingInvite()).toBeNull(); // single-use: gone after consume
+		expect(consumePendingInvite()).toBeNull();
+	});
+
+	it("stashing null clears a stale token — a plain sign-in can't be hijacked", () => {
+		stashPendingInvite("TOK_STALE");
+		stashPendingInvite(null);
+		expect(peekPendingInvite()).toBeNull();
+		expect(sessionStorage.getItem(PENDING_INVITE_KEY)).toBeNull();
+	});
+
+	it("treats a whitespace-only stash as absent", () => {
+		sessionStorage.setItem(PENDING_INVITE_KEY, "   ");
+		expect(peekPendingInvite()).toBeNull();
+	});
+
+	it("degrades to no-stash when storage is unavailable (never throws)", () => {
+		vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+			throw new Error("QuotaExceededError");
+		});
+		vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+			throw new Error("SecurityError");
+		});
+		expect(() => stashPendingInvite("TOK")).not.toThrow();
+		expect(peekPendingInvite()).toBeNull();
+		expect(consumePendingInvite()).toBeNull();
 	});
 });

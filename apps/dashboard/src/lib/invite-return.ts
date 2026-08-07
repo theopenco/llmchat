@@ -10,9 +10,50 @@
  * The token travels as a query param between our own pages only. It is never
  * sent to the API this way (accept/preview take it in a POST body), and the
  * analytics scrubber redacts it from any URL that reaches PostHog.
+ *
+ * The OAuth leg can't use the query param: Better Auth's hosted flow returns
+ * to a fixed callbackURL (/onboarding), so anything in the auth page's URL is
+ * gone by the time the user is back. For that round-trip the token is stashed
+ * in sessionStorage — tab-scoped (the OAuth redirect stays in the tab; a link
+ * opened in a new tab carries the param instead) and single-use: the boot
+ * check on /onboarding consumes it, and starting a social sign-in WITHOUT an
+ * invite clears any stale stash so it can never hijack a plain sign-in.
  */
 
 export const INVITE_PARAM = "invite";
+
+export const PENDING_INVITE_KEY = "pendingInviteToken";
+
+/**
+ * Stash a pending invite for the OAuth round-trip, or clear the stash when
+ * `token` is null. Storage failures (private mode, SSR) fall through to the
+ * old behavior: the invite is lost and the user re-clicks their email link.
+ */
+export function stashPendingInvite(token: string | null): void {
+	try {
+		if (token) sessionStorage.setItem(PENDING_INVITE_KEY, token);
+		else sessionStorage.removeItem(PENDING_INVITE_KEY);
+	} catch {
+		// Storage unavailable — degrade to the query-param-only behavior.
+	}
+}
+
+/** Read the stashed token without consuming it (safe to call during render). */
+export function peekPendingInvite(): string | null {
+	try {
+		const token = sessionStorage.getItem(PENDING_INVITE_KEY);
+		return token && token.trim() ? token : null;
+	} catch {
+		return null;
+	}
+}
+
+/** Read AND clear the stash — the boot check's single-use consumption. */
+export function consumePendingInvite(): string | null {
+	const token = peekPendingInvite();
+	if (token) stashPendingInvite(null);
+	return token;
+}
 
 /** Read the pending invite token off a search string, if any. */
 export function inviteTokenFrom(

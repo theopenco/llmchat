@@ -15,6 +15,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { PENDING_INVITE_KEY } from "@/lib/invite-return";
 import { useOnboardingRedirect } from "@/lib/use-onboarding-redirect";
 import { WorkspaceProvider, useWorkspace } from "@/lib/workspace";
 import { WORKSPACE_STORAGE_KEY as KEY } from "@/lib/workspace-utils";
@@ -167,6 +168,7 @@ beforeEach(() => {
 	replace.mockClear();
 	pathname = "/invite/tok_test";
 	localStorage.clear();
+	sessionStorage.clear();
 	localStorage.setItem(KEY, "wsPersonal");
 	stubFetch();
 });
@@ -317,6 +319,25 @@ describe("invite accept — the joined workspace stays active", () => {
 			expect(screen.getByTestId("active-ws")).toHaveTextContent("wsJoined"),
 		);
 		expect(localStorage.getItem(KEY)).toBe("wsJoined");
+	});
+
+	it("arriving clears a stash of the SAME token — the query-param path carries it now", async () => {
+		// e.g. this tab stashed the token for an OAuth attempt that was abandoned;
+		// without the clear, the stash would go stale on accept and hijack a
+		// later /onboarding visit.
+		sessionStorage.setItem(PENDING_INVITE_KEY, "tok_test");
+		mount(<AcceptInvitePage />);
+
+		await screen.findByRole("button", { name: /accept invitation/i });
+		expect(sessionStorage.getItem(PENDING_INVITE_KEY)).toBeNull();
+	});
+
+	it("arriving leaves a DIFFERENT token's stash alone (a separate pending carry)", async () => {
+		sessionStorage.setItem(PENDING_INVITE_KEY, "tok_other");
+		mount(<AcceptInvitePage />);
+
+		await screen.findByRole("button", { name: /accept invitation/i });
+		expect(sessionStorage.getItem(PENDING_INVITE_KEY)).toBe("tok_other");
 	});
 
 	it("owner regression: a genuinely stale stored id is still demoted to a sensible default", async () => {
