@@ -6,8 +6,6 @@ export const CANONICAL_API_URL =
 	process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
 export const CANONICAL_DASHBOARD_URL =
 	process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
-export const CANONICAL_SHOWCASE_URL =
-	process.env.NEXT_PUBLIC_SHOWCASE_URL ?? "http://localhost:3003";
 
 /** Where every signup CTA lands. Deep-links to the dashboard's /sign-up page —
  * the dashboard root redirects signed-out visitors to the sign-in form, which

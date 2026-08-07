@@ -39,7 +39,6 @@ const PRODUCTS = [
 		label: "Marketing",
 	},
 	{ hosts: ["app.clankersupport.com"], label: "Dashboard" },
-	{ hosts: ["showcase.clankersupport.com"], label: "Showcase" },
 ] as const;
 
 // Conversion/engagement events worth a weekly glance — names come from the
@@ -274,7 +273,7 @@ export interface VoiceMintCounts {
 /**
  * Count voice-call session mints for the report window from the usage_event
  * table (kind='voice', one row per minted session — routes/voice.ts). Like
- * the showcase probe, a failure here is report DATA, not a cron failure:
+ * the agent health probe, a failure here is report DATA, not a cron failure:
  * returns null and the digest omits the line.
  */
 export async function voiceMintCounts(
@@ -306,8 +305,8 @@ export async function voiceMintCounts(
 	}
 }
 
-/** Outcome of the weekly showcase-demo health probe (see probeShowcaseWidget). */
-export interface ShowcaseProbeResult {
+/** Outcome of the weekly agent health probe (see probeAgentHealth). */
+export interface AgentProbeResult {
 	ok: boolean;
 	/** Short human detail for the digest line, e.g. "config 200 · chat 200". */
 	detail: string;
@@ -317,7 +316,7 @@ export interface ShowcaseProbeResult {
 export function buildTrafficEmbed(
 	window: ReportWindow,
 	data: TrafficData,
-	showcaseProbe?: ShowcaseProbeResult | null,
+	agentProbe?: AgentProbeResult | null,
 	voiceMints?: VoiceMintCounts | null,
 ): DiscordEmbed {
 	// Overview: current vs previous totals.
@@ -438,11 +437,12 @@ export function buildTrafficEmbed(
 					`**Voice calls** · ${fmt(voiceMints.cur)} minted (prev ${fmt(voiceMints.prev)}, ${formatDelta(voiceMints.cur, voiceMints.prev)}) · worst-case realtime spend ≤ $${fmt(voiceMints.cur * VOICE_SESSION_SPEND_CAP_USD)} (gateway $${VOICE_SESSION_SPEND_CAP_USD}/session cap)`,
 				]
 			: []),
-		// A dead public demo must be a Monday digest line, not a quarterly-audit
-		// discovery (the showcase key has shipped dead twice — task #125).
-		...(showcaseProbe
+		// A dead public agent must be a Monday digest line, not a quarterly-audit
+		// discovery (the retired showcase demo's key shipped dead twice before
+		// anyone noticed — task #125; the probe now watches the dogfood agent).
+		...(agentProbe
 			? [
-					`**Showcase demo** · ${showcaseProbe.ok ? "✅ PASS" : "❌ FAIL"} — ${showcaseProbe.detail}`,
+					`**Agent health** · ${agentProbe.ok ? "✅ PASS" : "❌ FAIL"} — ${agentProbe.detail}`,
 				]
 			: []),
 	].join("\n");
@@ -462,21 +462,23 @@ const PROBE_CONFIG_TIMEOUT_MS = 15_000;
 const PROBE_CHAT_TIMEOUT_MS = 60_000;
 
 /**
- * Live-probe the public showcase demo (task #125 regression guard): the
- * marketing homepage's only labeled no-signup path points at the showcase,
- * whose widget key has shipped dead twice without anyone noticing. Two checks
- * against the public API: GET /v1/config/{key} (does the key resolve to a
- * project?) and one POST /v1/chat round-trip (does the whole serving path —
- * key → project → gateway → stream — actually answer?). The fixed clientId
- * makes every weekly probe land in ONE conversation (conversations are keyed
- * by (projectId, clientId)), so the demo inbox gets a single probe thread,
- * not 52 new ones a year. A FAIL is report DATA — this never throws; the
- * digest line is the alarm.
+ * Live-probe the public dogfood agent (the widget the marketing site embeds —
+ * HEALTH_PROBE_WIDGET_KEY carries its public key). Descends from the task-#125
+ * regression guard: the retired showcase demo's key shipped dead twice without
+ * anyone noticing, and drained gateway credits present exactly the same way,
+ * so the detection survives the showcase teardown on a surface we keep. Two
+ * checks against the public API: GET /v1/config/{key} (does the key resolve
+ * to a project?) and one POST /v1/chat round-trip (does the whole serving
+ * path — key → project → gateway → stream — actually answer?). The fixed
+ * clientId makes every weekly probe land in ONE conversation (conversations
+ * are keyed by (projectId, clientId)), so the dogfood inbox — where test
+ * noise belongs — gets a single probe thread, not 52 new ones a year. A FAIL
+ * is report DATA — this never throws; the digest line is the alarm.
  */
-export async function probeShowcaseWidget(
+export async function probeAgentHealth(
 	apiOrigin: string,
 	widgetKey: string,
-): Promise<ShowcaseProbeResult> {
+): Promise<AgentProbeResult> {
 	try {
 		const configRes = await fetch(
 			`${apiOrigin}/v1/config/${encodeURIComponent(widgetKey)}`,
@@ -593,16 +595,16 @@ export async function runTrafficReport(
 	const queries = buildQueries(window);
 	// Weekly only, and only when the probe key is configured (self-hosters and
 	// local dev skip, like every other integration). Runs alongside the HogQL
-	// queries; probeShowcaseWidget never throws, so a dead demo posts as a
+	// queries; probeAgentHealth never throws, so a dead agent posts as a
 	// digest FAIL line instead of failing the cron.
 	const probePromise =
-		period === "week" && env.vars.SHOWCASE_WIDGET_KEY
-			? probeShowcaseWidget(
+		period === "week" && env.vars.HEALTH_PROBE_WIDGET_KEY
+			? probeAgentHealth(
 					env.vars.API_PUBLIC_ORIGIN || "https://api.clankersupport.com",
-					env.vars.SHOWCASE_WIDGET_KEY,
+					env.vars.HEALTH_PROBE_WIDGET_KEY,
 				)
 			: Promise.resolve(null);
-	const [perHost, overall, events, sources, botSplit, showcaseProbe, voice] =
+	const [perHost, overall, events, sources, botSplit, agentProbe, voice] =
 		await Promise.all([
 			runHogql(cfg, queries.perHost),
 			runHogql(cfg, queries.overall),
@@ -622,7 +624,7 @@ export async function runTrafficReport(
 			sources,
 			botSplit,
 		},
-		showcaseProbe,
+		agentProbe,
 		voice,
 	);
 	await postDiscordWebhook(DISCORD_TRAFFIC_NOTIFICATION_URL, {

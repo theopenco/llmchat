@@ -120,7 +120,7 @@ const faqs: Faq[] = [
 	},
 	{
 		question: "Is there a free trial or a guarantee?",
-		answer: `Yes — every hosted plan starts with a ${TRIAL_PERIOD_DAYS}-day free trial. A card is required to start, but you aren't charged until the trial ends, and you can cancel before then at no cost. On top of that there's a 14-day money-back guarantee and you can cancel anytime — no contracts. Want a feel first? The live demo runs in your browser without signing up.`,
+		answer: `Yes — every hosted plan starts with a ${TRIAL_PERIOD_DAYS}-day free trial. A card is required to start, but you aren't charged until the trial ends, and you can cancel before then at no cost. On top of that there's a 14-day money-back guarantee and you can cancel anytime — no contracts. Want a feel first? The chat bubble on this site is the live support agent — ask it anything without signing up.`,
 	},
 	{
 		question: "Is there a free plan?",

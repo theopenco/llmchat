@@ -30,6 +30,19 @@ const config: NextConfig = {
 					process.env.NEXT_PUBLIC_DOCS_URL ?? "https://docs.clankersupport.com",
 				permanent: true,
 			},
+			// showcase.clankersupport.com is retired; the domain is re-pointed at
+			// THIS app in the Ploy dashboard, and this host-matched rule 301s
+			// every published link (blog posts, dev.to, old llms.txt captures) to
+			// the homepage — where the embedded bubble IS the live agent those
+			// links promised.
+			{
+				source: "/:path*",
+				has: [{ type: "host", value: "showcase.clankersupport.com" }],
+				destination: "https://clankersupport.com",
+				// A literal 301 (permanent: true would emit a 308) so the
+				// post-cutover check `curl -I` reads exactly as documented.
+				statusCode: 301,
+			},
 		];
 	},
 };

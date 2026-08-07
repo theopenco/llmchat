@@ -6,7 +6,7 @@
 -- apps/api/scripts/seed.mjs and the "Zero-setup local dev" section of AGENTS.md.
 --
 -- Creates a default admin user, workspace, and demo project so the dashboard
--- and showcase work out-of-the-box locally without manual signup.
+-- and the /embed demo page work out-of-the-box locally without manual signup.
 --
 -- Sign in:   admin@example.com  /  admin@example.com
 -- Widget key: local-dev-key

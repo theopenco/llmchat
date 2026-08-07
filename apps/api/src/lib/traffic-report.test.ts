@@ -13,7 +13,7 @@ import {
 	formatDelta,
 	hogqlTimestamp,
 	periodForCron,
-	probeShowcaseWidget,
+	probeAgentHealth,
 	renderTable,
 	runTrafficReport,
 	voiceMintCounts,
@@ -396,9 +396,10 @@ describe("voice mint line", () => {
 	});
 });
 
-// The weekly showcase-demo health probe (task #125 regression guard): a dead
-// public demo must surface as a Monday digest line, never fail the cron.
-describe("probeShowcaseWidget", () => {
+// The weekly agent health probe (descends from the task-#125 regression guard
+// on the retired showcase): a dead public agent must surface as a Monday
+// digest line, never fail the cron.
+describe("probeAgentHealth", () => {
 	it("PASSes when the key resolves and one chat round-trip streams a body", async () => {
 		const calls: string[] = [];
 		vi.stubGlobal(
@@ -416,7 +417,7 @@ describe("probeShowcaseWidget", () => {
 				return new Response("data: hello");
 			}),
 		);
-		const result = await probeShowcaseWidget("https://api.example", "pk_test");
+		const result = await probeAgentHealth("https://api.example", "pk_test");
 		expect(result).toEqual({ ok: true, detail: "config 200 · chat 200" });
 		expect(calls).toHaveLength(2);
 	});
@@ -424,7 +425,7 @@ describe("probeShowcaseWidget", () => {
 	it("FAILs fast on a dead key (config 404) without spending a chat call", async () => {
 		const fetchSpy = vi.fn(async () => new Response(null, { status: 404 }));
 		vi.stubGlobal("fetch", fetchSpy);
-		const result = await probeShowcaseWidget("https://api.example", "pk_dead");
+		const result = await probeAgentHealth("https://api.example", "pk_dead");
 		expect(result.ok).toBe(false);
 		expect(result.detail).toContain("config 404");
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
@@ -440,7 +441,7 @@ describe("probeShowcaseWidget", () => {
 			),
 		);
 		expect(
-			(await probeShowcaseWidget("https://api.example", "pk_test")).detail,
+			(await probeAgentHealth("https://api.example", "pk_test")).detail,
 		).toContain("chat 429");
 
 		vi.stubGlobal(
@@ -452,7 +453,7 @@ describe("probeShowcaseWidget", () => {
 			),
 		);
 		expect(
-			(await probeShowcaseWidget("https://api.example", "pk_test")).detail,
+			(await probeAgentHealth("https://api.example", "pk_test")).detail,
 		).toContain("empty stream");
 	});
 
@@ -463,13 +464,13 @@ describe("probeShowcaseWidget", () => {
 				throw new Error("connection refused");
 			}),
 		);
-		const result = await probeShowcaseWidget("https://api.example", "pk_test");
+		const result = await probeAgentHealth("https://api.example", "pk_test");
 		expect(result.ok).toBe(false);
 		expect(result.detail).toContain("connection refused");
 	});
 });
 
-describe("showcase probe wiring", () => {
+describe("agent health probe wiring", () => {
 	const DATA = {
 		perHost: [],
 		overall: [],
@@ -481,21 +482,21 @@ describe("showcase probe wiring", () => {
 	it("buildTrafficEmbed appends the PASS/FAIL line only when a probe ran", () => {
 		const window = buildWindow("week", new Date("2026-07-01T00:00:00Z"));
 		expect(buildTrafficEmbed(window, DATA).description).not.toContain(
-			"Showcase demo",
+			"Agent health",
 		);
 		expect(
 			buildTrafficEmbed(window, DATA, {
 				ok: true,
 				detail: "config 200 · chat 200",
 			}).description,
-		).toContain("**Showcase demo** · ✅ PASS — config 200 · chat 200");
+		).toContain("**Agent health** · ✅ PASS — config 200 · chat 200");
 		expect(
 			buildTrafficEmbed(window, DATA, { ok: false, detail: "config 404" })
 				.description,
-		).toContain("**Showcase demo** · ❌ FAIL — config 404");
+		).toContain("**Agent health** · ❌ FAIL — config 404");
 	});
 
-	it("weekly report with SHOWCASE_WIDGET_KEY probes and posts the digest line", async () => {
+	it("weekly report with HEALTH_PROBE_WIDGET_KEY probes and posts the digest line", async () => {
 		const calls: string[] = [];
 		let discordBody = "";
 		vi.stubGlobal(
@@ -517,7 +518,7 @@ describe("showcase probe wiring", () => {
 			}),
 		);
 		await runTrafficReport(
-			env({ ...CONFIGURED, SHOWCASE_WIDGET_KEY: "pk_probe" }),
+			env({ ...CONFIGURED, HEALTH_PROBE_WIDGET_KEY: "pk_probe" }),
 			"week",
 		);
 		// Defaults to the prod public origin when API_PUBLIC_ORIGIN is unset.
@@ -526,7 +527,7 @@ describe("showcase probe wiring", () => {
 		);
 		expect(calls).toContain("https://api.clankersupport.com/v1/chat");
 		expect(JSON.parse(discordBody).embeds[0].description).toContain(
-			"**Showcase demo** · ✅ PASS",
+			"**Agent health** · ✅ PASS",
 		);
 	});
 
@@ -542,7 +543,7 @@ describe("showcase probe wiring", () => {
 			}),
 		);
 		await runTrafficReport(
-			env({ ...CONFIGURED, SHOWCASE_WIDGET_KEY: "pk_probe" }),
+			env({ ...CONFIGURED, HEALTH_PROBE_WIDGET_KEY: "pk_probe" }),
 			"month",
 		);
 		await runTrafficReport(env(CONFIGURED), "week");

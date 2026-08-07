@@ -18,13 +18,7 @@ import {
 	formatUsd,
 } from "@llmchat/shared";
 
-import {
-	CANONICAL_SHOWCASE_URL,
-	DOCS_URL,
-	GITHUB_URL,
-	RSC_NPM_URL,
-	RSC_PACKAGE,
-} from "./site-urls";
+import { DOCS_URL, GITHUB_URL, RSC_NPM_URL, RSC_PACKAGE } from "./site-urls";
 
 export interface LlmsTxtInput {
 	posts: { slug: string; title: string; description: string }[];
@@ -71,7 +65,7 @@ export function buildLlmsTxt(siteUrl: string, input: LlmsTxtInput): string {
 		`- [React / Next.js SDK](${RSC_NPM_URL}): ${RSC_PACKAGE} on npm — the widget as one Server Component in your root layout, with a headless entry for custom UIs.`,
 		`- [Backend SDKs](${DOCS_URL}/sdks): Official packages for Python (PyPI), Ruby (RubyGems), and PHP (Packagist) — render the embed snippet from your backend.`,
 		`- [GitHub](${GITHUB_URL}): The open-source (MIT) codebase — self-host the full stack with your own keys.`,
-		`- [Live demo](${CANONICAL_SHOWCASE_URL}): The real widget running on a first-party demo page — try it before installing.`,
+		`- [Live agent](${siteUrl}/): The chat bubble on this site is the product itself — the real support agent, dogfooded on our own pages; ask it anything before installing.`,
 		`- [Templates](${siteUrl}/templates): One-click deploy starters — Next.js, TanStack Start, React Router, Laravel, and FastAPI — with the support agent pre-wired.`,
 		`- [Compare](${siteUrl}/compare): How Clanker Support compares to other AI support tools.`,
 		`- [Pricing](${siteUrl}/pricing.md): Machine-readable plans — self-host free; hosted Starter $${STARTER}/mo, Growth $${GROWTH}/mo, Scale $${SCALE}/mo${OFF}${TWO_MONTHS_FREE ? " (annual = two months free)" : ""}.`,

@@ -14,7 +14,7 @@ const { chromium } = require("playwright");
 
 const OUT_DIR = join(repoRoot, ".demo-video");
 const DASH = "http://localhost:3001";
-const SHOW = "http://localhost:3003";
+const SHOW = "http://localhost:8787/embed/local-dev-key";
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({
@@ -63,7 +63,7 @@ await beat(2400);
 await page.getByRole("button", { name: "Done" }).click();
 await beat(600);
 
-/* ── Scene 2: showcase widget — the agent acts ─────────────────────────── */
+/* ── Scene 2: embed-page widget — the agent acts ───────────────────────── */
 await page.goto(SHOW);
 await page.waitForLoadState("networkidle");
 const bubble = page.locator(".llmchat-bubble").last();

@@ -6,7 +6,6 @@ import {
 	GITHUB_URL,
 	RSC_NPM_URL,
 	RSC_PACKAGE,
-	SHOWCASE_URL,
 	SITE_URL,
 } from "@/lib/site";
 import { source } from "@/lib/source";
@@ -76,7 +75,7 @@ export async function GET() {
 - [Home](${SITE_URL}): What Clanker Support is and how the drop-in agent works.
 - [Pricing](${SITE_URL}/pricing): Hosted plans and what each includes.
 - [Machine-readable pricing](${SITE_URL}/pricing.md): Plans in plain markdown.
-- [Live demo](${SHOWCASE_URL}): The real widget running on a first-party demo page.
+- [Live agent](${SITE_URL}): The chat bubble on the marketing site is the real support agent — ask it anything before installing.
 - [React / Next.js SDK](${RSC_NPM_URL}): ${RSC_PACKAGE} on npm.
 - [GitHub](${GITHUB_URL}): The open-source (MIT) codebase.
 

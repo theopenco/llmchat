@@ -1,7 +1,8 @@
 // Dev-only seed runner.
 //
 // Applies apps/api/seed/dev-seed.sql to the LOCAL Ploy SQLite database so the
-// dashboard/showcase work out-of-the-box (admin@example.com / local-dev-key).
+// dashboard and the /embed demo page work out-of-the-box
+// (admin@example.com / local-dev-key).
 //
 // This is deliberately separate from apps/api/migrations/: Ploy auto-applies
 // every migration on `ploy dev` AND on deploy, so anything in there would also

@@ -146,7 +146,7 @@ Our product, so read this section knowing who wrote it. Clanker Support is an AI
 - **Best for:** SaaS and developer-led teams that want a predictable bill, grounded answers with citations, and a clean human handoff
 - **Honest cons:** web widget and email only — no WhatsApp, Messenger, Instagram, or voice; no CRM, product tours, or outbound campaigns; it is a newer product with a small ecosystem; and the hosted version has no free tier (self-hosting is the free path)
 
-The [Intercom migration guide](/docs/migrate/intercom) covers the move step by step; the [live demo](https://showcase.clankersupport.com) runs the real widget, not a mockup; and [Clanker Support vs Intercom](/vs/intercom) has the feature-by-feature breakdown.
+The [Intercom migration guide](/docs/migrate/intercom) covers the move step by step; the [chat bubble on our homepage](https://clankersupport.com) runs the real widget, not a mockup; and [Clanker Support vs Intercom](/vs/intercom) has the feature-by-feature breakdown.
 
 ## Open source and self-hosted
 

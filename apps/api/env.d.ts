@@ -11,7 +11,6 @@ declare module "@meetploy/nextjs" {
 			BETTER_AUTH_SECRET: string;
 			DASHBOARD_URL: string;
 			MARKETING_URL: string;
-			SHOWCASE_URL: string;
 			LLMGATEWAY_API_KEY: string;
 			STRIPE_SECRET_KEY: string;
 			STRIPE_WEBHOOK_SECRET: string;
@@ -48,11 +47,12 @@ declare module "@meetploy/nextjs" {
 			POSTHOG_PERSONAL_API_KEY?: string;
 			POSTHOG_PROJECT_ID?: string;
 			POSTHOG_QUERY_HOST?: string;
-			// Weekly showcase-demo health probe (traffic-report cron): the PUBLIC
-			// widget key the live showcase serves, and an optional override for the
-			// API origin the probe calls (defaults to the prod origin). Unset ⇒
-			// probe skipped (self-hosters / local dev).
-			SHOWCASE_WIDGET_KEY?: string;
+			// Weekly agent health probe (traffic-report cron): the PUBLIC widget
+			// key of the dogfood project — the marketing site's own embedded
+			// bubble — and an optional override for the API origin the probe
+			// calls (defaults to the prod origin). Unset ⇒ probe skipped
+			// (self-hosters / local dev).
+			HEALTH_PROBE_WIDGET_KEY?: string;
 			API_PUBLIC_ORIGIN?: string;
 			// Comma-separated project ids whose voice buckets are RAISED (not
 			// removed) — dogfood relief scoped to named projects, never to the
@@ -85,7 +85,6 @@ declare global {
 			BETTER_AUTH_SECRET: string;
 			DASHBOARD_URL: string;
 			MARKETING_URL: string;
-			SHOWCASE_URL: string;
 			LLMGATEWAY_API_KEY: string;
 			STRIPE_SECRET_KEY: string;
 			STRIPE_WEBHOOK_SECRET: string;
@@ -122,11 +121,12 @@ declare global {
 			POSTHOG_PERSONAL_API_KEY?: string;
 			POSTHOG_PROJECT_ID?: string;
 			POSTHOG_QUERY_HOST?: string;
-			// Weekly showcase-demo health probe (traffic-report cron): the PUBLIC
-			// widget key the live showcase serves, and an optional override for the
-			// API origin the probe calls (defaults to the prod origin). Unset ⇒
-			// probe skipped (self-hosters / local dev).
-			SHOWCASE_WIDGET_KEY?: string;
+			// Weekly agent health probe (traffic-report cron): the PUBLIC widget
+			// key of the dogfood project — the marketing site's own embedded
+			// bubble — and an optional override for the API origin the probe
+			// calls (defaults to the prod origin). Unset ⇒ probe skipped
+			// (self-hosters / local dev).
+			HEALTH_PROBE_WIDGET_KEY?: string;
 			API_PUBLIC_ORIGIN?: string;
 			// Comma-separated project ids whose voice buckets are RAISED (not
 			// removed) — dogfood relief scoped to named projects, never to the

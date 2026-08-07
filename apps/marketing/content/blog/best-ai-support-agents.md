@@ -117,7 +117,7 @@ Full disclosure: this is our product, so weigh this entry accordingly. Clanker S
 
 Three things define its lane. Pricing is flat — [plans from $19/mo](/pricing) (Growth $89, Scale $299, annual gets two months free), no per-seat or per-resolution fees, each tier with a monthly AI-response quota. It's model-agnostic — pick the LLM per project via LLM Gateway (OpenAI, Anthropic, Google, others) and swap with a config change, no code, no lock-in. And it's [open source](https://github.com/theopenco/llmchat) — self-hosting is free with your own LLM Gateway key, running serverless on Cloudflare-compatible infra with no Rails/Postgres stack to babysit.
 
-The honest limits: it covers the web widget and email only — no WhatsApp, Messenger, Instagram, or voice. There's no CRM, no product tours, no outbound campaigns. It's a newer product with a smaller ecosystem, and hosted has no free tier (self-hosting is the free path). [Try the live widget](https://showcase.clankersupport.com) before signing up for anything.
+The honest limits: it covers the web widget and email only — no WhatsApp, Messenger, Instagram, or voice. There's no CRM, no product tours, no outbound campaigns. It's a newer product with a smaller ecosystem, and hosted has no free tier (self-hosting is the free path). [Try the live widget on our homepage](https://clankersupport.com) before signing up for anything — the chat bubble there is the real agent.
 
 - **Pricing:** flat from $19/mo; no per-seat or per-resolution fees; self-hosting free
 - **Pricing model:** flat monthly with an included response quota

@@ -18,6 +18,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
 import { JsonLd } from "@/components/JsonLd";
 import { FaqSection } from "@/components/FaqSection";
+import { LiveAgentHint } from "@/components/LiveAgentHint";
 import { GridPattern } from "@/components/magicui/grid-pattern";
 import { DeferredInstallTerminal } from "@/components/home/deferred";
 import { InlineDemo } from "@/components/home/InlineDemo";
@@ -31,7 +32,6 @@ import { USE_CASES } from "@/lib/use-cases";
 import { formatDateShort } from "@/lib/format";
 import { faqPageLd, type Faq } from "@/lib/seo";
 import {
-	CANONICAL_SHOWCASE_URL,
 	CANONICAL_SITE_URL,
 	DISCORD_URL,
 	DOCS_URL,
@@ -574,14 +574,7 @@ export default function Home() {
 									Start your {TRIAL_PERIOD_DAYS}-day free trial
 									<span aria-hidden>→</span>
 								</TrackedLink>
-								<TrackedLink
-									href={CANONICAL_SHOWCASE_URL}
-									event={ANALYTICS_EVENTS.ctaClicked}
-									eventProps={{ label: "live_demo", location: "home_closing" }}
-									className="rounded-full border border-rule px-7 py-3.5 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
-								>
-									Chat with the live demo
-								</TrackedLink>
+								<LiveAgentHint />
 							</div>
 							<p className="mt-5 text-[0.8rem] text-faint">
 								{TRIAL_PERIOD_DAYS} days free on every plan · No charge until
