@@ -24,7 +24,7 @@ export default function WorkspacesPage() {
 			<div className="px-6 py-6 md:px-8">
 				<div className="card overflow-hidden">
 					<div className="overflow-x-auto">
-						<table className="w-full min-w-[820px] text-sm">
+						<table className="w-full min-w-[960px] text-sm">
 							<thead>
 								<tr className="border-b border-line text-left">
 									<Th>Workspace</Th>
@@ -32,8 +32,15 @@ export default function WorkspacesPage() {
 									<Th>Plan</Th>
 									<Th className="text-right">Members</Th>
 									<Th className="text-right">Projects</Th>
-									<Th className="text-right">Responses 30d</Th>
-									<Th className="text-right">Cost 30d</Th>
+									<Th className="text-right">Visitor resp. 30d</Th>
+									<Th className="text-right">Drafts 30d</Th>
+									<Th className="text-right">Voice 30d</Th>
+									<Th
+										className="text-right"
+										title="Not metered yet — every usage row records $0 (#206)"
+									>
+										Cost 30d
+									</Th>
 									<Th className="text-right">Created</Th>
 								</tr>
 							</thead>
@@ -74,10 +81,17 @@ export default function WorkspacesPage() {
 												</Td>
 												<Td className="num text-right">{fmtInt(w.members)}</Td>
 												<Td className="num text-right">{fmtInt(w.projects)}</Td>
-												<Td className="num text-right">
-													{fmtInt(w.responses30d)}
+												<Td className="num text-right">{fmtInt(w.chat30d)}</Td>
+												<Td className="num text-right text-muted">
+													{fmtInt(w.suggestion30d)}
 												</Td>
 												<Td className="num text-right text-muted">
+													{fmtInt(w.voice30d)}
+												</Td>
+												<Td
+													className="num text-right text-faint"
+													title="All kinds — not metered yet, every usage row records $0 (#206)"
+												>
 													{fmtUsdPrecise(w.costUsd30d)}
 												</Td>
 												<Td className="num text-right text-faint">
@@ -99,31 +113,39 @@ export default function WorkspacesPage() {
 function Th({
 	children,
 	className,
+	title,
 }: {
 	children: React.ReactNode;
 	className?: string;
+	title?: string;
 }) {
 	return (
-		<th className={cx("label px-4 py-3 font-medium", className)}>{children}</th>
+		<th className={cx("label px-4 py-3 font-medium", className)} title={title}>
+			{children}
+		</th>
 	);
 }
 
 function Td({
 	children,
 	className,
+	title,
 }: {
 	children: React.ReactNode;
 	className?: string;
+	title?: string;
 }) {
 	return (
-		<td className={cx("px-4 py-3 align-middle", className)}>{children}</td>
+		<td className={cx("px-4 py-3 align-middle", className)} title={title}>
+			{children}
+		</td>
 	);
 }
 
 function EmptyRow({ children }: { children: React.ReactNode }) {
 	return (
 		<tr>
-			<td colSpan={8} className="px-4 py-10 text-center text-sm text-faint">
+			<td colSpan={10} className="px-4 py-10 text-center text-sm text-faint">
 				{children}
 			</td>
 		</tr>
