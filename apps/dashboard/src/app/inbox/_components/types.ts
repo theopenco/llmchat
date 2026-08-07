@@ -6,9 +6,11 @@ export interface Tag {
 	count?: number;
 }
 
+// NOTE: no clientId here — it's the visitor's /v1 session credential
+// (projectKey+clientId = speak as the visitor), and the api deliberately
+// strips it from every authenticated response (#170).
 export interface Conversation {
 	id: string;
-	clientId: string;
 	name: string | null;
 	email: string | null;
 	ipAddress: string | null;
