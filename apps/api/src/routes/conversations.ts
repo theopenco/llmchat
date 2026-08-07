@@ -72,6 +72,22 @@ const SUGGEST_RATE_WINDOW = 5 * 60;
 const SUGGEST_DAILY_MAX = 200;
 const SUGGEST_DAILY_WINDOW = 24 * 60 * 60;
 
+/**
+ * The visitor's clientId is a CREDENTIAL, not metadata: the public /v1/chat
+ * identifies a conversation by (projectKey, clientId), so anyone holding the
+ * pair can fabricate visitor turns in that conversation — and have the bot's
+ * reply persisted and delivered to the real visitor (operator-side puppeting,
+ * #170). It therefore never leaves the server on ANY authenticated surface;
+ * every conversation row must pass through here before c.json. Everything
+ * else on the row (name, email, counts, timestamps) is operator data.
+ */
+function withoutClientId<T extends { clientId: unknown }>(
+	row: T,
+): Omit<T, "clientId"> {
+	const { clientId: _clientId, ...safe } = row;
+	return safe;
+}
+
 export const conversations = new Hono<AppContext>()
 	.use("*", requireSession, requireWorkspace)
 	.get(
@@ -353,7 +369,7 @@ export const conversations = new Hono<AppContext>()
 
 			return c.json({
 				conversations: rows.map((r) => ({
-					...r,
+					...withoutClientId(r),
 					firstMessage: firstByConv.get(r.id) ?? null,
 					unread: (readByConv.get(r.id) ?? 0) < r.messageCount,
 					match: matchFor(r),
@@ -522,7 +538,7 @@ export const conversations = new Hono<AppContext>()
 			}));
 
 			return c.json({
-				conversation: conv,
+				conversation: withoutClientId(conv),
 				messages: messagesWithAuthor,
 				hasOlder,
 				firstHitSequence,

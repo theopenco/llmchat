@@ -17,7 +17,6 @@ const TAG: Tag = { id: "t1", name: "Billing", color: "#6366f1" };
 
 function conv(overrides: Partial<Conversation> & { id: string }): Conversation {
 	return {
-		clientId: "c",
 		name: null,
 		email: null,
 		ipAddress: null,
