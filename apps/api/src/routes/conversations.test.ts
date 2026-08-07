@@ -659,6 +659,66 @@ describe("thread pagination (GET conversations/:id)", () => {
 	});
 });
 
+describe("clientId never leaves the server (#170)", () => {
+	// clientId is the visitor's /v1 session credential — (projectKey, clientId)
+	// lets any holder speak AS the visitor on the public chat endpoint — so the
+	// operator surfaces must strip it while keeping the real operator data.
+
+	it("list rows carry no clientId, while operator fields survive", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conversationRows: [
+				{
+					id: "cA",
+					clientId: "visitor-secret-id",
+					name: "Ada",
+					email: "ada@example.com",
+					messageCount: 2,
+				},
+			],
+		});
+		const res = await get("/projects/p1/conversations", MEMBER);
+		expect(res.status).toBe(200);
+		const text = await res.text();
+		// Nothing in the whole payload — rows, previews, tags — names clientId,
+		// and the VALUE is absent too (catches a leak under a renamed field).
+		expect(text).not.toContain("clientId");
+		expect(text).not.toContain("visitor-secret-id");
+		const body = JSON.parse(text) as { conversations: Row[] };
+		expect(body.conversations).toHaveLength(1);
+		expect(body.conversations[0]).not.toHaveProperty("clientId");
+		// The strip is surgical: operator-facing fields are untouched.
+		expect(body.conversations[0].name).toBe("Ada");
+		expect(body.conversations[0].email).toBe("ada@example.com");
+	});
+
+	it("the thread response's conversation carries no clientId either", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: {
+				id: "cThread",
+				projectId: "p1",
+				clientId: "visitor-secret-id",
+				name: "Ada",
+				email: "ada@example.com",
+			},
+			threadMessages: [{ id: "m1", sequence: 1 }],
+		});
+		const res = await get("/projects/p1/conversations/cThread", MEMBER);
+		expect(res.status).toBe(200);
+		const text = await res.text();
+		expect(text).not.toContain("clientId");
+		expect(text).not.toContain("visitor-secret-id");
+		const body = JSON.parse(text) as { conversation: Row };
+		expect(body.conversation).not.toHaveProperty("clientId");
+		expect(body.conversation.id).toBe("cThread");
+		expect(body.conversation.name).toBe("Ada");
+		expect(body.conversation.email).toBe("ada@example.com");
+	});
+});
+
 const JSONH = { "content-type": "application/json" };
 function send(
 	path: string,

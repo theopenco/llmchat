@@ -21,7 +21,6 @@ const TAG: Tag = { id: "t1", name: "Billing", color: "#6366f1" };
 function conv(tags: Tag[]): Conversation {
 	return {
 		id: "c1",
-		clientId: "c",
 		name: "Bob",
 		email: null,
 		ipAddress: null,
