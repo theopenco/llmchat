@@ -22,9 +22,21 @@ import {
 	setStoredIdentity,
 } from "../protocol/storage";
 import { readUIMessageStream } from "../protocol/stream";
+import {
+	BACKGROUND_POLL_INTERVAL_MS,
+	POST_STREAM_REFRESH_RETRY_MS,
+	clearSnapshot,
+	countUnread,
+	latestSequence,
+	readSnapshot,
+	sameSnapshot,
+	shouldPollInBackground,
+	writeSnapshot,
+} from "../protocol/unread";
 
 import type { ClankerSupportContextValue } from "./context";
 import type { MessageFeed, OutgoingUIMessage } from "../protocol/api";
+import type { ConversationSnapshot } from "../protocol/unread";
 import type { LocalMessage } from "../protocol/merge";
 import type {
 	ChatMessage,
@@ -151,10 +163,17 @@ export function ClankerSupportProvider({
 		};
 	}, [apiUrl, apiKey, hasServerConfig]);
 
-	// ── Persisted feed (poll while open) ──────────────────────────────
+	// ── Persisted feed (poll while open; slow-poll closed-escalated) ──
 	const [feed, setFeed] = useState<MessageFeed>(EMPTY_FEED);
 	const feedRef = useRef<MessageFeed>(EMPTY_FEED);
 	const feedAbortRef = useRef<AbortController | null>(null);
+	// True once a fetchFeed for this tab's clientId has SUCCEEDED. The initial
+	// EMPTY_FEED also says "no conversation", and acting on it would clear a
+	// legitimate stored read snapshot (and its background poll) before the first
+	// request ever lands. The clientId never rotates in this SDK, so a boolean is
+	// enough — the script-tag widget needs a full feedClientId stamp only because
+	// "start a new conversation" can rotate ids under an in-flight feed.
+	const [feedLoaded, setFeedLoaded] = useState(false);
 	const loadFeed = useCallback(async () => {
 		const cid = clientIdRef.current;
 		if (!cid) {
@@ -167,6 +186,7 @@ export function ClankerSupportProvider({
 			const next = await fetchFeed(apiUrl, apiKey, cid, controller.signal);
 			feedRef.current = next;
 			setFeed(next);
+			setFeedLoaded(true);
 		} catch {
 			// Transient poll failure — keep showing the last good feed.
 		}
@@ -175,17 +195,34 @@ export function ClankerSupportProvider({
 		void loadFeed();
 	}, [loadFeed]);
 
+	// ── Unread read-state snapshot (tab-local, drives the badge) ──────
+	const [snapshot, setSnapshot] = useState<ConversationSnapshot | null>(null);
 	useEffect(() => {
-		if (!open || !clientId) {
+		setSnapshot(clientId ? readSnapshot(apiKey, clientId) : null);
+	}, [apiKey, clientId]);
+
+	// Closed-panel polling is gated on the SNAPSHOT, not the clientId: only an
+	// existing, escalated, unresolved conversation earns a background request
+	// (see shouldPollInBackground). A fresh pageview polls zero times.
+	const backgroundPoll = !open && shouldPollInBackground(snapshot);
+
+	useEffect(() => {
+		if (!clientId || (!open && !backgroundPoll)) {
 			return;
 		}
+		// The immediate load doubles as the close-time poll when the cadence
+		// flips: it catches anything that landed in the last foreground window,
+		// so the badge starts out honest.
 		void loadFeed();
-		const timer = setInterval(() => void loadFeed(), POLL_INTERVAL_MS);
+		const timer = setInterval(
+			() => void loadFeed(),
+			open ? POLL_INTERVAL_MS : BACKGROUND_POLL_INTERVAL_MS,
+		);
 		return () => {
 			clearInterval(timer);
 			feedAbortRef.current?.abort();
 		};
-	}, [open, clientId, loadFeed]);
+	}, [open, backgroundPoll, clientId, loadFeed]);
 
 	// ── Local chat state ──────────────────────────────────────────────
 	const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
@@ -221,6 +258,74 @@ export function ClankerSupportProvider({
 	// re-fire /v1/escalate).
 	const escalated = escalatedLocal || feed.escalatedAt != null;
 	const resolved = resolvedLocal || feed.archivedAt != null;
+
+	// Keep the stored read snapshot in step with the loaded feed. Only ever acts
+	// on a feed that actually LOADED (feedLoaded) — before that, the stored
+	// record is the only thing that knows to start polling at all.
+	useEffect(() => {
+		if (!clientId || !feedLoaded) {
+			return;
+		}
+		if (!feed.conversationId) {
+			// The server answered and no conversation exists — the visitor never
+			// started one, or an operator deleted it from the inbox. Drop the
+			// snapshot (stops the background poll) AND the session-local handoff
+			// flags: left set, escalatedLocal would be OR-ed into this tab's NEXT
+			// conversation (same clientId mints a fresh one on the next send),
+			// stamping it escalated and arming a poll no human owes a reply on;
+			// resolvedLocal is the mirror image — it would stamp the successor
+			// resolved and silently disarm its badge.
+			if (snapshot) {
+				clearSnapshot(apiKey);
+				setSnapshot(null);
+			}
+			if (escalatedLocal) {
+				setEscalatedLocal(false);
+			}
+			if (resolvedLocal) {
+				setResolvedLocal(false);
+			}
+			return;
+		}
+		const next: ConversationSnapshot = {
+			clientId,
+			conversationId: feed.conversationId,
+			escalated,
+			resolved,
+			// Open panel: the visitor is looking at the thread, so the marker rides
+			// the head. Closed: freeze it — and a missing marker means NOTHING has
+			// been seen (first message sent, panel closed before the first poll
+			// landed → the reply arrived while shut, which is exactly what to
+			// badge; adopting the head here would silently mark it read).
+			lastSeenSequence: open
+				? latestSequence(feed.messages)
+				: (snapshot?.lastSeenSequence ?? 0),
+		};
+		if (snapshot && sameSnapshot(snapshot, next)) {
+			return;
+		}
+		writeSnapshot(apiKey, next);
+		setSnapshot(next);
+	}, [
+		apiKey,
+		clientId,
+		feedLoaded,
+		feed,
+		open,
+		escalated,
+		resolved,
+		escalatedLocal,
+		resolvedLocal,
+		snapshot,
+	]);
+
+	// Derived from the FEED against the stored marker, never a stored count — a
+	// reload recomputes it. Forced 0 while open: the thread itself is the read
+	// surface.
+	const unreadCount =
+		open || !snapshot
+			? 0
+			: countUnread(feed.messages, snapshot.lastSeenSequence);
 
 	// ── Merged display messages ───────────────────────────────────────
 	const messages = useMemo<ChatMessage[]>(() => {
@@ -272,9 +377,13 @@ export function ClankerSupportProvider({
 	// ── Send ──────────────────────────────────────────────────────────
 	const busyRef = useRef(false);
 	const sendAbortRef = useRef<AbortController | null>(null);
+	const postStreamRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	useEffect(
 		() => () => {
 			sendAbortRef.current?.abort();
+			if (postStreamRetryRef.current) {
+				clearTimeout(postStreamRetryRef.current);
+			}
 		},
 		[],
 	);
@@ -364,6 +473,18 @@ export function ClankerSupportProvider({
 				setStatus("idle");
 				// Refetch so the just-persisted exchange replaces the local copy.
 				void loadFeed();
+				// The api commits the assistant row in a waitUntil after the stream
+				// closes, so that refetch can lose the race. One retry a beat later
+				// makes the unread badge reliable when the visitor closed the panel
+				// mid-answer on a NON-escalated conversation — no poll runs there,
+				// so these two requests are the only chance to see the row.
+				if (postStreamRetryRef.current) {
+					clearTimeout(postStreamRetryRef.current);
+				}
+				postStreamRetryRef.current = setTimeout(() => {
+					postStreamRetryRef.current = null;
+					void loadFeed();
+				}, POST_STREAM_REFRESH_RETRY_MS);
 			} catch (err) {
 				if (controller.signal.aborted) {
 					setStatus("idle"); // unmount/cancel — not an error state
@@ -535,6 +656,7 @@ export function ClankerSupportProvider({
 			send,
 			conversationId: feed.conversationId,
 			refresh,
+			unreadCount,
 			escalated,
 			escalating,
 			escalateFailed,
@@ -574,6 +696,7 @@ export function ClankerSupportProvider({
 			send,
 			feed.conversationId,
 			refresh,
+			unreadCount,
 			escalated,
 			escalating,
 			escalateFailed,
