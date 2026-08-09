@@ -51,6 +51,9 @@ export const X_HANDLE = "@ClankrSupport";
 /** Official third-party listings — entity anchors for Organization.sameAs. */
 export const PRODUCT_HUNT_URL =
 	"https://www.producthunt.com/products/clanker-support";
+export const G2_URL = "https://www.g2.com/products/clanker-support/reviews";
+export const ALTERNATIVETO_URL =
+	"https://alternativeto.net/software/clanker-support/";
 export const PYPI_URL = "https://pypi.org/project/clankersupport/";
 export const RUBYGEMS_URL = "https://rubygems.org/gems/clankersupport";
 export const PACKAGIST_URL =

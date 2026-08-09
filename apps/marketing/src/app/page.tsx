@@ -31,10 +31,12 @@ import { USE_CASES } from "@/lib/use-cases";
 import { formatDateShort } from "@/lib/format";
 import { faqPageLd, type Faq } from "@/lib/seo";
 import {
+	ALTERNATIVETO_URL,
 	CANONICAL_SHOWCASE_URL,
 	CANONICAL_SITE_URL,
 	DISCORD_URL,
 	DOCS_URL,
+	G2_URL,
 	GITHUB_URL,
 	PACKAGIST_URL,
 	PRODUCT_HUNT_URL,
@@ -80,6 +82,8 @@ const orgJsonLd = {
 				PYPI_URL,
 				RUBYGEMS_URL,
 				PACKAGIST_URL,
+				G2_URL,
+				ALTERNATIVETO_URL,
 			],
 			email: "support@clankersupport.com",
 			foundingDate: "2026",

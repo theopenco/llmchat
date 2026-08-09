@@ -166,13 +166,13 @@
 				},
 				{
 					"label": "Voice",
-					"llmchat": "no",
+					"llmchat": "partial",
 					"chatbase": "no",
 					"fin": "yes",
 					"intercom": "yes",
 					"chatwoot": "no",
 					"crisp": "no",
-					"note": "Intercom offers a pay-as-you-go Phone channel and Fin voice; Fin (standalone) also supports voice."
+					"note": "Clanker Support offers live AI voice calls in the widget on the Scale plan (in-widget, no phone numbers). Intercom offers a pay-as-you-go Phone channel and Fin voice; Fin (standalone) also supports voice."
 				}
 			]
 		},
