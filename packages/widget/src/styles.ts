@@ -110,7 +110,11 @@ export const widgetStyles = `
 	justify-content: center;
 	border-radius: 9999px;
 	background: var(--brand);
-	color: #fff;
+	/* --brand-fg is derived from the brand at mount (contrast.ts): white for
+	   brands that can carry it, dark ink for pale ones where a white glyph
+	   washes out. The #fff fallback keeps any host rendering this CSS without
+	   the token identical to before. */
+	color: var(--brand-fg, #fff);
 	border: none;
 	cursor: pointer;
 	box-shadow:
@@ -132,8 +136,11 @@ export const widgetStyles = `
 }
 .llmchat-bubble:focus-visible {
 	outline: none;
+	/* The inner ring separates the launcher from the brand ring outside it. A
+	   literal white inner ring disappears on a pale brand (and on the white
+	   host page behind it), so it rides --brand-fg too. */
 	box-shadow:
-		0 0 0 3px #fff,
+		0 0 0 3px var(--brand-fg, #fff),
 		0 0 0 6px var(--brand);
 }
 .llmchat-bubble-icon {
@@ -153,10 +160,15 @@ export const widgetStyles = `
 
 /* Unread count — messages that landed while the panel was closed (usually the
    human's reply after an escalation). Inverted brand chrome: the launcher itself
-   is var(--brand), so a brand-filled badge on it would be invisible; a white pill
-   with brand text and a brand ring reads as part of the same object and needs no
-   new hue (deliberately NOT notification-red — this is a support reply, not an
-   alarm). Literal #fff in both themes, like every other on-brand surface. */
+   is var(--brand), so a brand-filled badge on it would be invisible; a pill in
+   the brand's own contrasting foreground, with brand-colored digits and a brand
+   ring, reads as part of the same object and needs no new hue (deliberately NOT
+   notification-red — this is a support reply, not an alarm).
+   The pill rides --brand-fg rather than a literal #fff, which is what makes the
+   digits legible on a pale brand: --brand-fg is by construction the candidate
+   that contrasts with --brand, so brand-on-brand-fg is readable in both
+   directions — white pill with dark digits for a dark brand, dark pill with
+   pale digits for a pale one (#145). */
 .llmchat-bubble-badge {
 	position: absolute;
 	top: -2px;
@@ -168,7 +180,7 @@ export const widgetStyles = `
 	align-items: center;
 	justify-content: center;
 	border-radius: 9999px;
-	background: #fff;
+	background: var(--brand-fg, #fff);
 	color: var(--brand);
 	border: 2px solid var(--brand);
 	/* px, never rem: rem resolves against the HOST page's root font-size even

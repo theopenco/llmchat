@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import { onBrandForeground } from "../contrast";
 import { badgeLabel, launcherLabel } from "../unread";
 import { CloseIcon, CollapseIcon, ExpandIcon, SparkleChatIcon } from "./icons";
 import { Teaser } from "./Teaser";
@@ -94,6 +95,11 @@ export function WidgetFrame({
 		wasOpen.current = open;
 	}, [open, inline]);
 
+	const brandForeground = useMemo(
+		() => onBrandForeground(brandColor),
+		[brandColor],
+	);
+
 	const showPanel = inline || mounted;
 	const closing = !inline && mounted && !open;
 	// The badge is a CLOSED-panel affordance: once the panel is open, the thread
@@ -103,7 +109,13 @@ export function WidgetFrame({
 	return (
 		<div
 			className={theme === "dark" ? "llmchat llmchat--dark" : "llmchat"}
-			style={{ ["--brand" as string]: brandColor }}
+			style={{
+				["--brand" as string]: brandColor,
+				// Derived, not configured: a pale brand can't carry white ink, and
+				// data-brand embeds never pass through a server that could have
+				// validated it (#145).
+				["--brand-fg" as string]: brandForeground,
+			}}
 		>
 			{!inline && (
 				<>
