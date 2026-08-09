@@ -29,6 +29,7 @@ export function useSourceMutations(id: string, workspaceId: string | null) {
 			}),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["sources", id] });
+			qc.invalidateQueries({ queryKey: ["voice-budget", id] });
 			toast.success("Source added");
 			track(ANALYTICS_EVENTS.sourceAdded, { kind: "url" });
 		},
@@ -45,6 +46,7 @@ export function useSourceMutations(id: string, workspaceId: string | null) {
 			}),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["sources", id] });
+			qc.invalidateQueries({ queryKey: ["voice-budget", id] });
 			toast.success("Source added");
 			track(ANALYTICS_EVENTS.sourceAdded, { kind: "text" });
 		},
@@ -62,6 +64,7 @@ export function useSourceMutations(id: string, workspaceId: string | null) {
 			}),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["sources", id] });
+			qc.invalidateQueries({ queryKey: ["voice-budget", id] });
 			toast.success("Source added");
 			track(ANALYTICS_EVENTS.sourceAdded, { kind: "qa" });
 		},
@@ -76,6 +79,7 @@ export function useSourceMutations(id: string, workspaceId: string | null) {
 			}),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["sources", id] });
+			qc.invalidateQueries({ queryKey: ["voice-budget", id] });
 			toast.success("Source refreshed");
 		},
 		onError: (e) =>
@@ -90,7 +94,10 @@ export function useSourceMutations(id: string, workspaceId: string | null) {
 				method: "DELETE",
 				workspaceId: workspaceId!,
 			}),
-		onSuccess: () => toast.success("Source removed"),
+		onSuccess: () => {
+			toast.success("Source removed");
+			qc.invalidateQueries({ queryKey: ["voice-budget", id] });
+		},
 		onError: (e) => toast.error(describeApiError(e, "Could not remove source")),
 	});
 

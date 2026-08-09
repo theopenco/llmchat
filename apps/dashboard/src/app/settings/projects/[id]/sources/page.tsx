@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 
 import type { Source } from "../types";
+import { VoiceBudgetHint } from "../VoiceBudgetHint";
 import { SourcesPanel } from "./SourcesPanel";
 import { useSourceMutations } from "./useSourceMutations";
 
@@ -65,6 +66,11 @@ export default function SourcesPage() {
 						Content {projectName ? `${projectName}'s` : "this project's"}{" "}
 						support agent retrieves answers from.
 					</p>
+					{/* Voice-entitled projects: budget signal + visitor-visibility
+					    disclosure for the sources this page manages (#182). */}
+					<div className="mt-3 max-w-2xl">
+						<VoiceBudgetHint projectId={id} workspaceId={workspaceId} />
+					</div>
 				</div>
 				{/* Jumps to the always-visible add panel — real affordance, no fake. */}
 				<Button

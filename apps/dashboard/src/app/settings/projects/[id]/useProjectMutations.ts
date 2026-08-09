@@ -32,6 +32,9 @@ export function useProjectMutations(id: string, workspaceId: string | null) {
 			}),
 		onSuccess: (_data, input) => {
 			toast.success("Project updated successfully");
+			// The voice budget estimate is computed server-side from the saved
+			// prompt/knowledge — refetch it so the hint tracks the save (#182).
+			qc.invalidateQueries({ queryKey: ["voice-budget", id] });
 			track(ANALYTICS_EVENTS.projectSettingsSaved, {
 				fields: Object.keys(input).sort().join(","),
 			});

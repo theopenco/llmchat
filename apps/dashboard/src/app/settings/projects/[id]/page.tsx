@@ -191,7 +191,14 @@ export default function ProjectSettingsPage() {
 					{tab === "widget" && (
 						<WidgetTab draft={draft} set={set} publicKey={project.publicKey} />
 					)}
-					{tab === "behavior" && <BehaviorTab draft={draft} set={set} />}
+					{tab === "behavior" && (
+						<BehaviorTab
+							draft={draft}
+							set={set}
+							projectId={id}
+							workspaceId={workspaceId}
+						/>
+					)}
 					{tab === "integrations" && (
 						<IntegrationsTab
 							projectId={id}
