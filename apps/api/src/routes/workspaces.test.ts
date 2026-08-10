@@ -11,9 +11,20 @@ import { workspaces } from "./workspaces";
 vi.mock("@/auth", () => ({
 	createAuth: () => ({
 		api: {
-			getSession: async ({ headers }: { headers: Headers }) => {
+			getSession: async ({
+				headers,
+				returnHeaders,
+			}: {
+				headers: Headers;
+				returnHeaders?: boolean;
+			}) => {
 				const id = headers.get("x-test-user");
-				return id ? { user: { id } } : null;
+				const session = id ? { user: { id } } : null;
+				// Mirror better-auth's real contract: returnHeaders wraps the session in
+				// { headers, response } (requireSession forwards refreshed cookies from it).
+				return returnHeaders
+					? { headers: new Headers(), response: session }
+					: session;
 			},
 		},
 	}),
