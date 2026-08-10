@@ -11,6 +11,12 @@ vi.mock("../ModelPicker", () => ({
 	ModelPicker: () => <div data-testid="model-picker" />,
 }));
 
+// The voice-budget hint owns its own react-query wiring and test file — stub
+// it here so this stays focused (and needs no QueryClientProvider).
+vi.mock("../VoiceBudgetHint", () => ({
+	VoiceBudgetHint: () => null,
+}));
+
 function draft(o: Partial<ProjectDraft> = {}): ProjectDraft {
 	return {
 		name: "Acme",
@@ -35,7 +41,14 @@ beforeEach(() => {
 
 describe("BehaviorTab — escalation exposure (newly LIVE)", () => {
 	it("edits the escalation threshold", async () => {
-		render(<BehaviorTab draft={draft()} set={set} />);
+		render(
+			<BehaviorTab
+				draft={draft()}
+				set={set}
+				projectId="p1"
+				workspaceId="ws_1"
+			/>,
+		);
 		const input = screen.getByLabelText(/offer a human after/i);
 		await userEvent.setup().type(input, "5");
 		// last call carries the new numeric threshold
@@ -43,7 +56,14 @@ describe("BehaviorTab — escalation exposure (newly LIVE)", () => {
 	});
 
 	it("edits the notify email, clearing to null when blank", async () => {
-		render(<BehaviorTab draft={draft({ notifyEmail: "a@b.com" })} set={set} />);
+		render(
+			<BehaviorTab
+				draft={draft({ notifyEmail: "a@b.com" })}
+				set={set}
+				projectId="p1"
+				workspaceId="ws_1"
+			/>,
+		);
 		const input = screen.getByLabelText(/notify email/i);
 		const user = userEvent.setup();
 		await user.clear(input);
@@ -51,14 +71,28 @@ describe("BehaviorTab — escalation exposure (newly LIVE)", () => {
 	});
 
 	it("edits the Slack webhook URL", async () => {
-		render(<BehaviorTab draft={draft()} set={set} />);
+		render(
+			<BehaviorTab
+				draft={draft()}
+				set={set}
+				projectId="p1"
+				workspaceId="ws_1"
+			/>,
+		);
 		const input = screen.getByLabelText(/slack webhook url/i);
 		await userEvent.setup().type(input, "x");
 		expect(set).toHaveBeenCalledWith("slackWebhookUrl", "x");
 	});
 
 	it("applies an instruction template", async () => {
-		render(<BehaviorTab draft={draft()} set={set} />);
+		render(
+			<BehaviorTab
+				draft={draft()}
+				set={set}
+				projectId="p1"
+				workspaceId="ws_1"
+			/>,
+		);
 		await userEvent
 			.setup()
 			.click(screen.getByRole("button", { name: /support template/i }));
@@ -69,14 +103,28 @@ describe("BehaviorTab — escalation exposure (newly LIVE)", () => {
 	});
 
 	it("shows the roadmap items as a dimmed note, not controls", () => {
-		render(<BehaviorTab draft={draft()} set={set} />);
+		render(
+			<BehaviorTab
+				draft={draft()}
+				set={set}
+				projectId="p1"
+				workspaceId="ws_1"
+			/>,
+		);
 		expect(screen.getByText(/tone of voice.*coming/i)).toBeInTheDocument();
 	});
 });
 
 describe("BehaviorTab — pre-chat form toggle (collectIdentity)", () => {
 	it("renders off by default and turns the form on", async () => {
-		render(<BehaviorTab draft={draft()} set={set} />);
+		render(
+			<BehaviorTab
+				draft={draft()}
+				set={set}
+				projectId="p1"
+				workspaceId="ws_1"
+			/>,
+		);
 		const toggle = screen.getByRole("switch", {
 			name: /ask for name and email/i,
 		});
@@ -86,7 +134,14 @@ describe("BehaviorTab — pre-chat form toggle (collectIdentity)", () => {
 	});
 
 	it("turns the form off when enabled", async () => {
-		render(<BehaviorTab draft={draft({ collectIdentity: true })} set={set} />);
+		render(
+			<BehaviorTab
+				draft={draft({ collectIdentity: true })}
+				set={set}
+				projectId="p1"
+				workspaceId="ws_1"
+			/>,
+		);
 		const toggle = screen.getByRole("switch", {
 			name: /ask for name and email/i,
 		});
