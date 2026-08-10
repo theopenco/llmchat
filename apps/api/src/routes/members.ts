@@ -14,6 +14,7 @@ import {
 	and,
 	asc,
 	conversation,
+	conversationAssignment,
 	count,
 	eq,
 	inArray,
@@ -187,6 +188,18 @@ export const members = new Hono<AppContext>()
 					and(
 						eq(readStatus.userId, targetUserId),
 						inArray(readStatus.conversationId, convIds),
+					),
+				),
+			// #96: unassign this person from THIS workspace's conversations — a
+			// direct two-column delete via the denormalized workspace_id. Rows
+			// they ASSIGNED (assigned_by) stay: attribution parity with
+			// authorUserId (S6 — only account deletion scrubs).
+			dbi
+				.delete(conversationAssignment)
+				.where(
+					and(
+						eq(conversationAssignment.workspaceId, workspaceId),
+						eq(conversationAssignment.assigneeUserId, targetUserId),
 					),
 				),
 			dbi

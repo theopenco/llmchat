@@ -47,6 +47,11 @@ function applyMigrations(sqlite: DatabaseSync) {
 				.join("\n"),
 		);
 	}
+	// The 0007/0011/0012 table-rebuild migrations end with PRAGMA
+	// foreign_keys=ON, silently defeating the OFF above — under which this
+	// file's whole premise (children die by OUR explicit deletes, never the FK
+	// cascade) wasn't actually being tested. Re-assert it after the loop.
+	sqlite.exec("PRAGMA foreign_keys=OFF;");
 }
 
 function makeProxy(sqlite: DatabaseSync) {
@@ -129,6 +134,9 @@ function seedWorkspace(
 		`INSERT INTO read_status (id,conversation_id,user_id) VALUES ('${p}rs','${p}c','${owner}')`,
 	);
 	x(
+		`INSERT INTO conversation_assignment (conversation_id,workspace_id,assignee_user_id,assigned_by) VALUES ('${p}c','${ws}','${owner}','${owner}')`,
+	);
+	x(
 		`INSERT INTO usage_event (id,workspace_id,project_id,conversation_id,message_id,model) VALUES ('${p}ue','${ws}','${p}p','${p}c','${p}msg','m')`,
 	);
 }
@@ -145,6 +153,7 @@ const WS_TABLES = [
 	"conversation_tag",
 	"read_status",
 	"usage_event",
+	"conversation_assignment",
 ];
 
 function del(

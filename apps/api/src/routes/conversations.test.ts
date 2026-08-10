@@ -557,6 +557,10 @@ describe("inbox stats aggregate", () => {
 			escalated: 37,
 			resolved: 1200,
 			avgRating: 4.3,
+			// #96 pill counts ride the same aggregate row; the fake row carries
+			// neither, so both serialize as 0.
+			mine: 0,
+			unassigned: 0,
 		});
 	});
 
@@ -998,7 +1002,9 @@ describe("conversation IDOR — tenant scoping on mutations", () => {
 		});
 		const res = await send("/projects/p1/conversations/c1", "DELETE");
 		expect(res.status).toBe(200);
-		expect(deleteSpy).toHaveBeenCalledTimes(1);
+		// Two deletes since #96: the assignment row (explicit, house law) and
+		// then the conversation row itself.
+		expect(deleteSpy).toHaveBeenCalledTimes(2);
 	});
 
 	it("PATCH archive 404s a cross-tenant conversation id — never updates", async () => {

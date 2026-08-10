@@ -11,6 +11,7 @@ import {
 	account,
 	and,
 	conversation,
+	conversationAssignment,
 	conversationTag,
 	count,
 	eq,
@@ -48,7 +49,7 @@ export interface OwnedWorkspace {
 // ─── Statement builders (pure: build, don't execute) ──────────────────────────
 
 /**
- * The 12-step, child→parent, set-based delete set for ONE workspace. Every
+ * The 13-step, child→parent, set-based delete set for ONE workspace. Every
  * statement is `DELETE … WHERE … IN (SELECT …)` (or a direct workspace_id), so
  * the statement count is constant regardless of data volume. Child→parent order
  * means it's also correct if FK enforcement is unexpectedly ON (no RESTRICT).
@@ -70,6 +71,11 @@ export function workspaceDeleteStatements(db: Database, wsId: string) {
 		db
 			.delete(conversationTag)
 			.where(inArray(conversationTag.conversationId, convIds())),
+		// #96: direct workspace_id delete — the denormalized column exists for
+		// exactly this set-based cleanup.
+		db
+			.delete(conversationAssignment)
+			.where(eq(conversationAssignment.workspaceId, wsId)),
 		db.delete(readStatus).where(inArray(readStatus.conversationId, convIds())),
 		db.delete(message).where(inArray(message.conversationId, convIds())),
 		db.delete(source).where(inArray(source.projectId, projIds())),
@@ -104,6 +110,16 @@ export function userDeleteStatements(
 			.update(workspaceInvite)
 			.set({ createdBy: null })
 			.where(eq(workspaceInvite.createdBy, userId)),
+		// #96: scrub who-assigned attribution (S6, like authorUserId/createdBy
+		// above), then drop every assignment where the deleted user is the
+		// ASSIGNEE — user-global, like the readStatus delete below.
+		db
+			.update(conversationAssignment)
+			.set({ assignedBy: null })
+			.where(eq(conversationAssignment.assignedBy, userId)),
+		db
+			.delete(conversationAssignment)
+			.where(eq(conversationAssignment.assigneeUserId, userId)),
 		db.delete(member).where(eq(member.userId, userId)),
 		db.delete(readStatus).where(eq(readStatus.userId, userId)),
 		db.delete(account).where(eq(account.userId, userId)),
