@@ -27,6 +27,10 @@ interface WorkspaceCtx {
 	workspaceId: string | null;
 	setWorkspaceId: (id: string) => void;
 	isLoading: boolean;
+	/** True once the workspace list has actually been FETCHED. An empty
+	 * `workspaces` is only meaningful ("this user has none") when this is true —
+	 * a failed fetch also yields [] and must not be read as brand-new-user. */
+	loaded: boolean;
 	/** The current user's role in the active workspace (null until resolved). */
 	role: WorkspaceRole | null;
 	/** Whether the active role may manage the workspace (create/edit/delete
@@ -39,6 +43,7 @@ const Ctx = createContext<WorkspaceCtx>({
 	workspaceId: null,
 	setWorkspaceId: () => {},
 	isLoading: false,
+	loaded: false,
 	role: null,
 	canManage: false,
 });
@@ -54,7 +59,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
 	// Stable reference: keep the effect and every consumer from re-running on
 	// each render just because `.map()` produced a fresh array.
-	const { data, isLoading, isFetching } = query;
+	const { data, isLoading, isFetching, isSuccess } = query;
 	const workspaces = useMemo(
 		() =>
 			data?.workspaces.map((w) => ({
@@ -103,10 +108,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 			workspaceId,
 			setWorkspaceId,
 			isLoading,
+			loaded: isSuccess,
 			role,
 			canManage: canManage(role),
 		}),
-		[workspaces, workspaceId, setWorkspaceId, isLoading, role],
+		[workspaces, workspaceId, setWorkspaceId, isLoading, isSuccess, role],
 	);
 
 	return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

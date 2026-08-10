@@ -37,7 +37,7 @@ export function dismissOnboarding() {
 export function useOnboardingRedirect(enabled: boolean) {
 	const router = useRouter();
 	const pathname = usePathname();
-	const { workspaces, workspaceId, isLoading } = useWorkspace();
+	const { workspaces, workspaceId, isLoading, loaded } = useWorkspace();
 
 	const projects = useQuery({
 		queryKey: ["projects", workspaceId],
@@ -55,9 +55,12 @@ export function useOnboardingRedirect(enabled: boolean) {
 		// Escape hatch: never bounce a no-plan user off their account/billing pages.
 		if (ESCAPE_PREFIXES.some((p) => pathname.startsWith(p))) return;
 
-		// Brand-new user — no workspace exists yet.
+		// Brand-new user — no workspace exists yet. Only when the list actually
+		// LOADED: a transiently-failed fetch (the provider uses retry: false)
+		// also presents as zero workspaces, and bouncing an established user to
+		// /onboarding over a blip reads as being kicked out of the product.
 		if (workspaces.length === 0) {
-			router.replace("/onboarding");
+			if (loaded) router.replace("/onboarding");
 			return;
 		}
 		// Workspace exists but it's empty.
@@ -71,6 +74,7 @@ export function useOnboardingRedirect(enabled: boolean) {
 	}, [
 		enabled,
 		isLoading,
+		loaded,
 		workspaces.length,
 		workspaceId,
 		projects.isSuccess,
