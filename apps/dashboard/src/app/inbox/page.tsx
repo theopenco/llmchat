@@ -15,6 +15,7 @@ import { useSession } from "@/lib/auth-client";
 import { resolveOnboardingState } from "@/lib/onboarding";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { resolveSelectedId } from "@/lib/selection";
+import { MEMBERS_KEY, fetchMembers } from "@/lib/members";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace";
@@ -29,6 +30,7 @@ import {
 	mergeConversationPages,
 	removeTagFromAllConversations,
 	removeTagFromConversation,
+	setConversationAssignee,
 	setConversationRead,
 	type ConversationPage,
 } from "./_components/conversation-list";
@@ -56,11 +58,13 @@ import { ReplyComposer, type ComposerMode } from "./_components/ReplyComposer";
 import {
 	deriveStatus,
 	STATUS_PILL,
+	type AssigneeFilter,
 	type StatusFilter,
 } from "./_components/status";
+import { AssigneePicker } from "./_components/AssigneePicker";
 import { ThreadActions } from "./_components/ThreadActions";
 import { useThreadMessages } from "./_components/useThreadMessages";
-import type { ConversationStats, Tag } from "./_components/types";
+import type { Assignee, ConversationStats, Tag } from "./_components/types";
 import type { ProjectOption } from "./_components/ProjectSwitcher";
 
 const PAGE_SIZE = 30;
@@ -100,6 +104,8 @@ function InboxPageInner() {
 	const { data: session } = useSession();
 	const [search, setSearch] = useState("");
 	const [status, setStatus] = useState<StatusFilter>("open");
+	// Session-local by decision (#96) — not persisted to the URL or storage.
+	const [assigneeFilter, setAssigneeFilter] = useState<AssigneeFilter>("all");
 	const [tagIds, setTagIds] = useState<string[]>([]);
 	const [manageTagsOpen, setManageTagsOpen] = useState(false);
 	// Contact-details sheet (mobile/tablet); on desktop details are a permanent aside.
@@ -122,6 +128,15 @@ function InboxPageInner() {
 			api<{ tags: Tag[] }>("/api/tags", { workspaceId: workspaceId! }),
 	});
 	const allTags = tagsQuery.data?.tags ?? [];
+
+	// Workspace roster for the assignee picker (#96) — the exact query the
+	// settings Members tab uses, so both surfaces share one cache entry.
+	const membersQuery = useQuery({
+		queryKey: MEMBERS_KEY(workspaceId ?? ""),
+		enabled: !!workspaceId,
+		queryFn: () => fetchMembers(workspaceId!),
+	});
+	const members = membersQuery.data?.members ?? [];
 
 	// Keep the selected project valid for the current workspace; a stale id
 	// (e.g. after a workspace switch) falls back to the first project.
@@ -196,13 +211,16 @@ function InboxPageInner() {
 			if (debouncedSearch) params.set("search", debouncedSearch);
 			params.set("status", status);
 			if (tagFilterKey) params.set("tagIds", tagFilterKey);
+			// Assignment view (#96): a separate axis from status; "all" sends
+			// nothing so the default inbox request is byte-identical to pre-#96.
+			if (assigneeFilter !== "all") params.set("assignee", assigneeFilter);
 			if (cursor) params.set("cursor", cursor);
 			// Trigger lazy summary generation only on genuine loads/scrolls — never
 			// on the 5s head poll, which stays a pure read.
 			if (summarize) params.set("summarize", "1");
 			return params.toString();
 		},
-		[debouncedSearch, status, tagFilterKey],
+		[debouncedSearch, status, assigneeFilter, tagFilterKey],
 	);
 
 	// The paginated list: keyset cursor, NO polling (a background refetch of an
@@ -215,6 +233,7 @@ function InboxPageInner() {
 			"list",
 			debouncedSearch,
 			status,
+			assigneeFilter,
 			tagFilterKey,
 		],
 		enabled: !!projectId && !!workspaceId,
@@ -237,6 +256,7 @@ function InboxPageInner() {
 			"head",
 			debouncedSearch,
 			status,
+			assigneeFilter,
 			tagFilterKey,
 		],
 		enabled: !!projectId && !!workspaceId,
@@ -287,6 +307,16 @@ function InboxPageInner() {
 	const selectedConv = allConversations.find((c) => c.id === selectedId);
 	const detailConv = thread.conversation ?? selectedConv ?? null;
 
+	// Assignee for the open conversation: prefer the LIST cache copy (it's the
+	// one the optimistic assign patches), fall back to the thread's (covers a
+	// deep link before the list row loads). `undefined` on both → null.
+	const currentAssignee: Assignee | null =
+		selectedConv?.assignee ?? thread.conversation?.assignee ?? null;
+	const assignedByName = currentAssignee?.assignedBy
+		? (members.find((m) => m.userId === currentAssignee.assignedBy)?.name ??
+			null)
+		: null;
+
 	// Context for the "Add to knowledge" action on admin replies — only once a
 	// project + workspace are resolved.
 	const projectName =
@@ -328,6 +358,29 @@ function InboxPageInner() {
 				{ method: "DELETE", workspaceId: workspaceId! },
 			),
 		onError: (e) => toast.error(describeApiError(e, "Failed to remove tag")),
+	});
+
+	// Assign/unassign (#96): optimistic across every list cache variant like
+	// tags — the chip and picker label follow instantly, roll back on failure,
+	// and only the head revalidates. Assigning bumps nothing server-side (R6),
+	// so no re-sort. Success is deliberately silent: the chip IS the feedback.
+	// The thread copy of the conversation self-heals on its 3s poll.
+	const assignMut = useOptimisticMutation<{
+		id: string;
+		assignee: Assignee | null;
+	}>({
+		queryKey: ["conversations", projectId],
+		invalidateKey: ["conversations", projectId, "head"],
+		apply: (prev, vars) =>
+			setConversationAssignee(prev, vars.id, vars.assignee),
+		mutationFn: (vars) =>
+			api(`/api/projects/${projectId}/conversations/${vars.id}/assignee`, {
+				method: "PUT",
+				body: { assigneeUserId: vars.assignee?.userId ?? null },
+				workspaceId: workspaceId!,
+			}),
+		onError: (e) =>
+			toast.error(describeApiError(e, "Failed to update assignee")),
 	});
 
 	// Create-and-attach a NEW tag: a normal awaited mutation (the server must mint
@@ -705,6 +758,11 @@ function InboxPageInner() {
 								setStatus(next);
 								setSelectedId(null);
 							}}
+							assignee={assigneeFilter}
+							onAssigneeChange={(next) => {
+								setAssigneeFilter(next);
+								setSelectedId(null);
+							}}
 							tags={allTags}
 							tagIds={tagIds}
 							onTagIdsChange={setTagIds}
@@ -777,6 +835,18 @@ function InboxPageInner() {
 							onDelete={handleDelete}
 							resolving={archiveMut.isPending}
 							deleting={deleteMut.isPending}
+							assignControl={
+								<AssigneePicker
+									members={members}
+									assignee={currentAssignee}
+									currentUserId={session?.user?.id ?? null}
+									pending={assignMut.isPending}
+									assignedByName={assignedByName}
+									onAssign={(assignee) =>
+										assignMut.mutate({ id: detailConv.id, assignee })
+									}
+								/>
+							}
 						/>
 					)
 				}

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -7,6 +7,7 @@ import { ListFilters } from "./ListFilters";
 function setup(props: Partial<React.ComponentProps<typeof ListFilters>> = {}) {
 	const onSearch = vi.fn();
 	const onStatusChange = vi.fn();
+	const onAssigneeChange = vi.fn();
 	const onTagIdsChange = vi.fn();
 	const { unmount } = render(
 		<ListFilters
@@ -15,13 +16,21 @@ function setup(props: Partial<React.ComponentProps<typeof ListFilters>> = {}) {
 			onSearch={onSearch}
 			status="open"
 			onStatusChange={onStatusChange}
+			assignee={props.assignee ?? "all"}
+			onAssigneeChange={onAssigneeChange}
 			tags={props.tags ?? []}
 			tagIds={props.tagIds ?? []}
 			onTagIdsChange={onTagIdsChange}
 			onManageTags={props.onManageTags}
 		/>,
 	);
-	return { onSearch, onStatusChange, onTagIdsChange, unmount };
+	return {
+		onSearch,
+		onStatusChange,
+		onAssigneeChange,
+		onTagIdsChange,
+		unmount,
+	};
 }
 
 /** The status/tag filters live in a popover (moved off the main rail) — open it
@@ -50,11 +59,16 @@ describe("ListFilters", () => {
 		const user = userEvent.setup();
 		setup({ tags: [] });
 		await openFilters(user);
+		const statusGroup = screen.getByRole("radiogroup", {
+			name: /filter conversations by status/i,
+		});
 		for (const label of ["Open", "Resolved", "Escalated", "All"]) {
-			expect(screen.getByRole("radio", { name: label })).toBeInTheDocument();
+			expect(
+				within(statusGroup).getByRole("radio", { name: label }),
+			).toBeInTheDocument();
 		}
 		// Exactly the four real views are interactive radios — not the roadmap ones.
-		expect(screen.getAllByRole("radio")).toHaveLength(4);
+		expect(within(statusGroup).getAllByRole("radio")).toHaveLength(4);
 	});
 
 	it("reports the chosen status upward", async () => {
@@ -65,18 +79,66 @@ describe("ListFilters", () => {
 		expect(onStatusChange).toHaveBeenCalledWith("resolved");
 	});
 
-	it("renders the ROADMAP status concepts as dimmed, non-interactive labels (never a filter)", async () => {
+	it("renders the remaining ROADMAP concept dimmed and non-interactive (never a filter)", async () => {
 		const user = userEvent.setup();
 		setup();
 		await openFilters(user);
-		expect(screen.getByText("Unassigned")).toBeInTheDocument();
 		expect(screen.getByText("AI-handled")).toBeInTheDocument();
-		expect(
-			screen.queryByRole("radio", { name: /unassigned/i }),
-		).not.toBeInTheDocument();
 		expect(
 			screen.queryByRole("button", { name: /ai-handled/i }),
 		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("radio", { name: /ai-handled/i }),
+		).not.toBeInTheDocument();
+	});
+
+	it("offers the three LIVE assignee views (#96) and reports the choice upward", async () => {
+		const user = userEvent.setup();
+		const { onAssigneeChange } = setup();
+		await openFilters(user);
+		const group = screen.getByRole("radiogroup", {
+			name: /filter conversations by assignee/i,
+		});
+		expect(within(group).getAllByRole("radio")).toHaveLength(3);
+		await user.click(within(group).getByRole("radio", { name: /unassigned/i }));
+		expect(onAssigneeChange).toHaveBeenCalledWith("none");
+		await user.click(within(group).getByRole("radio", { name: /mine/i }));
+		expect(onAssigneeChange).toHaveBeenCalledWith("me");
+	});
+
+	it("shows the real pill counts on Mine/Unassigned — and none on a stale response without them", async () => {
+		const user = userEvent.setup();
+		const { unmount } = setup({
+			stats: {
+				total: 7,
+				escalated: 1,
+				resolved: 2,
+				avgRating: 4,
+				mine: 3,
+				unassigned: 2,
+			},
+		});
+		await openFilters(user);
+		const group = screen.getByRole("radiogroup", {
+			name: /filter conversations by assignee/i,
+		});
+		// Mine carries ITS count and Unassigned ITS count (not swapped).
+		expect(
+			within(group).getByRole("radio", { name: /mine\s*3/i }),
+		).toBeInTheDocument();
+		expect(
+			within(group).getByRole("radio", { name: /unassigned\s*2/i }),
+		).toBeInTheDocument();
+		unmount();
+		// A cached pre-#96 stats response lacks the fields → no count, no filler.
+		setup({ stats: { total: 7, escalated: 1, resolved: 2, avgRating: 4 } });
+		await openFilters(user);
+		const bare = screen.getByRole("radiogroup", {
+			name: /filter conversations by assignee/i,
+		});
+		expect(
+			within(bare).getByRole("radio", { name: /^mine$/i }),
+		).toBeInTheDocument();
 	});
 
 	it("renders an 'All' chip plus a chip per real workspace tag (data-driven, not sample labels)", async () => {

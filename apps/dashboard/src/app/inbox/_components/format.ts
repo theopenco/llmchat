@@ -111,3 +111,10 @@ export function initials(name: string | null | undefined): string {
 		.slice(0, 2)
 		.toUpperCase();
 }
+
+/** First name for compact chips (#96 assignee chip): the first whitespace
+ * token, or a neutral fallback when the account was deleted (name null). */
+export function firstName(name: string | null | undefined): string {
+	const first = name?.trim().split(/\s+/)[0];
+	return first || "Teammate";
+}
