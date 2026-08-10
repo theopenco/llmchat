@@ -349,3 +349,36 @@ describe("MessageList greeting", () => {
 		expect(bubbles[1]).toHaveTextContent("hello");
 	});
 });
+
+describe("MessageList RTL", () => {
+	it("gives every content bubble dir=auto so RTL messages reflow per-message", () => {
+		const { container } = render(
+			<MessageList
+				greeting="hi"
+				messages={[
+					assistant({ id: "ar", content: "مرحبا! كيف أقدر نعاونك؟" }),
+					{
+						id: "u1",
+						role: "user",
+						content: "هل تقدمون فترة تجريبية؟",
+						rateable: false,
+						rating: null,
+					},
+				]}
+				typing={false}
+				error={null}
+				onRate={vi.fn()}
+			/>,
+		);
+		// The greeting + both messages: three content bubbles, all dir="auto" —
+		// the browser resolves direction from each bubble's OWN first strong
+		// character, so an Arabic answer right-aligns while English stays LTR.
+		// onRate is set so the rateable assistant exercises ITS render branch —
+		// all three bubble render sites are asserted, not two.
+		const bubbles = container.querySelectorAll(".llmchat-msg");
+		expect(bubbles.length).toBe(3);
+		for (const b of bubbles) {
+			expect(b.getAttribute("dir")).toBe("auto");
+		}
+	});
+});

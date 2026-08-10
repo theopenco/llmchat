@@ -43,3 +43,17 @@ describe("Composer", () => {
 		expect(onSubmit).toHaveBeenCalledOnce();
 	});
 });
+
+describe("Composer RTL", () => {
+	it("gives the input dir=auto so typing Arabic flips the field RTL", () => {
+		render(
+			<Composer
+				value=""
+				onChange={() => {}}
+				onSend={() => {}}
+				disabled={false}
+			/>,
+		);
+		expect(screen.getByLabelText("Message")).toHaveAttribute("dir", "auto");
+	});
+});
