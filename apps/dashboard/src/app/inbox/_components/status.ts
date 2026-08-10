@@ -50,3 +50,15 @@ export const STATUS_PILL: Record<
 		className: "bg-ck-good/12 text-ck-good",
 	},
 };
+
+/** Assignment view (#96) — a SEPARATE axis from `status`: the two compose (an
+ * escalated conversation can be mine). Maps to the list endpoint's `assignee`
+ * param ("me" | "none"); "all" sends nothing. Session-local by decision — not
+ * persisted to the URL or storage. */
+export type AssigneeFilter = "all" | "me" | "none";
+
+export const ASSIGNEE_FILTERS: { value: AssigneeFilter; label: string }[] = [
+	{ value: "all", label: "All" },
+	{ value: "me", label: "Mine" },
+	{ value: "none", label: "Unassigned" },
+];

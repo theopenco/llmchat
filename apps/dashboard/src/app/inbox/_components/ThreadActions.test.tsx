@@ -1,10 +1,17 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
 
 import { ThreadActions } from "./ThreadActions";
 
-function setup(props: { resolved?: boolean; deleting?: boolean } = {}) {
+function setup(
+	props: {
+		resolved?: boolean;
+		deleting?: boolean;
+		assignControl?: ReactNode;
+	} = {},
+) {
 	const onResolve = vi.fn();
 	const onDelete = vi.fn();
 	render(
@@ -14,6 +21,7 @@ function setup(props: { resolved?: boolean; deleting?: boolean } = {}) {
 			onDelete={onDelete}
 			resolving={false}
 			deleting={props.deleting ?? false}
+			assignControl={props.assignControl}
 		/>,
 	);
 	return { onResolve, onDelete };
@@ -59,10 +67,10 @@ describe("ThreadActions", () => {
 		).toBeInTheDocument();
 	});
 
-	it("renders Assign as a dimmed, non-interactive ROADMAP affordance (never a button)", () => {
-		setup();
-		// Not a real control — it's a dimmed 'soon' span, never wired.
-		expect(screen.queryByRole("button", { name: /assign/i })).toBeNull();
-		expect(screen.getByText("Assign")).toBeInTheDocument();
+	it("renders the assignControl slot verbatim (#96 — the stub graduated to AssigneePicker)", () => {
+		setup({ assignControl: <button type="button">Assign</button> });
+		expect(
+			screen.getByRole("button", { name: /^assign$/i }),
+		).toBeInTheDocument();
 	});
 });

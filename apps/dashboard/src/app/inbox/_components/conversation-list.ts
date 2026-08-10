@@ -1,4 +1,4 @@
-import type { Conversation, Tag } from "./types";
+import type { Assignee, Conversation, Tag } from "./types";
 
 /** A single list page from the API. */
 export interface ConversationPage {
@@ -141,5 +141,17 @@ export function removeTagFromAllConversations(
 				? { ...c, tags: (c.tags ?? []).filter((t) => t.id !== tagId) }
 				: c,
 		),
+	);
+}
+
+/** Optimistic updater: set (or clear, with null) a conversation's assignee
+ * across head + infinite caches (#96). */
+export function setConversationAssignee(
+	prev: unknown,
+	id: string,
+	assignee: Assignee | null,
+): unknown {
+	return mapConversationsInCache(prev, (list) =>
+		list.map((c) => (c.id === id ? { ...c, assignee } : c)),
 	);
 }

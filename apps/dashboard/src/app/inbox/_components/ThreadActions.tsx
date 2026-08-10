@@ -1,7 +1,8 @@
 "use client";
 
-import { Check, RotateCcw, Trash2, UserPlus } from "lucide-react";
+import { Check, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
+import type { ReactNode } from "react";
 
 import {
 	AlertDialog,
@@ -16,9 +17,9 @@ import { Button } from "@/components/ds";
 
 /**
  * Thread-header action row, matching the target design. LIVE: Resolve/Reopen
- * (toggles archived — our only "closed" state, so there's no separate Archive)
- * and Delete (non-optimistic, confirm dialog). ROADMAP: Assign — assignment
- * isn't built, so it's a visibly dimmed, inert affordance, never wired.
+ * (toggles archived — our only "closed" state, so there's no separate
+ * Archive), Delete (non-optimistic, confirm dialog), and Assign (#96 — the
+ * AssigneePicker, passed in as a slot so this row stays presentational).
  */
 export function ThreadActions({
 	resolved,
@@ -26,12 +27,15 @@ export function ThreadActions({
 	onDelete,
 	resolving,
 	deleting,
+	assignControl,
 }: {
 	resolved: boolean;
 	onResolve: () => void;
 	onDelete: () => void;
 	resolving: boolean;
 	deleting: boolean;
+	/** The AssigneePicker for the open conversation (#96). */
+	assignControl?: ReactNode;
 }) {
 	const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -68,18 +72,7 @@ export function ThreadActions({
 				<span className="hidden sm:inline">Delete</span>
 			</Button>
 
-			{/* ROADMAP — assignment isn't built; dimmed + inert, never wired. */}
-			<span
-				aria-disabled="true"
-				title="Coming soon"
-				className="inline-flex h-8 cursor-not-allowed items-center gap-1.5 rounded-[10px] border border-dashed border-ck-border px-2.5 text-xs font-medium text-ck-disabled"
-			>
-				<UserPlus className="size-4" />
-				<span className="hidden sm:inline">Assign</span>
-				<span className="text-[9px] font-semibold uppercase tracking-wide">
-					soon
-				</span>
-			</span>
+			{assignControl}
 
 			{/*
 			 * Controlled AlertDialog + a plain submit Button — NOT AlertDialogAction,

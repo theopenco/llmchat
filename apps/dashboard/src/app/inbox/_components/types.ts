@@ -41,6 +41,19 @@ export interface Conversation {
 	 * it came from. Present only on search responses; null when nothing matched on
 	 * text (added by the list API). The snippet is plain text — render escaped. */
 	match?: SearchMatch | null;
+	/** Operator this conversation is assigned to (#96; added by the list/thread
+	 * APIs); null/absent when unassigned. Workflow metadata only — never gates
+	 * visibility. */
+	assignee?: Assignee | null;
+}
+
+/** The assigned operator on a conversation (#96). `name` is resolved
+ * server-side (null if the account was deleted); `assignedBy` is the
+ * ASSIGNER's userId — resolve its display name from the members cache. */
+export interface Assignee {
+	userId: string;
+	name: string | null;
+	assignedBy: string | null;
 }
 
 /** Where a search term was found, with a short plain-text excerpt for context. */
@@ -56,6 +69,11 @@ export interface ConversationStats {
 	escalated: number;
 	resolved: number;
 	avgRating: number | null;
+	/** #96 assignment pill counts — project-wide like the rest; `mine` is
+	 * caller-scoped server-side. Optional: a cached pre-#96 response lacks them
+	 * (render no count, never a placeholder). */
+	mine?: number;
+	unassigned?: number;
 }
 
 export interface Message {

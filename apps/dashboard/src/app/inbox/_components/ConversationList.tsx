@@ -4,7 +4,7 @@ import { MessageCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-import { initials, pluralize, timeAgo } from "./format";
+import { firstName, initials, pluralize, timeAgo } from "./format";
 import { Highlighted } from "./highlight";
 import type { StatusFilter } from "./status";
 import { TagChip } from "./TagChip";
@@ -122,6 +122,17 @@ function ConversationRow({
 					{conversation.tags?.map((t) => (
 						<TagChip key={t.id} tag={t} />
 					))}
+					{conversation.assignee && (
+						<span
+							className="inline-flex h-4 items-center gap-1 rounded-full bg-ck-chip px-1.5 text-[10px] font-semibold text-ck-muted"
+							title={`Assigned to ${conversation.assignee.name ?? "a teammate"}`}
+						>
+							<span className="flex size-2.5 items-center justify-center rounded-full bg-ck-accent/80 text-[6px] font-bold leading-none text-white">
+								{initials(conversation.assignee.name)}
+							</span>
+							{firstName(conversation.assignee.name)}
+						</span>
+					)}
 					<span className="text-[11px] text-ck-faint">
 						{pluralize(conversation.messageCount, "message")}
 					</span>
