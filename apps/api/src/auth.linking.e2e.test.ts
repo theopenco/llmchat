@@ -137,13 +137,22 @@ describe("account-takeover fix — implicit OAuth linking", () => {
 		expect(adapter.updateUser).not.toHaveBeenCalled();
 	});
 
-	it("CONTRAST: the pre-fix config (trustedProviders, no disableImplicitLinking) DID take over the account — proves the flag is load-bearing", async () => {
+	it("CONTRAST (upstream-fixed since 1.6.9): even the pre-fix permissive config no longer takes over an UNVERIFIED local account — requireLocalEmailVerified defaults on", async () => {
+		// Through 1.6.9 this exact config DID link Google into the attacker's
+		// unverified row (the takeover disableImplicitLinking was shipped to
+		// close). Better Auth has since added the missing check itself: the
+		// implicit-link gate now also requires the EXISTING local account's
+		// email to be verified (`requireLocalEmailVerified ?? true` in
+		// oauth2/link-account). This pins that upstream guard so a future bump
+		// can't silently drop it; our disableImplicitLinking stays on as
+		// defense-in-depth (and still refuses even VERIFIED-local links — the
+		// stricter posture the first test proves).
 		const adapter = makeAdapter({
 			id: "victim-user",
 			email: VICTIM_EMAIL,
 			emailVerified: false,
 		});
-		// The exact config this PR removes.
+		// The exact config the takeover fix removed.
 		const c = makeContext(
 			{ enabled: true, trustedProviders: ["google", "github"] },
 			adapter,
@@ -152,16 +161,14 @@ describe("account-takeover fix — implicit OAuth linking", () => {
 
 		const res = await handleOAuthUserInfo(c as never, OPTS as never);
 
-		// Old behavior: Google links into the attacker's row, flips it verified,
-		// and issues a session — both parties now share one account.
-		expect(adapter.linkAccount).toHaveBeenCalledTimes(1);
-		expect(adapter.updateUser).toHaveBeenCalledWith("victim-user", {
-			emailVerified: true,
-		});
-		expect(adapter.createSession).toHaveBeenCalledWith("victim-user");
+		// The takeover no longer happens even without our flag: no link, no
+		// auto-verify, no session on the attacker's row.
+		expect(res.error).toBe("account not linked");
+		expect(res.data).toBeNull();
+		expect(adapter.linkAccount).not.toHaveBeenCalled();
+		expect(adapter.updateUser).not.toHaveBeenCalled();
+		expect(adapter.createSession).not.toHaveBeenCalled();
 		expect(adapter.createOAuthUser).not.toHaveBeenCalled();
-		expect(res.error).toBeNull();
-		expect((res.data as { user: { id: string } }).user.id).toBe("victim-user");
 	});
 
 	it("NON-REGRESSION: a first-time Google signup (no existing email) still creates a user + session", async () => {
