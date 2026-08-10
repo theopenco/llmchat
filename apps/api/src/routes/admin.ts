@@ -13,6 +13,7 @@ import {
 } from "@/lib/admin-metrics";
 import { db } from "@/lib/db";
 import { requireGlobalAdmin, resolveAdminIdentity } from "@/middleware/admin";
+import { forwardAuthCookies } from "@/middleware/session";
 
 import {
 	conversation,
@@ -66,10 +67,17 @@ export const admin = new Hono<AppContext>()
 	// `{ isAdmin: false }` (→ "access restricted" screen) instead of a bare 403,
 	// while a logged-out visitor still gets 401 (→ redirect to sign-in).
 	.get("/admin/me", async (c) => {
-		const identity = await resolveAdminIdentity(c);
-		if (!identity)
-			return c.json({ error: "unauthorized", code: "unauthorized" }, 401);
-		return c.json({ email: identity.email, isAdmin: identity.isAdmin });
+		const { identity, authHeaders } = await resolveAdminIdentity(c);
+		if (!identity) {
+			const res = c.json({ error: "unauthorized", code: "unauthorized" }, 401);
+			forwardAuthCookies(res, authHeaders);
+			return res;
+		}
+		const res = c.json({ email: identity.email, isAdmin: identity.isAdmin });
+		// This probe is the admin frontend's poll target — the likeliest place
+		// an /admin session's once-per-day refresh re-stamp gets emitted.
+		forwardAuthCookies(res, authHeaders);
+		return res;
 	})
 
 	// Headline metrics + 30-day signup/usage series + subscription breakdown.

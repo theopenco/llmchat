@@ -100,6 +100,17 @@ app.use(
 	}),
 );
 
+// Auth responses must never be served from a shared cache: Better Auth 1.6.9
+// sets no cache-control on get-session (fixed upstream in 1.6.24), and a
+// cached session envelope replayed across users — or a cached null served to a
+// signed-in user, which the client renders as a spontaneous sign-out — is a
+// session-integrity failure. Asserted here so the guarantee doesn't ride on
+// the dependency version.
+app.use("/api/auth/*", async (c, next) => {
+	await next();
+	c.res.headers.set("cache-control", "no-store");
+});
+
 app.on(["GET", "POST"], "/api/auth/*", (c) => {
 	const auth = createAuth(c.env);
 	return auth.handler(c.req.raw);

@@ -18,6 +18,14 @@ import type { Env } from "@/env";
  * responds 429 rather than allowing unbounded auth attempts. (The public widget
  * limiter in `kv.ts` stays fail-open — see its `failClosed` option — so a STATE
  * blip never takes the embed down; PR1's spend caps already bound that cost.)
+ *
+ * ONE carve-out: `/get-session` fails OPEN. It's a read that grants nothing an
+ * attacker can't get by just retrying (no credential attempt to bound), but a
+ * fail-closed 429 on it makes every signed-in dashboard treat the blip as a
+ * sign-out (the Better Auth client nulls its session store on any failed
+ * get-session refetch). Availability-first for the session read, deny-first
+ * for everything else — the narrowest possible exception, keyed by exact path
+ * suffix so any future key-format change falls back to fail-closed.
  */
 
 /**
@@ -38,6 +46,19 @@ interface RateLimitBucket {
 
 const KEY_PREFIX = "authrl:";
 
+/**
+ * Whether a rate-limit key may fail OPEN on a STATE outage. Better Auth keys
+ * buckets as `${ip}|${path}` (createRateLimitKey in @better-auth/core), so the
+ * session read — and ONLY the session read — is recognized by its exact path
+ * suffix. Anything else (sign-in, sign-up, password/email changes, sign-out,
+ * unknown formats) keeps the fail-closed default: if the suffix ever changes
+ * shape in an upgrade, this returns false and the failure mode degrades toward
+ * MORE denial, never toward an open credential path.
+ */
+export function mayFailOpen(key: string): boolean {
+	return key.endsWith("|/get-session");
+}
+
 export interface RateLimitCustomStorage {
 	get(key: string): Promise<RateLimitBucket | null>;
 	set(key: string, value: RateLimitBucket): Promise<void>;
@@ -56,8 +77,17 @@ export function createAuthRateLimitStorage(env: Env): RateLimitCustomStorage {
 					return null;
 				}
 			} catch (err) {
-				// STATE unavailable — FAIL CLOSED: hand back a bucket that is already
-				// over any limit so Better Auth denies (429) this auth request.
+				// STATE unavailable. The session read fails OPEN (a 429 here presents
+				// as a spontaneous sign-out on every open dashboard — see mayFailOpen);
+				// every other auth path FAILS CLOSED: hand back a bucket that is
+				// already over any limit so Better Auth denies (429) the attempt.
+				if (mayFailOpen(key)) {
+					console.error(
+						"authRateLimit: STATE read failed, failing open (session read)",
+						err,
+					);
+					return null;
+				}
 				console.error("authRateLimit: STATE read failed, failing closed", err);
 				return {
 					key,

@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createAuthRateLimitStorage } from "./auth-rate-limit-storage";
+import {
+	createAuthRateLimitStorage,
+	mayFailOpen,
+} from "./auth-rate-limit-storage";
 
 import type { Env } from "@/env";
 
@@ -54,12 +57,38 @@ describe("createAuthRateLimitStorage", () => {
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		const storage = createAuthRateLimitStorage(envWithBrokenStore());
 
-		const bucket = await storage.get("ip:/sign-in");
+		// Better Auth keys buckets as `${ip}|${path}`.
+		const bucket = await storage.get("203.0.113.9|/sign-in");
 		// Any positive `max` is <= MAX_SAFE_INTEGER and lastRequest is "now", so
 		// Better Auth's shouldRateLimit() sees count >= max within the window → 429.
 		expect(bucket).not.toBeNull();
 		expect(bucket!.count).toBe(Number.MAX_SAFE_INTEGER);
 		errorSpy.mockRestore();
+	});
+
+	it("fails OPEN for the session read only: a STATE read error on /get-session returns null (no synthetic 429)", async () => {
+		// A fail-closed 429 on get-session presents as a spontaneous sign-out on
+		// every open dashboard (the Better Auth client nulls its session store on
+		// any failed refetch) — availability wins for this one read.
+		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+		const storage = createAuthRateLimitStorage(envWithBrokenStore());
+
+		expect(await storage.get("203.0.113.9|/get-session")).toBeNull();
+		// The outage is still logged — fail-open must never be silent.
+		expect(errorSpy).toHaveBeenCalled();
+		errorSpy.mockRestore();
+	});
+
+	it("mayFailOpen recognizes exactly the get-session path suffix — anything else (or an unknown key shape) stays fail-closed", () => {
+		expect(mayFailOpen("203.0.113.9|/get-session")).toBe(true);
+		expect(mayFailOpen("203.0.113.9|/sign-in")).toBe(false);
+		expect(mayFailOpen("203.0.113.9|/sign-in/email")).toBe(false);
+		expect(mayFailOpen("203.0.113.9|/change-password")).toBe(false);
+		// A future key-format change must degrade toward MORE denial, never
+		// toward an open credential path.
+		expect(mayFailOpen("/get-session")).toBe(false);
+		expect(mayFailOpen("203.0.113.9|/get-session/extra")).toBe(false);
+		expect(mayFailOpen("203.0.113.9")).toBe(false);
 	});
 
 	it("swallows STATE write errors (the deny already happened on read)", async () => {

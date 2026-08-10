@@ -49,7 +49,8 @@ vi.mock("@/lib/analytics", () => ({
 // The Better Auth client is the one boundary stubbed on the sign-up side:
 // authClient.signIn.social is where the browser would leave for Google.
 const socialSignIn = vi.fn();
-vi.mock("@/lib/auth-client", () => ({
+vi.mock("@/lib/auth-client", async (orig) => ({
+	...(await orig<typeof import("@/lib/auth-client")>()),
 	useSession: vi.fn(),
 	signIn: { email: vi.fn(), social: vi.fn() },
 	signUp: { email: vi.fn() },

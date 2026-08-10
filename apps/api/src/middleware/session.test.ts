@@ -1,3 +1,4 @@
+import { APIError } from "better-auth";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,12 +10,32 @@ import type { AppContext, Role } from "@/env";
 
 // Header-driven fake session so requireSession/requireRole run for real
 // without standing up Better Auth. `x-test-user` present ⇒ signed in.
+// Mirrors the real returnHeaders contract: with `returnHeaders: true` the
+// session comes wrapped as { headers, response } — requireSession forwards any
+// set-cookie in those headers (the once-per-day refresh re-stamp) — and
+// without it the session is returned directly (the admin middleware's style).
+// `fake.setCookies` / `fake.error` let individual tests drive those paths.
+const fake = vi.hoisted(() => ({
+	setCookies: [] as string[],
+	error: null as unknown,
+}));
 vi.mock("@/auth", () => ({
 	createAuth: () => ({
 		api: {
-			getSession: async ({ headers }: { headers: Headers }) => {
+			getSession: async ({
+				headers,
+				returnHeaders,
+			}: {
+				headers: Headers;
+				returnHeaders?: boolean;
+			}) => {
+				if (fake.error) throw fake.error;
 				const id = headers.get("x-test-user");
-				return id ? { user: { id } } : null;
+				const session = id ? { user: { id } } : null;
+				if (!returnHeaders) return session;
+				const h = new Headers();
+				for (const v of fake.setCookies) h.append("set-cookie", v);
+				return { headers: h, response: session };
 			},
 		},
 	}),
@@ -50,14 +71,25 @@ function gate(min: Role) {
 	);
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+	vi.clearAllMocks();
+	fake.setCookies = [];
+	fake.error = null;
+});
+
+const REFRESH_COOKIE =
+	"better-auth.session_token=refreshed.sig; Max-Age=604800; Path=/; HttpOnly; SameSite=Lax";
+
+function probeApp() {
+	const app = new Hono<AppContext>();
+	app.get("/gate", requireSession, (c) => c.json({ ok: true }));
+	return app;
+}
 
 describe("requireSession", () => {
 	it("401s an unauthenticated request with a machine-readable code", async () => {
-		const app = new Hono<AppContext>();
-		app.get("/gate", requireSession, (c) => c.json({ ok: true }));
 		// No x-test-user header ⇒ the mocked getSession returns null.
-		const res = await app.request("/gate", {}, ENV);
+		const res = await probeApp().request("/gate", {}, ENV);
 		expect(res.status).toBe(401);
 		// The 401 body must carry `code` explicitly — every other error surface
 		// does, and the dashboard's ApiError branches on `code ?? error` (#195).
@@ -65,6 +97,85 @@ describe("requireSession", () => {
 			error: "unauthorized",
 			code: "unauthorized",
 		});
+	});
+
+	it("forwards the session-refresh Set-Cookie from getSession to the client", async () => {
+		// Better Auth's once-per-updateAge refresh re-stamps the cookie INSIDE
+		// getSession. requireSession is its busiest caller, so if this forwarding
+		// ever regresses, the refresh is consumed server-side and every browser
+		// cookie hard-expires 7 days after sign-in (the auto-sign-out bug).
+		fake.setCookies = [REFRESH_COOKIE];
+		const res = await probeApp().request(
+			"/gate",
+			{ headers: { "x-test-user": "u1" } },
+			ENV,
+		);
+		expect(res.status).toBe(200);
+		expect(res.headers.getSetCookie()).toContain(REFRESH_COOKIE);
+	});
+
+	it("emits no Set-Cookie when getSession issued none (no refresh due)", async () => {
+		const res = await probeApp().request(
+			"/gate",
+			{ headers: { "x-test-user": "u1" } },
+			ENV,
+		);
+		expect(res.status).toBe(200);
+		expect(res.headers.getSetCookie()).toEqual([]);
+	});
+
+	it("APPENDS to a route's own Set-Cookie rather than clobbering it", async () => {
+		fake.setCookies = [REFRESH_COOKIE];
+		const app = new Hono<AppContext>();
+		app.get("/gate", requireSession, (c) => {
+			c.header("set-cookie", "route-cookie=1; Path=/", { append: true });
+			return c.json({ ok: true });
+		});
+		const res = await app.request(
+			"/gate",
+			{ headers: { "x-test-user": "u1" } },
+			ENV,
+		);
+		const cookies = res.headers.getSetCookie();
+		expect(cookies).toContain("route-cookie=1; Path=/");
+		expect(cookies).toContain(REFRESH_COOKIE);
+	});
+
+	it("forwards getSession's dead-cookie clearing on the 401 path", async () => {
+		// A cookie whose session row is gone gets cleared by getSession; the
+		// clearing must reach the browser so the dead token is dropped.
+		fake.setCookies = [
+			"better-auth.session_token=; Max-Age=0; Path=/; HttpOnly",
+		];
+		const res = await probeApp().request("/gate", {}, ENV);
+		expect(res.status).toBe(401);
+		expect(res.headers.getSetCookie()).toEqual(fake.setCookies);
+	});
+
+	it("maps getSession's concurrent-revocation APIError to a plain 401, not a 500", async () => {
+		// getSession THROWS (UNAUTHORIZED) when its refresh races a session
+		// revocation — an unauthenticated outcome, not a server fault.
+		fake.error = new APIError("UNAUTHORIZED");
+		const res = await probeApp().request(
+			"/gate",
+			{ headers: { "x-test-user": "u1" } },
+			ENV,
+		);
+		expect(res.status).toBe(401);
+		expect(await res.json()).toEqual({
+			error: "unauthorized",
+			code: "unauthorized",
+		});
+	});
+
+	it("rethrows non-auth getSession failures (a DB outage must stay a 500)", async () => {
+		fake.error = new Error("db down");
+		const res = await probeApp().request(
+			"/gate",
+			{ headers: { "x-test-user": "u1" } },
+			ENV,
+		);
+		expect(res.status).toBe(500);
 	});
 });
 

@@ -9,7 +9,7 @@ import { LaunchBanner } from "@/components/launch-banner";
 import { SidebarNav } from "@/components/shell/sidebar-nav";
 import { TopBar } from "@/components/shell/top-bar";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { useSession } from "@/lib/auth-client";
+import { isTransientSessionError, useSession } from "@/lib/auth-client";
 import { useOnboardingRedirect } from "@/lib/use-onboarding-redirect";
 import { SelectedProjectProvider } from "@/lib/use-selected-project";
 import { useWorkspace } from "@/lib/workspace";
@@ -22,7 +22,7 @@ export function DashboardShell({
 	/** Email resolved on the server; when present we skip the client auth gate. */
 	initialEmail?: string;
 }) {
-	const { data, isPending } = useSession();
+	const { data, isPending, error } = useSession();
 	const { role } = useWorkspace();
 	const router = useRouter();
 	const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -50,18 +50,28 @@ export function DashboardShell({
 	useEffect(() => {
 		// Only client-gate when the server didn't already confirm a session.
 		if (initialEmail) return;
+		// A transient get-session failure is NOT a sign-out — the cookie may be
+		// perfectly valid and the next focus/online refetch recovers. Only a
+		// definitive "no session" (clean 200-null or a real 401) may bounce.
+		if (isTransientSessionError(error)) return;
 		if (!isPending && !data?.user) {
 			router.replace("/sign-in");
 		}
-	}, [initialEmail, data, isPending, router]);
+	}, [initialEmail, data, isPending, error, router]);
 
 	// Send users with no workspace / no projects to the onboarding flow.
 	useOnboardingRedirect(!!email);
 
 	if (!email) {
 		// Still resolving the session client-side -> show the shell skeleton;
-		// once resolved-as-unauthenticated the redirect effect takes over.
-		return isPending ? <DashboardSkeleton /> : null;
+		// once resolved-as-unauthenticated the redirect effect takes over. A
+		// transient error also keeps the skeleton up: the session store was
+		// nulled by a failed refetch, not by an actual sign-out, and the next
+		// refetch restores it — bouncing or blanking here would turn a blip
+		// into a logout.
+		return isPending || isTransientSessionError(error) ? (
+			<DashboardSkeleton />
+		) : null;
 	}
 
 	return (

@@ -221,4 +221,40 @@ describe("durable auth rate limiting (cross-isolate)", () => {
 	// so a test can't observe the prod null-IP path. It's a documented deploy
 	// dependency instead — TRUSTED_CLIENT_IP_HEADER must match what the edge forwards
 	// (see apps/api/.env.example), or auth rate limiting is silently skipped in prod.
+
+	describe("scoped failure policy during a STATE outage", () => {
+		function brokenState() {
+			return {
+				get: vi.fn(async () => {
+					throw new Error("state unavailable");
+				}),
+				set: vi.fn(async () => {
+					throw new Error("state unavailable");
+				}),
+			};
+		}
+
+		it("credential paths FAIL CLOSED: sign-in during the outage is denied (429)", async () => {
+			const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+			const auth = createAuth(makeEnv(brokenState()));
+			const res = await auth.handler(signInRequest("203.0.113.30"));
+			expect(res.status).toBe(429);
+			errorSpy.mockRestore();
+		});
+
+		it("the session read FAILS OPEN: get-session during the outage still answers (no synthetic 429 → no mass sign-out)", async () => {
+			const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+			const auth = createAuth(makeEnv(brokenState()));
+			const res = await auth.handler(
+				new Request("http://localhost:8787/api/auth/get-session", {
+					headers: {
+						"cf-connecting-ip": "203.0.113.31",
+						origin: "http://localhost:3001",
+					},
+				}),
+			);
+			expect(res.status).toBe(200);
+			errorSpy.mockRestore();
+		});
+	});
 });

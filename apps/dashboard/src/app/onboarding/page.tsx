@@ -12,7 +12,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { WorkspaceSwitcher } from "@/components/shell/workspace-switcher";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useSession } from "@/lib/auth-client";
+import { isTransientSessionError, useSession } from "@/lib/auth-client";
 import { api, isWorkspaceAuthError } from "@/lib/api";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { fetchUsage } from "@/lib/billing";
@@ -34,7 +34,11 @@ import { PendingInviteNotice } from "./_components/PendingInviteNotice";
 function OnboardingFlow() {
 	const router = useRouter();
 	const qc = useQueryClient();
-	const { data: session, isPending: sessionPending } = useSession();
+	const {
+		data: session,
+		isPending: sessionPending,
+		error: sessionError,
+	} = useSession();
 	const { state, workspaceId } = useOnboardingState();
 	const { setWorkspaceId, role, workspaces } = useWorkspace();
 
@@ -75,11 +79,14 @@ function OnboardingFlow() {
 	// strand, and a social click on the plain sign-in page would clear it.
 	useEffect(() => {
 		if (sessionPending || session?.user) return;
+		// A transiently-failed get-session (429/5xx blip) is not "unauthenticated"
+		// — hold, keep the invite stash intact, and let the next refetch decide.
+		if (isTransientSessionError(sessionError)) return;
 		const stashed = consumePendingInvite();
 		router.replace(
 			stashed ? `/sign-in?invite=${encodeURIComponent(stashed)}` : "/sign-in",
 		);
-	}, [sessionPending, session, router]);
+	}, [sessionPending, session, sessionError, router]);
 
 	// Boot check: an authenticated arrival with a stashed invite leaves for the
 	// invitation. Not in new-bot mode — ?new=1 is an explicit "add another
