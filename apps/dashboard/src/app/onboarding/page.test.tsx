@@ -25,7 +25,8 @@ vi.mock("next/navigation", () => ({
 	useRouter: () => ({ push, replace }),
 	useSearchParams: () => searchParams,
 }));
-vi.mock("@/lib/auth-client", () => ({
+vi.mock("@/lib/auth-client", async (orig) => ({
+	...(await orig<typeof import("@/lib/auth-client")>()),
 	useSession: vi.fn(),
 	signOut: vi.fn(() => Promise.resolve()),
 }));
@@ -168,6 +169,31 @@ describe("OnboardingPage (form redesign)", () => {
 		// Sign out — the guaranteed escape: ends the session + lands on sign-in.
 		await u.click(screen.getByRole("menuitem", { name: /sign out/i }));
 		await waitFor(() => expect(signOut).toHaveBeenCalled());
+		await waitFor(() => expect(replace).toHaveBeenCalledWith("/sign-in"));
+	});
+
+	it("HOLDS on a transient session failure (429) — no bounce to /sign-in, invite stash untouched", async () => {
+		// better-auth's focus refetch nulls the session store on ANY non-2xx; a
+		// rate-limit blip must not read as "unauthenticated" here — the gate
+		// also consumes the OAuth invite stash on its way out, so a wrong
+		// bounce would strand a pending invitation.
+		vi.mocked(useSession).mockReturnValue({
+			data: null,
+			isPending: false,
+			error: { status: 429 },
+		} as unknown as ReturnType<typeof useSession>);
+		renderPage();
+		await new Promise((r) => setTimeout(r, 20));
+		expect(replace).not.toHaveBeenCalledWith("/sign-in");
+	});
+
+	it("still bounces a definitive no-session (clean null, no error) to /sign-in", async () => {
+		vi.mocked(useSession).mockReturnValue({
+			data: null,
+			isPending: false,
+			error: null,
+		} as unknown as ReturnType<typeof useSession>);
+		renderPage();
 		await waitFor(() => expect(replace).toHaveBeenCalledWith("/sign-in"));
 	});
 
