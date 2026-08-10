@@ -47,6 +47,7 @@ import {
 	tag as tagTable,
 	usageEvent,
 	user as userTable,
+	type Database,
 } from "@llmchat/db";
 import { ANALYTICS_EVENTS, isPaidPlan, RECAP_ROLES } from "@llmchat/shared";
 
@@ -70,7 +71,7 @@ type AssigneeView = {
  * (assignment degrades to "unassigned", nothing else breaks; the 0026
  * degrade-only-the-feature posture). */
 async function assigneesFor(
-	dbi: ReturnType<typeof db>,
+	dbi: Database,
 	ids: string[],
 ): Promise<Map<string, AssigneeView>> {
 	const map = new Map<string, AssigneeView>();
@@ -96,8 +97,12 @@ async function assigneesFor(
 				assignedBy: r.assignedBy,
 			});
 		}
-	} catch {
+	} catch (err) {
 		// conversation_assignment missing (preview) — every row reads unassigned.
+		// Anything else is a real failure that must not vanish into the degrade.
+		if (!/no such table/i.test(String(err))) {
+			console.error("assignment: page lookup failed", err);
+		}
 	}
 	return map;
 }
@@ -498,10 +503,13 @@ export const conversations = new Hono<AppContext>()
 				.select({ ...baseAggregates, ...assignmentAggregates })
 				.from(conversation)
 				.where(eq(conversation.projectId, projectId));
-		} catch {
+		} catch (err) {
 			// Un-migrated preview DB: no conversation_assignment table. Degrade
 			// ONLY the two assignment counts to 0 — the header stays honest for
-			// everything else.
+			// everything else. Anything else is a real failure worth a log line.
+			if (!/no such table/i.test(String(err))) {
+				console.error("assignment: stats aggregate failed", err);
+			}
 			const [plain] = await db(c.env)
 				.select(baseAggregates)
 				.from(conversation)
@@ -718,9 +726,13 @@ export const conversations = new Hono<AppContext>()
 					.onConflictDoNothing({
 						target: conversationAssignment.conversationId,
 					});
-			} catch {
+			} catch (err) {
 				// conversation_assignment missing (preview) — the reply must still
-				// deliver; it just goes unclaimed.
+				// deliver; it just goes unclaimed. Anything else is a real failure
+				// that must not vanish into the degrade.
+				if (!/no such table/i.test(String(err))) {
+					console.error("assignment: claim-on-reply failed", err);
+				}
 			}
 
 			if (conv.email) {
@@ -1240,8 +1252,11 @@ export const conversations = new Hono<AppContext>()
 				await db(c.env)
 					.delete(conversationAssignment)
 					.where(eq(conversationAssignment.conversationId, id));
-			} catch {
+			} catch (err) {
 				// conversation_assignment missing (preview) — nothing to clean.
+				if (!/no such table/i.test(String(err))) {
+					console.error("assignment: delete cleanup failed", err);
+				}
 			}
 			await db(c.env)
 				.delete(conversation)

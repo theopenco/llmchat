@@ -5,14 +5,9 @@
 // lifecycle cleanups are exercised as SQL, not mocks. Sessions are the
 // header-driven fake; membership/roles come from the REAL member table.
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { schema } from "@llmchat/db";
 
 vi.mock("@/auth", () => ({
 	createAuth: () => ({
@@ -46,59 +41,11 @@ vi.mock("@/lib/llm", () => ({
 
 import { db } from "@/lib/db";
 import { deleteUserRows } from "@/lib/workspace-deletion";
+import { applyMigrations, makeProxy } from "@/test/sqlite-rig";
 
 import { conversations } from "./conversations";
 import { members } from "./members";
 import { widgetMessages } from "./widget-messages";
-
-// ─── real sqlite via proxy (same rig as workspaces.delete.e2e) ───────────────
-
-function applyMigrations(sqlite: DatabaseSync) {
-	sqlite.exec("PRAGMA foreign_keys=OFF;");
-	const dir = join(process.cwd(), "migrations");
-	for (const f of readdirSync(dir)
-		.filter((x) => x.endsWith(".sql"))
-		.sort()) {
-		sqlite.exec(
-			readFileSync(join(dir, f), "utf8")
-				.split("--> statement-breakpoint")
-				.join("\n"),
-		);
-	}
-	// 0007/0011/0012 rebuilds end with PRAGMA foreign_keys=ON; the synthetic ids
-	// below have no parent rows in every table (e.g. sessions), so keep it off —
-	// cleanup semantics under test are the EXPLICIT deletes, never the cascade.
-	sqlite.exec("PRAGMA foreign_keys=OFF;");
-}
-
-function makeProxy(sqlite: DatabaseSync) {
-	const exec = async (sql: string, params: unknown[], method: string) => {
-		const stmt = sqlite.prepare(sql);
-		if (method === "run") {
-			stmt.run(...(params as never[]));
-			return { rows: [] };
-		}
-		const rows = stmt
-			.all(...(params as never[]))
-			.map((r) => Object.values(r as object));
-		return { rows: method === "get" ? (rows[0] as never) : rows };
-	};
-	const batch = async (
-		queries: { sql: string; params: unknown[]; method: string }[],
-	) =>
-		queries.map((q) => {
-			const stmt = sqlite.prepare(q.sql);
-			if (q.method === "run") {
-				stmt.run(...(q.params as never[]));
-				return { rows: [] };
-			}
-			const rows = stmt
-				.all(...(q.params as never[]))
-				.map((o) => Object.values(o as object));
-			return { rows: q.method === "get" ? (rows[0] as never) : rows };
-		});
-	return drizzle(exec, batch, { schema, casing: "snake_case" });
-}
 
 // ─── seed ────────────────────────────────────────────────────────────────────
 // ws1: u1 owner, u2 agent, u3 admin; p1 with c1..c5 (updated_at 101..105).
@@ -155,13 +102,16 @@ const conversationRow = (sqlite: DatabaseSync, id: string) =>
 	sqlite.prepare("SELECT * FROM conversation WHERE id = ?").get(id);
 
 const ENV = { vars: { INBOUND_EMAIL_DOMAIN: "in.test" } } as never;
-const H = (user: string, ws = "ws1") => ({
+const H = (user: string) => ({
 	"x-test-user": user,
-	"x-workspace-id": ws,
+	"x-workspace-id": "ws1",
 	"content-type": "application/json",
 });
 
 let sqlite: DatabaseSync;
+
+const idsOf = (body: { conversations: { id: string }[] }) =>
+	body.conversations.map((r) => r.id);
 
 function put(user: string, convId: string, body: unknown, project = "p1") {
 	return conversations.request(
@@ -290,10 +240,28 @@ describe("claim-on-reply (R4/A2)", () => {
 	});
 
 	it("A2: a FAILED reply never claims", async () => {
+		// The intended 500 dumps a stack to stderr — keep CI logs readable.
+		const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
 		sqlite.exec("DROP TABLE message");
 		const res = await reply("u2", "c1");
 		expect(res.status).toBe(500);
 		expect(assignmentRows(sqlite)).toHaveLength(0);
+		quiet.mockRestore();
+	});
+
+	it("the claim survives a FAILING email send (claim sits before sendEmail)", async () => {
+		sqlite.exec("UPDATE conversation SET email = 'v@x.io' WHERE id = 'c1'");
+		const { sendEmail } = await import("@/lib/email");
+		vi.mocked(sendEmail).mockRejectedValueOnce(new Error("resend down"));
+		const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+		const res = await reply("u2", "c1");
+		expect(res.status).toBe(500);
+		// The reply row + claim both persisted; only the email failed.
+		expect(assignmentRows(sqlite)[0]).toMatchObject({
+			conversation_id: "c1",
+			assignee_user_id: "u2",
+		});
+		quiet.mockRestore();
 	});
 
 	it("notes never claim (structural: the claim lives only in /reply)", async () => {
@@ -316,7 +284,8 @@ describe("claim-on-reply (R4/A2)", () => {
 			{ method: "POST", headers: H("u2") },
 			ENV,
 		);
-		expect(res.status).not.toBe(500);
+		// Unpaid seed workspace: resolveAccess gates with 402 before any spend.
+		expect(res.status).toBe(402);
 		expect(assignmentRows(sqlite)).toHaveLength(0);
 	});
 });
@@ -328,9 +297,6 @@ describe("list filters (R6) + serialization", () => {
 		// c2, c4, c5 stay unassigned; c3 escalated for the compose test.
 		sqlite.exec("UPDATE conversation SET escalated_at = 200 WHERE id = 'c3'");
 	});
-
-	const idsOf = (body: { conversations: { id: string }[] }) =>
-		body.conversations.map((r) => r.id);
 
 	it("assignee=me is caller-scoped (the and() proof): u1 and u2 see different sets", async () => {
 		const mine1 = await (await list("u1", "?status=all&assignee=me")).json();
@@ -344,7 +310,7 @@ describe("list filters (R6) + serialization", () => {
 		expect(idsOf(body)).toEqual(["c5", "c4", "c2"]);
 	});
 
-	it("composes with status + search and with keyset pagination (no dup/skip across the cursor)", async () => {
+	it("composes with status + search + tags and with keyset pagination (no dup/skip across the cursor)", async () => {
 		const esc = await (
 			await list("u1", "?status=escalated&assignee=me")
 		).json();
@@ -353,6 +319,35 @@ describe("list filters (R6) + serialization", () => {
 			await list("u1", "?status=escalated&assignee=none")
 		).json();
 		expect(idsOf(escNone)).toEqual([]);
+
+		// Search × assignee: name matches on c3 (mine) and c4 (unassigned).
+		sqlite.exec(
+			"UPDATE conversation SET name = 'Widget question' WHERE id IN ('c3','c4')",
+		);
+		const searchMine = await (
+			await list("u1", "?status=all&assignee=me&search=Widget")
+		).json();
+		expect(idsOf(searchMine)).toEqual(["c3"]);
+		const searchNone = await (
+			await list("u1", "?status=all&assignee=none&search=Widget")
+		).json();
+		expect(idsOf(searchNone)).toEqual(["c4"]);
+
+		// Tags × assignee: t1 on c1 (assigned to u2) and c4 (unassigned).
+		sqlite.exec(
+			"INSERT INTO tag (id,workspace_id,name) VALUES ('t1','ws1','vip')",
+		);
+		sqlite.exec(
+			"INSERT INTO conversation_tag (id,conversation_id,tag_id) VALUES ('ct1','c1','t1'),('ct2','c4','t1')",
+		);
+		const tagNone = await (
+			await list("u1", "?status=all&assignee=none&tagIds=t1")
+		).json();
+		expect(idsOf(tagNone)).toEqual(["c4"]);
+		const tagMine = await (
+			await list("u2", "?status=all&assignee=me&tagIds=t1")
+		).json();
+		expect(idsOf(tagMine)).toEqual(["c1"]);
 
 		const page1 = await (
 			await list("u1", "?status=all&assignee=none&limit=2")
@@ -467,6 +462,18 @@ describe("lifecycle cleanup (R7)", () => {
 		// ws2) both survive.
 		expect(rows.map((r) => r.conversation_id)).toEqual(["c3", "c9"]);
 		expect(rows[0]).toMatchObject({ assigned_by: "u2" });
+	});
+
+	it("conversation DELETE removes the assignment row explicitly (real SQL)", async () => {
+		await put("u1", "c1", { assigneeUserId: "u2" });
+		const res = await conversations.request(
+			`/projects/p1/conversations/c1`,
+			{ method: "DELETE", headers: H("u3") },
+			ENV,
+		);
+		expect(res.status).toBe(200);
+		expect(assignmentRows(sqlite)).toHaveLength(0);
+		expect(conversationRow(sqlite, "c1")).toBeUndefined();
 	});
 
 	it("account deletion drops their assignee rows everywhere and scrubs assigned_by (S6)", async () => {

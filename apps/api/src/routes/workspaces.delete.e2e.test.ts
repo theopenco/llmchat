@@ -5,15 +5,12 @@
 // workspace empties that workspace's whole subtree while a SECOND workspace and
 // the user survive completely untouched.
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
-import { schema } from "@llmchat/db";
+import { applyMigrations, makeProxy } from "@/test/sqlite-rig";
 
 import { workspaces } from "./workspaces";
 
@@ -32,56 +29,6 @@ vi.mock("@/lib/db", () => ({ db: vi.fn() }));
 // free (plan=none, no sub) workspace never reaches it.
 vi.mock("@/lib/stripe", () => ({ retrieveSubscription: vi.fn() }));
 import { retrieveSubscription } from "@/lib/stripe";
-
-// ─── real sqlite (via proxy) ──────────────────────────────────────────────────
-
-function applyMigrations(sqlite: DatabaseSync) {
-	sqlite.exec("PRAGMA foreign_keys=OFF;");
-	const dir = join(process.cwd(), "migrations");
-	for (const f of readdirSync(dir)
-		.filter((x) => x.endsWith(".sql"))
-		.sort()) {
-		sqlite.exec(
-			readFileSync(join(dir, f), "utf8")
-				.split("--> statement-breakpoint")
-				.join("\n"),
-		);
-	}
-	// The 0007/0011/0012 table-rebuild migrations end with PRAGMA
-	// foreign_keys=ON, silently defeating the OFF above — under which this
-	// file's whole premise (children die by OUR explicit deletes, never the FK
-	// cascade) wasn't actually being tested. Re-assert it after the loop.
-	sqlite.exec("PRAGMA foreign_keys=OFF;");
-}
-
-function makeProxy(sqlite: DatabaseSync) {
-	const exec = async (sql: string, params: unknown[], method: string) => {
-		const stmt = sqlite.prepare(sql);
-		if (method === "run") {
-			stmt.run(...(params as never[]));
-			return { rows: [] };
-		}
-		const rows = stmt
-			.all(...(params as never[]))
-			.map((r) => Object.values(r as object));
-		return { rows: method === "get" ? (rows[0] as never) : rows };
-	};
-	const batch = async (
-		queries: { sql: string; params: unknown[]; method: string }[],
-	) =>
-		queries.map((q) => {
-			const stmt = sqlite.prepare(q.sql);
-			if (q.method === "run") {
-				stmt.run(...(q.params as never[]));
-				return { rows: [] };
-			}
-			const rows = stmt
-				.all(...(q.params as never[]))
-				.map((o) => Object.values(o as object));
-			return { rows: q.method === "get" ? (rows[0] as never) : rows };
-		});
-	return drizzle(exec, batch, { schema, casing: "snake_case" });
-}
 
 const total = (sqlite: DatabaseSync, table: string) =>
 	(
