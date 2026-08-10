@@ -68,6 +68,13 @@ export interface ClankerSupportContextValue {
 	conversationId: string | null;
 	/** Re-poll the persisted feed immediately. */
 	refresh: () => void;
+	/**
+	 * Messages that arrived while the panel was CLOSED and the visitor hasn't
+	 * seen (assistant / operator / system rows — never the visitor's own).
+	 * Always 0 while the panel is open. The default UI renders it as a launcher
+	 * badge capped at "9+"; headless consumers get the exact count.
+	 */
+	unreadCount: number;
 
 	// ── Human handoff ────────────────────────────────────────────────
 	escalated: boolean;

@@ -48,6 +48,10 @@ export type { ClankerSupportWidgetProps } from "./default/widget";
 export { widgetStyles } from "./default/styles";
 export { ClankerApiError, fetchWidgetConfig } from "./protocol/api";
 export type { MessageFeed, ServerMessage } from "./protocol/api";
+// Unread-badge display helpers for custom UIs ("9+" cap, accessible launcher
+// name). The count itself is `unreadCount` on the context; the poll lifecycle
+// behind it is provider-internal.
+export { badgeLabel, launcherLabel } from "./protocol/unread";
 export { DEFAULT_API_URL } from "./protocol/constants";
 export type {
 	ChatMessage,

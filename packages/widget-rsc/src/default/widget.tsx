@@ -21,6 +21,8 @@ import {
 	Trigger,
 } from "../primitives/primitives";
 
+import { badgeLabel, launcherLabel } from "../protocol/unread";
+
 import type { ClankerSupportProviderProps } from "../client/provider";
 import type { CSSProperties } from "react";
 
@@ -110,8 +112,15 @@ function WidgetShell({
 	title: string;
 	className?: string;
 }) {
-	const { open, setOpen, brandColor, position, csatEligible, submitCsat } =
-		useClankerSupport();
+	const {
+		open,
+		setOpen,
+		brandColor,
+		position,
+		csatEligible,
+		submitCsat,
+		unreadCount,
+	} = useClankerSupport();
 	// CSAT closing screen: "hidden" during chat, "prompt" on close (when
 	// eligible), "thanks" briefly after a rating. A second close never traps.
 	const [csatStep, setCsatStep] = useState<"hidden" | "prompt" | "thanks">(
@@ -143,11 +152,27 @@ function WidgetShell({
 			style={{ "--clanker-brand": brandColor } as CSSProperties}
 		>
 			<style>{widgetStyles}</style>
+			{/* The count also reaches a screen reader that isn't focused on the
+			    launcher: an operator replying is an event, and the button's own
+			    label only speaks when it's read. Empty when there's nothing new,
+			    so it never re-announces on open/close. */}
+			<span className="clanker-sr-only" role="status">
+				{unreadCount > 0
+					? `${unreadCount} new ${unreadCount === 1 ? "message" : "messages"} in the support chat`
+					: ""}
+			</span>
 			<Trigger
 				className="clanker-launcher"
-				aria-label={open ? "Close chat" : "Open chat"}
+				aria-label={launcherLabel(open, unreadCount)}
 			>
 				{open ? <CloseIcon /> : <ChatIcon />}
+				{!open && unreadCount > 0 && (
+					// Decorative — the number is already in the button's accessible
+					// name and the live region above.
+					<span className="clanker-badge" aria-hidden="true">
+						{badgeLabel(unreadCount)}
+					</span>
+				)}
 			</Trigger>
 			<Panel className="clanker-panel">
 				<header className="clanker-header">

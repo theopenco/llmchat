@@ -43,6 +43,8 @@ export const widgetStyles = `
 
 .clanker-launcher {
 	order: 2;
+	/* Anchor for the absolutely-positioned unread badge. */
+	position: relative;
 	width: 56px;
 	height: 56px;
 	border: 0;
@@ -66,6 +68,61 @@ export const widgetStyles = `
 .clanker-launcher svg {
 	width: 26px;
 	height: 26px;
+}
+
+/* Unread count on the closed launcher — messages that landed while the panel
+   was shut (usually the human's reply after an escalation). Inverted brand
+   chrome: the launcher is brand-filled, so the pill is white with brand digits
+   and a brand ring — part of the same object, deliberately NOT notification-red
+   (this is a support reply, not an alarm). Literal #fff like the launcher's own
+   glyph — the brand-contrast derive does not port to this package (#212). */
+.clanker-badge {
+	position: absolute;
+	top: -2px;
+	right: -2px;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 6px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 9999px;
+	background: #fff;
+	color: var(--clanker-brand);
+	border: 2px solid var(--clanker-brand);
+	font-size: 11.5px;
+	font-weight: 700;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+	/* On an RTL host page the trailing "+" of "9+" is bidi-neutral and would
+	   reorder to "+9". */
+	direction: ltr;
+	box-shadow: 0 2px 6px rgb(0 0 0 / 0.22);
+	animation: clanker-badge-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes clanker-badge-in {
+	from {
+		opacity: 0;
+		transform: scale(0.4);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+/* Announced, never seen. */
+.clanker-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
 }
 
 .clanker-panel {
@@ -98,6 +155,9 @@ export const widgetStyles = `
 	}
 	.clanker-launcher {
 		transition: none;
+	}
+	.clanker-badge {
+		animation: none;
 	}
 }
 
