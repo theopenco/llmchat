@@ -9,6 +9,11 @@ import {
 	resolveAccess,
 } from "@/lib/plan";
 import {
+	assembleVoiceInstructions,
+	loadVoiceGrounding,
+	VOICE_TOKEN_CEILING,
+} from "@/lib/voice-instructions";
+import {
 	requireRole,
 	requireSession,
 	requireWorkspace,
@@ -122,6 +127,42 @@ export const projects = new Hono<AppContext>()
 		const usage: Record<string, number> = {};
 		for (const r of rows) usage[r.projectId] = Number(r.n);
 		return c.json({ usage });
+	})
+	// Voice instruction-budget estimate for the settings/sources hint (#182).
+	// Runs the MINT'S OWN grounding resolution + assembly (lib/voice-
+	// instructions.ts) against the saved project, so the number shown to the
+	// operator can never disagree with what a call actually gets. Signal only —
+	// nothing is gated on it, and it deliberately answers for any member of the
+	// workspace regardless of plan (knowing a number about your own project is
+	// harmless; the dashboard only asks for voice-entitled workspaces). Known
+	// delta vs a real call: a call with a known visitor appends a small identity
+	// block (~a line) the estimate omits — noise against a 12,288 ceiling.
+	.get("/projects/:projectId/voice-budget", async (c) => {
+		const workspaceId = c.get("workspaceId");
+		const projectId = c.req.param("projectId");
+		const row = await db(c.env).query.project.findFirst({
+			where: (pt, { and: a, eq: e }) =>
+				a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+		});
+		if (!row) {
+			return c.json({ error: "not found" }, 404);
+		}
+		const grounding = await loadVoiceGrounding(db(c.env), row);
+		const assembledEstimate = assembleVoiceInstructions(
+			grounding.promptContent,
+			row.knowledgeText,
+			grounding.sources,
+		);
+		// estimatedTokens is the RAW content (#182's formula) — the operator's
+		// full prompt + knowledge + sources with no voice budgets applied — so
+		// the hint sees a knowledge base OUTGROWING voice, not only one that
+		// already blew the token ceiling. `trimmed` is true whenever a call
+		// would deliver less than that full content (char slices included).
+		return c.json({
+			estimatedTokens: assembledEstimate.contentEstimatedTokens,
+			ceiling: VOICE_TOKEN_CEILING,
+			trimmed: assembledEstimate.trimmed,
+		});
 	})
 	.post(
 		"/projects",
