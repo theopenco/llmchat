@@ -16,7 +16,7 @@
 		"@llmchat/shared": "workspace:*",
 		"@llmgateway/ai-sdk-provider": "3.7.0",
 		"ai": "6.0.27",
-		"better-auth": "1.6.9",
+		"better-auth": "1.6.26",
 		"drizzle-orm": "^0.45.2",
 		"hono": "^4.12.7",
 		"stripe": "18.1.1",
