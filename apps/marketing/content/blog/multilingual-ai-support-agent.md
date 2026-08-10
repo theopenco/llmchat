@@ -28,15 +28,11 @@ No dropdown. No locale file. No "multilingual add-on" line on your bill. You don
 
 Your customer writes. The agent detects. The agent answers. Same knowledge, their language. That's the entire feature.
 
-## The Darija test
+![The support agent answering in Spanish — with the next question, in French, already being typed below](/blog/multilingual-ai-support-agent-spanish.jpg)
 
-I'm Moroccan. Darija is what we actually speak — Arabic bones, French loanwords, and when we type it, Latin letters with numbers standing in for sounds no alphabet has.
+That's Spanish answered in full — trial, pricing, sources — while the next question is already going in below it. In French. Same thread, no settings touched in between.
 
-Most software doesn't know Darija exists. So I typed "wach 3andkom chi trial gratuit?" — and it answered the way my friends text. "Iyah, kayna 7 days free trial…"
-
-![The support agent answering in Moroccan Darija after being asked in Arabizi](/blog/multilingual-ai-support-agent-darija.jpg)
-
-If it handles the language half the internet insists isn't a language, it handles your customers in São Paulo.
+My personal stress test was Moroccan Darija, typed the way we actually type it — Latin letters, numbers standing in for sounds no alphabet has. It answered the way my friends text me. If it handles that, it handles your customers anywhere.
 
 ## And now it talks
 
