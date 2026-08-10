@@ -262,6 +262,41 @@ export const conversation = sqliteTable(
 	],
 );
 
+// Operator assignment (#96, docs/goals/assignment.md; migration 0027). One row
+// per assigned conversation — the PK on conversationId IS the max-one-assignee
+// rule: claim-on-reply is INSERT..ON CONFLICT DO NOTHING (first-wins), reassign
+// is the DO UPDATE upsert (last-write-wins, no locking v1). workspaceId is
+// denormalized for direct tenant scoping + set-based cleanup. assignedBy is
+// nullable so account deletion can scrub it (the authorUserId S6 pattern; no FK
+// — audit-only, like workspace_invite.acceptedBy). Workflow metadata ONLY:
+// never authorization, never serialized to /v1 or any prompt path. New TABLE,
+// so this declaration is preview-safe (#167): un-migrated preview DBs degrade
+// only assignment queries.
+export const conversationAssignment = sqliteTable(
+	"conversation_assignment",
+	{
+		conversationId: text()
+			.primaryKey()
+			.references(() => conversation.id, { onDelete: "cascade" }),
+		workspaceId: text()
+			.notNull()
+			.references(() => workspace.id, { onDelete: "cascade" }),
+		assigneeUserId: text()
+			.notNull()
+			.references(() => user.id),
+		assignedBy: text(),
+		assignedAt: timestamp()
+			.notNull()
+			.default(sql`(unixepoch())`),
+	},
+	(t) => [
+		index("conversation_assignment_assignee").on(
+			t.workspaceId,
+			t.assigneeUserId,
+		),
+	],
+);
+
 // Workspace-scoped labels an agent can attach to conversations. Name uniqueness
 // is case-insensitive PER WORKSPACE — enforced by a COLLATE NOCASE unique index
 // in the hand-authored migration (drizzle can't emit the collation here, so this
