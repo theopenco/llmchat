@@ -162,6 +162,14 @@ export function DetailPanel({
 						value={formatFullDate(conversation.createdAt)}
 					/>
 					<Field label="Messages" value={conversation.messageCount} />
+					<Field
+						label="Assigned to"
+						value={
+							conversation.assignee
+								? (conversation.assignee.name ?? "Teammate")
+								: "Unassigned"
+						}
+					/>
 				</Section>
 
 				<Section title="CSAT rating">

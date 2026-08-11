@@ -5,24 +5,32 @@
 // workspace empties that workspace's whole subtree while a SECOND workspace and
 // the user survive completely untouched.
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
-import { schema } from "@llmchat/db";
+import { applyMigrations, makeProxy } from "@/test/sqlite-rig";
 
 import { workspaces } from "./workspaces";
 
 vi.mock("@/auth", () => ({
 	createAuth: () => ({
 		api: {
-			getSession: async ({ headers }: { headers: Headers }) => {
+			getSession: async ({
+				headers,
+				returnHeaders,
+			}: {
+				headers: Headers;
+				returnHeaders?: boolean;
+			}) => {
 				const id = headers.get("x-test-user");
-				return id ? { user: { id } } : null;
+				const session = id ? { user: { id } } : null;
+				// Mirror better-auth's real contract: returnHeaders wraps the session in
+				// { headers, response } (requireSession forwards refreshed cookies from it).
+				return returnHeaders
+					? { headers: new Headers(), response: session }
+					: session;
 			},
 		},
 	}),
@@ -32,51 +40,6 @@ vi.mock("@/lib/db", () => ({ db: vi.fn() }));
 // free (plan=none, no sub) workspace never reaches it.
 vi.mock("@/lib/stripe", () => ({ retrieveSubscription: vi.fn() }));
 import { retrieveSubscription } from "@/lib/stripe";
-
-// ─── real sqlite (via proxy) ──────────────────────────────────────────────────
-
-function applyMigrations(sqlite: DatabaseSync) {
-	sqlite.exec("PRAGMA foreign_keys=OFF;");
-	const dir = join(process.cwd(), "migrations");
-	for (const f of readdirSync(dir)
-		.filter((x) => x.endsWith(".sql"))
-		.sort()) {
-		sqlite.exec(
-			readFileSync(join(dir, f), "utf8")
-				.split("--> statement-breakpoint")
-				.join("\n"),
-		);
-	}
-}
-
-function makeProxy(sqlite: DatabaseSync) {
-	const exec = async (sql: string, params: unknown[], method: string) => {
-		const stmt = sqlite.prepare(sql);
-		if (method === "run") {
-			stmt.run(...(params as never[]));
-			return { rows: [] };
-		}
-		const rows = stmt
-			.all(...(params as never[]))
-			.map((r) => Object.values(r as object));
-		return { rows: method === "get" ? (rows[0] as never) : rows };
-	};
-	const batch = async (
-		queries: { sql: string; params: unknown[]; method: string }[],
-	) =>
-		queries.map((q) => {
-			const stmt = sqlite.prepare(q.sql);
-			if (q.method === "run") {
-				stmt.run(...(q.params as never[]));
-				return { rows: [] };
-			}
-			const rows = stmt
-				.all(...(q.params as never[]))
-				.map((o) => Object.values(o as object));
-			return { rows: q.method === "get" ? (rows[0] as never) : rows };
-		});
-	return drizzle(exec, batch, { schema, casing: "snake_case" });
-}
 
 const total = (sqlite: DatabaseSync, table: string) =>
 	(
@@ -129,6 +92,9 @@ function seedWorkspace(
 		`INSERT INTO read_status (id,conversation_id,user_id) VALUES ('${p}rs','${p}c','${owner}')`,
 	);
 	x(
+		`INSERT INTO conversation_assignment (conversation_id,workspace_id,assignee_user_id,assigned_by) VALUES ('${p}c','${ws}','${owner}','${owner}')`,
+	);
+	x(
 		`INSERT INTO usage_event (id,workspace_id,project_id,conversation_id,message_id,model) VALUES ('${p}ue','${ws}','${p}p','${p}c','${p}msg','m')`,
 	);
 }
@@ -145,6 +111,7 @@ const WS_TABLES = [
 	"conversation_tag",
 	"read_status",
 	"usage_event",
+	"conversation_assignment",
 ];
 
 function del(

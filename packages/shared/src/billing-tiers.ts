@@ -72,6 +72,48 @@ export type BillingInterval = "month" | "year";
  */
 export const TRIAL_PERIOD_DAYS = 7;
 
+/**
+ * Active sitewide promotion — percent off every paid tier's pre-promotion
+ * price. The `priceUsd*` fields below stay what Stripe actually charges TODAY
+ * (the discounted amounts — they must keep matching the STRIPE_PRICE_* prices);
+ * while the promotion runs, every surface derives the pre-promotion original
+ * price via originalUsd() and renders it struck through next to the charged
+ * price. Single source of truth so the pricing page, dashboard
+ * paywall/billing, and the machine-readable pricing surfaces never disagree.
+ * Set to 0 to end the promotion — originalUsd becomes the identity and every
+ * strikethrough/badge disappears.
+ */
+export const DISCOUNT_PERCENT = 50;
+
+/** Whether a promotion is live. All discount UI (strikethroughs, "% off"
+ * badges, "normally $X" copy) is gated on this. */
+export const DISCOUNT_ACTIVE = DISCOUNT_PERCENT > 0;
+
+/** The pre-promotion original price behind a charged display price, kept to
+ * whole cents ($19 → $38 at 50% off). Identity when no promotion is running. */
+export function originalUsd(price: number): number {
+	return Math.round((price * 100 * 100) / (100 - DISCOUNT_PERCENT)) / 100;
+}
+
+/** Format a USD amount for display: whole dollars stay bare ("19", "1,495"),
+ * discounted amounts keep their cents ("9.50"). No currency symbol — every
+ * surface already places its own "$". */
+export function formatUsd(n: number): string {
+	return n.toLocaleString("en-US", {
+		minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+		maximumFractionDigits: 2,
+	});
+}
+
+/** A price phrase for text surfaces (FAQ, llms.txt, pricing.md): the charged
+ * amount with the pre-promotion original price alongside while the promotion
+ * runs ("$19 (normally $38)"), or just the plain price otherwise ("$19"). */
+export function usdPhrase(price: number): string {
+	return DISCOUNT_ACTIVE
+		? `$${formatUsd(price)} (normally $${formatUsd(originalUsd(price))})`
+		: `$${formatUsd(price)}`;
+}
+
 /** Sentinel for an "unlimited" cap. Large enough that isWithinLimit() never
  * blocks, and recognized by isUnlimited() so the UI renders "Unlimited" instead
  * of a meaningless nine-digit number. */

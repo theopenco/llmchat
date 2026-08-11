@@ -31,6 +31,11 @@ export const ANALYTICS_EVENTS = {
 	replySent: "reply_sent",
 	noteAdded: "note_added",
 	integrationConnected: "integration_connected",
+	// Member invites (docs/goals/invites.md). Captured server-side with
+	// distinct_id = workspace id; properties are workspace_id + role ONLY —
+	// never the invitee email and never any token material (R5, pinned by test).
+	inviteSent: "invite_sent",
+	inviteAccepted: "invite_accepted",
 
 	// ── Billing funnel ──────────────────────────────────────────────
 	// checkout_started fires client-side (dashboard, before the Stripe
@@ -60,6 +65,10 @@ export const ANALYTICS_EVENTS = {
 	// Captured server-side when the session secret is minted — the api never
 	// sees the audio, so this is the only reliable signal.
 	voiceCallStarted: "voice_call_started",
+	// A finished voice call's transcript was persisted into the conversation
+	// (widget-reported at call end). Props are CONTENT-FREE: project_id,
+	// workspace_id, entry_count — never transcript text.
+	voiceCallTranscribed: "voice_call_transcribed",
 } as const;
 
 export type AnalyticsEventName =

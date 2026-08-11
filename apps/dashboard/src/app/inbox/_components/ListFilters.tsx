@@ -6,18 +6,24 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 import { pluralize } from "./format";
-import { STATUS_FILTERS, type StatusFilter } from "./status";
+import {
+	ASSIGNEE_FILTERS,
+	STATUS_FILTERS,
+	type AssigneeFilter,
+	type StatusFilter,
+} from "./status";
 import type { ConversationStats, Tag } from "./types";
 
 const FALLBACK_DOT = "#6b7280";
 
 /**
- * ROADMAP status concepts from the target design we do NOT have (assignment +
- * AI-triage). Rendered as dimmed, non-interactive pills so the filter panel
- * matches the design's layout without faking a filter that does nothing. Our
- * real views (Open / Resolved / Escalated / All) stay live alongside them.
+ * ROADMAP status concepts from the target design we do NOT have (AI-triage).
+ * Rendered as dimmed, non-interactive pills so the filter panel matches the
+ * design's layout without faking a filter that does nothing. Our real views
+ * (Open / Resolved / Escalated / All) stay live alongside them. "Unassigned"
+ * graduated to the live Assignee group below (#96).
  */
-const ROADMAP_STATUSES = ["Unassigned", "AI-handled"] as const;
+const ROADMAP_STATUSES = ["AI-handled"] as const;
 
 function chipBase(active: boolean) {
 	return cn(
@@ -55,6 +61,8 @@ export function ListFilters({
 	onSearch,
 	status,
 	onStatusChange,
+	assignee,
+	onAssigneeChange,
 	tags,
 	tagIds,
 	onTagIdsChange,
@@ -67,6 +75,8 @@ export function ListFilters({
 	onSearch: (value: string) => void;
 	status: StatusFilter;
 	onStatusChange: (status: StatusFilter) => void;
+	assignee: AssigneeFilter;
+	onAssigneeChange: (assignee: AssigneeFilter) => void;
 	tags: Tag[];
 	tagIds: string[];
 	onTagIdsChange: (ids: string[]) => void;
@@ -77,9 +87,10 @@ export function ListFilters({
 }) {
 	const [filtersOpen, setFiltersOpen] = useState(false);
 	const selected = new Set(tagIds);
-	// Active-filter badge on the Filters toggle (status ≠ the default "open" view
-	// counts as one).
-	const activeCount = tagIds.length + (status === "open" ? 0 : 1);
+	// Active-filter badge on the Filters toggle (status ≠ the default "open"
+	// view counts as one, and so does a non-default assignee view).
+	const activeCount =
+		tagIds.length + (status === "open" ? 0 : 1) + (assignee === "all" ? 0 : 1);
 
 	function toggleTag(id: string) {
 		onTagIdsChange(
@@ -183,6 +194,52 @@ export function ListFilters({
 									</span>
 								</span>
 							))}
+						</div>
+					</div>
+
+					{/* Assignee (LIVE, #96) — a separate axis from Status: they compose.
+					    Counts are the real server aggregates (mine is caller-scoped);
+					    absent on a stale cached response → no count, never a filler. */}
+					<div className="flex flex-col gap-1.5">
+						<span className="text-[11px] font-semibold uppercase tracking-wider text-ck-faint">
+							Assignee
+						</span>
+						<div
+							className="flex flex-wrap gap-1.5"
+							role="radiogroup"
+							aria-label="Filter conversations by assignee"
+						>
+							{ASSIGNEE_FILTERS.map((a) => {
+								const active = assignee === a.value;
+								const count =
+									a.value === "me"
+										? stats?.mine
+										: a.value === "none"
+											? stats?.unassigned
+											: undefined;
+								return (
+									<button
+										key={a.value}
+										type="button"
+										role="radio"
+										aria-checked={active}
+										onClick={() => onAssigneeChange(a.value)}
+										className={chipBase(active)}
+									>
+										{a.label}
+										{count !== undefined && (
+											<span
+												className={cn(
+													"text-[10px] font-semibold tabular-nums",
+													active ? "text-white/80" : "text-ck-faint",
+												)}
+											>
+												{count}
+											</span>
+										)}
+									</button>
+								);
+							})}
 						</div>
 					</div>
 

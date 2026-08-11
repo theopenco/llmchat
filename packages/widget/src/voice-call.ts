@@ -156,15 +156,149 @@ export function resampleLinear(
 	return out;
 }
 
+// How long the client waits for the session.updated ack of its configuring
+// session.update before declaring the call unusable. Generous against slow
+// networks; the alternative to giving up is a live call with NO operator
+// instructions, which is never acceptable.
+export const SETUP_ACK_TIMEOUT_MS = 5_000;
+
+// Input (visitor speech) transcription model, enabled via a second
+// session.update AFTER the configuring one is acked — see enableTranscription.
+const TRANSCRIPTION_MODEL = "whisper-1";
+
+// ── Call transcript ─────────────────────────────────────────────────────────
+
+export interface TranscriptEntry {
+	role: "user" | "assistant";
+	content: string;
+}
+
+/**
+ * Assembles the call transcript from realtime events, in CONVERSATION order —
+ * which is not arrival order: the visitor's input transcription (Whisper) often
+ * completes AFTER the agent's answer has already streamed its own transcript.
+ * Items are therefore anchored when the conversation item is announced
+ * (conversation.item.added/created) and their text filled in as transcripts
+ * land. Output deltas are kept as a fallback so a call that ends mid-response
+ * still captures the partial answer. Pure; exported for tests.
+ */
+export class TranscriptRecorder {
+	private order: string[] = [];
+	private items = new Map<
+		string,
+		{ role: "user" | "assistant"; text: string; deltas: string }
+	>();
+
+	/** Anchor (or fetch) an item slot. First sight fixes its position — an
+	 * item announced late (transcript before item.added) appends at the end,
+	 * which is the best remaining guess. */
+	private ensure(itemId: string, role: "user" | "assistant") {
+		let item = this.items.get(itemId);
+		if (!item) {
+			item = { role, text: "", deltas: "" };
+			this.items.set(itemId, item);
+			this.order.push(itemId);
+		}
+		return item;
+	}
+
+	addItem(itemId: string, role: "user" | "assistant") {
+		this.ensure(itemId, role);
+	}
+
+	appendAssistantDelta(itemId: string, delta: string) {
+		this.ensure(itemId, "assistant").deltas += delta;
+	}
+
+	setText(itemId: string, role: "user" | "assistant", text: string) {
+		this.ensure(itemId, role).text = text;
+	}
+
+	/** The transcript so far: conversation order, final text where it exists,
+	 * accumulated deltas otherwise, empty items dropped. */
+	entries(): TranscriptEntry[] {
+		return this.order
+			.map((id) => this.items.get(id)!)
+			.map((item) => ({
+				role: item.role,
+				content: (item.text || item.deltas).trim(),
+			}))
+			.filter((e) => e.content.length > 0);
+	}
+}
+
+// keepalive fetch (the transport that survives page dismissal) caps the body
+// at 64KB; stay safely under it. Recent turns win — on a support call the end
+// (the resolution) matters more than a long middle.
+const TRANSCRIPT_POST_MAX_ENTRY_CHARS = 2_000;
+const TRANSCRIPT_POST_MAX_BYTES = 56_000;
+
+/** Bound a transcript for the wire: per-entry cap, then drop OLDEST entries
+ * until the JSON payload fits the keepalive budget. Pure; exported for tests. */
+export function boundTranscriptForPost(
+	entries: TranscriptEntry[],
+): TranscriptEntry[] {
+	let bounded = entries.map((e) => ({
+		role: e.role,
+		content:
+			e.content.length > TRANSCRIPT_POST_MAX_ENTRY_CHARS
+				? e.content.slice(0, TRANSCRIPT_POST_MAX_ENTRY_CHARS)
+				: e.content,
+	}));
+	while (
+		bounded.length > 1 &&
+		new TextEncoder().encode(JSON.stringify(bounded)).length >
+			TRANSCRIPT_POST_MAX_BYTES
+	) {
+		bounded = bounded.slice(1);
+	}
+	return bounded;
+}
+
+/** Best-effort POST of the finished call's transcript. keepalive so the
+ * request survives the page being dismissed mid-flush (the pagehide path). */
+export async function postVoiceTranscript(
+	apiUrl: string,
+	body: {
+		projectKey: string;
+		clientId: string;
+		callId: string;
+		entries: TranscriptEntry[];
+	},
+): Promise<void> {
+	try {
+		await fetch(`${apiUrl}/v1/voice/transcript`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				...body,
+				entries: boundTranscriptForPost(body.entries),
+			}),
+			keepalive: true,
+		});
+	} catch {
+		// Transcript delivery is best-effort — never surface an error for it.
+	}
+}
+
 export type VoiceCallStatus =
 	| "connecting"
 	| "listening"
 	| "speaking"
 	| "ended"
+	// Terminal: the session refused (or never acknowledged) the configuring
+	// session.update that carries the operator's instructions. The call is
+	// closed rather than run ungrounded — an absent feature is honest, a
+	// hallucinating one is not.
+	| "unavailable"
 	| "error";
 
 interface VoiceCallHandlers {
 	onStatus: (status: VoiceCallStatus) => void;
+	/** Fired exactly once, at call teardown (hang-up, server close, error) —
+	 * with the full transcript in conversation order. Never fired for an empty
+	 * transcript (e.g. a call that failed setup). */
+	onTranscript?: (entries: TranscriptEntry[]) => void;
 }
 
 /**
@@ -183,10 +317,17 @@ export class VoiceCallClient {
 	private playing: AudioBufferSourceNode[] = [];
 	private nextPlayTime = 0;
 	private speakingUntil: ReturnType<typeof setTimeout> | null = null;
-	private greetFallback: ReturnType<typeof setTimeout> | null = null;
+	private setupTimeout: ReturnType<typeof setTimeout> | null = null;
+	/** True once session.updated confirmed the instructions were applied. Until
+	 * then no greeting is requested and no mic audio is appended — the model
+	 * must never take a turn before it is grounded. */
+	private configured = false;
 	private greeted = false;
 	private stopped = false;
 	private micMuted = false;
+	/** Everything said on the call, assembled from transcript events. */
+	private recorder = new TranscriptRecorder();
+	private transcriptFlushed = false;
 
 	constructor(
 		private session: VoiceSessionInfo,
@@ -194,12 +335,29 @@ export class VoiceCallClient {
 	) {}
 
 	async start(): Promise<void> {
+		// A call with no instructions IS an ungrounded call — refuse before any
+		// mic prompt or socket exists (the mint always assembles at least the
+		// base scaffold, so an empty string means a malformed response).
+		if (!this.session.instructions) {
+			this.stopped = true;
+			this.handlers.onStatus("unavailable");
+			return;
+		}
 		this.handlers.onStatus("connecting");
 		// Mic first: a permission denial should fail the call before any socket
 		// or gateway spend exists.
 		this.stream = await navigator.mediaDevices.getUserMedia({
 			audio: { echoCancellation: true, noiseSuppression: true },
 		});
+		// stop() may have run while the permission prompt was open — with no
+		// stream to release yet, it couldn't stop these tracks. Without this
+		// re-check the call would come up headless: live hot mic, open socket,
+		// no UI owning either.
+		if (this.stopped) {
+			this.stream.getTracks().forEach((t) => t.stop());
+			this.stream = null;
+			return;
+		}
 		// Ask for the realtime rate; fall back to the device default and
 		// resample in the capture callback (see resampleLinear).
 		try {
@@ -215,6 +373,12 @@ export class VoiceCallClient {
 			]);
 			this.ws = ws;
 			ws.addEventListener("open", () => {
+				// stop() during the connect handshake: close and bow out.
+				if (this.stopped) {
+					ws.close();
+					resolve();
+					return;
+				}
 				// The model is locked at mint time; everything else is configured
 				// here per the gateway's docs — the server-assembled instructions
 				// and voice (its mint endpoint accepts neither), the audio wire
@@ -246,14 +410,22 @@ export class VoiceCallClient {
 						},
 					}),
 				);
-				// The greeting response is NOT requested here: response.create in
-				// the same breath can race the session.update above, and a model
-				// with no instructions yet greets ungrounded (arbitrary language).
-				// It fires on the session.updated ack (handleEvent) — with a timer
-				// fallback in case the ack never comes.
-				this.greetFallback = setTimeout(() => this.greet(), 2_000);
+				// NOTHING else happens until the session.updated ack confirms the
+				// instructions above were applied (handleEvent): the greeting is
+				// requested there, and the capture callback drops frames until then.
+				// If the ack never comes — the upstream REJECTS oversized/invalid
+				// instructions with an error event and no ack — the call is torn
+				// down as "unavailable" instead of running ungrounded. There is
+				// deliberately no greet-anyway fallback: it produced live calls
+				// that knew nothing about the business.
+				this.setupTimeout = setTimeout(
+					() => this.failSetup(),
+					SETUP_ACK_TIMEOUT_MS,
+				);
 				this.startCapture();
-				this.handlers.onStatus("listening");
+				// Status stays "connecting" until the ack — the capture gate is
+				// dropping every frame, and claiming "Listening…" here would be
+				// a lie the visitor can see.
 				resolve();
 			});
 			ws.addEventListener("message", (e) => this.handleEvent(e));
@@ -267,7 +439,11 @@ export class VoiceCallClient {
 				if (!this.stopped) {
 					this.stopped = true;
 					this.releaseAudio();
-					this.handlers.onStatus("ended");
+					this.flushTranscript();
+					// A server-side close BEFORE the session was configured is a
+					// failed setup, not a finished call — "Call ended" would tell
+					// the visitor a call happened.
+					this.handlers.onStatus(this.configured ? "ended" : "unavailable");
 				}
 			});
 		});
@@ -277,6 +453,24 @@ export class VoiceCallClient {
 	 * mic audio — resuming is instant. */
 	setMuted(muted: boolean) {
 		this.micMuted = muted;
+	}
+
+	/** The transcript recorded so far (conversation order). */
+	transcript(): TranscriptEntry[] {
+		return this.recorder.entries();
+	}
+
+	/** Hand the transcript to the owner exactly once, at teardown. Empty
+	 * transcripts (failed setup, silent call) are never delivered. */
+	private flushTranscript() {
+		if (this.transcriptFlushed) {
+			return;
+		}
+		this.transcriptFlushed = true;
+		const entries = this.recorder.entries();
+		if (entries.length > 0) {
+			this.handlers.onTranscript?.(entries);
+		}
 	}
 
 	stop() {
@@ -290,13 +484,31 @@ export class VoiceCallClient {
 			// Already closed/failed — releasing the audio below is what matters.
 		}
 		this.releaseAudio();
+		this.flushTranscript();
 		this.handlers.onStatus("ended");
 	}
 
+	/** Terminal setup failure: the configuring session.update was rejected or
+	 * never acknowledged. Close everything and surface "unavailable" — the one
+	 * state this client refuses to be in is a live, ungrounded call. */
+	private failSetup() {
+		if (this.stopped) {
+			return;
+		}
+		this.stopped = true;
+		try {
+			this.ws?.close();
+		} catch {
+			// Already closed/failed — releasing the audio below is what matters.
+		}
+		this.releaseAudio();
+		this.handlers.onStatus("unavailable");
+	}
+
 	private releaseAudio() {
-		if (this.greetFallback) {
-			clearTimeout(this.greetFallback);
-			this.greetFallback = null;
+		if (this.setupTimeout) {
+			clearTimeout(this.setupTimeout);
+			this.setupTimeout = null;
 		}
 		this.cancelPlayback();
 		this.processor?.disconnect();
@@ -320,6 +532,13 @@ export class VoiceCallClient {
 		this.processor = this.ctx.createScriptProcessor(CAPTURE_BUFFER_SIZE, 1, 1);
 		this.processor.onaudioprocess = (e) => {
 			if (this.micMuted || this.ws?.readyState !== WebSocket.OPEN) {
+				return;
+			}
+			// No audio before the session.updated ack: an unconfigured session
+			// answering committed speech is an ungrounded turn (same reference
+			// behavior as the gateway's own playground client, which drops mic
+			// frames until the session is live).
+			if (!this.configured) {
 				return;
 			}
 			const captured = e.inputBuffer.getChannelData(0);
@@ -349,11 +568,50 @@ export class VoiceCallClient {
 		this.processor.connect(this.ctx.destination);
 	}
 
+	/**
+	 * Enable visitor-speech transcription with a SECOND session.update, only
+	 * after the configuring one is acked — deliberately never folded into the
+	 * first: if the gateway rejected an unsupported transcription model there,
+	 * no ack would ever come and the whole call would die "unavailable" for the
+	 * sake of a transcript. As a follow-up update a rejection is a non-fatal
+	 * post-ack error event: the call goes on, and the agent side of the
+	 * transcript (output transcripts, always emitted) is still captured.
+	 * Format + VAD are re-asserted verbatim so partial-update semantics can't
+	 * regress them.
+	 */
+	private enableTranscription() {
+		if (this.ws?.readyState !== WebSocket.OPEN) {
+			return;
+		}
+		this.ws.send(
+			JSON.stringify({
+				type: "session.update",
+				session: {
+					type: "realtime",
+					audio: {
+						input: {
+							format: { type: "audio/pcm", rate: REALTIME_SAMPLE_RATE },
+							turn_detection: { type: "server_vad" },
+							transcription: { model: TRANSCRIPTION_MODEL },
+						},
+					},
+				},
+			}),
+		);
+	}
+
 	private handleEvent(e: MessageEvent) {
 		if (typeof e.data !== "string") {
 			return; // binary frames are rejected by the gateway anyway
 		}
-		let event: { type?: string; audio?: string; delta?: string };
+		let event: {
+			type?: string;
+			audio?: string;
+			delta?: string;
+			transcript?: string;
+			item_id?: string;
+			item?: { id?: string; type?: string; role?: string };
+		};
 		try {
 			event = JSON.parse(e.data);
 		} catch {
@@ -361,9 +619,66 @@ export class VoiceCallClient {
 		}
 		switch (event.type) {
 			case "session.updated": {
-				// Instructions/voice are confirmed applied — NOW the greeting is
-				// grounded in the support prompt instead of an empty context.
+				// The transcription-enable update below is ALSO acked with
+				// session.updated — only the first ack configures the call.
+				if (this.configured) {
+					break;
+				}
+				// Instructions/voice are confirmed applied — the call is grounded.
+				// Only now do mic frames flow (see startCapture) and the greeting
+				// get requested.
+				this.configured = true;
+				if (this.setupTimeout) {
+					clearTimeout(this.setupTimeout);
+					this.setupTimeout = null;
+				}
+				this.handlers.onStatus("listening");
+				this.enableTranscription();
 				this.greet();
+				break;
+			}
+			// ── Transcript assembly (see TranscriptRecorder) ────────────────
+			case "conversation.item.added":
+			case "conversation.item.created": {
+				// Anchor the item's conversation position the moment it exists —
+				// its transcript may land much later (Whisper lag).
+				const item = event.item;
+				if (
+					item?.type === "message" &&
+					typeof item.id === "string" &&
+					(item.role === "user" || item.role === "assistant")
+				) {
+					this.recorder.addItem(item.id, item.role);
+				}
+				break;
+			}
+			case "conversation.item.input_audio_transcription.completed": {
+				if (
+					typeof event.item_id === "string" &&
+					typeof event.transcript === "string"
+				) {
+					this.recorder.setText(event.item_id, "user", event.transcript);
+				}
+				break;
+			}
+			case "response.output_audio_transcript.delta": {
+				// Kept as a fallback so hanging up mid-answer still captures the
+				// partial reply; the .done text replaces it when it arrives.
+				if (
+					typeof event.item_id === "string" &&
+					typeof event.delta === "string"
+				) {
+					this.recorder.appendAssistantDelta(event.item_id, event.delta);
+				}
+				break;
+			}
+			case "response.output_audio_transcript.done": {
+				if (
+					typeof event.item_id === "string" &&
+					typeof event.transcript === "string"
+				) {
+					this.recorder.setText(event.item_id, "assistant", event.transcript);
+				}
 				break;
 			}
 			case "response.output_audio.delta": {
@@ -380,14 +695,19 @@ export class VoiceCallClient {
 				break;
 			}
 			case "error": {
-				// Surfaced (not swallowed): a rejected session.update leaves the
-				// agent running WITHOUT the operator's instructions — the one
-				// warn keeps that diagnosable on any embed. Session-fatal errors
-				// additionally surface via onclose.
 				console.warn(
 					"clanker voice: realtime error event",
 					(event as { error?: { message?: string } }).error?.message ?? e.data,
 				);
+				// Before the session.updated ack, an error event is the upstream
+				// rejecting our configuring update (oversized/invalid instructions
+				// — no ack will ever come): tear the call down instead of letting
+				// it run without the operator's instructions. After the ack the
+				// session is grounded, so later errors stay non-fatal (fatal ones
+				// surface via onclose).
+				if (!this.configured) {
+					this.failSetup();
+				}
 				break;
 			}
 			default:
@@ -395,13 +715,10 @@ export class VoiceCallClient {
 		}
 	}
 
-	/** Request the agent's opening greeting exactly once — on the
-	 * session.updated ack, or the connect-time fallback timer. */
+	/** Request the agent's opening greeting exactly once — ONLY on the
+	 * session.updated ack. There is no unacked path here by design: a greeting
+	 * before the instructions apply is an ungrounded turn. */
 	private greet() {
-		if (this.greetFallback) {
-			clearTimeout(this.greetFallback);
-			this.greetFallback = null;
-		}
 		if (this.greeted || this.stopped) {
 			return;
 		}

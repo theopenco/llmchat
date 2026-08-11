@@ -10,6 +10,7 @@ import {
 } from "@llmchat/shared";
 
 import { useSession } from "@/lib/auth-client";
+import { scrubUrl } from "@/lib/scrub-url";
 import { ConsentBanner } from "@/components/ConsentBanner";
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
@@ -32,10 +33,25 @@ function initPostHog() {
 		capture_pageview: false, // handled manually for the App Router
 		capture_pageleave: true,
 		autocapture: true,
+		// Last line of defense for URL-borne secrets. Autocapture and
+		// pageleave build their own URL properties from window.location, so
+		// scrubbing only where we call capture() would still ship the invite
+		// token from /invite/<token>. This runs on EVERY event.
+		sanitize_properties: (properties) => {
+			for (const key of ["$current_url", "$referrer", "$pathname"]) {
+				const value = properties[key];
+				if (typeof value === "string") properties[key] = scrubUrl(value);
+			}
+			return properties;
+		},
 	});
 	// Capture the entry pageview once — PageviewTracker only fires on subsequent
 	// App Router navigations, and its mount effect already ran before init.
-	posthog.capture("$pageview");
+	// Pass an explicit scrubbed URL: PostHog would otherwise read
+	// window.location itself, which on /invite/<token> is the bearer token.
+	posthog.capture("$pageview", {
+		$current_url: scrubUrl(window.location.href),
+	});
 }
 
 function PageviewTracker() {
@@ -47,7 +63,7 @@ function PageviewTracker() {
 		let url = window.origin + pathname;
 		const qs = searchParams.toString();
 		if (qs) url += `?${qs}`;
-		posthog.capture("$pageview", { $current_url: url });
+		posthog.capture("$pageview", { $current_url: scrubUrl(url) });
 	}, [pathname, searchParams]);
 
 	return null;

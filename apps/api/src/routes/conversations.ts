@@ -32,6 +32,7 @@ import {
 	and,
 	asc,
 	conversation,
+	conversationAssignment,
 	conversationTag,
 	count,
 	desc,
@@ -45,6 +46,8 @@ import {
 	sql,
 	tag as tagTable,
 	usageEvent,
+	user as userTable,
+	type Database,
 } from "@llmchat/db";
 import { ANALYTICS_EVENTS, isPaidPlan, RECAP_ROLES } from "@llmchat/shared";
 
@@ -52,6 +55,57 @@ import type { AppContext } from "@/env";
 
 /** A tag as attached to a conversation in list responses. */
 type ConversationTagView = { id: string; name: string; color: string | null };
+
+/** The assignee as serialized on list rows and the thread conversation (#96).
+ * Operator-surface only (R5): assembled by explicit joins, never a row spread.
+ * `assignedBy` is the assigner's userId (audit; the dashboard resolves the
+ * display name from its members cache). */
+type AssigneeView = {
+	userId: string;
+	name: string | null;
+	assignedBy: string | null;
+};
+
+/** Batched assignee lookup for a page of conversation ids. try/catch: an
+ * un-migrated preview DB lacks the 0027 table — the INBOX must keep serving
+ * (assignment degrades to "unassigned", nothing else breaks; the 0026
+ * degrade-only-the-feature posture). */
+async function assigneesFor(
+	dbi: Database,
+	ids: string[],
+): Promise<Map<string, AssigneeView>> {
+	const map = new Map<string, AssigneeView>();
+	if (!ids.length) return map;
+	try {
+		const rows = await dbi
+			.select({
+				conversationId: conversationAssignment.conversationId,
+				userId: conversationAssignment.assigneeUserId,
+				assignedBy: conversationAssignment.assignedBy,
+				name: userTable.name,
+			})
+			.from(conversationAssignment)
+			.leftJoin(
+				userTable,
+				eq(userTable.id, conversationAssignment.assigneeUserId),
+			)
+			.where(inArray(conversationAssignment.conversationId, ids));
+		for (const r of rows) {
+			map.set(r.conversationId, {
+				userId: r.userId,
+				name: r.name ?? null,
+				assignedBy: r.assignedBy,
+			});
+		}
+	} catch (err) {
+		// conversation_assignment missing (preview) — every row reads unassigned.
+		// Anything else is a real failure that must not vanish into the degrade.
+		if (!/no such table/i.test(String(err))) {
+			console.error("assignment: page lookup failed", err);
+		}
+	}
+	return map;
+}
 
 /** Why a conversation surfaced in a search: an excerpt of the hit and which
  * field it came from, so the agent sees the reason in the list. */
@@ -71,6 +125,22 @@ const SUGGEST_RATE_MAX = 10;
 const SUGGEST_RATE_WINDOW = 5 * 60;
 const SUGGEST_DAILY_MAX = 200;
 const SUGGEST_DAILY_WINDOW = 24 * 60 * 60;
+
+/**
+ * The visitor's clientId is a CREDENTIAL, not metadata: the public /v1/chat
+ * identifies a conversation by (projectKey, clientId), so anyone holding the
+ * pair can fabricate visitor turns in that conversation — and have the bot's
+ * reply persisted and delivered to the real visitor (operator-side puppeting,
+ * #170). It therefore never leaves the server on ANY authenticated surface;
+ * every conversation row must pass through here before c.json. Everything
+ * else on the row (name, email, counts, timestamps) is operator data.
+ */
+function withoutClientId<T extends { clientId: unknown }>(
+	row: T,
+): Omit<T, "clientId"> {
+	const { clientId: _clientId, ...safe } = row;
+	return safe;
+}
 
 export const conversations = new Hono<AppContext>()
 	.use("*", requireSession, requireWorkspace)
@@ -98,6 +168,10 @@ export const conversations = new Hono<AppContext>()
 				// Comma-separated tag ids. OR semantics (a conversation matches if it
 				// has ANY of them). Empty/absent ⇒ no tag filtering.
 				tagIds: z.string().optional(),
+				// Assignment view (#96): "me" ⇒ assigned to the caller, "none" ⇒
+				// unassigned. A separate axis from `status` — they compose (an
+				// escalated conversation can be mine). Absent ⇒ no assignee predicate.
+				assignee: z.enum(["me", "none"]).optional(),
 				// Lazy-summary trigger. Set ("1") on genuine loads/scrolls, NEVER on
 				// the 5s freshness poll — so summary generation scales with views, not
 				// poll cadence. Absent ⇒ pure read.
@@ -106,7 +180,8 @@ export const conversations = new Hono<AppContext>()
 		),
 		async (c) => {
 			const { projectId } = c.req.param();
-			const { search, status, limit, cursor, tagIds } = c.req.valid("query");
+			const { search, status, limit, cursor, tagIds, assignee } =
+				c.req.valid("query");
 			const workspaceId = c.get("workspaceId");
 			const userId = c.get("userId");
 
@@ -201,6 +276,23 @@ export const conversations = new Hono<AppContext>()
 				);
 				conditions.push(
 					sql`${conversation.id} IN (SELECT ${conversationTag.conversationId} FROM ${conversationTag} WHERE ${conversationTag.tagId} IN (${ids}))`,
+				);
+			}
+
+			// Assignee filter (#96): EXISTS-style subqueries like the tag filter
+			// above — single ANDed predicates, so cursor/status/search/tags all
+			// still compose. "me" matches on BOTH the conversation and the caller
+			// (and-scoped, never a bare user match); "none" is the absence of any
+			// assignment row. On an un-migrated preview DB these predicates error —
+			// acceptable, they only fire when the assignment UI is used (the
+			// default inbox sends no `assignee` param).
+			if (assignee === "me") {
+				conditions.push(
+					sql`EXISTS (SELECT 1 FROM ${conversationAssignment} WHERE ${conversationAssignment.conversationId} = ${conversation.id} AND ${conversationAssignment.assigneeUserId} = ${userId})`,
+				);
+			} else if (assignee === "none") {
+				conditions.push(
+					sql`NOT EXISTS (SELECT 1 FROM ${conversationAssignment} WHERE ${conversationAssignment.conversationId} = ${conversation.id})`,
 				);
 			}
 
@@ -335,6 +427,9 @@ export const conversations = new Hono<AppContext>()
 				}
 			}
 
+			// Assignee per row (#96) — one batched query like tags/read-state above.
+			const assigneeByConv = await assigneesFor(db(c.env), ids);
+
 			// Lazy triage summaries: on a genuine load/scroll (summarize=1, never the
 			// 5s poll), enqueue async generation for stale conversations on this page
 			// — capped + cooldown-deduped, and OFF the customer's quota (writes no
@@ -353,11 +448,12 @@ export const conversations = new Hono<AppContext>()
 
 			return c.json({
 				conversations: rows.map((r) => ({
-					...r,
+					...withoutClientId(r),
 					firstMessage: firstByConv.get(r.id) ?? null,
 					unread: (readByConv.get(r.id) ?? 0) < r.messageCount,
 					match: matchFor(r),
 					tags: tagsByConv.get(r.id) ?? [],
+					assignee: assigneeByConv.get(r.id) ?? null,
 				})),
 				nextCursor,
 			});
@@ -370,6 +466,7 @@ export const conversations = new Hono<AppContext>()
 		// as "so far"). One aggregate row, same ownership chain as the list.
 		const { projectId } = c.req.param();
 		const workspaceId = c.get("workspaceId");
+		const userId = c.get("userId");
 		const proj = await db(c.env).query.project.findFirst({
 			where: (pt, { and: a, eq: e }) =>
 				a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
@@ -378,23 +475,55 @@ export const conversations = new Hono<AppContext>()
 			return c.json({ error: "not found" }, 404);
 		}
 
-		const [agg] = await db(c.env)
-			.select({
-				total: count(),
-				escalated: sql<number>`sum(case when ${conversation.escalatedAt} is not null then 1 else 0 end)`,
-				// "Resolved" == archived (the app's only closed state).
-				resolved: sql<number>`sum(case when ${conversation.archivedAt} is not null then 1 else 0 end)`,
-				// avg() ignores NULL csat, and is NULL when nothing is rated.
-				avgRating: sql<number | null>`avg(${conversation.csatRating})`,
-			})
-			.from(conversation)
-			.where(eq(conversation.projectId, projectId));
+		const baseAggregates = {
+			total: count(),
+			escalated: sql<number>`sum(case when ${conversation.escalatedAt} is not null then 1 else 0 end)`,
+			// "Resolved" == archived (the app's only closed state).
+			resolved: sql<number>`sum(case when ${conversation.archivedAt} is not null then 1 else 0 end)`,
+			// avg() ignores NULL csat, and is NULL when nothing is rated.
+			avgRating: sql<number | null>`avg(${conversation.csatRating})`,
+		};
+		// Assignment pill counts (#96): still ONE aggregate row, project-wide like
+		// the rest of the header. "mine" derives the assignee from the SESSION
+		// user and matches on BOTH the conversation and the caller (and-scoped —
+		// a bare exists would count everyone's assignments as mine).
+		const assignmentAggregates = {
+			mine: sql<number>`sum(case when exists (select 1 from ${conversationAssignment} where ${conversationAssignment.conversationId} = ${conversation.id} and ${conversationAssignment.assigneeUserId} = ${userId}) then 1 else 0 end)`,
+			unassigned: sql<number>`sum(case when not exists (select 1 from ${conversationAssignment} where ${conversationAssignment.conversationId} = ${conversation.id}) then 1 else 0 end)`,
+		};
+
+		let agg:
+			| ({ total: number } & Record<
+					"escalated" | "resolved" | "mine" | "unassigned",
+					number
+			  > & { avgRating: number | null })
+			| undefined;
+		try {
+			[agg] = await db(c.env)
+				.select({ ...baseAggregates, ...assignmentAggregates })
+				.from(conversation)
+				.where(eq(conversation.projectId, projectId));
+		} catch (err) {
+			// Un-migrated preview DB: no conversation_assignment table. Degrade
+			// ONLY the two assignment counts to 0 — the header stays honest for
+			// everything else. Anything else is a real failure worth a log line.
+			if (!/no such table/i.test(String(err))) {
+				console.error("assignment: stats aggregate failed", err);
+			}
+			const [plain] = await db(c.env)
+				.select(baseAggregates)
+				.from(conversation)
+				.where(eq(conversation.projectId, projectId));
+			agg = plain ? { ...plain, mine: 0, unassigned: 0 } : undefined;
+		}
 
 		return c.json({
 			total: agg?.total ?? 0,
 			escalated: Number(agg?.escalated ?? 0),
 			resolved: Number(agg?.resolved ?? 0),
 			avgRating: agg?.avgRating ?? null,
+			mine: Number(agg?.mine ?? 0),
+			unassigned: Number(agg?.unassigned ?? 0),
 		});
 	})
 	.get(
@@ -521,8 +650,15 @@ export const conversations = new Hono<AppContext>()
 					: null,
 			}));
 
+			// Assignee (#96) — explicit lookup, same preview-degradation posture as
+			// the list (the thread must keep serving without the 0027 table).
+			const assigneeByConv = await assigneesFor(db(c.env), [conv.id]);
+
 			return c.json({
-				conversation: conv,
+				conversation: {
+					...withoutClientId(conv),
+					assignee: assigneeByConv.get(conv.id) ?? null,
+				},
 				messages: messagesWithAuthor,
 				hasOlder,
 				firstHitSequence,
@@ -567,6 +703,38 @@ export const conversations = new Hono<AppContext>()
 				emailMessageId: messageId,
 			});
 
+			// Claim-on-reply (#96 R4/A2): the first reply to an UNASSIGNED
+			// conversation assigns the replier — AFTER the successful message insert
+			// (a failed reply never claims) and BEFORE the email send (sendEmail
+			// throws on a Resend failure, which must not skip the claim). ON
+			// CONFLICT DO NOTHING is first-wins in one statement (D1 serializes
+			// writers — the property insertMessage's sequence subquery relies on),
+			// so it never reassigns and a concurrent double-reply yields exactly one
+			// assignee. Notes/suggest structurally can't claim: this write exists
+			// only in this handler. Deliberately no conversation-row touch (R6) —
+			// insertMessage already bumped updatedAt for the reply itself.
+			try {
+				await db(c.env)
+					.insert(conversationAssignment)
+					.values({
+						conversationId: conv.id,
+						workspaceId,
+						assigneeUserId: userId,
+						assignedBy: userId,
+						assignedAt: new Date(),
+					})
+					.onConflictDoNothing({
+						target: conversationAssignment.conversationId,
+					});
+			} catch (err) {
+				// conversation_assignment missing (preview) — the reply must still
+				// deliver; it just goes unclaimed. Anything else is a real failure
+				// that must not vanish into the degrade.
+				if (!/no such table/i.test(String(err))) {
+					console.error("assignment: claim-on-reply failed", err);
+				}
+			}
+
 			if (conv.email) {
 				await sendEmail(c.env, {
 					to: conv.email,
@@ -578,6 +746,89 @@ export const conversations = new Hono<AppContext>()
 				});
 			}
 
+			return c.json({ ok: true });
+		},
+	)
+	// Assignment (#96, docs/goals/assignment.md): workflow metadata ONLY — it is
+	// never authorization (R3: no read path couples to it) and never serialized
+	// to /v1 or any prompt surface (R5). All member roles may assign/unassign
+	// anyone (R3) — deliberately no requireRole, matching /reply. One PUT carries
+	// both operations (A1): a userId assigns/reassigns (upsert = last-write-wins,
+	// no locking v1 — stated contract), an EXPLICIT null unassigns; an absent
+	// field fails zod with a 400, so a partial payload can never silently
+	// unassign. Deliberately no conversation-row touch: assigning bumps nothing
+	// (R6 — no messageCount, no updatedAt re-sort). No preview try/catch here:
+	// these routes ARE the feature (0026 degrade-only-the-feature posture).
+	.put(
+		"/projects/:projectId/conversations/:id/assignee",
+		zValidator(
+			"json",
+			z.object({ assigneeUserId: z.string().min(1).nullable() }),
+		),
+		async (c) => {
+			const { projectId, id } = c.req.param();
+			const { assigneeUserId } = c.req.valid("json");
+			const userId = c.get("userId");
+			const workspaceId = c.get("workspaceId");
+
+			const proj = await db(c.env).query.project.findFirst({
+				where: (pt, { and: a, eq: e }) =>
+					a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+			});
+			if (!proj) {
+				return c.json({ error: "not found" }, 404);
+			}
+			// Tenant scope: and(), never bare eq() — a global conversation id alone
+			// would let a member assign across tenants (same rule as DELETE below).
+			const conv = await db(c.env).query.conversation.findFirst({
+				where: (ct, { and: a, eq: e }) =>
+					a(e(ct.id, id), e(ct.projectId, projectId)),
+			});
+			if (!conv) {
+				return c.json({ error: "not found" }, 404);
+			}
+
+			if (assigneeUserId === null) {
+				// Unassign: idempotent — deleting an absent row is still { ok }.
+				await db(c.env)
+					.delete(conversationAssignment)
+					.where(eq(conversationAssignment.conversationId, conv.id));
+				return c.json({ ok: true });
+			}
+
+			// The assignee must hold a member row in THIS workspace (R2:
+			// and()-scoped — a bare userId match would accept any known user id).
+			const assigneeMember = await db(c.env).query.member.findFirst({
+				where: (m, { and: a, eq: e }) =>
+					a(e(m.workspaceId, workspaceId), e(m.userId, assigneeUserId)),
+			});
+			if (!assigneeMember) {
+				return c.json(
+					{
+						error: "assignee is not a member of this workspace",
+						code: "not_a_member",
+					},
+					400,
+				);
+			}
+
+			await db(c.env)
+				.insert(conversationAssignment)
+				.values({
+					conversationId: conv.id,
+					workspaceId,
+					assigneeUserId,
+					assignedBy: userId,
+					assignedAt: new Date(),
+				})
+				.onConflictDoUpdate({
+					target: conversationAssignment.conversationId,
+					set: {
+						assigneeUserId,
+						assignedBy: userId,
+						assignedAt: new Date(),
+					},
+				});
 			return c.json({ ok: true });
 		},
 	)
@@ -993,6 +1244,19 @@ export const conversations = new Hono<AppContext>()
 			});
 			if (!conv) {
 				return c.json({ error: "not found" }, 404);
+			}
+			// #96: the assignment row goes explicitly, before the conversation row
+			// (house law — never rely on the FK cascade). try/catch: un-migrated
+			// preview DBs lack the table; the delete itself must still work.
+			try {
+				await db(c.env)
+					.delete(conversationAssignment)
+					.where(eq(conversationAssignment.conversationId, id));
+			} catch (err) {
+				// conversation_assignment missing (preview) — nothing to clean.
+				if (!/no such table/i.test(String(err))) {
+					console.error("assignment: delete cleanup failed", err);
+				}
 			}
 			await db(c.env)
 				.delete(conversation)

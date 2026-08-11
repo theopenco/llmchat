@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { AuthLayout } from "@/components/auth-layout";
@@ -13,8 +14,10 @@ import { Input } from "@/components/ui/input";
 import { signUp } from "@/lib/auth-client";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { fieldErrors, signUpSchema } from "@/lib/auth-schema";
+import { postAuthDestination, withInvite } from "@/lib/invite-return";
 
-export default function SignUpPage() {
+function SignUpForm() {
+	const searchParams = useSearchParams();
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -57,7 +60,10 @@ export default function SignUpPage() {
 		// still "logged out" — a soft nav lands on /onboarding with a stale store
 		// and its auth gate bounces back to sign-in. A full load re-initializes
 		// the session with the cookie present.
-		window.location.assign("/onboarding");
+		// An invitee returns to their invitation instead of /onboarding — that
+		// default is the paywall before a first project, and they're joining a
+		// workspace someone else already pays for.
+		window.location.assign(postAuthDestination(searchParams, "/onboarding"));
 	}
 
 	return (
@@ -131,10 +137,26 @@ export default function SignUpPage() {
 
 			<p className="mt-6 text-center text-sm text-muted-foreground">
 				Already have an account?{" "}
-				<Link href="/sign-in" className="font-medium text-primary">
+				<Link
+					href={withInvite("/sign-in", searchParams)}
+					className="font-medium text-primary"
+				>
 					Sign in
 				</Link>
 			</p>
 		</AuthLayout>
+	);
+}
+
+/**
+ * useSearchParams() (we carry a pending invitation through auth) opts a route
+ * out of static prerendering unless it sits under a Suspense boundary — the
+ * same reason PostHogProvider wraps its pageview tracker.
+ */
+export default function SignUpPage() {
+	return (
+		<Suspense fallback={null}>
+			<SignUpForm />
+		</Suspense>
 	);
 }

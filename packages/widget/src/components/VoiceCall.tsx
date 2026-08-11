@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
+	postVoiceTranscript,
 	requestVoiceSession,
 	VoiceCallClient,
 	VoiceSessionError,
+	type TranscriptEntry,
 	type VoiceCallStatus,
 } from "../voice-call";
 import { MicIcon, MicOffIcon, PhoneOffIcon } from "./icons";
@@ -13,6 +15,7 @@ const STATUS_LABEL: Record<VoiceCallStatus, string> = {
 	listening: "Listening…",
 	speaking: "Speaking…",
 	ended: "Call ended",
+	unavailable: "Voice is unavailable",
 	error: "Call failed",
 };
 
@@ -60,10 +63,28 @@ export function VoiceCall({
 	const [muted, setMuted] = useState(false);
 	const [hint, setHint] = useState<string | null>(null);
 	const clientRef = useRef<VoiceCallClient | null>(null);
+	// One transcript POST per call. The id ties retries/duplicates together
+	// server-side; the ref guard means even a double teardown posts once.
+	const callIdRef = useRef(crypto.randomUUID());
+	const transcriptPostedRef = useRef(false);
 
 	useEffect(() => {
 		let cancelled = false;
 		let client: VoiceCallClient | null = null;
+		// Deliberately NOT gated on `cancelled`: the main delivery path IS the
+		// teardown on unmount/hang-up. keepalive lets it outlive the page.
+		const deliverTranscript = (entries: TranscriptEntry[]) => {
+			if (transcriptPostedRef.current || entries.length === 0) {
+				return;
+			}
+			transcriptPostedRef.current = true;
+			void postVoiceTranscript(apiUrl, {
+				projectKey,
+				clientId,
+				callId: callIdRef.current,
+				entries,
+			});
+		};
 		(async () => {
 			try {
 				const session = await requestVoiceSession(apiUrl, {
@@ -81,18 +102,20 @@ export function VoiceCall({
 							setStatus(s);
 						}
 					},
+					onTranscript: deliverTranscript,
 				});
 				clientRef.current = client;
 				await client.start();
 			} catch (err) {
 				// Mint refused, mic denied, or the socket failed — one terminal
 				// state, but the hint names the actual cause (a mint failure must
-				// never read as a microphone problem).
+				// never read as a microphone problem). stop() FIRST: it emits
+				// "ended", which must not clobber the "error" set here.
+				client?.stop();
 				if (!cancelled) {
 					setHint(failureHint(err));
 					setStatus("error");
 				}
-				client?.stop();
 			}
 		})();
 		return () => {
@@ -101,6 +124,17 @@ export function VoiceCall({
 			clientRef.current = null;
 		};
 	}, [apiUrl, projectKey, clientId]);
+
+	// Page dismissal mid-call ends the call (the socket wouldn't survive it
+	// anyway) — and stop() flushes the transcript through the keepalive POST,
+	// so navigating away doesn't lose the record of the call.
+	useEffect(() => {
+		const onPageHide = () => {
+			clientRef.current?.stop();
+		};
+		window.addEventListener("pagehide", onPageHide);
+		return () => window.removeEventListener("pagehide", onPageHide);
+	}, []);
 
 	const live =
 		status === "connecting" || status === "listening" || status === "speaking";
@@ -134,6 +168,11 @@ export function VoiceCall({
 			{status === "error" && (
 				<p className="llmchat-voice-hint">
 					{hint ?? "We couldn't start the call. Please try again."}
+				</p>
+			)}
+			{status === "unavailable" && (
+				<p className="llmchat-voice-hint">
+					Voice is unavailable right now — please keep chatting below.
 				</p>
 			)}
 			<div className="llmchat-voice-controls">

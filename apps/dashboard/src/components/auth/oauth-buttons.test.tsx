@@ -11,6 +11,12 @@ vi.mock("@/lib/oauth", () => ({
 	fetchOAuthProviders: vi.fn(),
 	startSocialSignIn: vi.fn(),
 }));
+// The buttons read any pending invite off the page URL themselves (no prop to
+// forget), so the search params are controlled per-test.
+let searchParams = new URLSearchParams();
+vi.mock("next/navigation", () => ({
+	useSearchParams: () => searchParams,
+}));
 
 function renderButtons() {
 	const client = new QueryClient({
@@ -30,6 +36,7 @@ const githubBtn = () =>
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	searchParams = new URLSearchParams();
 	vi.mocked(startSocialSignIn).mockResolvedValue({ error: null } as never);
 });
 
@@ -60,7 +67,21 @@ describe("OAuthButtons", () => {
 		expect(screen.getAllByText(/^soon$/i)).toHaveLength(1);
 
 		await userEvent.click(googleBtn());
-		expect(startSocialSignIn).toHaveBeenCalledWith("google");
+		// No invite in the URL → an explicit null, which clears any stale stash.
+		expect(startSocialSignIn).toHaveBeenCalledWith("google", null);
+	});
+
+	it("carries a pending invite from the page URL into the OAuth start", async () => {
+		searchParams = new URLSearchParams("invite=TOK123");
+		vi.mocked(fetchOAuthProviders).mockResolvedValue({
+			google: true,
+			github: false,
+		});
+		renderButtons();
+
+		await waitFor(() => expect(googleBtn()).toBeEnabled());
+		await userEvent.click(googleBtn());
+		expect(startSocialSignIn).toHaveBeenCalledWith("google", "TOK123");
 	});
 
 	it("never lets the disabled provider trigger sign-in", async () => {

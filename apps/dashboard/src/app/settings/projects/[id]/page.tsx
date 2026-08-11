@@ -191,7 +191,14 @@ export default function ProjectSettingsPage() {
 					{tab === "widget" && (
 						<WidgetTab draft={draft} set={set} publicKey={project.publicKey} />
 					)}
-					{tab === "behavior" && <BehaviorTab draft={draft} set={set} />}
+					{tab === "behavior" && (
+						<BehaviorTab
+							draft={draft}
+							set={set}
+							projectId={id}
+							workspaceId={workspaceId}
+						/>
+					)}
 					{tab === "integrations" && (
 						<IntegrationsTab
 							projectId={id}
@@ -200,7 +207,7 @@ export default function ProjectSettingsPage() {
 						/>
 					)}
 					{tab === "members" && (
-						<MembersTab ownerEmail={accountQ.data?.email ?? null} role={role} />
+						<MembersTab currentUserEmail={accountQ.data?.email ?? null} />
 					)}
 				</div>
 			</div>

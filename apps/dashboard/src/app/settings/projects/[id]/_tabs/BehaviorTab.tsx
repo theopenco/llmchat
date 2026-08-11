@@ -6,13 +6,18 @@ import { Button, Card, dsInputClass, Field } from "@/components/ds";
 
 import { ModelPicker } from "../ModelPicker";
 import { INSTRUCTION_TEMPLATES, type ProjectDraft } from "../types";
+import { VoiceBudgetHint } from "../VoiceBudgetHint";
 
 export function BehaviorTab({
 	draft,
 	set,
+	projectId,
+	workspaceId,
 }: {
 	draft: ProjectDraft;
 	set: <K extends keyof ProjectDraft>(key: K, value: ProjectDraft[K]) => void;
+	projectId: string;
+	workspaceId: string | null;
 }) {
 	return (
 		<div className="flex flex-col gap-6">
@@ -64,6 +69,9 @@ export function BehaviorTab({
 						Clear
 					</Button>
 				</div>
+				{/* Voice-entitled projects: budget signal + visitor-visibility
+				    disclosure for the same content this textarea edits (#182). */}
+				<VoiceBudgetHint projectId={projectId} workspaceId={workspaceId} />
 			</Card>
 
 			{/* Pre-chat identity form — off by default: the widget opens straight
@@ -114,6 +122,11 @@ export function BehaviorTab({
 				>
 					{(id) => (
 						<div className="flex items-center gap-2">
+							{/* The appended w-24 loses to dsInputClass's w-full (stylesheet
+							    order) and the input renders wide — the shipped layout relies
+							    on that. If the compact width is ever wanted, route through
+							    cn(dsInputClass, "w-24") like MembersTab's role select (#193);
+							    doing it silently here would change this page's look. */}
 							<input
 								id={id}
 								type="number"

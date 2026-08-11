@@ -93,6 +93,9 @@ function seedWorkspace(db: DatabaseSync) {
 		`INSERT INTO conversation_tag (id,conversation_id,tag_id) VALUES ('ct1','c1','t1'),('ct2','c2','t2')`,
 	);
 	x(
+		`INSERT INTO workspace_invite (id,workspace_id,email,token_hash,created_by,expires_at) VALUES ('wi1','ws1','a@x.io','h1','u1',9999999999),('wi2','ws2','b@x.io','h2','u2',9999999999)`,
+	);
+	x(
 		`INSERT INTO read_status (id,conversation_id,user_id) VALUES ('rs1','c1','u1'),('rs2','c2','u2')`,
 	);
 	x(
@@ -111,6 +114,7 @@ const WS_CHILD_TABLES = [
 	"conversation_tag",
 	"read_status",
 	"usage_event",
+	"workspace_invite",
 ];
 
 describe("deleteWorkspaceCascade — explicit deletes (no reliance on FK cascade)", () => {
@@ -195,6 +199,11 @@ describe("userDeleteStatements — explicit user-row deletes, user last, verific
 		db.exec(
 			`INSERT INTO read_status (id,conversation_id,user_id) VALUES ('rs2','c2','u1')`,
 		);
+		// u1 minted an invite in the SURVIVING workspace: it must outlive them
+		// with created_by scrubbed (the authorUserId pattern).
+		db.exec(
+			`INSERT INTO workspace_invite (id,workspace_id,email,token_hash,created_by,expires_at) VALUES ('wi2','ws2','c@x.io','h9','u1',9999999999)`,
+		);
 	}
 
 	it("deletes all of u1's rows, nulls authored messages, sweeps verification, keeps u2 (FK off)", () => {
@@ -224,6 +233,9 @@ describe("userDeleteStatements — explicit user-row deletes, user last, verific
 		// The authored message survives but is disowned (author nulled), not deleted.
 		expect(c("message", "id='msg2'")).toBe(1);
 		expect(c("message", "id='msg2' AND author_user_id IS NULL")).toBe(1);
+		// The minted invite likewise survives with created_by scrubbed.
+		expect(c("workspace_invite", "id='wi2'")).toBe(1);
+		expect(c("workspace_invite", "id='wi2' AND created_by IS NULL")).toBe(1);
 		// u2's credential account is untouched.
 		expect(c("account", "id='a3'")).toBe(1);
 	});

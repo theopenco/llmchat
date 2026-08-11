@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { BILLING_TIERS } from "@llmchat/shared";
+import { BILLING_TIERS, formatUsd } from "@llmchat/shared";
 import { fieldInput, fieldLabel } from "@/components/tools/field";
 import { useToolUsedOnce } from "@/components/tools/CopyButton";
 
 const TOOL = "support-roi-calculator";
 
 const starterPrice = BILLING_TIERS.starter.priceUsdMonthly;
+const starterPriceLabel = formatUsd(starterPrice);
 
 const usd = new Intl.NumberFormat("en-US", {
 	style: "currency",
@@ -187,14 +188,15 @@ export function SavingsCalculator() {
 										? `${num.format(Math.round(starterMultiple))}×`
 										: `${starterMultiple.toFixed(1)}×`}
 								</strong>{" "}
-								the ${starterPrice}/mo Starter plan — the agent pays for itself{" "}
+								the ${starterPriceLabel}/mo Starter plan — the agent pays for
+								itself{" "}
 								{starterMultiple >= 2 ? "many times over" : "from month one"}.
 							</>
 						) : (
 							<>
 								At this volume the numbers are small — but so is the cost:
-								hosted plans start at ${starterPrice}/mo, and self-hosting the
-								open-source version is free.
+								hosted plans start at ${starterPriceLabel}/mo, and self-hosting
+								the open-source version is free.
 							</>
 						)}
 					</p>

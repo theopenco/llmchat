@@ -143,6 +143,37 @@ export const member = sqliteTable(
 	(t) => [uniqueIndex("member_workspace_user").on(t.workspaceId, t.userId)],
 );
 
+// Member invites (docs/goals/invites.md; migration 0026). The token exists at
+// rest ONLY as a SHA-256 hash; status is modeled as timestamps — pending ≡
+// acceptedAt IS NULL AND revokedAt IS NULL AND expiresAt > now. createdBy is
+// nullable so account deletion can scrub it (the authorUserId S6 pattern);
+// acceptedBy is audit-only (no FK). New TABLE, so this declaration is
+// preview-safe (#167): un-migrated preview DBs degrade only invite queries.
+export const workspaceInvite = sqliteTable(
+	"workspace_invite",
+	{
+		id: id(),
+		workspaceId: text()
+			.notNull()
+			.references(() => workspace.id, { onDelete: "cascade" }),
+		email: text().notNull(),
+		role: text({ enum: ["admin", "agent"] })
+			.notNull()
+			.default("agent"),
+		tokenHash: text().notNull(),
+		createdBy: text().references(() => user.id),
+		acceptedBy: text(),
+		expiresAt: timestamp().notNull(),
+		acceptedAt: timestamp(),
+		revokedAt: timestamp(),
+		createdAt: createdAt(),
+	},
+	(t) => [
+		uniqueIndex("workspace_invite_token_hash").on(t.tokenHash),
+		index("workspace_invite_workspace").on(t.workspaceId),
+	],
+);
+
 export const project = sqliteTable(
 	"project",
 	{
@@ -228,6 +259,41 @@ export const conversation = sqliteTable(
 	(t) => [
 		index("conversation_inbox").on(t.projectId, t.archivedAt, t.updatedAt),
 		index("conversation_client").on(t.projectId, t.clientId),
+	],
+);
+
+// Operator assignment (#96, docs/goals/assignment.md; migration 0027). One row
+// per assigned conversation — the PK on conversationId IS the max-one-assignee
+// rule: claim-on-reply is INSERT..ON CONFLICT DO NOTHING (first-wins), reassign
+// is the DO UPDATE upsert (last-write-wins, no locking v1). workspaceId is
+// denormalized for direct tenant scoping + set-based cleanup. assignedBy is
+// nullable so account deletion can scrub it (the authorUserId S6 pattern; no FK
+// — audit-only, like workspace_invite.acceptedBy). Workflow metadata ONLY:
+// never authorization, never serialized to /v1 or any prompt path. New TABLE,
+// so this declaration is preview-safe (#167): un-migrated preview DBs degrade
+// only assignment queries.
+export const conversationAssignment = sqliteTable(
+	"conversation_assignment",
+	{
+		conversationId: text()
+			.primaryKey()
+			.references(() => conversation.id, { onDelete: "cascade" }),
+		workspaceId: text()
+			.notNull()
+			.references(() => workspace.id, { onDelete: "cascade" }),
+		assigneeUserId: text()
+			.notNull()
+			.references(() => user.id),
+		assignedBy: text(),
+		assignedAt: timestamp()
+			.notNull()
+			.default(sql`(unixepoch())`),
+	},
+	(t) => [
+		index("conversation_assignment_assignee").on(
+			t.workspaceId,
+			t.assigneeUserId,
+		),
 	],
 );
 

@@ -12,10 +12,11 @@ import { BrandLogo } from "@/components/brand-logo";
 import { WorkspaceSwitcher } from "@/components/shell/workspace-switcher";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useSession } from "@/lib/auth-client";
+import { isTransientSessionError, useSession } from "@/lib/auth-client";
 import { api, isWorkspaceAuthError } from "@/lib/api";
 import { track, ANALYTICS_EVENTS } from "@/lib/analytics";
 import { fetchUsage } from "@/lib/billing";
+import { consumePendingInvite, peekPendingInvite } from "@/lib/invite-return";
 import { defaultSystemPrompt } from "@/lib/onboarding";
 import { useOnboardingState } from "@/lib/use-onboarding";
 import { cn } from "@/lib/utils";
@@ -28,11 +29,16 @@ import { panelVisibility, type MobileView } from "./_components/mobile-view";
 import { OnboardingForm } from "./_components/OnboardingForm";
 import { OnboardingPaywall } from "./_components/OnboardingPaywall";
 import { OnboardingSkeleton } from "./_components/OnboardingSkeleton";
+import { PendingInviteNotice } from "./_components/PendingInviteNotice";
 
 function OnboardingFlow() {
 	const router = useRouter();
 	const qc = useQueryClient();
-	const { data: session, isPending: sessionPending } = useSession();
+	const {
+		data: session,
+		isPending: sessionPending,
+		error: sessionError,
+	} = useSession();
 	const { state, workspaceId } = useOnboardingState();
 	const { setWorkspaceId, role, workspaces } = useWorkspace();
 
@@ -59,15 +65,44 @@ function OnboardingFlow() {
 	// ignores this. Both stay mounted, so the preview keeps updating as you type.
 	const [mobileView, setMobileView] = useState<MobileView>("form");
 
-	// Send unauthenticated visitors to sign-in.
-	useEffect(() => {
-		if (!sessionPending && !session?.user) router.replace("/sign-in");
-	}, [sessionPending, session, router]);
+	// The OAuth return lands here with any pending invitation stashed — the
+	// hosted flow's fixed callbackURL drops the auth page's ?invite= param, so
+	// sessionStorage is what carries it across (see invite-return.ts). Peeked
+	// synchronously so the very first render can hold the flow instead of
+	// flashing the paywall; consumed (single-use) once the session resolves.
+	const [pendingInvite] = useState(() => peekPendingInvite());
 
-	// Mark the start of the funnel once — first-run only (new-bot isn't onboarding).
+	// Send unauthenticated visitors to sign-in. A stashed invite (an OAuth
+	// attempt that came back without a session) rides along as the query param,
+	// so from there the normal auth flow — the sign-in ⇄ sign-up links, an
+	// email submit, a social retry — carries it; left in the stash it would
+	// strand, and a social click on the plain sign-in page would clear it.
 	useEffect(() => {
-		if (!newBot) track(ANALYTICS_EVENTS.onboardingStarted);
-	}, [newBot]);
+		if (sessionPending || session?.user) return;
+		// A transiently-failed get-session (429/5xx blip) is not "unauthenticated"
+		// — hold, keep the invite stash intact, and let the next refetch decide.
+		if (isTransientSessionError(sessionError)) return;
+		const stashed = consumePendingInvite();
+		router.replace(
+			stashed ? `/sign-in?invite=${encodeURIComponent(stashed)}` : "/sign-in",
+		);
+	}, [sessionPending, session, sessionError, router]);
+
+	// Boot check: an authenticated arrival with a stashed invite leaves for the
+	// invitation. Not in new-bot mode — ?new=1 is an explicit "add another
+	// agent" intent, so the stash is ignored there (and left for the next
+	// first-run visit rather than consumed against the user's intent).
+	useEffect(() => {
+		if (newBot || !pendingInvite || sessionPending || !session?.user) return;
+		consumePendingInvite();
+		router.replace(`/invite/${encodeURIComponent(pendingInvite)}`);
+	}, [newBot, pendingInvite, sessionPending, session, router]);
+
+	// Mark the start of the funnel once — first-run only (new-bot isn't
+	// onboarding, and neither is an invite pass-through on its way out).
+	useEffect(() => {
+		if (!newBot && !pendingInvite) track(ANALYTICS_EVENTS.onboardingStarted);
+	}, [newBot, pendingInvite]);
 
 	// Onboarding ends at the form + live preview. The moment a project exists we
 	// route straight to its project page — the agent's settings, where the embed
@@ -78,11 +113,20 @@ function OnboardingFlow() {
 
 	// First-run only: an already-onboarded user landing here is sent to the
 	// dashboard. In new-bot mode that's exactly who we want, so we don't redirect.
-	// Suppressed once a project is created so the flow isn't yanked away.
+	// Suppressed once a project is created so the flow isn't yanked away, and
+	// while a pending invite is leaving — otherwise this bounce races the boot
+	// check's replace() for a returning (state "ready") invitee and the LAST
+	// call wins, stranding the invitation unaccepted with its stash consumed.
 	useEffect(() => {
-		if (!newBot && !createdProjectId && session?.user && state === "ready")
+		if (
+			!newBot &&
+			!createdProjectId &&
+			!pendingInvite &&
+			session?.user &&
+			state === "ready"
+		)
 			router.replace("/inbox");
-	}, [newBot, createdProjectId, session, state, router]);
+	}, [newBot, createdProjectId, pendingInvite, session, state, router]);
 
 	// Provision a fresh (unpaid, plan "none") workspace and select it. The
 	// paywall gate then prompts for a plan before any project is created.
@@ -181,6 +225,14 @@ function OnboardingFlow() {
 	// never flashed the build form before the paywall resolves.
 	const holdForPlan =
 		!newBot && !createdProjectId && !!workspaceId && usageQ.isLoading;
+	// A pending invitation preempts everything below — the boot check is
+	// already replacing this page with /invite/<tok>. Render the hand-off
+	// notice (not the paywall, not the skeleton) so the invitee sees where
+	// they're going and has a manual link if the redirect is interrupted.
+	if (!newBot && pendingInvite && session?.user) {
+		return <PendingInviteNotice token={pendingInvite} />;
+	}
+
 	// Once a project exists we're navigating to its page — hold the skeleton so
 	// the form doesn't flash back before the redirect lands.
 	if (createdProjectId || resolving || blockedFirstRun || holdForPlan) {

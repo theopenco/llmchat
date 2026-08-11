@@ -2,7 +2,11 @@ import Link from "next/link";
 import {
 	ANALYTICS_EVENTS,
 	BILLING_TIERS,
+	DISCOUNT_ACTIVE,
+	DISCOUNT_PERCENT,
 	TRIAL_PERIOD_DAYS,
+	formatUsd,
+	originalUsd,
 } from "@llmchat/shared";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import { TrackedLink } from "@/components/TrackedLink";
@@ -59,11 +63,21 @@ export function PricingTeaser() {
 								<span className="font-mono text-xs uppercase tracking-[0.14em] text-accent-soft">
 									{t.name}
 								</span>
-								<div className="mt-4 flex items-baseline gap-1">
+								<div className="mt-4 flex items-baseline gap-1.5">
 									<span className="font-display text-4xl font-semibold text-ink">
-										${tier.priceUsdMonthly}
+										${formatUsd(tier.priceUsdMonthly)}
 									</span>
 									<span className="text-sm text-muted">/month</span>
+									{DISCOUNT_ACTIVE && (
+										<>
+											<span className="text-sm text-faint line-through">
+												${formatUsd(originalUsd(tier.priceUsdMonthly))}
+											</span>
+											<span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-accent">
+												{DISCOUNT_PERCENT}% off
+											</span>
+										</>
+									)}
 								</div>
 								<p className="mt-2 text-sm text-muted">{t.blurb}</p>
 								<p className="mt-4 flex-1 text-sm text-ink-soft">

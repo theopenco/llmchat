@@ -27,6 +27,12 @@ interface RecordedCall {
 /** Route-aware fetch mock covering every /v1 endpoint the provider hits. */
 function stubApi({ deltas = ["Our pricing starts at $29."] } = {}) {
 	const calls: RecordedCall[] = [];
+	// The real api persists the user message — creating the conversation —
+	// before it streams, so once /v1/chat has been hit, /v1/messages must name
+	// a conversation. Answering null after a chat would read as "an operator
+	// deleted this thread" and reset the tab's handoff flags (see the unread
+	// sync effect in client/provider.tsx).
+	let conversationExists = false;
 	vi.stubGlobal(
 		"fetch",
 		vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -37,7 +43,7 @@ function stubApi({ deltas = ["Our pricing starts at $29."] } = {}) {
 			});
 			if (url.includes("/v1/messages")) {
 				return Response.json({
-					conversationId: null,
+					conversationId: conversationExists ? "c1" : null,
 					csatRating: null,
 					escalatedAt: null,
 					archivedAt: null,
@@ -45,6 +51,7 @@ function stubApi({ deltas = ["Our pricing starts at $29."] } = {}) {
 				});
 			}
 			if (url.includes("/v1/chat")) {
+				conversationExists = true;
 				const sse =
 					`data: ${JSON.stringify({ type: "text-start", id: "t1" })}\n\n` +
 					deltas

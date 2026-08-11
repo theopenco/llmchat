@@ -3,7 +3,11 @@ import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+	DISCOUNT_ACTIVE,
+	DISCOUNT_PERCENT,
 	TRIAL_PERIOD_DAYS,
+	formatUsd,
+	originalUsd,
 	isPaidPlan,
 	type BillingInterval,
 	type PaidPlan,
@@ -54,9 +58,17 @@ export function TierGrid({
 				const pending = selecting === tier.plan;
 				// Annual = the yearly price spread across 12 (rounded for display);
 				// the exact yearly total is shown beneath, so rounding is never charged.
+				// The tier table already holds the charged promo price; the struck-out
+				// comparison is the derived pre-promotion original (or, outside a
+				// promo, the monthly price the annual cadence undercuts).
 				const perMonth = annual
 					? Math.round(tier.priceUsdAnnual / 12)
 					: tier.priceUsdMonthly;
+				const struck = DISCOUNT_ACTIVE
+					? originalUsd(perMonth)
+					: annual
+						? tier.priceUsdMonthly
+						: null;
 				return (
 					<section
 						key={tier.plan}
@@ -73,18 +85,23 @@ export function TierGrid({
 							</h3>
 							<div className="mt-2 flex items-baseline gap-1.5">
 								<span className="text-3xl font-semibold tracking-tight-display">
-									${perMonth}
+									${formatUsd(perMonth)}
 								</span>
 								<span className="text-sm text-muted-foreground">/ month</span>
-								{annual && (
+								{struck != null && (
 									<span className="text-sm text-muted-foreground line-through">
-										${tier.priceUsdMonthly}
+										${formatUsd(struck)}
+									</span>
+								)}
+								{DISCOUNT_ACTIVE && (
+									<span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em] text-primary">
+										{DISCOUNT_PERCENT}% off
 									</span>
 								)}
 							</div>
 							<p className="mt-1 text-sm text-muted-foreground">
 								{annual
-									? `$${tier.priceUsdAnnual}/yr · 2 months free`
+									? `$${formatUsd(tier.priceUsdAnnual)}/yr · 2 months free`
 									: tier.tagline}
 							</p>
 						</div>

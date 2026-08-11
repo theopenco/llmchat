@@ -9,6 +9,7 @@ import {
 	removeTagFromConversation,
 	setConversationRead,
 	type ConversationPage,
+	setConversationAssignee,
 } from "./conversation-list";
 
 import type { Conversation, Tag } from "./types";
@@ -17,7 +18,6 @@ const TAG: Tag = { id: "t1", name: "Billing", color: "#6366f1" };
 
 function conv(overrides: Partial<Conversation> & { id: string }): Conversation {
 	return {
-		clientId: "c",
 		name: null,
 		email: null,
 		ipAddress: null,
@@ -199,5 +199,41 @@ describe("removeTagFromAllConversations (tag delete)", () => {
 		expect(removeTagFromAllConversations({ nope: 1 }, "t1")).toEqual({
 			nope: 1,
 		});
+	});
+});
+
+describe("setConversationAssignee (#96)", () => {
+	const alice = { userId: "u1", name: "Alice", assignedBy: "u2" };
+
+	it("sets the assignee on exactly the target row in the head cache shape", () => {
+		const prev = {
+			conversations: [
+				{ id: "c1", assignee: null },
+				{ id: "c2", assignee: null },
+			],
+		};
+		const next = setConversationAssignee(prev, "c1", alice) as typeof prev;
+		expect(next.conversations[0].assignee).toEqual(alice);
+		expect(next.conversations[1].assignee).toBeNull();
+		expect(prev.conversations[0].assignee).toBeNull(); // immutable
+	});
+
+	it("sets it across every page of the infinite cache shape, and null clears it", () => {
+		const prev = {
+			pages: [
+				{ conversations: [{ id: "c1", assignee: alice }], nextCursor: "x" },
+				{ conversations: [{ id: "c2", assignee: null }], nextCursor: null },
+			],
+			pageParams: [],
+		};
+		const cleared = setConversationAssignee(prev, "c1", null) as typeof prev;
+		expect(cleared.pages[0].conversations[0].assignee).toBeNull();
+		expect(cleared.pages[1].conversations[0].assignee).toBeNull();
+	});
+
+	it("returns unrecognized cache shapes unchanged", () => {
+		expect(setConversationAssignee(undefined, "c1", alice)).toBeUndefined();
+		const odd = { other: true };
+		expect(setConversationAssignee(odd, "c1", alice)).toBe(odd);
 	});
 });

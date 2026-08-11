@@ -98,7 +98,10 @@ export const widgetStyles = `
 /* ── Floating launcher ─────────────────────────────────────────────── */
 .llmchat-bubble {
 	position: fixed;
-	bottom: 20px;
+	/* 40px, not 20px: host pages (our own dashboard included) often keep a
+	   sticky action bar in the bottom-right corner; the extra clearance keeps
+	   the launcher off it. */
+	bottom: 40px;
 	right: 20px;
 	width: 56px;
 	height: 56px;
@@ -107,7 +110,11 @@ export const widgetStyles = `
 	justify-content: center;
 	border-radius: 9999px;
 	background: var(--brand);
-	color: #fff;
+	/* --brand-fg is derived from the brand at mount (contrast.ts): white for
+	   brands that can carry it, dark ink for pale ones where a white glyph
+	   washes out. The #fff fallback keeps any host rendering this CSS without
+	   the token identical to before. */
+	color: var(--brand-fg, #fff);
 	border: none;
 	cursor: pointer;
 	box-shadow:
@@ -129,8 +136,11 @@ export const widgetStyles = `
 }
 .llmchat-bubble:focus-visible {
 	outline: none;
+	/* The inner ring separates the launcher from the brand ring outside it. A
+	   literal white inner ring disappears on a pale brand (and on the white
+	   host page behind it), so it rides --brand-fg too. */
 	box-shadow:
-		0 0 0 3px #fff,
+		0 0 0 3px var(--brand-fg, #fff),
 		0 0 0 6px var(--brand);
 }
 .llmchat-bubble-icon {
@@ -150,10 +160,15 @@ export const widgetStyles = `
 
 /* Unread count — messages that landed while the panel was closed (usually the
    human's reply after an escalation). Inverted brand chrome: the launcher itself
-   is var(--brand), so a brand-filled badge on it would be invisible; a white pill
-   with brand text and a brand ring reads as part of the same object and needs no
-   new hue (deliberately NOT notification-red — this is a support reply, not an
-   alarm). Literal #fff in both themes, like every other on-brand surface. */
+   is var(--brand), so a brand-filled badge on it would be invisible; a pill in
+   the brand's own contrasting foreground, with brand-colored digits and a brand
+   ring, reads as part of the same object and needs no new hue (deliberately NOT
+   notification-red — this is a support reply, not an alarm).
+   The pill rides --brand-fg rather than a literal #fff, which is what makes the
+   digits legible on a pale brand: --brand-fg is by construction the candidate
+   that contrasts with --brand, so brand-on-brand-fg is readable in both
+   directions — white pill with dark digits for a dark brand, dark pill with
+   pale digits for a pale one (#145). */
 .llmchat-bubble-badge {
 	position: absolute;
 	top: -2px;
@@ -165,7 +180,7 @@ export const widgetStyles = `
 	align-items: center;
 	justify-content: center;
 	border-radius: 9999px;
-	background: #fff;
+	background: var(--brand-fg, #fff);
 	color: var(--brand);
 	border: 2px solid var(--brand);
 	/* px, never rem: rem resolves against the HOST page's root font-size even
@@ -191,6 +206,110 @@ export const widgetStyles = `
 	}
 }
 
+/* ── Proactive teaser ──────────────────────────────────────────────────
+   Floating message bubbles above the closed launcher (Chatbase-style): white
+   cards that invite the visitor in. Clicking a bubble opens the panel; the ×
+   dismisses for the session. Stacks bottom-up, right-aligned with the
+   launcher. */
+.llmchat-teaser {
+	position: fixed;
+	bottom: 108px;
+	right: 20px;
+	/* Below the launcher/panel so it can never cover either. */
+	z-index: 2147483645;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 8px;
+	max-width: min(340px, calc(100vw - 40px));
+}
+.llmchat-teaser-bubble {
+	background: var(--sf);
+	color: var(--tx);
+	border: none;
+	border-radius: 22px;
+	padding: 13px 17px;
+	font: inherit;
+	/* px, never rem — see the root comment (host pages rescale rem). */
+	font-size: 14.4px;
+	line-height: 1.45;
+	text-align: left;
+	cursor: pointer;
+	box-shadow:
+		0 12px 32px -12px rgba(0, 0, 0, 0.35),
+		0 0 0 1px rgba(0, 0, 0, 0.05);
+	/* "backwards" fill keeps a stagger-delayed bubble invisible until its turn
+	   (the second bubble's animation-delay is set inline by Teaser.tsx). */
+	animation: llmchat-teaser-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+	transition:
+		transform 0.15s ease,
+		box-shadow 0.15s ease;
+}
+.llmchat-teaser-bubble:hover {
+	transform: translateY(-1px);
+	box-shadow:
+		0 16px 36px -12px rgba(0, 0, 0, 0.4),
+		0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+.llmchat-teaser-bubble:focus-visible {
+	outline: none;
+	box-shadow:
+		0 12px 32px -12px rgba(0, 0, 0, 0.35),
+		0 0 0 2px var(--brand);
+}
+@keyframes llmchat-teaser-in {
+	from {
+		opacity: 0;
+		transform: translateY(10px) scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+/* Dismiss × — quiet until the visitor shows intent (hover/focus); always
+   visible where there is no hover to reveal it (touch). */
+.llmchat-teaser-dismiss {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: none;
+	border-radius: 9999px;
+	background: var(--sf);
+	color: var(--tx-4);
+	cursor: pointer;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.18),
+		0 0 0 1px rgba(0, 0, 0, 0.05);
+	opacity: 0;
+	transition:
+		opacity 0.15s ease,
+		color 0.15s ease;
+}
+.llmchat-teaser:hover .llmchat-teaser-dismiss,
+.llmchat-teaser-dismiss:focus-visible {
+	opacity: 1;
+}
+.llmchat-teaser-dismiss:hover {
+	color: var(--tx-2);
+}
+.llmchat-teaser-dismiss:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--brand);
+}
+.llmchat-teaser-dismiss svg {
+	width: 12px;
+	height: 12px;
+}
+@media (hover: none) {
+	.llmchat-teaser-dismiss {
+		opacity: 1;
+	}
+}
+
 /* Announced, never seen: the live region that tells a screen reader a reply
    arrived while the panel was closed. */
 .llmchat-sr-only {
@@ -209,12 +328,12 @@ export const widgetStyles = `
 /* ── Panel ─────────────────────────────────────────────────────────── */
 .llmchat-panel {
 	position: fixed;
-	bottom: 88px;
+	bottom: 108px;
 	right: 20px;
 	width: 368px;
 	max-width: calc(100vw - 32px);
 	height: 544px;
-	max-height: calc(100vh - 112px);
+	max-height: calc(100vh - 132px);
 	background: var(--sf);
 	border-radius: 16px;
 	display: flex;
@@ -526,6 +645,14 @@ export const widgetStyles = `
 	font-size: 12.48px;
 	border-radius: 9999px;
 	padding: 4px 12px;
+}
+/* Multi-line system rows (the voice-call transcript): the pill opens into a
+   left-aligned card, still in the muted system voice. */
+.llmchat-msg-system--block {
+	border-radius: 12px;
+	padding: 8px 12px;
+	text-align: left;
+	max-width: 90%;
 }
 
 /* ── Markdown bodies (assistant/agent replies, rendered by Streamdown) ──

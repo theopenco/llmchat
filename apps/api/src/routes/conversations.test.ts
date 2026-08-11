@@ -30,9 +30,20 @@ function whereSql(): string {
 vi.mock("@/auth", () => ({
 	createAuth: () => ({
 		api: {
-			getSession: async ({ headers }: { headers: Headers }) => {
+			getSession: async ({
+				headers,
+				returnHeaders,
+			}: {
+				headers: Headers;
+				returnHeaders?: boolean;
+			}) => {
 				const id = headers.get("x-test-user");
-				return id ? { user: { id } } : null;
+				const session = id ? { user: { id } } : null;
+				// Mirror better-auth's real contract: returnHeaders wraps the session in
+				// { headers, response } (requireSession forwards refreshed cookies from it).
+				return returnHeaders
+					? { headers: new Headers(), response: session }
+					: session;
 			},
 		},
 	}),
@@ -557,6 +568,10 @@ describe("inbox stats aggregate", () => {
 			escalated: 37,
 			resolved: 1200,
 			avgRating: 4.3,
+			// #96 pill counts ride the same aggregate row; the fake row carries
+			// neither, so both serialize as 0.
+			mine: 0,
+			unassigned: 0,
 		});
 	});
 
@@ -656,6 +671,66 @@ describe("thread pagination (GET conversations/:id)", () => {
 		mockDb({});
 		const res = await get("/projects/p1/conversations/cThread", MEMBER);
 		expect(res.status).toBe(403);
+	});
+});
+
+describe("clientId never leaves the server (#170)", () => {
+	// clientId is the visitor's /v1 session credential — (projectKey, clientId)
+	// lets any holder speak AS the visitor on the public chat endpoint — so the
+	// operator surfaces must strip it while keeping the real operator data.
+
+	it("list rows carry no clientId, while operator fields survive", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conversationRows: [
+				{
+					id: "cA",
+					clientId: "visitor-secret-id",
+					name: "Ada",
+					email: "ada@example.com",
+					messageCount: 2,
+				},
+			],
+		});
+		const res = await get("/projects/p1/conversations", MEMBER);
+		expect(res.status).toBe(200);
+		const text = await res.text();
+		// Nothing in the whole payload — rows, previews, tags — names clientId,
+		// and the VALUE is absent too (catches a leak under a renamed field).
+		expect(text).not.toContain("clientId");
+		expect(text).not.toContain("visitor-secret-id");
+		const body = JSON.parse(text) as { conversations: Row[] };
+		expect(body.conversations).toHaveLength(1);
+		expect(body.conversations[0]).not.toHaveProperty("clientId");
+		// The strip is surgical: operator-facing fields are untouched.
+		expect(body.conversations[0].name).toBe("Ada");
+		expect(body.conversations[0].email).toBe("ada@example.com");
+	});
+
+	it("the thread response's conversation carries no clientId either", async () => {
+		mockDb({
+			role: "agent",
+			project: PROJECT,
+			conv: {
+				id: "cThread",
+				projectId: "p1",
+				clientId: "visitor-secret-id",
+				name: "Ada",
+				email: "ada@example.com",
+			},
+			threadMessages: [{ id: "m1", sequence: 1 }],
+		});
+		const res = await get("/projects/p1/conversations/cThread", MEMBER);
+		expect(res.status).toBe(200);
+		const text = await res.text();
+		expect(text).not.toContain("clientId");
+		expect(text).not.toContain("visitor-secret-id");
+		const body = JSON.parse(text) as { conversation: Row };
+		expect(body.conversation).not.toHaveProperty("clientId");
+		expect(body.conversation.id).toBe("cThread");
+		expect(body.conversation.name).toBe("Ada");
+		expect(body.conversation.email).toBe("ada@example.com");
 	});
 });
 
@@ -938,7 +1013,9 @@ describe("conversation IDOR — tenant scoping on mutations", () => {
 		});
 		const res = await send("/projects/p1/conversations/c1", "DELETE");
 		expect(res.status).toBe(200);
-		expect(deleteSpy).toHaveBeenCalledTimes(1);
+		// Two deletes since #96: the assignment row (explicit, house law) and
+		// then the conversation row itself.
+		expect(deleteSpy).toHaveBeenCalledTimes(2);
 	});
 
 	it("PATCH archive 404s a cross-tenant conversation id — never updates", async () => {

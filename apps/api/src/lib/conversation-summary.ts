@@ -2,7 +2,7 @@ import { conversation, eq } from "@llmchat/db";
 import { VISITOR_VISIBLE_ROLES } from "@llmchat/shared";
 
 import { db } from "@/lib/db";
-import { summarizeConversation } from "@/lib/llm";
+import { normalizeTranscriptLine, summarizeConversation } from "@/lib/llm";
 
 import type { Env } from "@/env";
 
@@ -33,23 +33,33 @@ export function summaryIsStale(c: {
 	return c.messageCount - c.summaryMessageCount >= SUMMARY_STALE_DELTA;
 }
 
-/** Role-labeled, length-bounded transcript: the opener (intent) is always kept,
- * the recent tail (current state) fills the rest of the budget. Pure. */
+/** Role-labeled, neutralized, length-bounded transcript: the opener (intent) is
+ * always kept, the recent tail (current state) fills the rest of the budget.
+ * Every line passes normalizeTranscriptLine (backported from the suggest path,
+ * #171): C0/C1 control chars and the «»<>` fence/code glyphs are stripped, so
+ * message content can never forge a data fence, open a code block, or smuggle
+ * terminal escapes into the summary prompts. Pure. */
 export function buildTranscript(
 	messages: { role: string; content: string }[],
 ): string {
 	const label = (r: string) =>
 		r === "user" ? "Visitor" : r === "system" ? "System" : "Agent";
 	const lines = messages
-		.filter((m) => m.content.trim())
-		.map((m) => `${label(m.role)}: ${m.content.trim().replace(/\s+/g, " ")}`);
+		.map((m) => ({ role: m.role, content: normalizeTranscriptLine(m.content) }))
+		.filter((m) => m.content)
+		.map((m) => `${label(m.role)}: ${m.content}`);
 	if (lines.length === 0) return "";
 	const joined = lines.join("\n");
 	if (joined.length <= TRANSCRIPT_CHAR_BUDGET) return joined;
-	// Cap the opener too, so a single huge first message can't blow the budget.
-	const head = lines[0].slice(0, TRANSCRIPT_CHAR_BUDGET);
-	const tailBudget = Math.max(0, TRANSCRIPT_CHAR_BUDGET - head.length - 2);
-	const tail = lines.slice(1).join("\n").slice(-tailBudget);
+	// Reserve the "\n…\n" separator (3 chars) up front so the result never
+	// exceeds the budget, and never emit a tail on a zero budget —
+	// slice(-0) === slice(0) would drag the ENTIRE tail back in (#171, the
+	// same fail-open fixed in buildSuggestTranscript; a single inbound-email
+	// message can exceed the whole budget on its own).
+	const head = lines[0].slice(0, TRANSCRIPT_CHAR_BUDGET - 3);
+	const tailBudget = Math.max(0, TRANSCRIPT_CHAR_BUDGET - head.length - 3);
+	const tail =
+		tailBudget > 0 ? lines.slice(1).join("\n").slice(-tailBudget) : "";
 	return `${head}\n…\n${tail}`;
 }
 

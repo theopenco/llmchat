@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { canManage, resolveWorkspaceId } from "./workspace-utils";
+import {
+	canManage,
+	resolveWorkspaceId,
+	shouldDeferDemotion,
+	upsertWorkspaceSummary,
+} from "./workspace-utils";
 
-import type { Plan, WorkspaceSummary } from "./workspace-utils";
+import type {
+	Plan,
+	WorkspacesResponse,
+	WorkspaceSummary,
+} from "./workspace-utils";
 
 const ws = (...ids: string[]): WorkspaceSummary[] =>
 	ids.map((id) => ({
@@ -79,6 +88,70 @@ describe("resolveWorkspaceId — default selection", () => {
 
 	it("falls back to the first row when every workspace is empty", () => {
 		expect(resolveWorkspaceId(null, [wsItem("a"), wsItem("b")])).toBe("a");
+	});
+});
+
+describe("shouldDeferDemotion", () => {
+	// The invite first-run bug: a just-joined workspace id is missing from the
+	// stale cached list while the refetch is in flight — demoting there
+	// clobbers the selection back to the personal workspace.
+	it("defers when the stored id is missing from the list mid-refetch", () => {
+		expect(shouldDeferDemotion("joined", ws("personal"), true)).toBe(true);
+	});
+
+	it("does NOT defer when nothing is being fetched (genuinely stale id)", () => {
+		expect(shouldDeferDemotion("deleted", ws("a", "b"), false)).toBe(false);
+	});
+
+	it("does NOT defer when the stored id is in the list (keeping is safe)", () => {
+		expect(shouldDeferDemotion("a", ws("a", "b"), true)).toBe(false);
+	});
+
+	it("does NOT defer without a stored selection (default pick proceeds)", () => {
+		expect(shouldDeferDemotion(null, ws("a"), true)).toBe(false);
+		expect(shouldDeferDemotion("", ws("a"), true)).toBe(false);
+	});
+});
+
+describe("upsertWorkspaceSummary", () => {
+	const entry = { id: "joined", name: "Acme", role: "agent" as const };
+
+	it("appends a provisional row when the id is missing", () => {
+		const prev: WorkspacesResponse = {
+			workspaces: [
+				{
+					workspace: { id: "personal", name: "Mine", plan: "none" },
+					role: "owner",
+				},
+			],
+		};
+		const next = upsertWorkspaceSummary(prev, entry);
+		expect(next.workspaces.map((r) => r.workspace.id)).toEqual([
+			"personal",
+			"joined",
+		]);
+		expect(next.workspaces[1]).toEqual({
+			workspace: { id: "joined", name: "Acme", plan: "none" },
+			role: "agent",
+		});
+		// Non-mutating: the cached object is not modified in place.
+		expect(prev.workspaces).toHaveLength(1);
+	});
+
+	it("creates a single-row list when the cache is empty", () => {
+		expect(upsertWorkspaceSummary(undefined, entry).workspaces).toHaveLength(1);
+	});
+
+	it("is a no-op (same reference) when the id is already present", () => {
+		const prev: WorkspacesResponse = {
+			workspaces: [
+				{
+					workspace: { id: "joined", name: "Acme", plan: "growth" },
+					role: "agent",
+				},
+			],
+		};
+		expect(upsertWorkspaceSummary(prev, entry)).toBe(prev);
 	});
 });
 

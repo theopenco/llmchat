@@ -13,6 +13,8 @@ import { conversations } from "@/routes/conversations";
 import { embed } from "@/routes/embed";
 import { inboundEmail } from "@/routes/inbound-email";
 import { integrations, integrationsPublic } from "@/routes/integrations";
+import { invites } from "@/routes/invites";
+import { members } from "@/routes/members";
 import { models } from "@/routes/models";
 import { notifications } from "@/routes/notifications";
 import { oauthProviders } from "@/routes/oauth-providers";
@@ -98,6 +100,17 @@ app.use(
 	}),
 );
 
+// Auth responses must never be served from a shared cache: Better Auth 1.6.9
+// sets no cache-control on get-session (fixed upstream in 1.6.24), and a
+// cached session envelope replayed across users — or a cached null served to a
+// signed-in user, which the client renders as a spontaneous sign-out — is a
+// session-integrity failure. Asserted here so the guarantee doesn't ride on
+// the dependency version.
+app.use("/api/auth/*", async (c, next) => {
+	await next();
+	c.res.headers.set("cache-control", "no-store");
+});
+
 app.on(["GET", "POST"], "/api/auth/*", (c) => {
 	const auth = createAuth(c.env);
 	return auth.handler(c.req.raw);
@@ -114,6 +127,8 @@ app.route("/api", oauthProviders);
 app.route("/api", models);
 app.route("/api", account);
 app.route("/api", workspaces);
+app.route("/api", members);
+app.route("/api", invites);
 app.route("/api", projects);
 app.route("/api", search);
 app.route("/api", systemPrompts);

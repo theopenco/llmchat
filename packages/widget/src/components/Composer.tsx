@@ -30,6 +30,10 @@ export function Composer({
 			<textarea
 				rows={1}
 				value={value}
+				// Content-driven direction: typing Arabic/Hebrew/Farsi flips the
+				// field RTL as the visitor types; empty falls back to the
+				// placeholder's LTR. Matches the bubbles' dir="auto".
+				dir="auto"
 				aria-label="Message"
 				onChange={(e) => onChange(e.target.value)}
 				onKeyDown={(e) => {

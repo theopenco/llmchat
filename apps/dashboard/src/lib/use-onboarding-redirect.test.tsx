@@ -16,6 +16,7 @@ let workspaceState: {
 	workspaces: { id: string }[];
 	workspaceId: string | null;
 	isLoading: boolean;
+	loaded: boolean;
 };
 vi.mock("@/lib/workspace", () => ({ useWorkspace: () => workspaceState }));
 
@@ -38,6 +39,7 @@ beforeEach(() => {
 		workspaces: [{ id: "ws1" }],
 		workspaceId: "ws1",
 		isLoading: false,
+		loaded: true,
 	};
 });
 afterEach(() => vi.clearAllMocks());
@@ -50,7 +52,12 @@ describe("useOnboardingRedirect", () => {
 	});
 
 	it("redirects a brand-new (no-workspace) user to /onboarding", async () => {
-		workspaceState = { workspaces: [], workspaceId: null, isLoading: false };
+		workspaceState = {
+			workspaces: [],
+			workspaceId: null,
+			isLoading: false,
+			loaded: true,
+		};
 		renderHook(() => useOnboardingRedirect(true), { wrapper });
 		await waitFor(() => expect(replace).toHaveBeenCalledWith("/onboarding"));
 	});
@@ -93,7 +100,12 @@ describe("useOnboardingRedirect", () => {
 	});
 
 	it("does not redirect even a brand-new user away from the escape routes", async () => {
-		workspaceState = { workspaces: [], workspaceId: null, isLoading: false };
+		workspaceState = {
+			workspaces: [],
+			workspaceId: null,
+			isLoading: false,
+			loaded: true,
+		};
 		pathname = "/settings/account";
 		renderHook(() => useOnboardingRedirect(true), { wrapper });
 		await new Promise((r) => setTimeout(r, 20));
@@ -102,6 +114,35 @@ describe("useOnboardingRedirect", () => {
 
 	it("is inert when disabled", async () => {
 		renderHook(() => useOnboardingRedirect(false), { wrapper });
+		await new Promise((r) => setTimeout(r, 20));
+		expect(replace).not.toHaveBeenCalled();
+	});
+
+	// The zero-workspaces bounce must only fire when the list actually LOADED:
+	// the provider fetches with retry:false, so a transient 429/5xx also
+	// presents as zero workspaces — and bouncing an established user into
+	// first-run onboarding over a blip reads as being kicked out of the
+	// product (part of the auto-sign-out bug family).
+	it("HOLDS when the list is empty because the fetch FAILED (loaded=false)", async () => {
+		workspaceState = {
+			workspaces: [],
+			workspaceId: null,
+			isLoading: false,
+			loaded: false,
+		};
+		renderHook(() => useOnboardingRedirect(true), { wrapper });
+		await new Promise((r) => setTimeout(r, 20));
+		expect(replace).not.toHaveBeenCalled();
+	});
+
+	it("holds while the list is still loading", async () => {
+		workspaceState = {
+			workspaces: [],
+			workspaceId: null,
+			isLoading: true,
+			loaded: false,
+		};
+		renderHook(() => useOnboardingRedirect(true), { wrapper });
 		await new Promise((r) => setTimeout(r, 20));
 		expect(replace).not.toHaveBeenCalled();
 	});

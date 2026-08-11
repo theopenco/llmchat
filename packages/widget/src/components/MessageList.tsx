@@ -168,7 +168,7 @@ export function MessageList({
 			   stays put once the visitor sends. Keeping it out of `messages` insulates
 			   it from mergeMessages (it would otherwise look like an unmatched local
 			   tail entry) and from rating/scroll/poll logic. */}
-			<div className="llmchat-msg llmchat-msg-assistant">
+			<div className="llmchat-msg llmchat-msg-assistant" dir="auto">
 				<Markdown content={greeting} />
 			</div>
 			{messages.map((m) => {
@@ -190,7 +190,11 @@ export function MessageList({
 					return (
 						<div key={m.id} className="llmchat-msg-group" data-role={m.role}>
 							{chip}
-							<div className={`llmchat-msg llmchat-msg-${m.role}`}>
+							{/* dir="auto": the bubble's paragraph direction follows its
+							   CONTENT (first strong character), so an Arabic/Hebrew/Farsi
+							   message right-aligns and reflows RTL while English stays
+							   LTR — per-message, no configuration. */}
+							<div className={`llmchat-msg llmchat-msg-${m.role}`} dir="auto">
 								<MessageBody role={m.role} content={m.content} />
 								{reply}
 							</div>
@@ -201,11 +205,15 @@ export function MessageList({
 						</div>
 					);
 				}
+				// Multi-line system rows (the voice-call transcript) open the pill
+				// into a left-aligned block — a stadium pill can't hold paragraphs.
+				const systemBlock = m.role === "system" && m.content.includes("\n");
 				return (
 					<div key={m.id} className="llmchat-msg-group" data-role={m.role}>
 						{chip}
 						<div
-							className={`llmchat-msg llmchat-msg-${m.role}`}
+							className={`llmchat-msg llmchat-msg-${m.role}${systemBlock ? " llmchat-msg-system--block" : ""}`}
+							dir="auto"
 							{...(m.id === lastUserId ? { "data-llmchat-anchor": "" } : {})}
 						>
 							<MessageBody role={m.role} content={m.content} />
