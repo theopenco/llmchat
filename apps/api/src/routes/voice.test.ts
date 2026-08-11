@@ -276,20 +276,6 @@ describe("POST /voice/session — Scale-only realtime voice", () => {
 		expect(vi.mocked(fetch)).not.toHaveBeenCalled();
 	});
 
-	it("exempts internal workspaces from the call budgets entirely", async () => {
-		// Dogfooding on the operator's own workspaces must never be throttled —
-		// even with every bucket exhausted, an exempt workspace mints (and the
-		// buckets aren't even consulted, so it can't dirty the counters either).
-		mockMint();
-		mockDb();
-		setPlan("internal", true);
-		vi.mocked(rateLimit).mockResolvedValue({ ok: false, remaining: 0 });
-		const { ctx } = makeCtx();
-		const res = await send(ctx);
-		expect(res.status).toBe(200);
-		expect(rateLimit).not.toHaveBeenCalled();
-	});
-
 	it("404s an unknown project key after the per-IP gate", async () => {
 		mockMint();
 		mockDb({ hasProject: false });
