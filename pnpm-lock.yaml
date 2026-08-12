@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@meetploy/cli':
-        specifier: ^1.44.0
-        version: 1.44.0(@cloudflare/workers-types@4.20260504.1)
+        specifier: ^1.46.0
+        version: 1.46.0(@cloudflare/workers-types@4.20260504.1)
       '@semantic-release/exec':
         specifier: ^7.1.0
         version: 7.1.0(semantic-release@24.2.9(typescript@5.9.2))
@@ -2303,8 +2303,8 @@ packages:
   '@mdx-js/mdx@3.1.1':
     resolution: {integrity: sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ==}
 
-  '@meetploy/cli@1.44.0':
-    resolution: {integrity: sha512-pur5l+coOgTXt2t/ACA7Zqg1o0CNSA3r19ECDX2yUu+RVR36kMm64xg7D3nn9NQGVevtqFNos49Cnekl2gCHEg==}
+  '@meetploy/cli@1.46.0':
+    resolution: {integrity: sha512-bS+PUrHuuONI/7xmjtKmEBJYS+syoMtUlS+1dE/4t2L2zWdRmMZFgOY3PjTCyQ5tcImqLlHrgvkf204F24Mqog==}
     hasBin: true
 
   '@meetploy/types@1.18.0':
@@ -4630,6 +4630,10 @@ packages:
 
   comma-separated-tokens@2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
+
+  commander@15.0.0:
+    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+    engines: {node: '>=22.12.0'}
 
   commander@4.1.1:
     resolution: {integrity: sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA==}
@@ -9376,10 +9380,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@meetploy/cli@1.44.0(@cloudflare/workers-types@4.20260504.1)':
+  '@meetploy/cli@1.46.0(@cloudflare/workers-types@4.20260504.1)':
     dependencies:
       '@hono/node-server': 1.19.14(hono@4.12.16)
       chokidar: 4.0.3
+      commander: 15.0.0
       esbuild: 0.24.2
       hono: 4.12.16
       openapi-fetch: 0.14.0
@@ -11631,6 +11636,8 @@ snapshots:
       delayed-stream: 1.0.0
 
   comma-separated-tokens@2.0.3: {}
+
+  commander@15.0.0: {}
 
   commander@4.1.1: {}
 
