@@ -2,17 +2,5 @@ kind: nextjs
 build: pnpm --filter @llmchat/dashboard build
 out: .next
 
-env:
-  NEXT_PUBLIC_API_URL: https://api.clankersupport.com
-  # Stripe publishable key (pk_test_… / pk_live_…). Safe to expose to the
-  # browser — used by @stripe/stripe-js to redirect to Checkout. The SECRET key
-  # lives only in the api worker's env, never here.
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: $NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  # Analytics (PostHog EU). Public/write-only project key — safe to commit,
-  # same convention as apps/showcase/.env.production. Without these the prod
-  # build ships with analytics disabled (no key = provider no-ops).
-  NEXT_PUBLIC_POSTHOG_KEY: phc_ySVKqGDizuGXPiHXYLVnUXMnR28FNZu8PccWLt6BdbfH
-  NEXT_PUBLIC_POSTHOG_HOST: https://eu.i.posthog.com
-
 dev:
   port: 3001

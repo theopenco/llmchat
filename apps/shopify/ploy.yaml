@@ -27,9 +27,3 @@ compatibility_date: "2025-10-08"
 # database — never the api's llmchat_db. Ploy auto-applies migrations/*.sql.
 db:
   SESSION_DB: shopify_sessions
-env:
-  SHOPIFY_API_KEY: $SHOPIFY_API_KEY
-  SHOPIFY_API_SECRET: $SHOPIFY_API_SECRET
-  SHOPIFY_APP_URL: $SHOPIFY_APP_URL
-  SCOPES: $SCOPES
-  CLANKER_API_ORIGIN: $CLANKER_API_ORIGIN
