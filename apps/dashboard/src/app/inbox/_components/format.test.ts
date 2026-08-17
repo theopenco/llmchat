@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	firstName,
 	formatFullDate,
 	initials,
 	parseDevice,
@@ -99,5 +100,22 @@ describe("initials", () => {
 	it("falls back to '?' with no name", () => {
 		expect(initials(null)).toBe("?");
 		expect(initials("   ")).toBe("?");
+	});
+});
+
+describe("firstName", () => {
+	it("returns the first whitespace token", () => {
+		expect(firstName("Ada Lovelace")).toBe("Ada");
+		expect(firstName("madonna")).toBe("madonna");
+		expect(firstName("  jean   claude  van damme ")).toBe("jean");
+	});
+
+	// The #96 assignee chip renders firstName for a deleted-account assignee
+	// (user row gone ⇒ name null). A blank chip or a crash here is the visible
+	// regression; the neutral fallback keeps the chip legible.
+	it("falls back to 'Teammate' when the name is missing or blank", () => {
+		expect(firstName(null)).toBe("Teammate");
+		expect(firstName(undefined)).toBe("Teammate");
+		expect(firstName("   ")).toBe("Teammate");
 	});
 });

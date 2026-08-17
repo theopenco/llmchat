@@ -222,6 +222,77 @@ describe("DELETE /account — positive end-to-end (credential user, populated wo
 	});
 });
 
+describe("DELETE /account — assignment attribution scrub in a SURVIVING workspace (#96)", () => {
+	it("removes the deleted user as ASSIGNEE (row gone) but only NULLs assigned_by where they were the ASSIGNER (row kept)", async () => {
+		const sqlite = new DatabaseSync(":memory:");
+		applyMigrations(sqlite);
+
+		const hash = await hashPassword("correct horse");
+		// u1 is being deleted; u2 owns the surviving workspace ws2.
+		sqlite.exec(
+			`INSERT INTO user (id,name,email) VALUES ('u1','U1','u1@x.io'),('u2','U2','u2@x.io')`,
+		);
+		sqlite.exec(
+			`INSERT INTO account (id,user_id,account_id,provider_id,password) VALUES ('acc1','u1','u1','credential','${hash}')`,
+		);
+		// ws1: solely owned by u1 → deleted wholesale (its own assignments would be
+		// swept by the workspace cascade, so it can't exercise the user scrub).
+		seedWorkspace(sqlite, "ws1", "u1", "a");
+		// ws2: owned by u2 → SURVIVES. u1 is a non-owner member here, so the user
+		// scrub — not the workspace cascade — is the only thing touching ws2's
+		// assignment rows. This is the branch the positive test can't reach.
+		seedWorkspace(sqlite, "ws2", "u2", "b");
+		sqlite.exec(
+			`INSERT INTO member (id,workspace_id,user_id,role) VALUES ('mb_u1_ws2','ws2','u1','agent')`,
+		);
+		// seedWorkspace put conversation 'bc' in project 'bp'; add a second one.
+		sqlite.exec(
+			`INSERT INTO conversation (id,project_id,client_id) VALUES ('bc2','bp','cl2')`,
+		);
+		// A: bc assigned BY u1 (the deleted user) TO u2 (survives). assigned_by must
+		// be scrubbed to NULL, but the row — and u2's assignment — must remain (S6:
+		// only the who-assigned attribution is removed, never a live assignment).
+		sqlite.exec(
+			`INSERT INTO conversation_assignment (conversation_id,workspace_id,assignee_user_id,assigned_by) VALUES ('bc','ws2','u2','u1')`,
+		);
+		// B: bc2 assigned BY u2 TO u1 (the deleted user is the ASSIGNEE). The whole
+		// row must go — assignee_user_id references user.id with no ON DELETE, so a
+		// surviving row would dangle against a deleted user.
+		sqlite.exec(
+			`INSERT INTO conversation_assignment (conversation_id,workspace_id,assignee_user_id,assigned_by) VALUES ('bc2','ws2','u1','u2')`,
+		);
+
+		vi.mocked(db).mockReturnValue(makeProxy(sqlite) as never);
+
+		const res = await del({
+			confirmEmail: "u1@x.io",
+			password: "correct horse",
+		});
+		expect(res.status).toBe(200);
+
+		// ws2 (and u2) survive — u1 was only a member.
+		expect(n(sqlite, "id='ws2'", "workspace")).toBe(1);
+		expect(n(sqlite, "id='u2'", "user")).toBe(1);
+		// A survives with u2 still assigned; the who-assigned attribution is NULL.
+		const a = sqlite
+			.prepare(
+				`SELECT assignee_user_id AS assignee, assigned_by AS by FROM conversation_assignment WHERE conversation_id='bc'`,
+			)
+			.get() as { assignee: string; by: string | null };
+		expect(a).toEqual({ assignee: "u2", by: null });
+		// B is gone — the deleted user is no longer an assignee anywhere.
+		expect(n(sqlite, "assignee_user_id='u1'", "conversation_assignment")).toBe(
+			0,
+		);
+		expect(n(sqlite, "conversation_id='bc2'", "conversation_assignment")).toBe(
+			0,
+		);
+		// u1 and their ws2 membership are gone.
+		expect(n(sqlite, "id='u1'", "user")).toBe(0);
+		expect(n(sqlite, "workspace_id='ws2' AND user_id='u1'", "member")).toBe(0);
+	});
+});
+
 describe("DELETE /account — abort atomicity (2 owned workspaces, one with an active sub)", () => {
 	it("returns 409 and deletes NOTHING — both workspaces and the user survive intact", async () => {
 		const sqlite = new DatabaseSync(":memory:");
