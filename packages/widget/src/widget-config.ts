@@ -20,6 +20,9 @@ export interface WidgetConfig {
 	 * server-side). Fail-safe default false: a failed/slow config fetch must
 	 * never surface a premium affordance the server would 402. */
 	voiceEnabled: boolean;
+	/** Operator-configured agent photo/logo shown on the launcher and header,
+	 * or null to keep the widget's default mark. */
+	avatarUrl: string | null;
 }
 
 /**
@@ -42,6 +45,7 @@ export function useWidgetConfig(
 		collectIdentity: false,
 		welcomeMessage: null,
 		voiceEnabled: false,
+		avatarUrl: null,
 	});
 	useEffect(() => {
 		let active = true;
@@ -56,6 +60,7 @@ export function useWidgetConfig(
 						collectIdentity?: unknown;
 						welcomeMessage?: unknown;
 						voiceEnabled?: unknown;
+						avatarUrl?: unknown;
 					} | null,
 				) => {
 					if (!active || !data) return;
@@ -85,6 +90,10 @@ export function useWidgetConfig(
 							typeof data.voiceEnabled === "boolean"
 								? data.voiceEnabled
 								: prev.voiceEnabled,
+						avatarUrl:
+							typeof data.avatarUrl === "string" && data.avatarUrl !== ""
+								? data.avatarUrl
+								: prev.avatarUrl,
 					}));
 				},
 			)

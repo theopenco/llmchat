@@ -7,6 +7,9 @@ export interface Project {
 	knowledgeText: string;
 	model: string;
 	brandColor: string;
+	/** Agent photo/logo shown on the widget launcher and header (null = the
+	 * widget's default mark). */
+	avatarUrl: string | null;
 	welcomeMessage: string;
 	escalationThreshold: number;
 	notifyEmail: string | null;
@@ -46,6 +49,7 @@ export type ProjectDraft = Pick<
 	| "name"
 	| "welcomeMessage"
 	| "brandColor"
+	| "avatarUrl"
 	| "model"
 	| "systemPrompt"
 	| "escalationThreshold"

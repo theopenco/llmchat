@@ -13,6 +13,7 @@ The widget is the chat bubble visitors use to talk to your support agent. Each p
 | Field                  | What it does                                                                                                                                                               |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Brand color**        | The widget's accent color — pick from the swatch or enter a hex value                                                                                                      |
+| **Agent photo**        | URL of a photo or logo shown on the launcher bubble and the chat header, so the widget carries your team's face; leave blank for the default icon                          |
 | **Welcome message**    | The first message visitors see when they open the chat — also shown as floating **teaser bubbles** above the closed launcher (each line becomes its own bubble, up to two) |
 | **Privacy policy URL** | Linked from the privacy notice shown to visitors; leave blank to use the Clanker Support default                                                                           |
 
@@ -36,12 +37,13 @@ One script tag adds the launcher to every page it's on. Paste it just before the
 ></script>
 ```
 
-| Attribute      | Required | What it does                                                                               |
-| -------------- | -------- | ------------------------------------------------------------------------------------------ |
-| `data-project` | Yes      | Your project's public key — safe to expose, it only identifies the widget                  |
-| `data-api`     | No       | API origin; defaults to the origin the script was loaded from                              |
-| `data-brand`   | No       | Accent color; the dashboard snippet fills in your project's brand color                    |
-| `data-teaser`  | No       | Set to `off` to disable the proactive teaser bubbles that appear above the closed launcher |
+| Attribute      | Required | What it does                                                                                                                                 |
+| -------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-project` | Yes      | Your project's public key — safe to expose, it only identifies the widget                                                                    |
+| `data-api`     | No       | API origin; defaults to the origin the script was loaded from                                                                                |
+| `data-brand`   | No       | Accent color; the dashboard snippet fills in your project's brand color                                                                      |
+| `data-avatar`  | No       | URL of an agent photo or logo shown on the launcher bubble and chat header; the dashboard's **Agent photo** setting overrides it once loaded |
+| `data-teaser`  | No       | Set to `off` to disable the proactive teaser bubbles that appear above the closed launcher                                                   |
 
 ### Inline embed (iframe)
 

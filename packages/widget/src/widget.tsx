@@ -86,6 +86,10 @@ interface BaseWidgetProps {
 	/** Proactive teaser bubbles above the closed launcher (default on);
 	 * embedders opt out with data-teaser="off". */
 	teaser?: boolean;
+	/** Agent photo/logo for the launcher and header (data-avatar). In live
+	 * mode the dashboard-configured avatar wins once the server config
+	 * resolves; this covers the first paint and showcase embeds. */
+	avatarUrl?: string;
 }
 
 interface LiveWidgetProps extends BaseWidgetProps {
@@ -112,6 +116,7 @@ export function Widget(props: WidgetProps) {
 				mode={props.mode}
 				theme={props.theme}
 				teaser={props.teaser}
+				avatarUrl={props.avatarUrl}
 			/>
 		);
 	}
@@ -123,6 +128,7 @@ function ShowcaseWidget({
 	mode = "bubble",
 	theme = "light",
 	teaser = true,
+	avatarUrl,
 }: BaseWidgetProps) {
 	const inline = mode === "inline";
 	const [open, setOpen] = useState(inline);
@@ -137,6 +143,7 @@ function ShowcaseWidget({
 		<WidgetFrame
 			inline={inline}
 			brandColor={brandColor}
+			avatarUrl={avatarUrl}
 			theme={resolvedTheme}
 			open={open}
 			onOpenChange={(next) => {
@@ -205,6 +212,7 @@ function LiveWidget({
 	theme = "light",
 	teaser = true,
 	escalationThreshold,
+	avatarUrl: embedAvatarUrl,
 }: LiveWidgetProps) {
 	const inline = mode === "inline";
 	const [open, setOpen] = useState(inline);
@@ -286,7 +294,11 @@ function LiveWidget({
 		collectIdentity,
 		welcomeMessage,
 		voiceEnabled,
+		avatarUrl: configAvatarUrl,
 	} = useWidgetConfig(apiUrl, projectKey);
+	// The dashboard-configured avatar wins once the config resolves; the
+	// data-avatar embed attribute covers the first paint and self-hosters.
+	const avatarUrl = configAvatarUrl ?? embedAvatarUrl ?? null;
 	// The pre-chat name/email form is opt-in per project (collectIdentity).
 	// Off (the default), the widget opens straight into the conversation; a
 	// stored identity from a prior visit still skips the form when it's on.
@@ -712,6 +724,7 @@ function LiveWidget({
 		<WidgetFrame
 			inline={inline}
 			brandColor={brandColor}
+			avatarUrl={avatarUrl}
 			theme={resolvedTheme}
 			open={open}
 			onOpenChange={handleOpenChange}

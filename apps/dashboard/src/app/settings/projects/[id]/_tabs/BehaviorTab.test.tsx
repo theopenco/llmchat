@@ -30,6 +30,7 @@ function draft(o: Partial<ProjectDraft> = {}): ProjectDraft {
 		privacyPolicyUrl: null,
 		suggestedQuestions: [],
 		collectIdentity: false,
+		avatarUrl: null,
 		...o,
 	};
 }

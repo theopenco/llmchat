@@ -147,6 +147,19 @@ export const widgetStyles = `
 	display: flex;
 	animation: llmchat-pop 0.2s ease;
 }
+/* Operator-set agent photo/logo — fills the launcher circle edge to edge so
+   it reads as a person, not an icon on a disc. The brand ring survives as the
+   focus outline; the unread badge stacks above (both are absolutely
+   positioned, the badge comes later in the DOM). */
+.llmchat-bubble-face {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border-radius: 9999px;
+	object-fit: cover;
+	animation: llmchat-pop 0.2s ease;
+}
 @keyframes llmchat-pop {
 	from {
 		opacity: 0;
@@ -423,6 +436,14 @@ export const widgetStyles = `
 .llmchat-header-avatar svg {
 	width: 16.8px;
 	height: 16.8px;
+}
+/* The agent photo/logo variant of the header chip. overflow rides the img
+   (not the chip) so the default svg keeps its translucent disc untouched. */
+.llmchat-header-face {
+	width: 100%;
+	height: 100%;
+	border-radius: 9999px;
+	object-fit: cover;
 }
 .llmchat-header-text {
 	font-weight: 600;

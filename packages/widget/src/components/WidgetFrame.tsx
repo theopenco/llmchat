@@ -26,6 +26,7 @@ function prefersReducedMotion(): boolean {
 export function WidgetFrame({
 	inline,
 	brandColor,
+	avatarUrl,
 	theme = "light",
 	open,
 	onOpenChange,
@@ -38,6 +39,10 @@ export function WidgetFrame({
 }: {
 	inline: boolean;
 	brandColor: string;
+	/** Agent photo/logo shown on the closed launcher and the header chip;
+	 * null/absent keeps the default sparkle mark. A URL that fails to load
+	 * falls back to the mark too — never a broken-image glyph. */
+	avatarUrl?: string | null;
 	/** Resolved color scheme (auto is resolved by the caller via useEffectiveTheme). */
 	theme?: "light" | "dark";
 	open: boolean;
@@ -67,6 +72,10 @@ export function WidgetFrame({
 	// Deliberately kept across close/reopen within the session: re-expanding on
 	// every open would fight a visitor who prefers the big panel.
 	const [expanded, setExpanded] = useState(false);
+	// A configured avatar that 404s/errors falls back to the sparkle mark —
+	// keyed by URL so a config update to a working image recovers.
+	const [brokenAvatar, setBrokenAvatar] = useState<string | null>(null);
+	const face = avatarUrl && avatarUrl !== brokenAvatar ? avatarUrl : null;
 
 	useEffect(() => {
 		if (open) {
@@ -143,9 +152,20 @@ export function WidgetFrame({
 						aria-label={launcherLabel(open, unread)}
 						aria-expanded={open}
 					>
-						<span className="llmchat-bubble-icon">
-							{open ? <CloseIcon /> : <SparkleChatIcon />}
-						</span>
+						{/* The face fills the whole circle; the close glyph replaces it
+						    while the panel is open so "close" stays unmistakable. */}
+						{!open && face ? (
+							<img
+								className="llmchat-bubble-face"
+								src={face}
+								alt=""
+								onError={() => setBrokenAvatar(face)}
+							/>
+						) : (
+							<span className="llmchat-bubble-icon">
+								{open ? <CloseIcon /> : <SparkleChatIcon />}
+							</span>
+						)}
 						{unread > 0 && (
 							// Decorative — the number is already in the button's accessible
 							// name and the live region above.
@@ -180,7 +200,16 @@ export function WidgetFrame({
 					<header className="llmchat-header">
 						<span className="llmchat-header-id">
 							<span className="llmchat-header-avatar" aria-hidden="true">
-								<SparkleChatIcon />
+								{face ? (
+									<img
+										className="llmchat-header-face"
+										src={face}
+										alt=""
+										onError={() => setBrokenAvatar(face)}
+									/>
+								) : (
+									<SparkleChatIcon />
+								)}
 							</span>
 							<span className="llmchat-header-text">Support</span>
 						</span>

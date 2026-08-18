@@ -18,6 +18,7 @@ function draft(o: Partial<ProjectDraft> = {}): ProjectDraft {
 		privacyPolicyUrl: null,
 		suggestedQuestions: [],
 		collectIdentity: false,
+		avatarUrl: null,
 		...o,
 	};
 }
@@ -42,6 +43,24 @@ describe("WidgetTab", () => {
 			.setup()
 			.type(screen.getByLabelText(/welcome message/i), "!");
 		expect(set).toHaveBeenCalledWith("welcomeMessage", expect.any(String));
+	});
+
+	it("edits the agent photo URL and previews it", async () => {
+		render(<WidgetTab draft={draft()} set={set} publicKey="pk_x" />);
+		await userEvent.setup().type(screen.getByLabelText(/agent photo/i), "x");
+		expect(set).toHaveBeenCalledWith("avatarUrl", expect.any(String));
+	});
+
+	it("clears the agent photo back to null when the field is emptied", async () => {
+		render(
+			<WidgetTab
+				draft={draft({ avatarUrl: "https://acme.example/a.jpg" })}
+				set={set}
+				publicKey="pk_x"
+			/>,
+		);
+		await userEvent.setup().clear(screen.getByLabelText(/agent photo/i));
+		expect(set).toHaveBeenCalledWith("avatarUrl", null);
 	});
 
 	it("preserves the full install experience (Floating/Inline toggle + copy + embed URL)", () => {

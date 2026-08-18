@@ -51,6 +51,7 @@ const PROJECT: Project = {
 	privacyPolicyUrl: null,
 	suggestedQuestions: [],
 	collectIdentity: false,
+	avatarUrl: null,
 };
 
 beforeEach(() => {
