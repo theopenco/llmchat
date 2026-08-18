@@ -217,6 +217,23 @@ export const project = sqliteTable(
 	(t) => [index("project_workspace").on(t.workspaceId)],
 );
 
+// Uploaded widget avatar (the "Agent photo" upload path). A separate TABLE,
+// not a column on project (#167 note: un-migrated preview DBs then degrade
+// only this feature), and kept off the hot-path GET /projects list, which
+// selects every project column. One row per project — upload is an upsert on
+// the PK. Base64 text, small by construction: the dashboard downscales to a
+// ≤256px square before upload and the api caps the payload.
+export const projectAvatar = sqliteTable("project_avatar", {
+	projectId: text()
+		.primaryKey()
+		.references(() => project.id, { onDelete: "cascade" }),
+	contentType: text().notNull(),
+	data: text().notNull(),
+	updatedAt: timestamp()
+		.notNull()
+		.default(sql`(unixepoch())`),
+});
+
 // ─── Conversations ────────────────────────────────────────────────────────
 
 export const conversation = sqliteTable(
