@@ -24,6 +24,7 @@ export const widgetConfig = new Hono<AppContext>().get(
 				suggestedQuestions: true,
 				collectIdentity: true,
 				welcomeMessage: true,
+				avatarUrl: true,
 			},
 		});
 		if (!project) {
@@ -55,6 +56,13 @@ export const widgetConfig = new Hono<AppContext>().get(
 			welcomeMessage:
 				typeof project.welcomeMessage === "string"
 					? project.welcomeMessage
+					: null,
+			// Operator-set agent photo/logo for the launcher and header. Guarded:
+			// a legacy row (column absent) or blank value degrades to null, and
+			// the widget keeps its default mark.
+			avatarUrl:
+				typeof project.avatarUrl === "string" && project.avatarUrl !== ""
+					? project.avatarUrl
 					: null,
 		});
 	},

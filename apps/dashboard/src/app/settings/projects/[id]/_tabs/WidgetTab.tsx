@@ -48,6 +48,40 @@ export function WidgetTab({
 						)}
 					</Field>
 
+					<Field
+						label="Agent photo"
+						hint="Give the widget a face — shown on the launcher bubble and the chat header. A square photo or logo works best; leave blank for the default icon."
+					>
+						{(id) => (
+							<div className="flex items-center gap-2">
+								<span
+									className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ck-border"
+									style={{ backgroundColor: color }}
+									aria-hidden="true"
+								>
+									{draft.avatarUrl ? (
+										// eslint-disable-next-line @next/next/no-img-element
+										<img
+											src={draft.avatarUrl}
+											alt=""
+											className="size-full object-cover"
+										/>
+									) : (
+										<span className="text-lg leading-none text-white">✦</span>
+									)}
+								</span>
+								<input
+									id={id}
+									type="url"
+									className={`${dsInputClass} font-mono text-xs`}
+									placeholder="https://yourdomain.com/team/sam.jpg"
+									value={draft.avatarUrl ?? ""}
+									onChange={(e) => set("avatarUrl", e.target.value || null)}
+								/>
+							</div>
+						)}
+					</Field>
+
 					<Field label="Welcome message" hint="The first message visitors see.">
 						{(id) => (
 							<input
@@ -159,6 +193,7 @@ export function WidgetTab({
 					welcomeMessage={draft.welcomeMessage}
 					brandColor={draft.brandColor}
 					suggestedQuestions={draft.suggestedQuestions}
+					avatarUrl={draft.avatarUrl}
 				/>
 			</div>
 

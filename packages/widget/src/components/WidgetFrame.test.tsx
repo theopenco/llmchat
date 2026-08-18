@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -71,6 +71,46 @@ describe("WidgetFrame — inline layout", () => {
 		expect(
 			screen.queryByRole("button", { name: /expand chat/i }),
 		).not.toBeInTheDocument();
+	});
+});
+
+describe("WidgetFrame — agent avatar", () => {
+	const AVATAR = "https://acme.example/team/sam.jpg";
+
+	it("shows the face on the closed launcher instead of the sparkle mark", () => {
+		renderFrame({ open: false, avatarUrl: AVATAR });
+		const launcher = screen.getByRole("button", { name: /open chat/i });
+		const face = launcher.querySelector("img.llmchat-bubble-face");
+		expect(face).toHaveAttribute("src", AVATAR);
+		expect(launcher.querySelector("svg")).not.toBeInTheDocument();
+	});
+
+	it("keeps the default mark when no avatar is configured", () => {
+		renderFrame({ open: false });
+		const launcher = screen.getByRole("button", { name: /open chat/i });
+		expect(launcher.querySelector("img")).not.toBeInTheDocument();
+		expect(launcher.querySelector("svg")).toBeInTheDocument();
+	});
+
+	it("shows the face on the header chip once open — the launcher swaps to the close glyph", () => {
+		renderFrame({ open: true, avatarUrl: AVATAR });
+		const dialog = screen.getByRole("dialog", { name: /support chat/i });
+		expect(dialog.querySelector("img.llmchat-header-face")).toHaveAttribute(
+			"src",
+			AVATAR,
+		);
+		// eslint-disable-next-line testing-library/no-node-access
+		const launcher = document.querySelector(".llmchat-bubble")!;
+		expect(launcher.querySelector("img")).not.toBeInTheDocument();
+	});
+
+	it("falls back to the default mark when the image fails to load", () => {
+		renderFrame({ open: false, avatarUrl: AVATAR });
+		const launcher = screen.getByRole("button", { name: /open chat/i });
+		const face = launcher.querySelector("img.llmchat-bubble-face")!;
+		fireEvent.error(face);
+		expect(launcher.querySelector("img")).not.toBeInTheDocument();
+		expect(launcher.querySelector("svg")).toBeInTheDocument();
 	});
 });
 

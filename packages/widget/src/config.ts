@@ -14,6 +14,10 @@ export interface BootConfig {
 	teaser: boolean;
 	/** Messages before the human-handoff prompt appears; undefined → widget default. */
 	escalationThreshold?: number;
+	/** Agent photo/logo for the launcher and header (data-avatar). The
+	 * dashboard-configured avatar from the server config wins once it
+	 * resolves; this covers the first paint and config-less embeds. */
+	avatarUrl?: string;
 }
 
 /**
@@ -45,6 +49,9 @@ export function resolveConfig(script: HTMLScriptElement | null): BootConfig {
 	const escalationThreshold = Number.isFinite(parsedThreshold)
 		? parsedThreshold
 		: undefined;
+	// data-avatar → the launcher/header face. Blank stays undefined so the
+	// widget falls back to its default mark (or the server-configured avatar).
+	const avatarUrl = script?.dataset.avatar || undefined;
 	return {
 		projectKey,
 		apiUrl,
@@ -53,5 +60,6 @@ export function resolveConfig(script: HTMLScriptElement | null): BootConfig {
 		theme,
 		teaser,
 		escalationThreshold,
+		avatarUrl,
 	};
 }

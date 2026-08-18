@@ -28,6 +28,7 @@ const EDITABLE_KEYS: (keyof ProjectDraft)[] = [
 	"name",
 	"welcomeMessage",
 	"brandColor",
+	"avatarUrl",
 	"model",
 	"systemPrompt",
 	"escalationThreshold",
@@ -52,6 +53,7 @@ function toDraft(p: Project): ProjectDraft {
 		// Fallbacks: a cached project fetched before these columns existed.
 		suggestedQuestions: p.suggestedQuestions ?? [],
 		collectIdentity: p.collectIdentity ?? false,
+		avatarUrl: p.avatarUrl ?? null,
 	};
 }
 

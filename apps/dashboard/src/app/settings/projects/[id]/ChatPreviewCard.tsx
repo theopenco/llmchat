@@ -15,11 +15,14 @@ export function ChatPreviewCard({
 	welcomeMessage,
 	brandColor,
 	suggestedQuestions = [],
+	avatarUrl = null,
 }: {
 	name: string;
 	welcomeMessage: string;
 	brandColor: string;
 	suggestedQuestions?: string[];
+	/** Agent photo/logo mirrored onto the preview header and launcher. */
+	avatarUrl?: string | null;
 }) {
 	const color = brandColor || "#000000";
 	const chips = suggestedQuestions.map((q) => q.trim()).filter(Boolean);
@@ -41,8 +44,17 @@ export function ChatPreviewCard({
 							className="flex items-center gap-3 px-4 py-3.5"
 							style={{ backgroundColor: color }}
 						>
-							<span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-black/25 text-white">
-								<Bot className="size-5" />
+							<span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-black/25 text-white">
+								{avatarUrl ? (
+									// eslint-disable-next-line @next/next/no-img-element
+									<img
+										src={avatarUrl}
+										alt=""
+										className="size-full object-cover"
+									/>
+								) : (
+									<Bot className="size-5" />
+								)}
 							</span>
 							<div className="min-w-0">
 								<p className="truncate text-sm font-semibold text-white">
@@ -91,10 +103,15 @@ export function ChatPreviewCard({
 					</div>
 					{/* Floating launcher */}
 					<span
-						className="absolute -bottom-0.5 right-0 flex size-12 items-center justify-center rounded-full text-white shadow-xl"
+						className="absolute -bottom-0.5 right-0 flex size-12 items-center justify-center overflow-hidden rounded-full text-white shadow-xl"
 						style={{ backgroundColor: color }}
 					>
-						<MessageCircle className="size-6" />
+						{avatarUrl ? (
+							// eslint-disable-next-line @next/next/no-img-element
+							<img src={avatarUrl} alt="" className="size-full object-cover" />
+						) : (
+							<MessageCircle className="size-6" />
+						)}
 					</span>
 				</div>
 			</CardContent>

@@ -42,7 +42,44 @@ describe("GET /config/:key — public widget config", () => {
 			suggestedQuestions: ["Pricing?", "Refunds?"],
 			collectIdentity: false,
 			welcomeMessage: "Welcome to Acme!",
+			avatarUrl: null,
 		});
+	});
+
+	it("returns the configured agent avatar URL", async () => {
+		mockProject({
+			workspaceId: "ws1",
+			privacyPolicyUrl: null,
+			suggestedQuestions: [],
+			avatarUrl: "https://acme.example/team/sam.jpg",
+		});
+		const res = await widgetConfig.request("/config/pk_x", {}, ENV);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({
+			avatarUrl: "https://acme.example/team/sam.jpg",
+		});
+	});
+
+	it("degrades a legacy/blank avatar column to null, never a 500", async () => {
+		mockProject({
+			workspaceId: "ws1",
+			privacyPolicyUrl: null,
+			suggestedQuestions: [],
+			// Legacy row predating the column, and an emptied value.
+			avatarUrl: undefined,
+		});
+		expect(
+			await (await widgetConfig.request("/config/pk_x", {}, ENV)).json(),
+		).toMatchObject({ avatarUrl: null });
+		mockProject({
+			workspaceId: "ws1",
+			privacyPolicyUrl: null,
+			suggestedQuestions: [],
+			avatarUrl: "",
+		});
+		expect(
+			await (await widgetConfig.request("/config/pk_x", {}, ENV)).json(),
+		).toMatchObject({ avatarUrl: null });
 	});
 
 	it("enables voice only when the resolved entitlements carry voiceCalls", async () => {

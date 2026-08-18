@@ -18,6 +18,7 @@ function draft(): ProjectDraft {
 		privacyPolicyUrl: null,
 		suggestedQuestions: [],
 		collectIdentity: false,
+		avatarUrl: null,
 	};
 }
 

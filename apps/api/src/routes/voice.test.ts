@@ -6,7 +6,7 @@ import { insertMessage } from "@/lib/messages";
 import { resolveAccess } from "@/lib/plan";
 import { captureEvent } from "@/lib/posthog";
 
-import { planEntitlements } from "@llmchat/shared";
+import { INTERNAL_ENTITLEMENTS, planEntitlements } from "@llmchat/shared";
 
 import { reserveOnce } from "@/lib/kv";
 
@@ -87,7 +87,7 @@ function setPlan(plan: string, exempt = false) {
 	vi.mocked(resolveAccess).mockResolvedValue({
 		exempt,
 		plan,
-		entitlements: planEntitlements(plan),
+		entitlements: exempt ? INTERNAL_ENTITLEMENTS : planEntitlements(plan),
 		stripeCustomerId: null,
 	});
 }

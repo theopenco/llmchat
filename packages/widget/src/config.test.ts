@@ -74,6 +74,24 @@ describe("resolveConfig", () => {
 		).toBe(true);
 	});
 
+	it("passes data-avatar through; blank/absent stays undefined", () => {
+		expect(
+			resolveConfig(
+				scriptTag({
+					"data-project": "pk",
+					"data-avatar": "https://acme.example/team/sam.jpg",
+				}),
+			).avatarUrl,
+		).toBe("https://acme.example/team/sam.jpg");
+		expect(
+			resolveConfig(scriptTag({ "data-project": "pk" })).avatarUrl,
+		).toBeUndefined();
+		expect(
+			resolveConfig(scriptTag({ "data-project": "pk", "data-avatar": "" }))
+				.avatarUrl,
+		).toBeUndefined();
+	});
+
 	it("parses data-escalation-threshold as a number", () => {
 		const config = resolveConfig(
 			scriptTag({ "data-project": "pk", "data-escalation-threshold": "5" }),
