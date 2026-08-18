@@ -81,6 +81,24 @@ describe("resolveConfig", () => {
 		expect(config.escalationThreshold).toBe(5);
 	});
 
+	it("parses data-avatar and leaves it undefined when absent or blank", () => {
+		expect(
+			resolveConfig(
+				scriptTag({
+					"data-project": "pk",
+					"data-avatar": "https://example.com/agent.jpg",
+				}),
+			).avatarUrl,
+		).toBe("https://example.com/agent.jpg");
+		expect(
+			resolveConfig(scriptTag({ "data-project": "pk" })).avatarUrl,
+		).toBeUndefined();
+		expect(
+			resolveConfig(scriptTag({ "data-project": "pk", "data-avatar": "   " }))
+				.avatarUrl,
+		).toBeUndefined();
+	});
+
 	it("leaves the threshold undefined when absent or unparseable", () => {
 		expect(
 			resolveConfig(scriptTag({ "data-project": "pk" })).escalationThreshold,

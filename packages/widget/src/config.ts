@@ -14,6 +14,9 @@ export interface BootConfig {
 	teaser: boolean;
 	/** Messages before the human-handoff prompt appears; undefined → widget default. */
 	escalationThreshold?: number;
+	/** Image URL for a support-agent face shown on the launcher and header;
+	 * undefined → the built-in chat glyph. */
+	avatarUrl?: string;
 }
 
 /**
@@ -45,6 +48,9 @@ export function resolveConfig(script: HTMLScriptElement | null): BootConfig {
 	const escalationThreshold = Number.isFinite(parsedThreshold)
 		? parsedThreshold
 		: undefined;
+	// data-avatar → a face image for the launcher/header; blank stays undefined
+	// so the widget keeps its built-in glyph.
+	const avatarUrl = script?.dataset.avatar?.trim() || undefined;
 	return {
 		projectKey,
 		apiUrl,
@@ -53,5 +59,6 @@ export function resolveConfig(script: HTMLScriptElement | null): BootConfig {
 		theme,
 		teaser,
 		escalationThreshold,
+		avatarUrl,
 	};
 }

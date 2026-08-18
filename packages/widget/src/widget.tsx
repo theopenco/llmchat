@@ -86,6 +86,9 @@ interface BaseWidgetProps {
 	/** Proactive teaser bubbles above the closed launcher (default on);
 	 * embedders opt out with data-teaser="off". */
 	teaser?: boolean;
+	/** Image URL for a support-agent face (data-avatar) — shown on the round
+	 * launcher and in the header so the widget reads as a human agent. */
+	avatarUrl?: string;
 }
 
 interface LiveWidgetProps extends BaseWidgetProps {
@@ -112,6 +115,7 @@ export function Widget(props: WidgetProps) {
 				mode={props.mode}
 				theme={props.theme}
 				teaser={props.teaser}
+				avatarUrl={props.avatarUrl}
 			/>
 		);
 	}
@@ -123,6 +127,7 @@ function ShowcaseWidget({
 	mode = "bubble",
 	theme = "light",
 	teaser = true,
+	avatarUrl,
 }: BaseWidgetProps) {
 	const inline = mode === "inline";
 	const [open, setOpen] = useState(inline);
@@ -138,6 +143,7 @@ function ShowcaseWidget({
 			inline={inline}
 			brandColor={brandColor}
 			theme={resolvedTheme}
+			avatarUrl={avatarUrl}
 			open={open}
 			onOpenChange={(next) => {
 				if (next) {
@@ -205,6 +211,7 @@ function LiveWidget({
 	theme = "light",
 	teaser = true,
 	escalationThreshold,
+	avatarUrl,
 }: LiveWidgetProps) {
 	const inline = mode === "inline";
 	const [open, setOpen] = useState(inline);
@@ -713,6 +720,7 @@ function LiveWidget({
 			inline={inline}
 			brandColor={brandColor}
 			theme={resolvedTheme}
+			avatarUrl={avatarUrl}
 			open={open}
 			onOpenChange={handleOpenChange}
 			unreadCount={unreadCount}

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -71,6 +71,61 @@ describe("WidgetFrame — inline layout", () => {
 		expect(
 			screen.queryByRole("button", { name: /expand chat/i }),
 		).not.toBeInTheDocument();
+	});
+});
+
+describe("WidgetFrame — avatar", () => {
+	const AVATAR = "https://example.com/agent.jpg";
+
+	function launcherFace(): HTMLImageElement | null {
+		return document.querySelector(".llmchat-bubble-face");
+	}
+	function headerFace(): HTMLImageElement | null {
+		return document.querySelector(".llmchat-header-avatar img");
+	}
+
+	it("shows the face on the closed launcher instead of the chat glyph", () => {
+		renderFrame({ open: false, avatarUrl: AVATAR });
+		const face = launcherFace();
+		expect(face).toBeInTheDocument();
+		expect(face?.src).toBe(AVATAR);
+		expect(
+			document.querySelector(".llmchat-bubble-icon svg"),
+		).not.toBeInTheDocument();
+	});
+
+	it("shows the face in the panel header", () => {
+		renderFrame({ open: true, avatarUrl: AVATAR });
+		const face = headerFace();
+		expect(face).toBeInTheDocument();
+		expect(face?.src).toBe(AVATAR);
+	});
+
+	it("keeps the built-in glyph when no avatar is configured", () => {
+		renderFrame({ open: false });
+		expect(launcherFace()).not.toBeInTheDocument();
+		expect(
+			document.querySelector(".llmchat-bubble-icon svg"),
+		).toBeInTheDocument();
+	});
+
+	it("the open launcher still swaps to the close icon over the face", () => {
+		renderFrame({ open: true, avatarUrl: AVATAR });
+		expect(launcherFace()).not.toBeInTheDocument();
+		expect(
+			document.querySelector(".llmchat-bubble-icon svg"),
+		).toBeInTheDocument();
+	});
+
+	it("falls back to the glyph when the image fails to load", () => {
+		renderFrame({ open: false, avatarUrl: AVATAR });
+		const face = launcherFace();
+		expect(face).toBeInTheDocument();
+		fireEvent.error(face!);
+		expect(launcherFace()).not.toBeInTheDocument();
+		expect(
+			document.querySelector(".llmchat-bubble-icon svg"),
+		).toBeInTheDocument();
 	});
 });
 

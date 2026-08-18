@@ -147,6 +147,19 @@ export const widgetStyles = `
 	display: flex;
 	animation: llmchat-pop 0.2s ease;
 }
+/* Operator-configured face (data-avatar): fills the whole launcher so it reads
+   as a person, not an icon in a circle. Absolute against the button (the icon
+   span has no box of its own); the unread badge is later in the DOM and paints
+   above it. */
+.llmchat-bubble-face {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border-radius: 9999px;
+	object-fit: cover;
+	animation: llmchat-pop 0.2s ease;
+}
 @keyframes llmchat-pop {
 	from {
 		opacity: 0;
@@ -423,6 +436,12 @@ export const widgetStyles = `
 .llmchat-header-avatar svg {
 	width: 16.8px;
 	height: 16.8px;
+}
+.llmchat-header-avatar img {
+	width: 100%;
+	height: 100%;
+	border-radius: 9999px;
+	object-fit: cover;
 }
 .llmchat-header-text {
 	font-weight: 600;
