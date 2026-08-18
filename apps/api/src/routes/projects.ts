@@ -19,7 +19,22 @@ import {
 	requireWorkspace,
 } from "@/middleware/session";
 
-import { and, count, eq, gte, project, usageEvent } from "@llmchat/db";
+import {
+	AVATAR_BASE64_MAX,
+	AVATAR_CONTENT_TYPES,
+	decodeBase64,
+	sniffImageType,
+} from "@/lib/avatar";
+
+import {
+	and,
+	count,
+	eq,
+	gte,
+	project,
+	projectAvatar,
+	usageEvent,
+} from "@llmchat/db";
 import {
 	DEFAULT_MODEL,
 	isModelAllowed,
@@ -81,6 +96,13 @@ const projectUpdateInput = z.object({
 	collectIdentity: z.boolean().optional(),
 	favorite: z.boolean().optional(),
 	pinned: z.boolean().optional(),
+});
+
+// Uploaded agent photo. The dashboard downscales/re-encodes client-side; the
+// handler still magic-byte-verifies the payload against the declared type.
+const avatarUploadInput = z.object({
+	contentType: z.enum(AVATAR_CONTENT_TYPES),
+	data: z.string().min(1).max(AVATAR_BASE64_MAX),
 });
 
 function generatePublicKey() {
@@ -165,6 +187,84 @@ export const projects = new Hono<AppContext>()
 			ceiling: VOICE_TOKEN_CEILING,
 			trimmed: assembledEstimate.trimmed,
 		});
+	})
+	// Uploaded agent photo (the widget avatar). Meta only — the image itself is
+	// served publicly at /v1/avatar/:key (widget-config.ts), which the dashboard
+	// also uses for its preview. Readable by any member (it's their own
+	// project's branding state).
+	.get("/projects/:projectId/avatar", async (c) => {
+		const workspaceId = c.get("workspaceId");
+		const projectId = c.req.param("projectId");
+		const row = await db(c.env).query.project.findFirst({
+			where: (pt, { and: a, eq: e }) =>
+				a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+			columns: { id: true },
+		});
+		if (!row) {
+			return c.json({ error: "not found" }, 404);
+		}
+		let uploaded = null;
+		try {
+			uploaded =
+				(await db(c.env).query.projectAvatar.findFirst({
+					where: (t, { eq: e }) => e(t.projectId, projectId),
+					columns: { contentType: true, updatedAt: true },
+				})) ?? null;
+		} catch {
+			// Preview DBs may lack the table (migrations skipped) — report no
+			// upload instead of 500ing the settings page.
+		}
+		return c.json({ avatar: uploaded });
+	})
+	.put(
+		"/projects/:projectId/avatar",
+		requireRole("admin"),
+		zValidator("json", avatarUploadInput),
+		async (c) => {
+			const workspaceId = c.get("workspaceId");
+			const projectId = c.req.param("projectId");
+			const { contentType, data } = c.req.valid("json");
+			const existing = await db(c.env).query.project.findFirst({
+				where: (pt, { and: a, eq: e }) =>
+					a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+				columns: { id: true },
+			});
+			if (!existing) {
+				return c.json({ error: "not found" }, 404);
+			}
+			// The declared content-type is echoed back verbatim by the public
+			// avatar route, so the bytes must really be that image type — never
+			// store what wasn't verified.
+			const bytes = decodeBase64(data);
+			if (!bytes || sniffImageType(bytes) !== contentType) {
+				return c.json({ error: "invalid_image" }, 400);
+			}
+			const updatedAt = new Date();
+			await db(c.env)
+				.insert(projectAvatar)
+				.values({ projectId, contentType, data, updatedAt })
+				.onConflictDoUpdate({
+					target: projectAvatar.projectId,
+					set: { contentType, data, updatedAt },
+				});
+			return c.json({ avatar: { contentType, updatedAt } });
+		},
+	)
+	.delete("/projects/:projectId/avatar", requireRole("admin"), async (c) => {
+		const workspaceId = c.get("workspaceId");
+		const projectId = c.req.param("projectId");
+		const existing = await db(c.env).query.project.findFirst({
+			where: (pt, { and: a, eq: e }) =>
+				a(e(pt.id, projectId), e(pt.workspaceId, workspaceId)),
+			columns: { id: true },
+		});
+		if (!existing) {
+			return c.json({ error: "not found" }, 404);
+		}
+		await db(c.env)
+			.delete(projectAvatar)
+			.where(eq(projectAvatar.projectId, projectId));
+		return c.json({ ok: true });
 	})
 	.post(
 		"/projects",

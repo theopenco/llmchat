@@ -1,23 +1,106 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, Upload, X } from "lucide-react";
+import { useRef, useState } from "react";
 
 import { Button, Card, dsInputClass, Field } from "@/components/ds";
 import { EmbedSnippet } from "@/components/embed-snippet";
+import { api, describeApiError } from "@/lib/api";
+import { apiBaseUrl } from "@/lib/api-base";
 
+import { fileToAvatarPayload, rejectAvatarFile } from "../avatar-image";
 import { ChatPreviewCard } from "../ChatPreviewCard";
 import { MAX_SUGGESTED_QUESTIONS, type ProjectDraft } from "../types";
+
+interface AvatarMeta {
+	contentType: string;
+	updatedAt: string;
+}
 
 export function WidgetTab({
 	draft,
 	set,
+	projectId,
+	workspaceId,
 	publicKey,
 }: {
 	draft: ProjectDraft;
 	set: <K extends keyof ProjectDraft>(key: K, value: ProjectDraft[K]) => void;
+	projectId: string;
+	workspaceId: string | null;
 	publicKey: string;
 }) {
 	const color = draft.brandColor || "#6366f1";
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [avatarError, setAvatarError] = useState<string | null>(null);
+	const queryClient = useQueryClient();
+
+	// Uploaded-photo state (meta only; the image itself is served from the
+	// public /v1/avatar/:key route, which the previews <img> directly).
+	const avatarQ = useQuery({
+		queryKey: ["project-avatar", projectId],
+		enabled: !!workspaceId,
+		queryFn: () =>
+			api<{ avatar: AvatarMeta | null }>(`/api/projects/${projectId}/avatar`, {
+				workspaceId: workspaceId!,
+			}),
+	});
+	const uploaded = avatarQ.data?.avatar ?? null;
+	const uploadedUrl = uploaded
+		? `${apiBaseUrl()}/v1/avatar/${publicKey}?v=${Date.parse(uploaded.updatedAt)}`
+		: null;
+	// What the widget will actually show: an uploaded photo wins over the URL
+	// field (mirrors the /v1/config precedence).
+	const effectiveAvatarUrl = uploadedUrl ?? draft.avatarUrl;
+
+	const uploadAvatar = useMutation({
+		mutationFn: async (file: File) => {
+			const payload = await fileToAvatarPayload(file);
+			return api(`/api/projects/${projectId}/avatar`, {
+				method: "PUT",
+				body: payload,
+				workspaceId: workspaceId!,
+			});
+		},
+		onSuccess: () => {
+			setAvatarError(null);
+			void queryClient.invalidateQueries({
+				queryKey: ["project-avatar", projectId],
+			});
+		},
+		onError: (err) =>
+			setAvatarError(
+				describeApiError(err, "Couldn't upload that image — try another."),
+			),
+	});
+	const removeAvatar = useMutation({
+		mutationFn: () =>
+			api(`/api/projects/${projectId}/avatar`, {
+				method: "DELETE",
+				workspaceId: workspaceId!,
+			}),
+		onSuccess: () => {
+			setAvatarError(null);
+			void queryClient.invalidateQueries({
+				queryKey: ["project-avatar", projectId],
+			});
+		},
+		onError: (err) =>
+			setAvatarError(describeApiError(err, "Couldn't remove the photo.")),
+	});
+
+	function handleAvatarFile(file: File | undefined) {
+		if (!file) {
+			return;
+		}
+		const rejection = rejectAvatarFile(file);
+		if (rejection) {
+			setAvatarError(rejection);
+			return;
+		}
+		uploadAvatar.mutate(file);
+	}
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="grid gap-6 lg:grid-cols-[1fr_300px]">
@@ -50,26 +133,64 @@ export function WidgetTab({
 
 					<Field
 						label="Agent photo"
-						hint="Give the widget a face — shown on the launcher bubble and the chat header. A square photo or logo works best; leave blank for the default icon."
+						hint="Give the widget a face — shown on the launcher bubble and the chat header. Upload a square photo or logo, or paste an image URL below; an uploaded photo takes precedence."
 					>
 						{(id) => (
-							<div className="flex items-center gap-2">
-								<span
-									className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ck-border"
-									style={{ backgroundColor: color }}
-									aria-hidden="true"
-								>
-									{draft.avatarUrl ? (
-										// eslint-disable-next-line @next/next/no-img-element
-										<img
-											src={draft.avatarUrl}
-											alt=""
-											className="size-full object-cover"
-										/>
-									) : (
-										<span className="text-lg leading-none text-white">✦</span>
+							<div className="flex flex-col gap-2">
+								<div className="flex items-center gap-2">
+									<span
+										className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ck-border"
+										style={{ backgroundColor: color }}
+										aria-hidden="true"
+									>
+										{effectiveAvatarUrl ? (
+											// eslint-disable-next-line @next/next/no-img-element
+											<img
+												src={effectiveAvatarUrl}
+												alt=""
+												className="size-full object-cover"
+											/>
+										) : (
+											<span className="text-lg leading-none text-white">✦</span>
+										)}
+									</span>
+									<input
+										ref={fileInputRef}
+										type="file"
+										accept="image/png,image/jpeg,image/webp"
+										className="hidden"
+										aria-label="Agent photo file"
+										onChange={(e) => {
+											handleAvatarFile(e.target.files?.[0]);
+											// Same-file re-select must fire onChange again.
+											e.target.value = "";
+										}}
+									/>
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={uploadAvatar.isPending}
+										onClick={() => fileInputRef.current?.click()}
+									>
+										<Upload className="size-4" />
+										{uploadAvatar.isPending
+											? "Uploading…"
+											: uploaded
+												? "Replace photo"
+												: "Upload photo"}
+									</Button>
+									{uploaded && (
+										<Button
+											variant="ghost"
+											size="sm"
+											className="text-ck-faint"
+											disabled={removeAvatar.isPending}
+											onClick={() => removeAvatar.mutate()}
+										>
+											Remove
+										</Button>
 									)}
-								</span>
+								</div>
 								<input
 									id={id}
 									type="url"
@@ -77,7 +198,13 @@ export function WidgetTab({
 									placeholder="https://yourdomain.com/team/sam.jpg"
 									value={draft.avatarUrl ?? ""}
 									onChange={(e) => set("avatarUrl", e.target.value || null)}
+									aria-label="Agent photo URL"
 								/>
+								{avatarError && (
+									<p className="text-xs text-red-600" role="alert">
+										{avatarError}
+									</p>
+								)}
 							</div>
 						)}
 					</Field>
@@ -193,7 +320,7 @@ export function WidgetTab({
 					welcomeMessage={draft.welcomeMessage}
 					brandColor={draft.brandColor}
 					suggestedQuestions={draft.suggestedQuestions}
-					avatarUrl={draft.avatarUrl}
+					avatarUrl={effectiveAvatarUrl}
 				/>
 			</div>
 
