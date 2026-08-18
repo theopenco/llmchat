@@ -13,10 +13,18 @@ dist/
 .env.*
 !.env.example
 !**/.env.example
-# Showcase production env holds ONLY a public NEXT_PUBLIC_WIDGET_KEY (the
-# operator's public project key) so the prod build is reproducible from the
-# repo. Public by design — never put secrets here.
+# Per-app production env. Ploy dropped the `env:` block from ploy.yaml (env
+# vars now come from Ploy project settings + a local .env), so the public
+# build-time NEXT_PUBLIC_* literals that used to live there are committed here
+# instead — that keeps the prod build reproducible from the repo. These hold
+# ONLY public values (cross-app URLs, public embed key, write-only PostHog
+# key). Public by design — never put secrets here; a real env var set in Ploy
+# project settings overrides these at build time.
 !apps/showcase/.env.production
+!apps/admin/.env.production
+!apps/dashboard/.env.production
+!apps/docs/.env.production
+!apps/marketing/.env.production
 .dev.vars
 .DS_Store
 .idea/

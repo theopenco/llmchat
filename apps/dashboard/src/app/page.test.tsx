@@ -56,4 +56,10 @@ describe("root route session fork", () => {
 		render(<Home />);
 		expect(replace).not.toHaveBeenCalled();
 	});
+
+	it("paints the dashboard skeleton while deciding — never a blank page", () => {
+		mockSession({ data: null, isPending: true });
+		const { container } = render(<Home />);
+		expect(container.firstChild).not.toBeNull();
+	});
 });

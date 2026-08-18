@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { isTransientSessionError, useSession } from "@/lib/auth-client";
 
 export default function Home() {
@@ -19,5 +20,8 @@ export default function Home() {
 		}
 		router.replace(data?.user ? "/inbox" : "/sign-in");
 	}, [data, isPending, error, router]);
-	return null;
+	// The entry route is a pure redirect decision — while the session resolves,
+	// paint the dashboard skeleton (the destination for the common signed-in
+	// case) instead of a blank page.
+	return <DashboardSkeleton />;
 }
