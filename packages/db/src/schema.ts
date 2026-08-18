@@ -191,6 +191,9 @@ export const project = sqliteTable(
 		knowledgeText: text().notNull().default(""),
 		model: text().notNull().default("gpt-5.4-mini"),
 		brandColor: text().notNull().default("#000000"),
+		// Absolute URL of the agent photo/logo shown on the widget launcher and
+		// header. Null → the widget keeps its default sparkle mark.
+		avatarUrl: text(),
 		welcomeMessage: text().notNull().default("Hi! How can I help you today?"),
 		escalationThreshold: integer().notNull().default(3),
 		notifyEmail: text(),

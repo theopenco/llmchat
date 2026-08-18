@@ -55,8 +55,8 @@ describe("migration 0027 — conversation_assignment contract", () => {
 		applyMigrations(sqlite);
 	});
 
-	it("is the latest migration file", () => {
-		expect(sortedMigrationFiles().at(-1)).toBe(
+	it("is applied by the migration runner (present in the sorted set)", () => {
+		expect(sortedMigrationFiles()).toContain(
 			"0027_conversation_assignment.sql",
 		);
 	});
