@@ -49,6 +49,8 @@ interface State {
 	 * create. `undefined` here means "use a default"; pass null to model a user
 	 * with no email on record. */
 	creatorEmail?: string | null;
+	/** Uploaded agent-photo row, or undefined = none uploaded. */
+	avatarRow?: { contentType: string; data: string; updatedAt: Date };
 }
 
 let insertSpy: ReturnType<typeof vi.fn>;
@@ -66,7 +68,11 @@ function mockDb(state: State) {
 	insertSpy = vi.fn(() => ({
 		values: (v: Record<string, unknown>) => {
 			lastInsertValues = v;
-			return { returning: async () => [{ id: "p_new", ...v }] };
+			return {
+				returning: async () => [{ id: "p_new", ...v }],
+				// The avatar upload is an upsert (insert().values().onConflictDoUpdate).
+				onConflictDoUpdate: async () => [],
+			};
 		},
 	}));
 	deleteSpy = vi.fn(() => ({ where: async () => [] }));
@@ -90,6 +96,9 @@ function mockDb(state: State) {
 			},
 			workspace: {
 				findFirst: async () => ({ plan: state.plan ?? "scale" }),
+			},
+			projectAvatar: {
+				findFirst: async () => state.avatarRow,
 			},
 			// The create handler looks up the caller's own user row to seed the
 			// notifyEmail default. `undefined` creatorEmail ⇒ a sensible default.
@@ -440,5 +449,109 @@ describe("PATCH /projects/:id — partial update never clobbers siblings", () =>
 		const res = await patch({ brandColor: "#000000" });
 		expect(res.status).toBe(404);
 		expect(updateSpy).not.toHaveBeenCalled();
+	});
+});
+
+describe("agent photo — /projects/:id/avatar", () => {
+	// 8 PNG magic bytes / 4 JPEG-ish bytes — enough for the server-side sniff.
+	const PNG_B64 = "iVBORw0KGgo=";
+	const JPEG_B64 = "/9j/4A==";
+	const AUTH = { "x-test-user": "u1", "x-workspace-id": "ws_1" };
+
+	function putAvatar(body: unknown) {
+		return req("/projects/p1/avatar", {
+			method: "PUT",
+			headers: { ...AUTH, ...json },
+			body: JSON.stringify(body),
+		});
+	}
+
+	it("uploads a verified image (upsert) and returns the new meta", async () => {
+		mockDb({ role: "admin", existingProject: { id: "p1" } });
+		const res = await putAvatar({ contentType: "image/png", data: PNG_B64 });
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as { avatar: { contentType: string } };
+		expect(body.avatar.contentType).toBe("image/png");
+		expect(insertSpy).toHaveBeenCalled();
+	});
+
+	it("400s when the bytes are not the declared type — never stores a lie", async () => {
+		mockDb({ role: "admin", existingProject: { id: "p1" } });
+		// Declared PNG, actual JPEG bytes.
+		const res = await putAvatar({ contentType: "image/png", data: JPEG_B64 });
+		expect(res.status).toBe(400);
+		expect(await res.json()).toMatchObject({ error: "invalid_image" });
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("400s malformed base64 without storing", async () => {
+		mockDb({ role: "admin", existingProject: { id: "p1" } });
+		const res = await putAvatar({
+			contentType: "image/png",
+			data: "not base64!!",
+		});
+		expect(res.status).toBe(400);
+		expect(insertSpy).not.toHaveBeenCalled();
+	});
+
+	it("403s an agent on upload and delete (admin-gated like other writes)", async () => {
+		mockDb({ role: "agent", existingProject: { id: "p1" } });
+		const up = await putAvatar({ contentType: "image/png", data: PNG_B64 });
+		expect(up.status).toBe(403);
+		const del = await req("/projects/p1/avatar", {
+			method: "DELETE",
+			headers: AUTH,
+		});
+		expect(del.status).toBe(403);
+		expect(insertSpy).not.toHaveBeenCalled();
+		expect(deleteSpy).not.toHaveBeenCalled();
+	});
+
+	it("404s a project outside the workspace on every verb", async () => {
+		mockDb({ role: "admin", existingProject: undefined });
+		expect((await req("/projects/p9/avatar", { headers: AUTH })).status).toBe(
+			404,
+		);
+		expect(
+			(
+				await req("/projects/p9/avatar", {
+					method: "PUT",
+					headers: { ...AUTH, ...json },
+					body: JSON.stringify({ contentType: "image/png", data: PNG_B64 }),
+				})
+			).status,
+		).toBe(404);
+		expect(
+			(await req("/projects/p9/avatar", { method: "DELETE", headers: AUTH }))
+				.status,
+		).toBe(404);
+	});
+
+	it("reports the uploaded state to any member; null when none", async () => {
+		const updatedAt = new Date(1_755_000_000_000);
+		mockDb({
+			role: "agent",
+			existingProject: { id: "p1" },
+			avatarRow: { contentType: "image/png", data: PNG_B64, updatedAt },
+		});
+		const res = await req("/projects/p1/avatar", { headers: AUTH });
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({
+			avatar: { contentType: "image/png" },
+		});
+
+		mockDb({ role: "agent", existingProject: { id: "p1" } });
+		const none = await req("/projects/p1/avatar", { headers: AUTH });
+		expect(await none.json()).toEqual({ avatar: null });
+	});
+
+	it("removes the uploaded photo", async () => {
+		mockDb({ role: "admin", existingProject: { id: "p1" } });
+		const res = await req("/projects/p1/avatar", {
+			method: "DELETE",
+			headers: AUTH,
+		});
+		expect(res.status).toBe(200);
+		expect(deleteSpy).toHaveBeenCalled();
 	});
 });

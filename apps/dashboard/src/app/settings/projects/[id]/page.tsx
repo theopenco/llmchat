@@ -191,7 +191,13 @@ export default function ProjectSettingsPage() {
 						/>
 					)}
 					{tab === "widget" && (
-						<WidgetTab draft={draft} set={set} publicKey={project.publicKey} />
+						<WidgetTab
+							draft={draft}
+							set={set}
+							projectId={project.id}
+							workspaceId={workspaceId}
+							publicKey={project.publicKey}
+						/>
 					)}
 					{tab === "behavior" && (
 						<BehaviorTab
