@@ -202,10 +202,7 @@ export const voice = new Hono<AppContext>()
 		// voiceCalls too via INTERNAL_ENTITLEMENTS). 402 matches the paywall
 		// convention — and the widget never shows the call button unless
 		// /v1/config said voiceEnabled, so hitting this means a forged request.
-		const { entitlements } = await resolveAccess(
-			c.env,
-			project.workspaceId,
-		);
+		const { entitlements } = await resolveAccess(c.env, project.workspaceId);
 		if (!entitlements.voiceCalls) {
 			return c.json({ error: "voice_not_available" }, 402);
 		}
