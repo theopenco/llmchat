@@ -159,8 +159,8 @@ Build a ⌘K support palette, a docked sidebar, a help tab inside your settings 
 Whichever layer you use, the behavior is the full Clanker Support loop:
 
 - Streaming AI answers grounded in your knowledge base (docs URLs, text snippets, Q&A pairs).
-- Human escalation that emails your team and posts to Slack, with the bot going quiet while a human owns the conversation.
-- Operator replies from the dashboard inbox appearing in the widget live — no refresh.
+- Human escalation that emails your team and posts to Slack, with the agent going quiet while a human owns the conversation.
+- Operator replies from the dashboard inbox appearing in the widget within seconds — no refresh.
 - Per-message thumbs ratings and an end-of-conversation CSAT prompt.
 - A privacy notice, identity capture, and conversations that survive reloads.
 

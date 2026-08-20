@@ -1,5 +1,7 @@
 {
-	"_comment": "Ordered dev.to cross-post queue. The GitHub Actions workflow posts ONE not-yet-posted item per run (Mon/Wed/Fri). Items with published:true go live immediately — safe here because they are already published on clankersupport.com. To syndicate NEW original content, add a markdown file under automation/devto/drafts/ and a queue item with published:false — it is created as a dev.to DRAFT for you to review and publish by hand. Idempotent: an item already on the account (matched by canonical_url or title) is skipped, so re-runs never double-post. Reorder freely; posting follows array order. `cover` (root-relative, absolutized against SITE_ORIGIN) becomes the dev.to cover_image; the -devto.jpg variants are pre-cropped to dev.to's 1000x420 ratio.",
+	"_comment": "Ordered dev.to cross-post queue. The GitHub Actions workflow posts ONE not-yet-posted item per run (weekly, Wed 14:00 UTC). Items with published:true go live immediately — safe here because they are already published on clankersupport.com. To syndicate NEW original content, add a markdown file under automation/devto/drafts/ and a queue item with published:false — it is created as a dev.to DRAFT for you to review and publish by hand. Idempotent: an item already on the account (matched by canonical_url or title) is skipped, so re-runs never double-post. Reorder freely; posting follows array order. `cover` (root-relative, absolutized against SITE_ORIGIN) becomes the dev.to cover_image; the -devto.jpg variants are pre-cropped to dev.to's 1000x420 ratio.",
+	"_sweep": "2026-08-20 clients-first sweep: queue now carries only client-facing posts (introduce the product, one feature shines vs a named alternative; install tutorials count). Removed as dev-story: cloudflare-workers-every-node-sdk-broke, shipping-an-embeddable-widget, additive-migration-almost-broke-every-login, ai-support-agent-without-rag, knowledge-base-recrawl-cdn-cache, ai-seo-audit-checklist. Held pending content fixes on the source posts (re-add after): open-source-intercom-alternatives (unverifiable citations claim), add-ai-support-agent-any-stack (web-search implication, stale WP-zip claim), 7-day-free-trial (retired showcase links, money-back-guarantee wording).",
+	"_account": "Most posts were ALREADY published manually on dev.to (16 articles as of 2026-08-20) — idempotency skips those, so only never-posted queue items actually publish (currently: nextjs-ai-support-widget-server-component, wordpress-ai-support-plugin). CRITICAL: DEVTO_API_KEY must be generated from the SAME dev.to account that holds those existing articles; a key from any other account fails every canonical/title match and re-posts everything as duplicates.",
 	"items": [
 		{
 			"slug": "salesforce-fin-intercom-acquisition-support-bill",
@@ -38,24 +40,6 @@
 			"published": true
 		},
 		{
-			"slug": "open-source-intercom-alternatives",
-			"source": "apps/marketing/content/blog/open-source-intercom-alternatives.md",
-			"canonical": "https://clankersupport.com/blog/open-source-intercom-alternatives",
-			"series": "AI customer support in 2026",
-			"tags": ["opensource", "selfhosted", "customersupport", "ai"],
-			"cover": "/blog/open-source-intercom-alternatives-devto.jpg",
-			"published": true
-		},
-		{
-			"slug": "cloudflare-workers-every-node-sdk-broke",
-			"source": "apps/marketing/content/blog/cloudflare-workers-every-node-sdk-broke.md",
-			"canonical": "https://clankersupport.com/blog/cloudflare-workers-every-node-sdk-broke",
-			"series": "Building Clanker Support",
-			"tags": ["cloudflare", "node", "webdev", "serverless"],
-			"cover": "/blog/cloudflare-workers-every-node-sdk-broke-devto.jpg",
-			"published": true
-		},
-		{
 			"slug": "nextjs-ai-support-widget-server-component",
 			"source": "apps/marketing/content/blog/nextjs-ai-support-widget-server-component.md",
 			"canonical": "https://clankersupport.com/blog/nextjs-ai-support-widget-server-component",
@@ -64,69 +48,11 @@
 			"published": true
 		},
 		{
-			"slug": "ai-support-agent-without-rag",
-			"source": "apps/marketing/content/blog/ai-support-agent-without-rag.md",
-			"canonical": "https://clankersupport.com/blog/ai-support-agent-without-rag",
-			"series": "Building Clanker Support",
-			"tags": ["ai", "llm", "architecture", "webdev"],
-			"cover": "/blog/ai-support-agent-without-rag-devto.jpg",
-			"published": true
-		},
-		{
 			"slug": "wordpress-ai-support-plugin",
 			"source": "apps/marketing/content/blog/wordpress-ai-support-plugin.md",
 			"canonical": "https://clankersupport.com/blog/wordpress-ai-support-plugin",
 			"tags": ["wordpress", "ai", "opensource", "webdev"],
 			"cover": "/blog/wordpress-ai-support-plugin-devto.jpg",
-			"published": true
-		},
-		{
-			"slug": "shipping-an-embeddable-widget",
-			"source": "apps/marketing/content/blog/shipping-an-embeddable-widget.md",
-			"canonical": "https://clankersupport.com/blog/shipping-an-embeddable-widget",
-			"series": "Building Clanker Support",
-			"tags": ["javascript", "webdev", "css", "frontend"],
-			"cover": "/blog/shipping-an-embeddable-widget-devto.jpg",
-			"published": true
-		},
-		{
-			"slug": "add-ai-support-agent-any-stack",
-			"source": "apps/marketing/content/blog/add-ai-support-agent-any-stack.md",
-			"canonical": "https://clankersupport.com/blog/add-ai-support-agent-any-stack",
-			"tags": ["tutorial", "webdev", "ai", "javascript"],
-			"cover": "/blog/add-ai-support-agent-any-stack-devto.jpg",
-			"published": true
-		},
-		{
-			"slug": "additive-migration-almost-broke-every-login",
-			"source": "apps/marketing/content/blog/additive-migration-almost-broke-every-login.md",
-			"canonical": "https://clankersupport.com/blog/additive-migration-almost-broke-every-login",
-			"tags": ["database", "sql", "devops", "webdev"],
-			"cover": "/blog/additive-migration-almost-broke-every-login-devto.jpg",
-			"published": true
-		},
-		{
-			"slug": "knowledge-base-recrawl-cdn-cache",
-			"source": "apps/marketing/content/blog/knowledge-base-recrawl-cdn-cache.md",
-			"canonical": "https://clankersupport.com/blog/knowledge-base-recrawl-cdn-cache",
-			"tags": ["rag", "caching", "webdev", "ai"],
-			"cover": "/blog/knowledge-base-recrawl-cdn-cache-devto.jpg",
-			"published": true
-		},
-		{
-			"slug": "ai-seo-audit-checklist",
-			"source": "apps/marketing/content/blog/ai-seo-audit-checklist.md",
-			"canonical": "https://clankersupport.com/blog/ai-seo-audit-checklist",
-			"tags": ["seo", "nextjs", "webdev", "ai"],
-			"cover": "/blog/ai-seo-audit-checklist-devto.jpg",
-			"published": true
-		},
-		{
-			"slug": "7-day-free-trial",
-			"source": "apps/marketing/content/blog/7-day-free-trial.md",
-			"canonical": "https://clankersupport.com/blog/7-day-free-trial",
-			"tags": ["saas", "startup", "ai", "customersupport"],
-			"cover": "/blog/7-day-free-trial-devto.jpg",
 			"published": true
 		}
 	]
