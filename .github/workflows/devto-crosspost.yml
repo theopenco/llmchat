@@ -1,12 +1,12 @@
 name: devto-crosspost
 
-# Cross-posts blog articles to dev.to on a Mon/Wed/Fri cadence. Posts ONE queued
+# Cross-posts blog articles to dev.to on a weekly cadence. Posts ONE queued
 # item per run (or nothing when the queue is drained). Idempotent — safe to re-run.
 # Queue + logic live in automation/devto/. Requires the DEVTO_API_KEY repo secret.
 
 on:
   schedule:
-    - cron: "0 14 * * 1,3,5" # Mon/Wed/Fri 14:00 UTC
+    - cron: "0 14 * * 3" # Wed 14:00 UTC — weekly; dev.to flags accounts that post daily
   workflow_dispatch:
     inputs:
       dry_run:
