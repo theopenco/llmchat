@@ -46,7 +46,7 @@ And the floating bubble isn't the only placement. Drop the shortcode into any pa
 
 The shortcode works even when the site-wide bubble is toggled off, so you can offer chat only where it makes sense.
 
-Your visitors get the same full support loop as every Clanker Support embed: streaming AI answers grounded in your docs, human escalation that notifies your team by email and Slack, operator replies from the dashboard inbox appearing in the widget live, and per-message ratings with an end-of-conversation CSAT prompt.
+Your visitors get the same full support loop as every Clanker Support embed: streaming AI answers grounded in your docs, human escalation that notifies your team by email and Slack, operator replies from the dashboard inbox appearing in the widget within seconds, and per-message ratings with an end-of-conversation CSAT prompt.
 
 ![How the WordPress plugin works: install and paste your key, the widget loads async from the Clanker API, visitors chat with AI answers and human handoff](/blog/wordpress-plugin-flow.jpg)
 
