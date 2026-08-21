@@ -19,12 +19,13 @@ import { TrackedLink } from "@/components/TrackedLink";
 import { JsonLd } from "@/components/JsonLd";
 import { FaqSection } from "@/components/FaqSection";
 import { GridPattern } from "@/components/magicui/grid-pattern";
+import { DashboardTour } from "@/components/home/DashboardTour";
 import { DeferredInstallTerminal } from "@/components/home/deferred";
 import { InlineDemo } from "@/components/home/InlineDemo";
-import { ProofSection } from "@/components/home/ProofSection";
 import { QuestionTicker } from "@/components/home/QuestionTicker";
 import { ShimmerCta } from "@/components/home/ShimmerCta";
 import { TicketWall } from "@/components/home/TicketWall";
+import { WidgetStudio } from "@/components/home/WidgetStudio";
 import { PricingPlans, type PlanCard } from "@/app/pricing/PricingPlans";
 import { FEATURES } from "@/lib/features";
 import { USE_CASES } from "@/lib/use-cases";
@@ -118,6 +119,11 @@ const faqs: Faq[] = [
 		question: "Which AI models does Clanker Support support?",
 		answer:
 			"A curated catalog of web-search-capable models through LLM Gateway — GPT, Claude, Gemini and more. You choose the model per project and can swap it with a config change — no code edits — a cost-efficient model for one project, a more capable one for another. Starter includes the lighter model class; Growth and Scale unlock the full catalog.",
+	},
+	{
+		question: "Can I customize how the chat widget looks?",
+		answer:
+			"Yes — from the dashboard, with a live preview and no code changes. Set your brand color (the widget derives a readable text color automatically), upload an agent photo or logo for the launcher and header, write the welcome message, add up to six suggested-question chips, and choose light, dark, or auto theme. The script tag on your site never changes; updates apply from the dashboard.",
 	},
 	{
 		question: "What happens when the AI can't answer?",
@@ -383,26 +389,42 @@ export default function Home() {
 					</p>
 				</section>
 
-				{/* ── § 03 · Proof — real pixels of the hand-off ────────── */}
+				{/* ── § 03 · Widget studio — customize it, live ─────────── */}
 				<section className="mx-auto max-w-6xl px-6 pt-24">
 					<SectionHead
 						index="03"
 						title={
 							<>
-								Where the hand-off <em className="wonk text-accent">lands.</em>
+								Make it <em className="wonk text-accent">yours.</em>
 							</>
 						}
-						sub="The demo above isn't a concept. Here's a real escalation sitting in the real team inbox, and the real widget mid-answer — actual screenshots, fictional persona data."
+						sub="Brand color, agent photo, welcome message, suggested questions, theme — the same controls you get in the dashboard, rehearsed right here. Go ahead, click around."
 					/>
 					<div className="mt-12">
-						<ProofSection bare />
+						<WidgetStudio />
 					</div>
 				</section>
 
-				{/* ── § 04 · What you get ───────────────────────────────── */}
+				{/* ── § 04 · The dashboard — real pixels of the hand-off ── */}
 				<section className="mx-auto max-w-6xl px-6 pt-24">
 					<SectionHead
 						index="04"
+						title={
+							<>
+								Where the hand-off <em className="wonk text-accent">lands.</em>
+							</>
+						}
+						sub="The demo above isn't a concept. This is the dashboard your team gets — the inbox, the thread, the widget studio, the knowledge base. Actual screenshots, fictional persona data."
+					/>
+					<div className="mt-12">
+						<DashboardTour />
+					</div>
+				</section>
+
+				{/* ── § 05 · What you get ───────────────────────────────── */}
+				<section className="mx-auto max-w-6xl px-6 pt-24">
+					<SectionHead
+						index="05"
 						title={
 							<>
 								Six things. <em className="wonk">Not sixty.</em>
@@ -447,10 +469,10 @@ export default function Home() {
 					</div>
 				</section>
 
-				{/* ── § 05 · Pricing, on the page that gets the traffic ─── */}
+				{/* ── § 06 · Pricing, on the page that gets the traffic ─── */}
 				<section className="mx-auto max-w-6xl px-6 pt-24">
 					<SectionHead
-						index="05"
+						index="06"
 						title={
 							<>
 								Pricing that fits on a{" "}

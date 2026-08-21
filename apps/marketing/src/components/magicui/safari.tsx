@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 const SAFARI_WIDTH = 1203;
 const SAFARI_HEIGHT = 753;
@@ -20,6 +20,9 @@ export interface SafariProps extends HTMLAttributes<HTMLDivElement> {
 	imageSrc?: string;
 	videoSrc?: string;
 	mode?: SafariMode;
+	/** Custom media rendered in the screen area instead of imageSrc/videoSrc —
+	 * e.g. a pair of theme-swapped next/image elements. */
+	children?: ReactNode;
 }
 
 export function Safari({
@@ -29,10 +32,11 @@ export function Safari({
 	mode = "default",
 	className,
 	style,
+	children,
 	...props
 }: SafariProps) {
 	const hasVideo = !!videoSrc;
-	const hasMedia = hasVideo || !!imageSrc;
+	const hasMedia = hasVideo || !!imageSrc || !!children;
 
 	return (
 		<div
@@ -65,7 +69,22 @@ export function Safari({
 				</div>
 			)}
 
-			{!hasVideo && imageSrc && (
+			{!hasVideo && children && (
+				<div
+					className="pointer-events-none absolute z-0 overflow-hidden"
+					style={{
+						left: `${LEFT_PCT}%`,
+						top: `${TOP_PCT}%`,
+						width: `${WIDTH_PCT}%`,
+						height: `${HEIGHT_PCT}%`,
+						borderRadius: "0 0 11px 11px",
+					}}
+				>
+					{children}
+				</div>
+			)}
+
+			{!hasVideo && !children && imageSrc && (
 				<div
 					className="pointer-events-none absolute z-0 overflow-hidden"
 					style={{
