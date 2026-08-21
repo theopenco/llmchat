@@ -398,7 +398,7 @@ export default function Home() {
 								Make it <em className="wonk text-accent">yours.</em>
 							</>
 						}
-						sub="Brand color, agent photo, welcome message, suggested questions, theme — the same controls you get in the dashboard, rehearsed right here. Go ahead, click around."
+						sub="Brand color, agent photo, welcome message, suggested questions, theme — even live voice calls. The same controls you get in the dashboard, rehearsed right here. Click around, type in it, take the call."
 					/>
 					<div className="mt-12">
 						<WidgetStudio />
