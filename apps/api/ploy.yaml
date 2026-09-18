@@ -10,12 +10,17 @@ db:
 state:
   STATE: llmchat_state
 
-# Traffic report crons (see src/lib/traffic-report.ts — the expressions MUST
-# stay in sync with TRAFFIC_CRON_WEEKLY / TRAFFIC_CRON_MONTHLY, which map the
-# fired expression back to a reporting period).
+# Cron triggers. Every expression MUST stay in sync with the constant the
+# scheduled handler matches it against (src/index.ts routes by event.cron).
 cron:
+  # Traffic report (see src/lib/traffic-report.ts — TRAFFIC_CRON_WEEKLY /
+  # TRAFFIC_CRON_MONTHLY map the fired expression back to a reporting period).
   TRAFFIC_REPORT_WEEKLY: "0 8 * * 1"
   TRAFFIC_REPORT_MONTHLY: "30 8 1 * *"
+  # Nightly plan reconciliation (see src/lib/billing-reconcile.ts — the
+  # expression MUST stay in sync with BILLING_RECONCILE_CRON, which the
+  # scheduled handler matches on to route the trigger).
+  BILLING_RECONCILE_DAILY: "0 3 * * *"
 
 dev:
   port: 8787

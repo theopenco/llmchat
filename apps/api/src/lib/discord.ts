@@ -24,6 +24,7 @@ export interface DiscordWebhookPayload {
 
 const GREEN = 0x22c55e;
 const RED = 0xef4444;
+const AMBER = 0xf59e0b;
 
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -139,6 +140,57 @@ export async function notifySubscriptionCancelled(
 						inline: true,
 					},
 					{ name: "Plan", value: input.plan.toUpperCase(), inline: true },
+				],
+				timestamp: new Date().toISOString(),
+			},
+		],
+	});
+}
+
+/**
+ * Nightly plan reconciliation found drift between a stored plan and Stripe.
+ * Only sent when there is something to act on (a correction was applied, or a
+ * workspace could not be verified) — a clean run stays silent.
+ */
+export async function notifyBillingDrift(
+	env: Env,
+	result: {
+		checked: number;
+		unverified: number;
+		corrections: Array<{
+			workspaceId: string;
+			from: string;
+			to: string;
+			reason: string;
+		}>;
+	},
+): Promise<void> {
+	// Discord caps a field value at 1024 chars; a handful of lines is plenty for
+	// a human to act on and the full set is in the logs either way.
+	const lines = result.corrections
+		.slice(0, 10)
+		.map((c) => `\`${c.workspaceId}\` ${c.from} → ${c.to} (${c.reason})`);
+	if (result.corrections.length > lines.length) {
+		lines.push(`…and ${result.corrections.length - lines.length} more`);
+	}
+	await sendDiscordNotification(env.vars.DISCORD_NOTIFICATION_URL, {
+		embeds: [
+			{
+				title: "Billing Drift Reconciled",
+				description: lines.length > 0 ? lines.join("\n") : "No corrections.",
+				color: AMBER,
+				fields: [
+					{ name: "Checked", value: String(result.checked), inline: true },
+					{
+						name: "Corrected",
+						value: String(result.corrections.length),
+						inline: true,
+					},
+					{
+						name: "Unverified",
+						value: String(result.unverified),
+						inline: true,
+					},
 				],
 				timestamp: new Date().toISOString(),
 			},
