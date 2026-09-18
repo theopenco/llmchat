@@ -511,6 +511,72 @@ describe("POST /billing/webhook", () => {
 		expect(state.trialBurned).toBeUndefined();
 	});
 
+	it("subscription.updated takes the tier from the PRICE, not a stale metadata stamp", async () => {
+		// The Billing Portal downgrade: the customer moved Scale → Starter, so
+		// Stripe bills price_starter, but subscription.metadata.plan is still the
+		// "scale" stamped at Checkout and Stripe never rewrites it. Trusting the
+		// stamp kept Scale entitlements on a Starter bill.
+		const body = JSON.stringify({
+			id: "evt_downgrade",
+			type: "customer.subscription.updated",
+			data: {
+				object: {
+					id: "sub_1",
+					customer: "cus_1",
+					status: "active",
+					metadata: { workspaceId: "ws_1", plan: "scale" },
+					items: { data: [{ price: { id: "price_starter" } }] },
+				},
+			},
+		});
+		const state = mockDb({ workspace: { id: "ws_1", plan: "scale" } });
+		await post(body, await signed(body));
+		expect(state.workspace.plan).toBe("starter");
+	});
+
+	it("subscription.updated ignores the overage line when naming the tier", async () => {
+		const body = JSON.stringify({
+			id: "evt_overage",
+			type: "customer.subscription.updated",
+			data: {
+				object: {
+					id: "sub_1",
+					customer: "cus_1",
+					status: "active",
+					metadata: { workspaceId: "ws_1", plan: "scale" },
+					items: {
+						data: [
+							{ price: { id: "price_growth_overage" } },
+							{ price: { id: "price_growth" } },
+						],
+					},
+				},
+			},
+		});
+		const state = mockDb({ workspace: { id: "ws_1", plan: "scale" } });
+		await post(body, await signed(body));
+		expect(state.workspace.plan).toBe("growth");
+	});
+
+	it("subscription.updated falls back to the stamp for an unrecognized price", async () => {
+		const body = JSON.stringify({
+			id: "evt_legacy",
+			type: "customer.subscription.updated",
+			data: {
+				object: {
+					id: "sub_1",
+					customer: "cus_1",
+					status: "active",
+					metadata: { workspaceId: "ws_1", plan: "growth" },
+					items: { data: [{ price: { id: "price_legacy_unknown" } }] },
+				},
+			},
+		});
+		const state = mockDb({ workspace: { id: "ws_1", plan: "none" } });
+		await post(body, await signed(body));
+		expect(state.workspace.plan).toBe("growth");
+	});
+
 	it("subscription.deleted → none and clears the subscription id", async () => {
 		const body = JSON.stringify({
 			id: "evt_3",

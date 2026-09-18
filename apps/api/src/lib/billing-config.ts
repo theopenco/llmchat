@@ -4,7 +4,11 @@
 // code. A tier whose price id is unset reads back undefined, and the billing
 // route short-circuits with `billing_not_configured` rather than calling Stripe.
 
-import type { BillingInterval, PaidPlan } from "@llmchat/shared";
+import { subscriptionPriceIds } from "@/lib/stripe";
+
+import { PAID_PLANS, isPaidPlan } from "@llmchat/shared";
+
+import type { BillingInterval, PaidPlan, Plan } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 
@@ -62,4 +66,70 @@ export function planPrices(
 				overagePriceId: vars.STRIPE_PRICE_SCALE_OVERAGE,
 			};
 	}
+}
+
+/**
+ * Every configured BASE price id → the tier it bills, across both cadences.
+ *
+ * Overage price ids are deliberately EXCLUDED: a metered overage line rides
+ * alongside the base price on the same subscription, and it's the base price
+ * that names the tier. Including them would make the answer depend on line
+ * ordering.
+ */
+export function basePriceToPlan(vars: Vars): Map<string, PaidPlan> {
+	const map = new Map<string, PaidPlan>();
+	for (const plan of PAID_PLANS) {
+		for (const interval of ["month", "year"] as const) {
+			const id = planPrices(vars, plan, interval).basePriceId?.trim();
+			if (id) map.set(id, plan);
+		}
+	}
+	return map;
+}
+
+/** The tier billed by the first recognized base price in `priceIds`, or
+ * undefined when none of them is a configured base price. */
+export function planForPriceIds(
+	vars: Vars,
+	priceIds: readonly string[],
+): PaidPlan | undefined {
+	const map = basePriceToPlan(vars);
+	for (const id of priceIds) {
+		const plan = map.get(id.trim());
+		if (plan) return plan;
+	}
+	return undefined;
+}
+
+/**
+ * The tier a Stripe subscription actually entitles, and the single decision
+ * both the webhook and the reconciliation cron use.
+ *
+ * Paid-only: anything but an active (or trialing) subscription is "none".
+ *
+ * The PRICE the subscription bills is the authority, NOT `metadata.plan`.
+ * Metadata is stamped once at Checkout and never re-stamped, so any plan change
+ * made outside Checkout — notably a downgrade in the Stripe Billing Portal —
+ * leaves it stale. Trusting it let a customer switch Scale→Starter in the
+ * portal and keep Scale entitlements while paying Starter.
+ *
+ * Metadata remains the FALLBACK for a subscription whose price we don't
+ * recognize (a legacy or hand-made price in Stripe): dropping a genuinely
+ * paying customer to "none" over an unconfigured price id would be worse than
+ * honoring the stamp.
+ */
+export function planForSubscription(
+	vars: Vars,
+	sub: {
+		status?: unknown;
+		items?: { data?: Array<{ price?: { id?: string } }> };
+		metadata?: Record<string, string> | null;
+	},
+): Plan {
+	const active = sub.status === "active" || sub.status === "trialing";
+	if (!active) return "none";
+	const fromPrice = planForPriceIds(vars, subscriptionPriceIds(sub));
+	if (fromPrice) return fromPrice;
+	const stamped = sub.metadata?.plan;
+	return isPaidPlan(stamped) ? stamped : "none";
 }

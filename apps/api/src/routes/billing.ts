@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { Context } from "hono";
 
-import { planPrices } from "@/lib/billing-config";
+import { planForSubscription, planPrices } from "@/lib/billing-config";
 import { db } from "@/lib/db";
 import {
 	notifySubscriptionCancelled,
@@ -40,7 +40,7 @@ import {
 } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
-import type { PaidPlan, Plan } from "@llmchat/shared";
+import type { PaidPlan } from "@llmchat/shared";
 
 /** The paid tiers we can actually sell right now — those whose base Stripe
  * price id is configured. The others render as "coming soon" in the dashboard
@@ -112,16 +112,6 @@ async function workspaceContact(
 		columns: { email: true },
 	});
 	return { email: owner?.email, workspaceName: ws.name };
-}
-
-/** Map a subscription's status + stamped plan to the tier we store. Paid-only:
- * anything but an active (or trialing) subscription resolves to "none", and an
- * unrecognized stamped plan is rejected to "none" rather than trusted. */
-function planForSubscription(status: unknown, stampedPlan: unknown): Plan {
-	const active = status === "active" || status === "trialing";
-	const plan = typeof stampedPlan === "string" ? stampedPlan : undefined;
-	if (active && isPaidPlan(plan)) return plan;
-	return "none";
 }
 
 export const billing = new Hono<AppContext>()
@@ -330,11 +320,10 @@ export const billing = new Hono<AppContext>()
 			}
 			case "customer.subscription.updated": {
 				const sub = event.data.object;
-				const meta = sub.metadata as Record<string, string> | undefined;
 				await d
 					.update(workspace)
 					.set({
-						plan: planForSubscription(sub.status, meta?.plan),
+						plan: planForSubscription(c.env.vars, sub),
 						stripeSubscriptionId: sub.id as string,
 					})
 					.where(eq(workspace.stripeCustomerId, sub.customer as string));
