@@ -24,6 +24,7 @@ import {
 	createPortalSession,
 	verifyStripeSignature,
 } from "@/lib/stripe";
+import { isTrialEligible, markTrialConsumedForWorkspace } from "@/lib/trial";
 import {
 	requireOwner,
 	requireSession,
@@ -194,11 +195,16 @@ export const billing = new Hono<AppContext>()
 						? overagePriceId
 						: undefined,
 					plan,
-					// 7-day free trial (card still collected upfront) — but only when
-					// the workspace isn't already on a paid plan, so switching tiers
-					// never restarts a trial. The webhook already treats `trialing`
-					// as entitled (see planForSubscription).
-					trialPeriodDays: isPaidPlan(ws.plan) ? undefined : TRIAL_PERIOD_DAYS,
+					// 7-day free trial (card still collected upfront), granted at most
+					// ONCE PER PERSON. Eligibility is resolved from the workspace OWNER
+					// (not this workspace's plan alone) because nothing caps workspace
+					// creation and each workspace mints its own Stripe customer — the
+					// old per-workspace check let one user farm a fresh Scale trial
+					// every 7 days. The webhook treats `trialing` as entitled (see
+					// planForSubscription) and burns the trial on completion.
+					trialPeriodDays: (await isTrialEligible(c.env, ws.ownerId, ws.plan))
+						? TRIAL_PERIOD_DAYS
+						: undefined,
 					workspaceId,
 					successUrl: returnUrl(DASHBOARD_URL, returnTo, "success"),
 					cancelUrl: returnUrl(DASHBOARD_URL, returnTo, "cancel"),
@@ -298,6 +304,11 @@ export const billing = new Hono<AppContext>()
 						})
 						.where(eq(workspace.id, workspaceId));
 					if (plan !== "none") {
+						// Burn the owner's one free trial. Awaited, not backgrounded:
+						// losing this write would hand the farm back (create workspace →
+						// fresh trial). It is IS NULL-guarded, so a Stripe retry or a
+						// later upgrade never moves the timestamp.
+						await markTrialConsumedForWorkspace(c.env, workspaceId);
 						background(
 							c,
 							workspaceContact(c.env, workspaceId).then((contact) =>
