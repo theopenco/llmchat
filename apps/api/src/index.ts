@@ -4,6 +4,10 @@ import { cors } from "hono/cors";
 import { createAuth } from "@/auth";
 import { adminUrl } from "@/lib/admin";
 import { isAllowedOrigin } from "@/lib/origins";
+import {
+	BILLING_RECONCILE_CRON,
+	runBillingReconcile,
+} from "@/lib/billing-reconcile";
 import { periodForCron, runTrafficReport } from "@/lib/traffic-report";
 import { account } from "@/routes/account";
 import { admin } from "@/routes/admin";
@@ -155,12 +159,18 @@ interface ScheduledEvent {
 }
 
 // The worker export: Hono handles requests; `scheduled` receives the Ploy cron
-// triggers declared in ploy.yaml (the weekly/monthly traffic report). The
-// report is awaited — not waitUntil'd — so a failed run marks the cron
-// execution failed in the Ploy dashboard instead of vanishing.
+// triggers declared in ploy.yaml (the weekly/monthly traffic report and the
+// nightly billing reconciliation). Work is awaited — not waitUntil'd — so a
+// failed run marks the cron execution failed in the Ploy dashboard instead of
+// vanishing. Dispatch is by expression, so the traffic report stays the
+// default for the two schedules periodForCron already distinguishes.
 export default {
 	fetch: app.fetch,
 	async scheduled(event: ScheduledEvent, env: PloyEnv) {
+		if (event.cron.trim() === BILLING_RECONCILE_CRON) {
+			await runBillingReconcile(env);
+			return;
+		}
 		await runTrafficReport(env, periodForCron(event.cron));
 	},
 };

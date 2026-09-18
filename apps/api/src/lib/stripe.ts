@@ -92,12 +92,28 @@ async function stripeGet<T>(secretKey: string, path: string): Promise<T> {
 	return JSON.parse(text) as T;
 }
 
-/** A Stripe subscription — only the status we gate on. The full Stripe status
- * set: active, trialing, past_due, unpaid, paused, canceled, incomplete,
- * incomplete_expired. */
+/** A Stripe subscription — the status we gate on, plus the fields needed to
+ * decide which tier it actually bills. The full Stripe status set: active,
+ * trialing, past_due, unpaid, paused, canceled, incomplete, incomplete_expired. */
 export interface StripeSubscription {
 	id: string;
 	status: string;
+	/** Line items. The BASE price id here is the authority on the tier —
+	 * `metadata` is stamped once at Checkout and goes stale the moment the
+	 * customer changes plan in the Billing Portal (see planForSubscription). */
+	items?: { data?: Array<{ price?: { id?: string } }> };
+	/** What Checkout stamped: `{ workspaceId, plan }`. Fallback only. */
+	metadata?: Record<string, string> | null;
+}
+
+/** The price ids on a subscription's line items, in Stripe's order. Tolerates
+ * the partial shapes that arrive on webhook payloads. */
+export function subscriptionPriceIds(
+	sub: Pick<StripeSubscription, "items">,
+): string[] {
+	return (sub.items?.data ?? [])
+		.map((item) => item?.price?.id)
+		.filter((id): id is string => typeof id === "string" && id.trim() !== "");
 }
 
 /** Fetch a subscription by id. Throws StripeError on a non-2xx (e.g. the sub
@@ -140,8 +156,10 @@ export function createCheckoutSession(
 		/** Optional metered overage price (Growth/Scale). A metered line item
 		 * carries no quantity — Stripe bills it from reported meter events. */
 		overagePriceId?: string;
-		/** The plan being purchased — stamped on the subscription so the webhook
-		 * can map it back to a tier without re-deriving it from the price id. */
+		/** The plan being purchased — stamped on the session and the subscription.
+		 * It is the FALLBACK tier signal only: the base price id is the authority
+		 * (see planForSubscription), because this stamp is never re-written when
+		 * the customer changes plan in the Billing Portal. */
 		plan: string;
 		/** When set, the subscription starts with a free trial of this many days
 		 * (Stripe `subscription_data[trial_period_days]`). The card is still
@@ -166,10 +184,11 @@ export function createCheckoutSession(
 		// Paid-only: always collect a card — even during a free trial, so the
 		// subscription converts to a charge automatically when the trial ends.
 		payment_method_collection: "always",
-		// Map the session AND the resulting subscription back to the workspace +
-		// purchased tier, so the webhook needs no price→tier lookup. Stamped in
-		// both places: session metadata is read on checkout.session.completed,
-		// subscription metadata on later customer.subscription.* events.
+		// Map the session AND the resulting subscription back to the workspace.
+		// `workspaceId` is the routing key the webhook needs; `plan` is only a
+		// fallback tier hint — it is stamped ONCE here and Stripe never updates it
+		// on a portal-driven plan change, so customer.subscription.* resolves the
+		// tier from the price id first (see planForSubscription).
 		client_reference_id: args.workspaceId,
 		metadata: { workspaceId: args.workspaceId, plan: args.plan },
 		subscription_data: {

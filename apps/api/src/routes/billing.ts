@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { Context } from "hono";
 
-import { planPrices } from "@/lib/billing-config";
+import { planForSubscription, planPrices } from "@/lib/billing-config";
 import { db } from "@/lib/db";
 import {
 	notifySubscriptionCancelled,
@@ -24,6 +24,7 @@ import {
 	createPortalSession,
 	verifyStripeSignature,
 } from "@/lib/stripe";
+import { isTrialEligible, markTrialConsumedForWorkspace } from "@/lib/trial";
 import {
 	requireOwner,
 	requireSession,
@@ -39,7 +40,7 @@ import {
 } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
-import type { PaidPlan, Plan } from "@llmchat/shared";
+import type { PaidPlan } from "@llmchat/shared";
 
 /** The paid tiers we can actually sell right now — those whose base Stripe
  * price id is configured. The others render as "coming soon" in the dashboard
@@ -113,16 +114,6 @@ async function workspaceContact(
 	return { email: owner?.email, workspaceName: ws.name };
 }
 
-/** Map a subscription's status + stamped plan to the tier we store. Paid-only:
- * anything but an active (or trialing) subscription resolves to "none", and an
- * unrecognized stamped plan is rejected to "none" rather than trusted. */
-function planForSubscription(status: unknown, stampedPlan: unknown): Plan {
-	const active = status === "active" || status === "trialing";
-	const plan = typeof stampedPlan === "string" ? stampedPlan : undefined;
-	if (active && isPaidPlan(plan)) return plan;
-	return "none";
-}
-
 export const billing = new Hono<AppContext>()
 	// Start a subscription Checkout for the chosen tier. Owner-only. Reuses the
 	// workspace's Stripe customer if it has one, else creates and stores it (so
@@ -194,11 +185,16 @@ export const billing = new Hono<AppContext>()
 						? overagePriceId
 						: undefined,
 					plan,
-					// 7-day free trial (card still collected upfront) — but only when
-					// the workspace isn't already on a paid plan, so switching tiers
-					// never restarts a trial. The webhook already treats `trialing`
-					// as entitled (see planForSubscription).
-					trialPeriodDays: isPaidPlan(ws.plan) ? undefined : TRIAL_PERIOD_DAYS,
+					// 7-day free trial (card still collected upfront), granted at most
+					// ONCE PER PERSON. Eligibility is resolved from the workspace OWNER
+					// (not this workspace's plan alone) because nothing caps workspace
+					// creation and each workspace mints its own Stripe customer — the
+					// old per-workspace check let one user farm a fresh Scale trial
+					// every 7 days. The webhook treats `trialing` as entitled (see
+					// planForSubscription) and burns the trial on completion.
+					trialPeriodDays: (await isTrialEligible(c.env, ws.ownerId, ws.plan))
+						? TRIAL_PERIOD_DAYS
+						: undefined,
 					workspaceId,
 					successUrl: returnUrl(DASHBOARD_URL, returnTo, "success"),
 					cancelUrl: returnUrl(DASHBOARD_URL, returnTo, "cancel"),
@@ -298,6 +294,11 @@ export const billing = new Hono<AppContext>()
 						})
 						.where(eq(workspace.id, workspaceId));
 					if (plan !== "none") {
+						// Burn the owner's one free trial. Awaited, not backgrounded:
+						// losing this write would hand the farm back (create workspace →
+						// fresh trial). It is IS NULL-guarded, so a Stripe retry or a
+						// later upgrade never moves the timestamp.
+						await markTrialConsumedForWorkspace(c.env, workspaceId);
 						background(
 							c,
 							workspaceContact(c.env, workspaceId).then((contact) =>
@@ -319,11 +320,10 @@ export const billing = new Hono<AppContext>()
 			}
 			case "customer.subscription.updated": {
 				const sub = event.data.object;
-				const meta = sub.metadata as Record<string, string> | undefined;
 				await d
 					.update(workspace)
 					.set({
-						plan: planForSubscription(sub.status, meta?.plan),
+						plan: planForSubscription(c.env.vars, sub),
 						stripeSubscriptionId: sub.id as string,
 					})
 					.where(eq(workspace.stripeCustomerId, sub.customer as string));
