@@ -4,7 +4,6 @@ import {
 	BILLING_TIERS,
 	DISCOUNT_ACTIVE,
 	DISCOUNT_PERCENT,
-	TRIAL_PERIOD_DAYS,
 	formatUsd,
 	originalUsd,
 } from "@llmchat/shared";
@@ -94,7 +93,7 @@ export function PricingTeaser() {
 											: "border border-rule text-ink-soft hover:border-accent/40 hover:text-ink"
 									}`}
 								>
-									Start free trial
+									Get started
 									<span aria-hidden>→</span>
 								</TrackedLink>
 							</div>
@@ -103,9 +102,9 @@ export function PricingTeaser() {
 				</div>
 
 				<p className="mt-8 text-sm text-muted">
-					Every plan starts with a {TRIAL_PERIOD_DAYS}-day free trial — no
-					charge until it ends. Self-hosting is free — it&apos;s open source,
-					bring your own keys.{" "}
+					Every plan is paid from day one, backed by a 14-day money-back
+					guarantee. Self-hosting is free — it&apos;s open source, bring your
+					own keys.{" "}
 					<Link
 						href="/pricing"
 						className="font-medium text-accent-soft transition-colors hover:text-accent"

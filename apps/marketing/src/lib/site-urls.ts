@@ -11,7 +11,7 @@ export const CANONICAL_SHOWCASE_URL =
 
 /** Where every signup CTA lands. Deep-links to the dashboard's /sign-up page —
  * the dashboard root redirects signed-out visitors to the sign-in form, which
- * is a funnel dead-end for someone who just clicked "start free trial". */
+ * is a funnel dead-end for someone who just clicked "get started". */
 export const SIGNUP_URL = `${CANONICAL_DASHBOARD_URL}/sign-up`;
 
 /** The marketing site's own canonical origin — the base for metadataBase,

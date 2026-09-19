@@ -6,7 +6,6 @@ import {
 	DISCOUNT_ACTIVE,
 	ENTERPRISE_TIER,
 	PAID_PLANS,
-	TRIAL_PERIOD_DAYS,
 	formatUsd,
 	isUnlimited,
 	originalUsd,
@@ -285,7 +284,7 @@ export default function Home() {
 									event={ANALYTICS_EVENTS.signupStarted}
 									eventProps={{ source: "home_hero" }}
 								>
-									Start your {TRIAL_PERIOD_DAYS}-day free trial
+									Get started
 									<span aria-hidden>→</span>
 								</ShimmerCta>
 								<a
@@ -306,7 +305,7 @@ export default function Home() {
 									</span>
 								)}
 								${formatUsd(BILLING_TIERS.starter.priceUsdMonthly)}
-								/mo after the trial · No per-seat fees · Cancel anytime
+								/mo · No per-seat fees · Cancel anytime
 							</p>
 						</div>
 
@@ -568,8 +567,8 @@ export default function Home() {
 						</span>
 						We&apos;re new, and we&apos;re not pretending otherwise: no logo
 						wall, no invented testimonials. The product is open source, the
-						pricing is public, the demo above is honest, and the trial
-						doesn&apos;t charge you until it ends. Judge the product, not the
+						pricing is public, the demo above is honest, and every plan is
+						backed by a 14-day money-back guarantee. Judge the product, not the
 						badges.
 					</p>
 
@@ -593,7 +592,7 @@ export default function Home() {
 									eventProps={{ source: "home_closing" }}
 									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(234,88,12,0.7)] transition-colors hover:bg-accent-deep"
 								>
-									Start your {TRIAL_PERIOD_DAYS}-day free trial
+									Get started
 									<span aria-hidden>→</span>
 								</TrackedLink>
 								<TrackedLink
@@ -606,8 +605,7 @@ export default function Home() {
 								</TrackedLink>
 							</div>
 							<p className="mt-5 text-[0.8rem] text-faint">
-								{TRIAL_PERIOD_DAYS} days free on every plan · No charge until
-								your trial ends · Cancel anytime
+								14-day money-back guarantee · No per-seat fees · Cancel anytime
 							</p>
 						</div>
 					</div>

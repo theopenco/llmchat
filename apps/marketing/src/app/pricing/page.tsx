@@ -6,7 +6,6 @@ import {
 	DISCOUNT_PERCENT,
 	ENTERPRISE_TIER,
 	PAID_PLANS,
-	TRIAL_PERIOD_DAYS,
 	formatUsd,
 	isUnlimited,
 	originalUsd,
@@ -35,7 +34,7 @@ export const metadata = pageMeta({
 	title: "Pricing — flat monthly or annual plans, free to self-host",
 	description: `Clanker Support pricing: flat plans from $${formatUsd(starterPrice)}/mo${
 		DISCOUNT_ACTIVE ? ` (${DISCOUNT_PERCENT}% off)` : ""
-	} with a 7-day free trial, no per-seat fees, two months free on annual, a 14-day money-back guarantee, or self-host free with your own keys.`,
+	} with no per-seat fees, two months free on annual, a 14-day money-back guarantee, or self-host free with your own keys.`,
 	path: "/pricing",
 });
 
@@ -120,7 +119,7 @@ const faqs: Faq[] = [
 	},
 	{
 		question: "Is there a free trial or a guarantee?",
-		answer: `Yes — every hosted plan starts with a ${TRIAL_PERIOD_DAYS}-day free trial. A card is required to start, but you aren't charged until the trial ends, and you can cancel before then at no cost. On top of that there's a 14-day money-back guarantee and you can cancel anytime — no contracts. Want a feel first? The live demo runs in your browser without signing up.`,
+		answer: `No free trial — the hosted product is paid from day one. What backs it instead: a 14-day money-back guarantee, and you can cancel anytime — no contracts. Want a feel first? The live demo runs in your browser without signing up, and self-hosting is free and open source.`,
 	},
 	{
 		question: "Is there a free plan?",
@@ -250,9 +249,9 @@ export default function PricingPage() {
 							Straight talk ·{" "}
 						</span>
 						The hosted product is paid-only — there&apos;s no free hosted tier,
-						so every plan above is paid. Each one starts with a{" "}
-						{TRIAL_PERIOD_DAYS}-day free trial (card required, no charge until
-						it ends), plans start at ${formatUsd(starterPrice)}/month
+						so every plan above is paid from day one (card required, backed by a
+						14-day money-back guarantee), plans start at $
+						{formatUsd(starterPrice)}/month
 						{DISCOUNT_ACTIVE &&
 							` (${DISCOUNT_PERCENT}% off the usual $${formatUsd(originalUsd(starterPrice))})`}{" "}
 						with no per-seat fees, and self-hosting stays free.
@@ -277,7 +276,7 @@ export default function PricingPage() {
 							eventProps={{ source: "pricing_cta" }}
 							className="rounded-full bg-paper px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-accent hover:text-paper"
 						>
-							Start your free trial
+							Get started
 						</TrackedLink>
 						<Link
 							href="/compare"

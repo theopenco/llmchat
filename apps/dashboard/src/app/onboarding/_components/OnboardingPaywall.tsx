@@ -15,11 +15,7 @@ import {
 } from "@/lib/billing";
 import { cn } from "@/lib/utils";
 
-import {
-	TRIAL_PERIOD_DAYS,
-	type BillingInterval,
-	type PaidPlan,
-} from "@llmchat/shared";
+import { type BillingInterval, type PaidPlan } from "@llmchat/shared";
 
 /**
  * Hard paywall shown before onboarding when the workspace has no active
@@ -75,9 +71,9 @@ export function OnboardingPaywall({
 					Choose a plan to launch your agent
 				</h1>
 				<p className="max-w-lg text-balance text-sm text-muted-foreground">
-					Every plan starts with a {TRIAL_PERIOD_DAYS}-day free trial — pick a
-					plan and add a card, and you won&apos;t be charged until the trial
-					ends. Billed monthly or yearly after that; change or cancel anytime.
+					Every plan is paid — pick one and add a card to launch your agent.
+					Billed monthly or yearly, with a 14-day money-back guarantee; change
+					or cancel anytime.
 				</p>
 			</header>
 

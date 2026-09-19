@@ -56,4 +56,4 @@ Ask it something in your language. Right now. Darija welcome.
 
 And if it wins you over: one script tag, and it's on your site doing this for your customers — in theirs. Free for 7 days.
 
-→ [Start your free trial](https://app.clankersupport.com)
+→ [Get started](https://app.clankersupport.com)

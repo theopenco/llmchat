@@ -75,27 +75,27 @@ describe("createCheckoutSession (request shape)", () => {
 		expect(body).toContain("line_items%5B1%5D%5Bprice%5D=price_overage");
 		// The metered line item must NOT carry a quantity.
 		expect(body).not.toContain("line_items%5B1%5D%5Bquantity%5D");
-		// Card upfront; plan stamped for the webhook. No trial unless asked for.
+		// Card upfront; plan stamped for the webhook. Never a trial.
 		expect(body).toContain("payment_method_collection=always");
 		expect(body).toContain("metadata%5Bplan%5D=growth");
 		expect(body).toContain("subscription_data%5Bmetadata%5D%5Bplan%5D=growth");
 		expect(body).not.toContain("trial");
 	});
 
-	it("encodes the free trial as subscription_data[trial_period_days], card still required", async () => {
+	// The 7-day trial was removed after it was farmed for free Scale access.
+	// Checkout must never emit a trial again — this is the regression guard.
+	it("NEVER sends a trial: no trial_period_days, card charged at Checkout", async () => {
 		const calls = captureFetch();
 		await createCheckoutSession("sk", {
 			customer: "cus_1",
 			priceId: "price_base",
 			plan: "starter",
-			trialPeriodDays: 7,
 			workspaceId: "ws_1",
 			successUrl: "https://s",
 			cancelUrl: "https://c",
 		});
 		const body = calls[0]!.body;
-		expect(body).toContain("subscription_data%5Btrial_period_days%5D=7");
-		// The trial must not relax card collection — the card converts the trial.
+		expect(body).not.toContain("trial");
 		expect(body).toContain("payment_method_collection=always");
 	});
 

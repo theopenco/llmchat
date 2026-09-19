@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ANALYTICS_EVENTS, TRIAL_PERIOD_DAYS } from "@llmchat/shared";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
@@ -91,7 +91,7 @@ export default function FeaturesPage() {
 						<div className="relative">
 							<p className="kicker">Ship support today</p>
 							<h2 className="font-display mx-auto mt-4 max-w-2xl text-3xl font-semibold leading-[1.08] tracking-tight-display text-ink sm:text-5xl">
-								Live in five minutes. {TRIAL_PERIOD_DAYS}-day free trial.
+								Live in five minutes. 14-day money-back guarantee.
 							</h2>
 							<div className="mt-9 flex flex-wrap justify-center gap-3">
 								<TrackedLink
@@ -100,7 +100,7 @@ export default function FeaturesPage() {
 									eventProps={{ source: "features_hub" }}
 									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(234,88,12,0.7)] transition-colors hover:bg-accent-deep"
 								>
-									Start your free trial
+									Get started
 									<span aria-hidden>→</span>
 								</TrackedLink>
 								<Link

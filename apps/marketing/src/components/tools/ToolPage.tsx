@@ -156,7 +156,7 @@ export function ToolPage({
 									eventProps={{ source: "tool_page", tool: tool.slug }}
 									className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(234,88,12,0.7)] transition-colors hover:bg-accent-deep"
 								>
-									Start your free trial
+									Get started
 									<span aria-hidden>→</span>
 								</TrackedLink>
 								<Link

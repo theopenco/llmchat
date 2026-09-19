@@ -5,7 +5,6 @@ import {
 	ANALYTICS_EVENTS,
 	DISCOUNT_ACTIVE,
 	DISCOUNT_PERCENT,
-	TRIAL_PERIOD_DAYS,
 	formatUsd,
 	originalUsd,
 	type BillingInterval,
@@ -186,12 +185,6 @@ export function PricingPlans({
 								Start with {tier.name}
 								<span aria-hidden>→</span>
 							</TrackedLink>
-							{/* Trial promise — matches what Checkout actually does:
-							    subscription_data[trial_period_days], card collected upfront. */}
-							<p className="mt-3 text-center text-[0.72rem] text-faint">
-								{TRIAL_PERIOD_DAYS}-day free trial · card required, no charge
-								until it ends
-							</p>
 						</div>
 					);
 				})}
@@ -240,8 +233,7 @@ export function PricingPlans({
 
 			{/* Risk reversal — kill the "pay before I've felt value" objection. */}
 			<p className="mt-6 text-center font-mono text-[0.72rem] uppercase tracking-[0.12em] text-faint">
-				{TRIAL_PERIOD_DAYS}-day free trial · 14-day money-back guarantee ·
-				Cancel anytime · No per-seat fees
+				14-day money-back guarantee · Cancel anytime · No per-seat fees
 			</p>
 		</>
 	);

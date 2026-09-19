@@ -12,10 +12,10 @@ const ghost =
 	"inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink";
 
 /**
- * Signed out: a quiet "Sign in" link plus the filled "Start free trial"
+ * Signed out: a quiet "Sign in" link plus the filled "Get started"
  * button pointing at the dashboard's /sign-up page — the header's primary
  * action is account creation, not login. Signed in: a single "Dashboard"
- * button. "Sign in" hides on the narrowest screens so the trial CTA and the
+ * button. "Sign in" hides on the narrowest screens so the signup CTA and the
  * mobile nav never fight for space.
  */
 export function AuthButton({ className = "" }: { className?: string }) {
@@ -65,7 +65,7 @@ export function AuthButton({ className = "" }: { className?: string }) {
 				}
 				className={primary}
 			>
-				Start free trial
+				Get started
 			</Link>
 		</span>
 	);

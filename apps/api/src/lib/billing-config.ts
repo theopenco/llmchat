@@ -107,6 +107,11 @@ export function planForPriceIds(
  *
  * Paid-only: anything but an active (or trialing) subscription is "none".
  *
+ * `trialing` is still honored even though Checkout no longer creates trials:
+ * the status can still arrive from a trial an operator grants by hand in the
+ * Stripe dashboard, and from any subscription that was already trialing when
+ * the 7-day trial was removed. Both are legitimately entitled.
+ *
  * The PRICE the subscription bills is the authority, NOT `metadata.plan`.
  * Metadata is stamped once at Checkout and never re-stamped, so any plan change
  * made outside Checkout — notably a downgrade in the Stripe Billing Portal —

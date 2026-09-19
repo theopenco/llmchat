@@ -77,14 +77,6 @@ interface State {
 	member?: { role: string };
 	workspace: Record<string, unknown>;
 	user?: { email: string };
-	/** Rows the `user.trial_started_at` projection returns (migration 0030 —
-	 * read via raw sql in lib/trial.ts, so it has no Drizzle column). Default:
-	 * one row with NULL, i.e. the owner has never used their trial. */
-	trialRows?: Array<{ startedAt: number | null }>;
-	/** Set when lib/trial.ts burned the trial via its raw-sql UPDATE. */
-	trialBurned?: boolean;
-	/** Simulate a preview DB that skipped migration 0030 (no such column). */
-	trialReadThrows?: boolean;
 }
 
 function mockDb(state: State) {
@@ -102,25 +94,6 @@ function mockDb(state: State) {
 				},
 			}),
 		}),
-		// lib/trial.ts reads `user.trial_started_at` through an explicit sql
-		// projection (the column is deliberately absent from the Drizzle table).
-		select: () => ({
-			from: () => ({
-				where: () => ({
-					limit: async () => {
-						if (state.trialReadThrows) {
-							throw new Error("no such column: trial_started_at");
-						}
-						return state.trialRows ?? [{ startedAt: null }];
-					},
-				}),
-			}),
-		}),
-		// ...and burns it with a raw-sql UPDATE.
-		run: async () => {
-			state.trialBurned = true;
-			return { success: true };
-		},
 	};
 	vi.mocked(db).mockReturnValue(fake as unknown as ReturnType<typeof db>);
 	return state;
@@ -276,95 +249,30 @@ describe("POST /billing/checkout", () => {
 		);
 	});
 
-	it("grants the 7-day free trial to a first-time owner", async () => {
+	// The 7-day trial was removed after it was farmed for free Scale access
+	// (signup -> Checkout -> 7 free days -> new workspace -> repeat). Checkout
+	// must never send a trial again, on any tier, paid or unpaid workspace.
+	it.each([
+		["a brand-new workspace", "none", "scale"],
+		["a workspace already on a paid plan", "starter", "growth"],
+	])("NEVER sends a trial for %s", async (_label, plan, target) => {
 		mockDb({
 			member: { role: "owner" },
 			workspace: {
 				id: "ws_1",
 				ownerId: "u1",
 				stripeCustomerId: "cus_1",
-				plan: "none",
+				plan,
 			},
-			trialRows: [{ startedAt: null }],
 		});
 		vi.mocked(createCheckoutSession).mockResolvedValue({
 			id: "cs",
 			url: "https://checkout/cs",
 		});
-		await checkout("starter");
-		expect(createCheckoutSession).toHaveBeenCalledWith(
-			"sk_test_fixture",
-			expect.objectContaining({ trialPeriodDays: 7 }),
-		);
-	});
-
-	it("does NOT grant a trial when the workspace is already on a paid plan", async () => {
-		mockDb({
-			member: { role: "owner" },
-			workspace: {
-				id: "ws_1",
-				ownerId: "u1",
-				stripeCustomerId: "cus_1",
-				plan: "starter",
-			},
-			trialRows: [{ startedAt: null }],
-		});
-		vi.mocked(createCheckoutSession).mockResolvedValue({
-			id: "cs",
-			url: "https://checkout/cs",
-		});
-		await checkout("growth");
-		expect(createCheckoutSession).toHaveBeenCalledWith(
-			"sk_test_fixture",
-			expect.objectContaining({ trialPeriodDays: undefined }),
-		);
-	});
-
-	it("does NOT grant a second trial to an owner who already burned one (the workspace-farm hole)", async () => {
-		// A brand-new workspace on "none" — the OLD per-workspace check would have
-		// handed out another 7 free days. The owner's trial_started_at says no.
-		mockDb({
-			member: { role: "owner" },
-			workspace: {
-				id: "ws_2",
-				ownerId: "u1",
-				stripeCustomerId: "cus_2",
-				plan: "none",
-			},
-			trialRows: [{ startedAt: 1_700_000_000 }],
-		});
-		vi.mocked(createCheckoutSession).mockResolvedValue({
-			id: "cs",
-			url: "https://checkout/cs",
-		});
-		await checkout("scale");
-		expect(createCheckoutSession).toHaveBeenCalledWith(
-			"sk_test_fixture",
-			expect.objectContaining({ plan: "scale", trialPeriodDays: undefined }),
-		);
-	});
-
-	it("still grants the trial when the 0030 column is missing (preview DB degrades open)", async () => {
-		const state = mockDb({
-			member: { role: "owner" },
-			workspace: {
-				id: "ws_1",
-				ownerId: "u1",
-				stripeCustomerId: "cus_1",
-				plan: "none",
-			},
-			trialReadThrows: true,
-		});
-		vi.mocked(createCheckoutSession).mockResolvedValue({
-			id: "cs",
-			url: "https://checkout/cs",
-		});
-		await checkout("starter");
-		expect(state.workspace.plan).toBe("none");
-		expect(createCheckoutSession).toHaveBeenCalledWith(
-			"sk_test_fixture",
-			expect.objectContaining({ trialPeriodDays: 7 }),
-		);
+		await checkout(target);
+		const args = vi.mocked(createCheckoutSession).mock.calls[0]![1];
+		expect(args).not.toHaveProperty("trialPeriodDays");
+		expect(JSON.stringify(args)).not.toContain("trial");
 	});
 
 	it("creates and stores a customer when the workspace has none", async () => {
@@ -491,24 +399,6 @@ describe("POST /billing/webhook", () => {
 		const canceled = mockDb({ workspace: { id: "ws_1", plan: "scale" } });
 		await post(updated("canceled"), await signed(updated("canceled")));
 		expect(canceled.workspace.plan).toBe("none");
-	});
-
-	it("burns the owner's trial when a paid checkout completes", async () => {
-		const state = mockDb({
-			workspace: { id: "ws_1", ownerId: "u1", plan: "none" },
-		});
-		const body = completed("scale");
-		await post(body, await signed(body));
-		expect(state.trialBurned).toBe(true);
-	});
-
-	it("does not burn a trial when the completed session resolves to no plan", async () => {
-		const state = mockDb({
-			workspace: { id: "ws_1", ownerId: "u1", plan: "none" },
-		});
-		const body = completed();
-		await post(body, await signed(body));
-		expect(state.trialBurned).toBeUndefined();
 	});
 
 	it("subscription.updated takes the tier from the PRICE, not a stale metadata stamp", async () => {

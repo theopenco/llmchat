@@ -44,7 +44,7 @@ export function SiteFooter() {
 							eventProps={{ source: "footer" }}
 							className="mt-6 inline-block rounded-full bg-ink px-5 py-2.5 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 						>
-							Start your free trial
+							Get started
 						</TrackedLink>
 					</div>
 

@@ -114,7 +114,7 @@ export default async function VsPage({
 							eventProps={{ source: "vs_page", competitor: competitor.id }}
 							className="rounded-full bg-ink px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-paper transition-colors hover:bg-accent"
 						>
-							Start your free trial →
+							Get started →
 						</TrackedLink>
 						<Link
 							href="/compare"

@@ -24,7 +24,6 @@ import {
 	createPortalSession,
 	verifyStripeSignature,
 } from "@/lib/stripe";
-import { isTrialEligible, markTrialConsumedForWorkspace } from "@/lib/trial";
 import {
 	requireOwner,
 	requireSession,
@@ -32,12 +31,7 @@ import {
 } from "@/middleware/session";
 
 import { eq, workspace } from "@llmchat/db";
-import {
-	ANALYTICS_EVENTS,
-	PAID_PLANS,
-	TRIAL_PERIOD_DAYS,
-	isPaidPlan,
-} from "@llmchat/shared";
+import { ANALYTICS_EVENTS, PAID_PLANS, isPaidPlan } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
 import type { PaidPlan } from "@llmchat/shared";
@@ -185,16 +179,6 @@ export const billing = new Hono<AppContext>()
 						? overagePriceId
 						: undefined,
 					plan,
-					// 7-day free trial (card still collected upfront), granted at most
-					// ONCE PER PERSON. Eligibility is resolved from the workspace OWNER
-					// (not this workspace's plan alone) because nothing caps workspace
-					// creation and each workspace mints its own Stripe customer — the
-					// old per-workspace check let one user farm a fresh Scale trial
-					// every 7 days. The webhook treats `trialing` as entitled (see
-					// planForSubscription) and burns the trial on completion.
-					trialPeriodDays: (await isTrialEligible(c.env, ws.ownerId, ws.plan))
-						? TRIAL_PERIOD_DAYS
-						: undefined,
 					workspaceId,
 					successUrl: returnUrl(DASHBOARD_URL, returnTo, "success"),
 					cancelUrl: returnUrl(DASHBOARD_URL, returnTo, "cancel"),
@@ -278,10 +262,9 @@ export const billing = new Hono<AppContext>()
 				const workspaceId =
 					(s.client_reference_id as string | undefined) ?? meta?.workspaceId;
 				// The session completing means the card was collected and the
-				// subscription created (charged immediately, or `trialing` for the
-				// 7-day free trial) — promote to the purchased tier either way
-				// (validated; an unknown stamp falls back to none). If a trial later
-				// ends without a payable card, customer.subscription.updated /
+				// subscription created and charged — promote to the purchased tier
+				// (validated; an unknown stamp falls back to none). If the
+				// subscription later lapses, customer.subscription.updated /
 				// .deleted below demotes the plan.
 				const plan = isPaidPlan(meta?.plan) ? meta.plan : "none";
 				if (workspaceId) {
@@ -294,11 +277,6 @@ export const billing = new Hono<AppContext>()
 						})
 						.where(eq(workspace.id, workspaceId));
 					if (plan !== "none") {
-						// Burn the owner's one free trial. Awaited, not backgrounded:
-						// losing this write would hand the farm back (create workspace →
-						// fresh trial). It is IS NULL-guarded, so a Stripe retry or a
-						// later upgrade never moves the timestamp.
-						await markTrialConsumedForWorkspace(c.env, workspaceId);
 						background(
 							c,
 							workspaceContact(c.env, workspaceId).then((contact) =>

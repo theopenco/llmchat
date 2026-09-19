@@ -1,65 +1,43 @@
-# 7-day free trial — how it works & what to do in Stripe
+# No free trial — what the code does, and what to check in Stripe
 
-Every **new** hosted subscription now starts with a **7-day free trial**. A card
-is still required at Checkout; the first charge happens automatically when the
-trial ends. This doc is the handoff for whoever owns the Stripe account.
+The hosted product is **paid from day one**. A card is collected at Checkout and
+charged immediately; there is no `subscription_data[trial_period_days]`.
 
-## What the code does (already shipped)
+## History
 
-- **Single source of truth:** `TRIAL_PERIOD_DAYS = 7` in
-  `packages/shared/src/billing-tiers.ts`. Every surface that mentions the trial
-  (onboarding paywall, billing screen, marketing pricing page, `/pricing.md`)
-  and the api read this constant — change it in one place to change the trial.
-- **Checkout** (`apps/api/src/routes/billing.ts` → `lib/stripe.ts`): the
-  Checkout session is created with
-  `subscription_data[trial_period_days] = 7` and (unchanged)
-  `payment_method_collection: "always"`, so the card is collected upfront and
-  converts the trial into the first charge automatically.
-- **Trial eligibility:** the trial is only granted when the workspace is **not
-  already on a paid plan** — switching/upgrading tiers never restarts a trial.
-  (Re-subscribing after a full cancellation does start a new trial; tighten in
-  Stripe with "limit customers to one trial" if this gets abused — see below.)
-- **Entitlements during the trial:** the Stripe webhook already treats a
-  `trialing` subscription exactly like `active` (`planForSubscription` in
-  `routes/billing.ts`), so trialing workspaces get full plan access from day
-  one. If the trial ends and the charge fails, the subscription leaves
-  `active`/`trialing` and the webhook demotes the workspace to `none`
-  (hard paywall) — no extra code needed.
-- **Metering:** usage during the trial is still recorded (`usageEvent`) and
-  meter events still report to Stripe; Stripe does not invoice metered usage
-  until the first billing period starts, so trial usage is not charged.
+A 7-day free trial shipped in July 2026 and was **removed on 19 September 2026**
+after sustained abuse: the trial was farmed for free Scale access — signup,
+Checkout, seven free days, repeat. A per-person trial gate (`user.trial_started_at`,
+migration `0030`) shipped first as a narrower fix; the trial was pulled entirely
+the next day, and that gate was removed with it.
 
-## What Stripe needs from you
+`git log -- docs/billing-free-trial.md` has the original design if it is ever
+revived. **If you do revive it, gate it per person** — the old gate read the
+WORKSPACE's plan, and nothing caps workspace creation, so one user could mint a
+fresh trial every 7 days. Each workspace also gets its own Stripe customer, so
+Stripe's own trial history never saw a repeat customer.
 
-**Nothing is required for the trial itself** — `trial_period_days` is passed
-per-session by the api, so no product/price/dashboard change is needed and the
-existing `STRIPE_PRICE_*` env config is untouched.
+## What the code does now
 
-Recommended (Stripe Dashboard):
+- **Checkout** (`apps/api/src/routes/billing.ts` → `lib/stripe.ts`): the session
+  is created with `payment_method_collection: "always"` and no trial key, so the
+  first charge happens at Checkout.
+- **`trialing` is still honored** (`planForSubscription` in
+  `lib/billing-config.ts`). We never create trials, but the status can still
+  arrive from a trial an operator grants by hand in the Stripe dashboard, and
+  from subscriptions that were already trialing when the trial was removed.
+  Those are legitimately entitled.
+- **Vestigial column:** `user.trial_started_at` (migration `0030`) is applied in
+  production but no longer read or written. It is left in place deliberately —
+  dropping a column in SQLite needs a table rebuild, and an unused nullable
+  column costs nothing. Do not declare it on the Drizzle `user` table.
 
-1. **Trial-ending reminder email** — Settings → Subscriptions and emails →
-   enable "Send emails about expiring trials". Stripe then notifies customers
-   ~3 days before the first charge (a legal requirement in some jurisdictions,
-   and it cuts dispute risk).
-2. **Webhook events** — no new events needed. We already consume
-   `checkout.session.completed`, `customer.subscription.updated`, and
-   `customer.subscription.deleted`; trial start/conversion/failed-conversion
-   all flow through these. (`customer.subscription.trial_will_end` is unused —
-   only subscribe to it if we later want our own reminder email.)
-3. **Optional — one trial per customer:** if repeat trials via
-   cancel/re-subscribe become a problem, we can gate on
-   `stripeSubscriptionId`/history in the api, or you can handle save-offers in
-   the Billing Portal. Nothing to do now.
-4. **Test mode check:** run a test-mode Checkout, confirm the session shows
-   "7 days free", the subscription is created as `trialing`, and the workspace
-   is promoted to the purchased tier immediately (the dashboard unlocks).
+## What to check in Stripe
 
-## Where the trial is promised in the UI (keep copy honest)
-
-- Dashboard onboarding paywall + tier cards (`TierGrid.tsx`, `PlanTiers.tsx`,
-  `OnboardingPaywall.tsx`) — the per-tier "7-day free trial" note is hidden for
-  workspaces already on a paid plan, matching the api's eligibility rule.
-- Dashboard billing screen note ("A card is required to start your 7-day free
-  trial…") — `apps/dashboard/src/app/settings/billing/page.tsx`.
-- Marketing pricing page (tier cards, FAQ, risk-reversal line, honesty note),
-  home pricing teaser, and the machine-readable `/pricing.md`.
+- **Subscriptions still `trialing`** from before the removal keep their free days
+  and convert on schedule. To end one early, cancel it in the Stripe dashboard —
+  `customer.subscription.deleted` demotes the workspace to `none`.
+- **Billing Portal:** if plan switching is enabled, the tier is resolved from the
+  base price id, not the Checkout metadata stamp (`planForSubscription`).
+- The nightly `BILLING_RECONCILE_DAILY` cron re-derives every stored plan from
+  Stripe and reports drift to Discord.

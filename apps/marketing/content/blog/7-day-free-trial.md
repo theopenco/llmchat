@@ -1,13 +1,20 @@
 ---
-title: "Every hosted plan now starts with a 7-day free trial"
-description: "New hosted Clanker Support subscriptions now begin with 7 free days — the full plan, every feature, applied automatically at checkout. Nothing is charged until the trial ends, you can cancel anytime, and a 14-day money-back guarantee backs it all up."
-seoDescription: "New hosted Clanker Support subscriptions start with a 7-day free trial — full features, no charge until day 7, cancel anytime, 14-day money-back guarantee."
+title: "Retired: the 7-day free trial"
+description: "Retired: the 7-day free trial announced here ended on 19 September 2026 after sustained signup abuse. Hosted plans are paid from day one, still backed by a 14-day money-back guarantee."
+seoDescription: "Retired announcement: the Clanker Support 7-day free trial ended 19 September 2026. Hosted plans are paid from day one with a 14-day money-back guarantee."
 date: "2026-07-20"
 category: "Announcements"
-featured: true
+featured: false
 cover: "/blog/7-day-free-trial.jpg"
-coverAlt: "Gradient announcement card: 7 days free on every Clanker Support hosted plan"
+coverAlt: "Gradient announcement card: the retired 7-day free trial on Clanker Support hosted plans"
 ---
+
+> **Update — 19 September 2026: this trial has been retired.**
+> We pulled the 7-day free trial after it was being farmed: the same people
+> signed up repeatedly for free Scale access without ever converting. Hosted
+> plans are now paid from day one, still backed by the 14-day money-back
+> guarantee and cancel-anytime. Self-hosting remains free and open source.
+> The rest of this post is kept as a record of what we tried.
 
 As of last week, every new hosted Clanker Support subscription starts with a 7-day free trial. It applies automatically at checkout — no promo code, nothing to hunt for. Pick a plan, and for seven days you use it for free.
 

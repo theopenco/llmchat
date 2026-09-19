@@ -123,8 +123,8 @@ describe("BillingPage", () => {
 		).toBeInTheDocument();
 	});
 
-	// Data honesty: no free TIER (a free trial exists, a free plan doesn't), and
-	// the displayed prices are the real ones from the shared tier table (which
+	// Data honesty: no free tier and no free trial — the hosted product is paid
+	// from day one — and the displayed prices are the real ones from the shared tier table (which
 	// match Stripe) — not fabricated. While the promotion runs, the derived
 	// pre-promotion original price renders struck through beside each.
 	it("shows the real tier prices and never a Free tier", () => {
@@ -143,12 +143,12 @@ describe("BillingPage", () => {
 		).toBeInTheDocument();
 	});
 
-	// The trial promise mirrors the api's eligibility rule: shown to a workspace
-	// with no paid plan, hidden once one is active (upgrades get no new trial).
-	it("promises the 7-day free trial only to unsubscribed workspaces", async () => {
+	// The 7-day trial was removed after it was farmed for free Scale access.
+	// The billing screen must never promise one again, subscribed or not.
+	it("never promises a free trial, on any plan", async () => {
 		setWorkspace("none");
 		renderPage();
-		expect(screen.getAllByText(/7-day free trial/i).length).toBeGreaterThan(0);
+		expect(screen.queryByText(/free trial/i)).not.toBeInTheDocument();
 
 		cleanup();
 		setWorkspace("growth");

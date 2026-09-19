@@ -59,20 +59,6 @@ export interface TierEntitlements {
 export type BillingInterval = "month" | "year";
 
 /**
- * Free-trial length (days) for a workspace's FIRST subscription. A card is
- * still collected at Checkout (`payment_method_collection: "always"`), but the
- * subscription starts in Stripe's `trialing` status — full plan entitlements,
- * no charge — and converts to `active` (first charge) when the trial ends.
- *
- * Single source of truth for every surface that mentions the trial (paywall,
- * billing screen, marketing pricing) AND for the api, which passes it to
- * Stripe Checkout as `subscription_data[trial_period_days]` — no Stripe
- * dashboard configuration is needed for the trial itself. Workspaces already
- * on a paid plan never get a trial on upgrade (see /billing/checkout).
- */
-export const TRIAL_PERIOD_DAYS = 7;
-
-/**
  * Active sitewide promotion — percent off every paid tier's pre-promotion
  * price. The `priceUsd*` fields below stay what Stripe actually charges TODAY
  * (the discounted amounts — they must keep matching the STRIPE_PRICE_* prices);

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Fragment } from "react";
 import { matrix, allCompetitors } from "content-collections";
-import { ANALYTICS_EVENTS, TRIAL_PERIOD_DAYS } from "@llmchat/shared";
+import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ComparisonCell } from "@/components/ComparisonCell";
@@ -251,7 +251,7 @@ export default function ComparePage() {
 						Try Clanker Support free
 					</p>
 					<h2 className="font-display mx-auto mt-4 max-w-2xl text-4xl font-semibold leading-tight tracking-tight-display text-paper sm:text-5xl">
-						One script tag. {TRIAL_PERIOD_DAYS}-day free trial. See if it fits.
+						One script tag. Live in five minutes. See if it fits.
 					</h2>
 					<div className="mt-8 flex flex-wrap justify-center gap-3">
 						<TrackedLink
@@ -260,7 +260,7 @@ export default function ComparePage() {
 							eventProps={{ source: "compare_cta" }}
 							className="rounded-full bg-paper px-6 py-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-accent hover:text-paper"
 						>
-							Start your free trial
+							Get started
 						</TrackedLink>
 						<Link
 							href="/blog"
