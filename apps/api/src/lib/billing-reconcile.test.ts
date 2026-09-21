@@ -151,4 +151,56 @@ describe("runBillingReconcile", () => {
 		expect(retrieveSubscription).not.toHaveBeenCalled();
 		expect(notifyBillingDrift).toHaveBeenCalledOnce();
 	});
+
+	it("aggregates corrections and unverified across a whole run, pinging once", async () => {
+		// Every other test drives a single workspace; the real run is a loop over
+		// many. This guards the accumulation: corrections and unverified must sum
+		// across rows, only genuinely drifted rows get written, and the operator
+		// gets exactly ONE digest for the run — not one per workspace.
+		const writes = mockDb([
+			{ id: "ws_match", plan: "scale", stripeSubscriptionId: "sub_match" },
+			{ id: "ws_drift", plan: "scale", stripeSubscriptionId: "sub_drift" },
+			{ id: "ws_gone", plan: "growth", stripeSubscriptionId: "sub_gone" },
+			{ id: "ws_flaky", plan: "scale", stripeSubscriptionId: "sub_flaky" },
+			{ id: "ws_orphan", plan: "starter", stripeSubscriptionId: null },
+		]);
+		vi.mocked(retrieveSubscription).mockImplementation(
+			async (_key: string, id: string) => {
+				switch (id) {
+					case "sub_match":
+						return sub("active", "price_scale");
+					case "sub_drift":
+						return sub("active", "price_starter");
+					case "sub_gone":
+						throw new StripeError(404, "{}", "No such subscription");
+					case "sub_flaky":
+						throw new StripeError(500, "{}", "boom");
+					default:
+						throw new Error(`unexpected subscription id ${id}`);
+				}
+			},
+		);
+
+		const res = await runBillingReconcile(ENV);
+
+		expect(res.checked).toBe(5);
+		// ws_flaky (transient 500) + ws_orphan (no subscription id) — never demoted.
+		expect(res.unverified).toBe(2);
+		expect(res.corrections).toEqual([
+			{
+				workspaceId: "ws_drift",
+				from: "scale",
+				to: "starter",
+				reason: "active",
+			},
+			{ workspaceId: "ws_gone", from: "growth", to: "none", reason: "missing" },
+		]);
+		// Only the two verified drifts are written; the 404 also clears its id.
+		expect(writes).toEqual([
+			{ plan: "starter" },
+			{ plan: "none", stripeSubscriptionId: null },
+		]);
+		expect(notifyBillingDrift).toHaveBeenCalledOnce();
+		expect(notifyBillingDrift).toHaveBeenCalledWith(ENV, res);
+	});
 });

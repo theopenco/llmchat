@@ -5,6 +5,7 @@ import {
 	formEncode,
 	hmacSha256Hex,
 	reportMeterEvent,
+	subscriptionPriceIds,
 	verifyStripeSignature,
 } from "./stripe";
 
@@ -38,6 +39,48 @@ describe("formEncode", () => {
 
 	it("omits null/undefined values", () => {
 		expect(formEncode({ a: "1", b: null, c: undefined })).toBe("a=1");
+	});
+});
+
+describe("subscriptionPriceIds", () => {
+	// This is the parsing boundary the whole tier resolution rests on: the base
+	// price id it returns is what planForSubscription trusts over the (stale)
+	// metadata stamp. Stripe webhook payloads arrive in partial shapes, so a
+	// regression here — a crash on a missing field, or letting a blank id
+	// through — would resolve a paying customer to the wrong tier.
+
+	it("returns the price ids in Stripe's line-item order", () => {
+		expect(
+			subscriptionPriceIds({
+				items: {
+					data: [{ price: { id: "price_a" } }, { price: { id: "price_b" } }],
+				},
+			}),
+		).toEqual(["price_a", "price_b"]);
+	});
+
+	it("is empty for the partial shapes a webhook can carry, never throwing", () => {
+		expect(subscriptionPriceIds({})).toEqual([]);
+		expect(subscriptionPriceIds({ items: {} })).toEqual([]);
+		expect(subscriptionPriceIds({ items: { data: [] } })).toEqual([]);
+	});
+
+	it("drops line items with a missing, blank, or non-string price id", () => {
+		expect(
+			subscriptionPriceIds({
+				items: {
+					data: [
+						{},
+						{ price: {} },
+						{ price: { id: "" } },
+						{ price: { id: "   " } },
+						// A non-string id (defensive against a malformed payload).
+						{ price: { id: 42 as unknown as string } },
+						{ price: { id: "price_real" } },
+					],
+				},
+			}),
+		).toEqual(["price_real"]);
 	});
 });
 
