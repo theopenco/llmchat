@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+	notifyBillingDrift,
 	notifySubscriptionCancelled,
 	notifySubscriptionStarted,
 	notifyUserSignup,
@@ -20,6 +21,7 @@ interface Sent {
 		content?: string;
 		embeds?: Array<{
 			title: string;
+			description?: string;
 			color?: number;
 			fields?: Array<{ name: string; value: string }>;
 		}>;
@@ -143,5 +145,87 @@ describe("notification embeds", () => {
 			{ name: "Workspace", value: "Unknown", inline: true },
 			{ name: "Plan", value: "SCALE", inline: true },
 		]);
+	});
+
+	// The nightly reconciliation cron auto-demotes drifted plans; this digest is
+	// the ONLY human-facing signal that a paying customer's tier was changed
+	// without a webhook. Its counts and per-correction lines must be right, and
+	// the truncation must hold Discord's 1024-char field cap — a broken digest
+	// would fail to POST and the demotion would go unseen.
+	it("billing drift: amber embed with per-correction lines + Checked/Corrected/Unverified counts", async () => {
+		const calls = stubFetch();
+		await notifyBillingDrift(env({ DISCORD_NOTIFICATION_URL: WEBHOOK }), {
+			checked: 5,
+			unverified: 1,
+			corrections: [
+				{ workspaceId: "ws_1", from: "scale", to: "none", reason: "missing" },
+				{ workspaceId: "ws_2", from: "scale", to: "starter", reason: "active" },
+			],
+		});
+		const embed = calls[0]!.body.embeds![0]!;
+		expect(embed.title).toBe("Billing Drift Reconciled");
+		expect(embed.color).toBe(0xf59e0b);
+		expect(embed.description).toBe(
+			"`ws_1` scale → none (missing)\n`ws_2` scale → starter (active)",
+		);
+		expect(embed.fields).toEqual([
+			{ name: "Checked", value: "5", inline: true },
+			{ name: "Corrected", value: "2", inline: true },
+			{ name: "Unverified", value: "1", inline: true },
+		]);
+	});
+
+	it("billing drift: caps the list at 10 lines with an '…and N more' tail", async () => {
+		const calls = stubFetch();
+		const corrections = Array.from({ length: 13 }, (_, i) => ({
+			workspaceId: `ws_${i}`,
+			from: "scale",
+			to: "none",
+			reason: "missing",
+		}));
+		await notifyBillingDrift(env({ DISCORD_NOTIFICATION_URL: WEBHOOK }), {
+			checked: 13,
+			unverified: 0,
+			corrections,
+		});
+		const embed = calls[0]!.body.embeds![0]!;
+		const lines = embed.description!.split("\n");
+		// 10 correction lines + 1 summary line for the remaining 3.
+		expect(lines).toHaveLength(11);
+		expect(lines[10]).toBe("…and 3 more");
+		// The full count is still reported in the field, not just the shown lines.
+		expect(embed.fields).toContainEqual({
+			name: "Corrected",
+			value: "13",
+			inline: true,
+		});
+	});
+
+	it("billing drift: shows 'No corrections.' when only unverified workspaces were found", async () => {
+		const calls = stubFetch();
+		await notifyBillingDrift(env({ DISCORD_NOTIFICATION_URL: WEBHOOK }), {
+			checked: 2,
+			unverified: 2,
+			corrections: [],
+		});
+		const embed = calls[0]!.body.embeds![0]!;
+		expect(embed.description).toBe("No corrections.");
+		expect(embed.fields).toEqual([
+			{ name: "Checked", value: "2", inline: true },
+			{ name: "Corrected", value: "0", inline: true },
+			{ name: "Unverified", value: "2", inline: true },
+		]);
+	});
+
+	it("billing drift: no-ops without DISCORD_NOTIFICATION_URL", async () => {
+		const calls = stubFetch();
+		await notifyBillingDrift(env(), {
+			checked: 1,
+			unverified: 0,
+			corrections: [
+				{ workspaceId: "ws_1", from: "scale", to: "none", reason: "missing" },
+			],
+		});
+		expect(calls).toHaveLength(0);
 	});
 });
