@@ -148,7 +148,7 @@
 		},
 		{
 			"heading": "Model and infrastructure flexibility",
-			"llmchat": "Model-agnostic across providers — pick a model per project from a curated multi-provider catalog (GPT, Claude, Gemini and more via LLM Gateway) and switch it with a config change. Self-hostable — serverless workerd via Ploy — for teams with data residency requirements. MIT open source throughout.",
+			"llmchat": "Model-agnostic across providers — pick a model per project from a curated multi-provider catalog (GPT-6, Claude 5.5, Gemini 4, DeepSeek, Qwen, GLM and more via LLM Gateway) and switch it with a config change. Self-hostable — serverless workerd via Ploy — for teams with data residency requirements. MIT open source throughout.",
 			"competitor": "Runs on Intercom's proprietary Fin AI infrastructure. SaaS-only — no self-hosting option. Strong compliance posture (GDPR, SOC 2) for teams that need certifications but not infrastructure ownership.",
 			"bottomLine": "Choose Clanker Support if you want model flexibility or self-hosting. Choose Intercom if managed SaaS with compliance certifications is the right posture for your team."
 		},
