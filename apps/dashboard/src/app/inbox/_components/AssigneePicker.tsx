@@ -78,7 +78,7 @@ export function AssigneePicker({
 					className="h-8 gap-1.5 rounded-[10px] px-2.5 text-xs font-medium"
 				>
 					<UserPlus className="size-4" />
-					<span className="hidden max-w-[9rem] truncate sm:inline">
+					<span className="hidden max-w-36 truncate sm:inline">
 						{assignee ? (assignee.name ?? "Assigned") : "Assign"}
 					</span>
 				</Button>

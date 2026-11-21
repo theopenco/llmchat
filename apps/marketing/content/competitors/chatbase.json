@@ -8,7 +8,7 @@
 	"bestFor": "Teams that need multi-channel AI support and have enterprise security requirements.",
 	"notFor": "Teams wanting a simple drop-in widget, or model choice across providers.",
 	"pricing": "Free plan (1 agent, basic models); paid from $40/mo (Hobby) to ~$500/mo (Pro), credit-based; Enterprise custom",
-	"heroSubtext": "Clanker Support is a single script tag that goes live in minutes — no platform onboarding, no SDK required (an official React SDK exists when you want one). Chatbase lets you pick from its supported models on higher-priced plans; Clanker Support picks from a curated multi-provider catalog (GPT, Claude, Gemini and more via LLM Gateway) on every plan — the full catalog on Growth and Scale — and you can self-host the whole stack.",
+	"heroSubtext": "Clanker Support is a single script tag that goes live in minutes — no platform onboarding, no SDK required (an official React SDK exists when you want one). Chatbase lets you pick from its supported models on higher-priced plans; Clanker Support picks from a curated multi-provider catalog (GPT-6, Claude 5.5, Gemini 4, DeepSeek, Qwen, GLM and more via LLM Gateway) on every plan — the full catalog on Growth and Scale — and you can self-host the whole stack.",
 	"heroBadges": [
 		"One script tag",
 		"Model-agnostic",
@@ -116,7 +116,7 @@
 	"llmchatWins": [
 		"One script tag setup — live in under 5 minutes",
 		"Shadow DOM isolation — widget styles never bleed into your page",
-		"Model choice — swap GPT, Claude, Gemini and more per project",
+		"Model choice — swap GPT-6, Claude 5.5, Gemini 4, DeepSeek, Qwen, GLM and more per project",
 		"Self-hostable on your own serverless infrastructure (workerd via Ploy)",
 		"Open architecture — no black-box AI stack",
 		"Transparent, publicly listed flat monthly plans — from $19/mo"
@@ -180,7 +180,7 @@
 		},
 		{
 			"question": "Can I use a custom or self-hosted model with Chatbase?",
-			"answer": "No. Chatbase lets you pick from its supported models, with the more capable ones gated behind higher-priced plans. Clanker Support picks from a curated multi-provider catalog via LLM Gateway — GPT, Claude, Gemini and more — on every plan, with the full catalog on Growth and Scale."
+			"answer": "No. Chatbase lets you pick from its supported models, with the more capable ones gated behind higher-priced plans. Clanker Support picks from a curated multi-provider catalog via LLM Gateway — GPT-6, Claude 5.5, Gemini 4, DeepSeek, Qwen, GLM and more — on every plan, with the full catalog on Growth and Scale."
 		},
 		{
 			"question": "Is Clanker Support faster to set up than Chatbase?",

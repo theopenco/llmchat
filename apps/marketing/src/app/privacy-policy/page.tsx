@@ -14,6 +14,7 @@ export default function PrivacyPolicyPage() {
 	return (
 		<LegalPage
 			title="Privacy Policy"
+			path="/privacy-policy"
 			lastUpdated={LAST_UPDATED}
 			intro="This policy explains what information Clanker Support collects, how we use it, and the choices you have. It covers our website and the AI support product we provide."
 		>

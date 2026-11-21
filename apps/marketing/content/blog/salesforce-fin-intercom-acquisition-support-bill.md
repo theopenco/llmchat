@@ -1,5 +1,6 @@
 ---
 title: "Salesforce buying Fin (Intercom): what it means for your support bill"
+seoTitle: "Salesforce buys Fin (Intercom): what it means for your bill"
 description: "The deal is signed, not closed, and Fin's pricing hasn't moved. Here's Salesforce's dated post-acquisition track record — and what to check in your contract before renewal."
 seoDescription: "Salesforce is acquiring Fin (Intercom) for ~$3.6B. What happens to Fin pricing, contracts, and roadmap — plus a stay/hedge/leave framework for support teams."
 date: "2026-07-11"

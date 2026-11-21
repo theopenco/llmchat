@@ -63,6 +63,7 @@ const securityHeaders = [
 
 const config: NextConfig = {
 	reactStrictMode: true,
+	poweredByHeader: false,
 	transpilePackages: ["@llmchat/shared", "@llmchat/widget"],
 	async headers() {
 		return [{ source: "/:path*", headers: securityHeaders }];

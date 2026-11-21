@@ -8,6 +8,11 @@
 	"rules": {
 		"react/rules-of-hooks": "error",
 		"react/exhaustive-deps": "warn",
+		"react/set-state-in-effect": "warn",
+		"react/refs": "warn",
+		"react/purity": "warn",
+		"react/globals": "warn",
+		"react/immutability": "warn",
 		"react/react-in-jsx-scope": "off",
 		"no-underscore-dangle": ["warn", { "allow": ["_meta"] }],
 		"react/iframe-missing-sandbox": "off"

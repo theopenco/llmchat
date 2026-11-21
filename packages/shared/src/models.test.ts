@@ -16,6 +16,28 @@ describe("WEB_SEARCH_MODELS (generated snapshot)", () => {
 	it("contains the default model", () => {
 		expect(WEB_SEARCH_MODELS).toContain(DEFAULT_MODEL);
 	});
+
+	it("offers the current gateway generation and drops deactivated routes", () => {
+		for (const id of [
+			"gpt-6-luna",
+			"gpt-6.2-sol",
+			"claude-sonnet-5-5",
+			"gemini-4-neon",
+		]) {
+			expect(WEB_SEARCH_MODELS).toContain(id);
+		}
+		for (const id of [
+			"claude-3-5-haiku",
+			"gemini-2.5-pro",
+			"gpt-4o-search-preview",
+		]) {
+			expect(WEB_SEARCH_MODELS).not.toContain(id);
+		}
+	});
+
+	it("excludes image-generation models", () => {
+		expect(WEB_SEARCH_MODELS).not.toContain("gemini-nano-banana-2.1");
+	});
 });
 
 describe("isWebSearchModel", () => {

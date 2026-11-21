@@ -47,6 +47,9 @@ const BASIC_MODEL_MARKERS = [
 	"flash",
 	"lite",
 	"small",
+	// OpenAI's GPT-5.6 / GPT-6 generation names its small tier "Luna"
+	// (Sol/Terra/Astra are the larger tiers).
+	"luna",
 ] as const;
 
 /** True when `id` is a "basic" (cheaper/smaller) model — Starter-tier eligible.

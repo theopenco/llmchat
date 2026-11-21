@@ -98,7 +98,7 @@ export function MobileNav({
 							aria-hidden
 							tabIndex={-1}
 							onClick={() => setOpen(false)}
-							className={`fixed inset-x-0 bottom-0 top-16 z-30 bg-paper/80 backdrop-blur-sm transition-opacity duration-300 ${
+							className={`fixed inset-x-0 bottom-0 top-16 z-30 bg-paper/80 backdrop-blur-xs transition-opacity duration-300 ${
 								open ? "opacity-100" : "pointer-events-none opacity-0"
 							}`}
 						/>

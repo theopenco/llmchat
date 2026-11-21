@@ -1,8 +1,26 @@
 import type { NextConfig } from "next";
 import { withContentCollections } from "@content-collections/next";
 
+// Public-site security headers (the dashboard/admin ship the same baseline
+// plus their CSPs). Safe for static marketing content: nothing here can block
+// a script or a fetch.
+const securityHeaders = [
+	{
+		key: "Strict-Transport-Security",
+		value: "max-age=63072000; includeSubDomains; preload",
+	},
+	{ key: "X-Content-Type-Options", value: "nosniff" },
+	{ key: "X-Frame-Options", value: "SAMEORIGIN" },
+	{ key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+	{
+		key: "Permissions-Policy",
+		value: "camera=(), geolocation=(), browsing-topics=()",
+	},
+];
+
 const config: NextConfig = {
 	reactStrictMode: true,
+	poweredByHeader: false,
 	transpilePackages: ["@llmchat/shared"],
 	// Every page renders SiteHeader, whose GitHubStars fetch (revalidate: 600)
 	// makes the whole page ISR. Next then stamps HTML with `s-maxage=600,
@@ -19,6 +37,9 @@ const config: NextConfig = {
 	// smallest fetch/page revalidate used in the app, or the SWR window comes
 	// back for that page.
 	expireTime: 600,
+	async headers() {
+		return [{ source: "/:path*", headers: securityHeaders }];
+	},
 	async redirects() {
 		return [
 			// The old marketing /docs page moved to the dedicated docs app.

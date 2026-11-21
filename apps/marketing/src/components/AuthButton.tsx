@@ -54,7 +54,7 @@ export function AuthButton({ className = "" }: { className?: string }) {
 						location: "header",
 					})
 				}
-				className={`${ghost} hidden min-[420px]:inline-flex`}
+				className={`${ghost} max-[419px]:hidden`}
 			>
 				Sign in
 			</Link>

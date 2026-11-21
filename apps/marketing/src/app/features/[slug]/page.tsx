@@ -27,8 +27,8 @@ export async function generateMetadata({
 	const feature = getFeature(slug);
 	if (!feature) return {};
 	return pageMeta({
-		title: `${feature.name} — Clanker Support`,
-		description: feature.lead,
+		title: `${feature.seoTitle} — Clanker Support`,
+		description: feature.seoDescription ?? feature.lead,
 		path: `/features/${feature.slug}`,
 	});
 }
@@ -212,7 +212,7 @@ export default async function FeaturePage({
 
 				{/* ── Closing CTA ──────────────────────────────────────── */}
 				<section className="my-24">
-					<div className="relative overflow-hidden rounded-[2rem] border border-accent/30 bg-gradient-to-b from-paper-card to-paper px-8 py-16 text-center shadow-glow">
+					<div className="relative overflow-hidden rounded-4xl border border-accent/30 bg-linear-to-b from-paper-card to-paper px-8 py-16 text-center shadow-glow">
 						<div className="grid-backdrop pointer-events-none absolute inset-0" />
 						<div className="relative">
 							<p className="kicker">Ship support today</p>

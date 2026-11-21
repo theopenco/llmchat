@@ -190,8 +190,7 @@ beforeEach(() => {
 	vi.mocked(streamChat).mockResolvedValue({
 		text: Promise.resolve("hello"),
 		usage: Promise.resolve({ inputTokens: 1, outputTokens: 2 }),
-		totalUsage: Promise.resolve({ inputTokens: 1, outputTokens: 2 }),
-		toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
+		stream: new ReadableStream({ start: (c) => c.close() }),
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	} as any);
 });

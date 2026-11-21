@@ -36,6 +36,7 @@ function setWorkspace(plan: Plan | null, role: "owner" | "agent" = "owner") {
 		workspaceId: plan ? "ws_1" : null,
 		setWorkspaceId: vi.fn(),
 		isLoading: false,
+		loaded: true,
 		role: plan ? role : null,
 		canManage: role !== "agent",
 	});
@@ -85,6 +86,7 @@ describe("BillingPage", () => {
 			workspaces: [],
 			workspaceId: null,
 			setWorkspaceId: vi.fn(),
+			loaded: true,
 			isLoading: true,
 			role: null,
 			canManage: false,

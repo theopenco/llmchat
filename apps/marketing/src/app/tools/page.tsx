@@ -2,9 +2,16 @@ import Link from "next/link";
 
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { FaqSection } from "@/components/FaqSection";
 import { JsonLd } from "@/components/JsonLd";
 import { TOOLS } from "@/lib/tools";
-import { breadcrumbLd, itemListLd, pageMeta } from "@/lib/seo";
+import {
+	breadcrumbLd,
+	faqPageLd,
+	itemListLd,
+	pageMeta,
+	type Faq,
+} from "@/lib/seo";
 import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 export const metadata = pageMeta({
@@ -14,9 +21,33 @@ export const metadata = pageMeta({
 	path: "/tools",
 });
 
+const faqs: Faq[] = [
+	{
+		question: "Are these customer support tools really free?",
+		answer:
+			"Yes. Every tool on this page is free to use with no sign-up, no email gate, and no usage limit. Open one, enter your numbers or text, and copy the result.",
+	},
+	{
+		question: "Is the data I enter sent anywhere?",
+		answer:
+			"No. The calculators and generators run entirely in your browser: the ticket volumes, costs, and reply text you type are computed on the page and never posted to a server.",
+	},
+	{
+		question: "Which tool should a support team start with?",
+		answer:
+			"Start with the AI support savings calculator to size the opportunity from your ticket volume and handle time, then use the CSAT calculator to set a baseline you can compare against after an AI agent goes live.",
+	},
+	{
+		question: "What is an llms.txt file and do I need one?",
+		answer:
+			"llms.txt is a plain-text file at your site root that tells AI assistants what your product is and where your key pages live. It helps answer engines such as ChatGPT and Perplexity describe you accurately; the llms.txt generator builds a spec-correct one in a minute.",
+	},
+];
+
 export default function ToolsPage() {
 	return (
 		<>
+			<JsonLd data={faqPageLd(faqs)} />
 			<JsonLd
 				data={itemListLd(
 					TOOLS.map((t) => ({
@@ -110,6 +141,9 @@ export default function ToolsPage() {
 						find the rest of the product.
 					</p>
 				</section>
+
+				<FaqSection faqs={faqs} />
+				<div className="pb-24" />
 			</main>
 
 			<SiteFooter />

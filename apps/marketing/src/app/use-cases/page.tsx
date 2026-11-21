@@ -11,7 +11,7 @@ import { CANONICAL_SITE_URL, SIGNUP_URL } from "@/lib/site-urls";
 export const metadata = pageMeta({
 	title: "Use cases — who Clanker Support is for",
 	description:
-		"From e-commerce and SaaS to car rental, real estate, and hotels — see how an AI support agent that answers from your docs and escalates to humans fits your business.",
+		"E-commerce, SaaS, docs, car rental, real estate, and hotels: see how an AI support agent that answers from your docs and escalates to humans fits in.",
 	path: "/use-cases",
 });
 
@@ -92,7 +92,7 @@ export default function UseCasesPage() {
 
 				{/* ── Closing CTA ──────────────────────────────────────── */}
 				<section className="my-24">
-					<div className="relative overflow-hidden rounded-[2rem] border border-accent/30 bg-gradient-to-b from-paper-card to-paper px-8 py-16 text-center shadow-glow">
+					<div className="relative overflow-hidden rounded-4xl border border-accent/30 bg-linear-to-b from-paper-card to-paper px-8 py-16 text-center shadow-glow">
 						<div className="grid-backdrop pointer-events-none absolute inset-0" />
 						<div className="relative">
 							<p className="kicker">Don&apos;t see your industry?</p>

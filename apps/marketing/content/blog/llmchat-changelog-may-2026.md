@@ -1,5 +1,7 @@
 ---
 title: "Changelog: May 2026 — knowledge base improvements and new model options"
+seoTitle: "Changelog: May 2026 — knowledge base and model options"
+seoDescription: "May 2026 changelog for Clanker Support: longer knowledge bases, a per-project AI model picker, and a batch of inbox quality-of-life fixes."
 description: "Longer knowledge base support, model selection per project, and a handful of inbox quality-of-life improvements."
 date: "2026-05-01"
 category: "Changelog"

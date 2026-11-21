@@ -67,7 +67,7 @@ export function TierGrid({
 					<section
 						key={tier.plan}
 						className={`relative flex flex-col rounded-2xl border bg-card p-6 ${
-							tier.highlight ? "border-primary shadow-sm" : ""
+							tier.highlight ? "border-primary shadow-xs" : ""
 						} ${available ? "" : "opacity-75"}`}
 					>
 						{tier.highlight && (

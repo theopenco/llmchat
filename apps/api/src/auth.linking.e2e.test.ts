@@ -1,4 +1,4 @@
-// Behavioral test of the account-takeover fix, exercising Better Auth 1.6.9's
+// Behavioral test of the account-takeover fix, exercising Better Auth 1.7's
 // REAL implicit-link decision (`handleOAuthUserInfo` from `better-auth/oauth2`) —
 // not a reimplementation. Only the internal adapter is mocked; the branching that
 // decides "link vs refuse vs create" is the library's own.
@@ -52,23 +52,28 @@ function makeAdapter(
 		providerId: "google",
 		accountId: GOOGLE_USERINFO.id,
 	};
+	const accounts = opts.linkedToGoogle
+		? [googleAccount]
+		: // credential (email/password) account only — NOT linked to google.
+			[{ providerId: "credential", accountId: "x" }];
 	return {
-		findOAuthUser: vi.fn(async () =>
-			existingUser
-				? {
-						user: existingUser,
-						accounts: opts.linkedToGoogle
-							? [googleAccount]
-							: // credential (email/password) account only — NOT linked to google.
-								[{ providerId: "credential", accountId: "x" }],
-						linkedAccount: opts.linkedToGoogle ? googleAccount : undefined,
-					}
-				: undefined,
+		findAccountOwnerByKey: vi.fn(async () =>
+			existingUser && opts.linkedToGoogle
+				? { kind: "owned", user: existingUser, account: googleAccount }
+				: null,
+		),
+		findUserByEmail: vi.fn(async () =>
+			existingUser ? { user: existingUser, accounts } : null,
 		),
 		linkAccount: vi.fn(async () => ({ id: "linked" })),
-		createOAuthUser: vi.fn(async () => ({
-			user: { id: "new-user", email: VICTIM_EMAIL, emailVerified: true },
-			account: { id: "acct" },
+		createUser: vi.fn(async () => ({
+			id: "new-user",
+			email: VICTIM_EMAIL,
+			emailVerified: true,
+		})),
+		createAccount: vi.fn(async (data: Record<string, unknown>) => ({
+			id: "acct",
+			...data,
 		})),
 		updateUser: vi.fn(async (id: string, data: Record<string, unknown>) => ({
 			id,
@@ -91,6 +96,11 @@ function makeContext(
 	return {
 		context: {
 			internalAdapter: adapter,
+			adapter: {
+				transaction: async (run: (trx: unknown) => unknown) => run({}),
+			},
+			socialProviders: [],
+			logger: { error: vi.fn(), warn: vi.fn() },
 			options: { account: { accountLinking } },
 			trustedProviders,
 			secret: "x".repeat(32),
@@ -132,7 +142,7 @@ describe("account-takeover fix — implicit OAuth linking", () => {
 		expect(res.error).toBe("account not linked");
 		expect(res.data).toBeNull();
 		expect(adapter.linkAccount).not.toHaveBeenCalled();
-		expect(adapter.createOAuthUser).not.toHaveBeenCalled();
+		expect(adapter.createUser).not.toHaveBeenCalled();
 		expect(adapter.createSession).not.toHaveBeenCalled();
 		expect(adapter.updateUser).not.toHaveBeenCalled();
 	});
@@ -168,7 +178,7 @@ describe("account-takeover fix — implicit OAuth linking", () => {
 		expect(adapter.linkAccount).not.toHaveBeenCalled();
 		expect(adapter.updateUser).not.toHaveBeenCalled();
 		expect(adapter.createSession).not.toHaveBeenCalled();
-		expect(adapter.createOAuthUser).not.toHaveBeenCalled();
+		expect(adapter.createUser).not.toHaveBeenCalled();
 	});
 
 	it("NON-REGRESSION: a first-time Google signup (no existing email) still creates a user + session", async () => {
@@ -181,8 +191,8 @@ describe("account-takeover fix — implicit OAuth linking", () => {
 
 		const res = await handleOAuthUserInfo(c as never, OPTS as never);
 
-		expect(adapter.createOAuthUser).toHaveBeenCalledTimes(1);
-		expect(adapter.createSession).toHaveBeenCalledWith("new-user");
+		expect(adapter.createUser).toHaveBeenCalledTimes(1);
+		expect(adapter.createSession.mock.calls[0]?.[0]).toBe("new-user");
 		expect(adapter.linkAccount).not.toHaveBeenCalled();
 		expect(res.error).toBeNull();
 		expect(res.isRegister).toBe(true);
@@ -205,8 +215,8 @@ describe("account-takeover fix — implicit OAuth linking", () => {
 		const res = await handleOAuthUserInfo(c as never, OPTS as never);
 
 		expect(adapter.linkAccount).not.toHaveBeenCalled();
-		expect(adapter.createOAuthUser).not.toHaveBeenCalled();
-		expect(adapter.createSession).toHaveBeenCalledWith("google-user");
+		expect(adapter.createUser).not.toHaveBeenCalled();
+		expect(adapter.createSession.mock.calls[0]?.[0]).toBe("google-user");
 		expect(res.error).toBeNull();
 		expect((res.data as { user: { id: string } }).user.id).toBe("google-user");
 	});

@@ -155,7 +155,7 @@ export default function ProjectSettingsPage() {
 	return (
 		<PageContainer>
 			<header className="mb-6">
-				<h1 className="truncate text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
+				<h1 className="truncate text-2xl font-extrabold tracking-tight-display text-ck-text">
 					{project.name}
 				</h1>
 				<p className="mt-1 text-sm text-ck-muted">Project settings</p>
@@ -222,7 +222,7 @@ export default function ProjectSettingsPage() {
 
 			{/* One save bar for all tabs — saves only the dirty fields (PATCH partial). */}
 			{dirty && (
-				<div className="fixed inset-x-0 bottom-0 z-20 border-t border-ck-border bg-ck-topbar/95 backdrop-blur md:left-60">
+				<div className="fixed inset-x-0 bottom-0 z-20 border-t border-ck-border bg-ck-topbar/95 backdrop-blur-sm md:left-60">
 					{/* Inner width matches PageContainer so the bar lines up with content. */}
 					<div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-6 py-3 sm:px-8">
 						<span className="text-[12.5px] text-ck-muted">Unsaved changes</span>

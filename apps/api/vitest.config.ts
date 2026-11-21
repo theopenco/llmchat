@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { defineConfig, type Plugin } from "vitest/config";
 
-const src = resolve(__dirname, "./src");
+const src = resolve(import.meta.dirname, "./src");
 const widgetBundle = resolve(src, "generated/widget-bundle.ts");
 
 /**

@@ -51,8 +51,8 @@ export const MenuLabel = React.forwardRef<
 MenuLabel.displayName = "MenuLabel";
 
 const menuItemClass = cn(
-	"flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-ck-text outline-none",
-	"focus:bg-ck-navhover data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+	"flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-ck-text outline-hidden",
+	"focus:bg-ck-navhover data-disabled:pointer-events-none data-disabled:opacity-50",
 	"[&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-ck-muted",
 );
 
@@ -84,7 +84,7 @@ export const MenuItem = React.forwardRef<
 			{...props}
 		>
 			<span className="flex flex-1 items-center gap-2.5">{children}</span>
-			{selected && <Check className="ml-auto !text-ck-accent" />}
+			{selected && <Check className="ml-auto text-ck-accent!" />}
 		</DropdownMenu.Item>
 	);
 });

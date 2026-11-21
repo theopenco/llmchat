@@ -20,7 +20,7 @@ export function BrandLogo({
 			alt="Clanker Support"
 			className={cn(
 				"inline-block shrink-0 object-contain",
-				invert && "[filter:brightness(0)_invert(1)]",
+				invert && "filter-[brightness(0)_invert(1)]",
 				className,
 			)}
 		/>

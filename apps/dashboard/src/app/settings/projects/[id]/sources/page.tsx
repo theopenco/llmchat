@@ -53,7 +53,7 @@ export default function SourcesPage() {
 			<header className="mb-6 flex items-start justify-between gap-4">
 				<div>
 					<div className="flex items-center gap-2.5">
-						<h1 className="text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
+						<h1 className="text-2xl font-extrabold tracking-tight-display text-ck-text">
 							Sources
 						</h1>
 						{!sourcesQ.isLoading && sources.length > 0 && (

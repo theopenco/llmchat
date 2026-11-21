@@ -7,6 +7,16 @@ packages:
   - "!apps/shopify"
   - packages/*
 
+# ai@7 → @ai-sdk/gateway pins @vercel/oidc 3.2.0, whose Node entry eagerly
+# requires `path`/`fs` at module load. The api bundle (esbuild, platform
+# neutral, no browser condition) then dies in workerd with "Dynamic require of
+# "path" is not supported" before serving a request. 3.1.0 exports the same
+# getContext/getVercelOidcToken API but loads those modules lazily, and we never
+# call it (inference goes through LLM Gateway, not Vercel's AI Gateway). Drop
+# this once @vercel/oidc ships a lazy or workerd-conditioned entry again.
+overrides:
+  "@vercel/oidc": 3.1.0
+
 onlyBuiltDependencies:
   - "@parcel/watcher"
   - "@tailwindcss/oxide"

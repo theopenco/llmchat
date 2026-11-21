@@ -28,7 +28,7 @@ export async function generateMetadata({
 	const useCase = getUseCase(slug);
 	if (!useCase) return {};
 	return pageMeta({
-		title: `AI support for ${useCase.name} — Clanker Support`,
+		title: `${useCase.seoTitle ?? `AI support for ${useCase.name}`} — Clanker Support`,
 		description: useCase.seoDescription ?? useCase.lead,
 		path: `/use-cases/${useCase.slug}`,
 	});
@@ -217,7 +217,7 @@ export default async function UseCasePage({
 
 				{/* ── Closing CTA ──────────────────────────────────────── */}
 				<section className="my-24">
-					<div className="relative overflow-hidden rounded-[2rem] border border-accent/30 bg-gradient-to-b from-paper-card to-paper px-8 py-16 text-center shadow-glow">
+					<div className="relative overflow-hidden rounded-4xl border border-accent/30 bg-linear-to-b from-paper-card to-paper px-8 py-16 text-center shadow-glow">
 						<div className="grid-backdrop pointer-events-none absolute inset-0" />
 						<div className="relative">
 							<p className="kicker">Ship support today</p>

@@ -16,18 +16,18 @@
 		"test": "turbo run test"
 	},
 	"devDependencies": {
-		"@meetploy/cli": "^1.46.0",
+		"@meetploy/cli": "^1.68.0",
 		"@semantic-release/exec": "^7.1.0",
-		"@semantic-release/npm": "^13.1.5",
-		"@types/node": "^22.10.0",
-		"oxlint": "^1.69.0",
-		"prettier": "^3.6.2",
-		"semantic-release": "^24.2.5",
+		"@semantic-release/npm": "^13.2.0",
+		"@types/node": "^22.20.5",
+		"oxlint": "^1.94.0",
+		"prettier": "^3.10.1",
+		"semantic-release": "^26.0.1",
 		"semantic-release-monorepo": "8.0.2",
-		"turbo": "^2.7.2",
-		"typescript": "5.9.2"
+		"turbo": "^2.11.13",
+		"typescript": "6.0.3"
 	},
-	"packageManager": "pnpm@10.0.0",
+	"packageManager": "pnpm@10.34.9",
 	"engines": {
 		"node": ">=22"
 	}

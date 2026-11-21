@@ -159,7 +159,7 @@ function AddSource({
 						}}
 						placeholder="https://example.com"
 						aria-label="Source URL"
-						className="h-10 flex-1 rounded-[10px] border border-ck-border bg-ck-card px-3 font-mono text-[13px] text-ck-text outline-none placeholder:text-ck-faint focus-visible:border-ck-accent"
+						className="h-10 flex-1 rounded-[10px] border border-ck-border bg-ck-card px-3 font-mono text-[13px] text-ck-text outline-hidden placeholder:text-ck-faint focus-visible:border-ck-accent"
 					/>
 					<Button
 						onClick={submitUrl}

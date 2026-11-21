@@ -3,7 +3,7 @@ import {
 	streamText,
 	generateText,
 	convertToModelMessages,
-	stepCountIs,
+	isStepCount,
 	type ToolSet,
 	type UIMessage,
 } from "ai";
@@ -319,7 +319,7 @@ export async function streamChat(env: Env, input: LlmCallInput) {
 	return streamText({
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		model: gateway(input.model as any),
-		system: buildSystem(
+		instructions: buildSystem(
 			input.systemPrompt,
 			input.knowledgeText,
 			input.sources,
@@ -339,7 +339,7 @@ export async function streamChat(env: Env, input: LlmCallInput) {
 		// Integration tools: allow a bounded tool loop (check slots → book →
 		// answer). stepCountIs(5) caps upstream calls per turn; without tools the
 		// default single step applies and behavior is unchanged.
-		...(input.tools ? { tools: input.tools, stopWhen: stepCountIs(5) } : {}),
+		...(input.tools ? { tools: input.tools, stopWhen: isStepCount(5) } : {}),
 	});
 }
 
@@ -369,7 +369,7 @@ const VISITOR_SUMMARY_SYSTEM =
  */
 async function runSummary(
 	env: Env,
-	opts: { system: string; transcript: string; maxOutputTokens: number },
+	opts: { instructions: string; transcript: string; maxOutputTokens: number },
 ): Promise<string | null> {
 	if (!opts.transcript.trim()) return null;
 	try {
@@ -380,7 +380,7 @@ async function runSummary(
 		const { text } = await generateText({
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			model: gateway(SUMMARY_MODEL as any),
-			system: opts.system,
+			instructions: opts.instructions,
 			prompt: opts.transcript,
 			maxOutputTokens: opts.maxOutputTokens,
 		});
@@ -402,7 +402,7 @@ export async function summarizeConversation(
 	transcript: string,
 ): Promise<string | null> {
 	return runSummary(env, {
-		system: SUMMARY_SYSTEM,
+		instructions: SUMMARY_SYSTEM,
 		transcript,
 		maxOutputTokens: 60,
 	});
@@ -420,7 +420,7 @@ export async function summarizeForVisitor(
 	transcript: string,
 ): Promise<string | null> {
 	return runSummary(env, {
-		system: VISITOR_SUMMARY_SYSTEM,
+		instructions: VISITOR_SUMMARY_SYSTEM,
 		transcript,
 		maxOutputTokens: 100,
 	});
@@ -571,7 +571,7 @@ export async function generateSuggestion(
 	const { text, usage } = await generateText({
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		model: gateway(input.model as any),
-		system: buildSystem(
+		instructions: buildSystem(
 			input.systemPrompt,
 			input.knowledgeText,
 			input.sources,

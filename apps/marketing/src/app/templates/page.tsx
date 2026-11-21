@@ -17,7 +17,7 @@ import {
 export const metadata = pageMeta({
 	title: "Templates — deploy the support agent in one click",
 	description:
-		"One-click deploy starters with the Clanker Support agent pre-wired: Next.js 15 + shadcn/ui, TanStack Start, React Router 7, Laravel, and FastAPI. Clone, set your project key, ship.",
+		"One-click starters with the Clanker Support agent pre-wired: Next.js 15 + shadcn/ui, TanStack Start, React Router 7, Laravel, and FastAPI. Clone and ship.",
 	path: "/templates",
 	image: "/templates/nextjs-shadcn.png",
 });
@@ -224,7 +224,7 @@ export default function TemplatesPage() {
 							</code>
 							<p className="mt-3 text-sm leading-relaxed text-muted">
 								Pick any template interactively, or pass{" "}
-								<code className="rounded bg-paper-raise px-1.5 py-0.5 font-mono text-[0.82em] text-ink-soft">
+								<code className="rounded-sm bg-paper-raise px-1.5 py-0.5 font-mono text-[0.82em] text-ink-soft">
 									--template &lt;name&gt;
 								</code>
 								.
@@ -247,7 +247,7 @@ export default function TemplatesPage() {
 								{/* Preview (plain <img>, not next/image — Ploy's deploy
 								    esbuild re-processes Next output, so we keep media
 								    tags simple; matches the blog cover pattern). */}
-								<div className="aspect-[1200/630] w-full overflow-hidden border-b border-rule bg-paper-raise">
+								<div className="aspect-1200/630 w-full overflow-hidden border-b border-rule bg-paper-raise">
 									{/* eslint-disable-next-line @next/next/no-img-element */}
 									<img
 										src={`/templates/${t.dir}.png`}

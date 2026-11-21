@@ -143,7 +143,7 @@ export default function ProjectsPage() {
 		<PageContainer>
 			<div className="mb-8 flex items-center justify-between">
 				<div>
-					<h1 className="text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
+					<h1 className="text-2xl font-extrabold tracking-tight-display text-ck-text">
 						Projects
 					</h1>
 					<p className="mt-1 text-sm text-ck-muted">

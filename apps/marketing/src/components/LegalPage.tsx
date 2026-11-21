@@ -1,5 +1,8 @@
+import { JsonLd } from "@/components/JsonLd";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { breadcrumbLd } from "@/lib/seo";
+import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 
 /**
  * Shared chrome for long-form legal pages (privacy policy, terms). Renders the
@@ -9,17 +12,26 @@ import { SiteFooter } from "@/components/SiteFooter";
  */
 export function LegalPage({
 	title,
+	path,
 	lastUpdated,
 	intro,
 	children,
 }: {
 	title: string;
+	/** Root-relative page path, for the breadcrumb trail. */
+	path: string;
 	lastUpdated: string;
 	intro: string;
 	children: React.ReactNode;
 }) {
 	return (
 		<>
+			<JsonLd
+				data={breadcrumbLd(CANONICAL_SITE_URL, [
+					{ name: "Home", path: "/" },
+					{ name: title, path },
+				])}
+			/>
 			<SiteHeader />
 			<main className="mx-auto max-w-3xl px-6">
 				<header className="pt-16">

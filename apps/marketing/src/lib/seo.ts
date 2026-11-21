@@ -23,6 +23,8 @@ export function pageMeta(opts: {
 	type?: "website" | "article";
 	/** ISO date for article OG (blog posts). */
 	publishedTime?: string;
+	/** ISO date the article was last revised (article:modified_time). */
+	modifiedTime?: string;
 	/** Root-relative OG/Twitter card image (e.g. "/blog/foo.jpg") —
 	 * metadataBase resolves it to an absolute URL. Defaults to the site-wide
 	 * OG cover. */
@@ -34,6 +36,7 @@ export function pageMeta(opts: {
 		path,
 		type = "website",
 		publishedTime,
+		modifiedTime,
 		image = DEFAULT_OG_IMAGE,
 	} = opts;
 	return {
@@ -53,6 +56,7 @@ export function pageMeta(opts: {
 			description,
 			siteName: "Clanker Support",
 			...(publishedTime ? { publishedTime } : {}),
+			...(modifiedTime ? { modifiedTime } : {}),
 			images: [{ url: image }],
 		},
 		twitter: {

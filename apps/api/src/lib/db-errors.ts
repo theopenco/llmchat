@@ -5,7 +5,7 @@
  * matches in prod. */
 export function isUniqueViolation(err: unknown): boolean {
 	const seen = new Set<unknown>();
-	for (let e: unknown = err; e && !seen.has(e); ) {
+	for (let e: unknown = err; e && !seen.has(e);) {
 		seen.add(e);
 		const msg = e instanceof Error ? e.message : String(e);
 		if (/unique constraint failed/i.test(msg)) {

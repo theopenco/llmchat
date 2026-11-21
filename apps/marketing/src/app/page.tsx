@@ -100,6 +100,31 @@ const orgJsonLd = {
 			url: CANONICAL_SITE_URL,
 			publisher: { "@id": `${CANONICAL_SITE_URL}/#org` },
 		},
+		// The product entity itself, so "what is / how much is Clanker Support"
+		// answers resolve to one node: free to self-host, hosted plans priced
+		// from the shared BILLING_TIERS table (per-plan Offers live on /pricing).
+		{
+			"@type": "SoftwareApplication",
+			"@id": `${CANONICAL_SITE_URL}/#software`,
+			name: "Clanker Support",
+			url: CANONICAL_SITE_URL,
+			applicationCategory: "BusinessApplication",
+			applicationSubCategory: "AI customer support",
+			operatingSystem: "Web",
+			publisher: { "@id": `${CANONICAL_SITE_URL}/#org` },
+			description:
+				"An open-source AI support agent you embed with one script tag. It answers from your docs, escalates to your team with full context, and runs the model you pick.",
+			offers: {
+				"@type": "AggregateOffer",
+				priceCurrency: "USD",
+				lowPrice: "0",
+				highPrice: String(
+					Math.max(...PAID_PLANS.map((p) => BILLING_TIERS[p].priceUsdMonthly)),
+				),
+				offerCount: PAID_PLANS.length + 1,
+				url: `${CANONICAL_SITE_URL}/pricing`,
+			},
+		},
 	],
 };
 
@@ -117,7 +142,7 @@ const faqs: Faq[] = [
 	{
 		question: "Which AI models does Clanker Support support?",
 		answer:
-			"A curated catalog of web-search-capable models through LLM Gateway — GPT, Claude, Gemini and more. You choose the model per project and can swap it with a config change — no code edits — a cost-efficient model for one project, a more capable one for another. Starter includes the lighter model class; Growth and Scale unlock the full catalog.",
+			"A curated catalog of web-search-capable models through LLM Gateway — GPT-6, Claude 5.5, Gemini 4, DeepSeek, Qwen, GLM and more. You choose the model per project and can swap it with a config change — no code edits — a cost-efficient model for one project, a more capable one for another. Starter includes the lighter model class; Growth and Scale unlock the full catalog.",
 	},
 	{
 		question: "Can I customize how the chat widget looks?",
@@ -259,7 +284,7 @@ export default function Home() {
 						width={44}
 						height={44}
 						strokeDasharray="2 3"
-						className="pointer-events-none absolute inset-0 stroke-rule/60 [mask-image:radial-gradient(50rem_circle_at_25%_-6rem,white,transparent)]"
+						className="pointer-events-none absolute inset-0 stroke-rule/60 mask-[radial-gradient(50rem_circle_at_25%_-6rem,white,transparent)]"
 					/>
 					<div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 pb-20 pt-16 sm:pt-24 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
 						<div>
@@ -572,12 +597,12 @@ export default function Home() {
 						badges.
 					</p>
 
-					<div className="relative mt-14 overflow-hidden rounded-[2rem] border border-accent/30 bg-gradient-to-b from-paper-card to-paper px-8 py-20 text-center shadow-glow">
+					<div className="relative mt-14 overflow-hidden rounded-4xl border border-accent/30 bg-linear-to-b from-paper-card to-paper px-8 py-20 text-center shadow-glow">
 						<GridPattern
 							width={44}
 							height={44}
 							strokeDasharray="2 3"
-							className="pointer-events-none absolute inset-0 stroke-rule/60 [mask-image:radial-gradient(30rem_circle_at_50%_0%,white,transparent)]"
+							className="pointer-events-none absolute inset-0 stroke-rule/60 mask-[radial-gradient(30rem_circle_at_50%_0%,white,transparent)]"
 						/>
 						<div className="relative">
 							<p className="kicker">Ship support today</p>

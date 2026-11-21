@@ -4,3 +4,4 @@ build
 .shopify
 public
 wrangler.jsonc
+pnpm-lock.yaml

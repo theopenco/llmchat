@@ -14,11 +14,13 @@ The models the agent runs are all web-search-capable, so it can also search the 
 
 ## Choosing a model
 
-Every project picks its own AI model from a curated set of web-search-capable models. The default is `gpt-5.4-mini`, and you can change it per project — so a high-traffic marketing site can run a lighter model while your flagship product runs a stronger one.
+Every project picks its own AI model from a curated set of web-search-capable models served through LLM Gateway — the current OpenAI (GPT-5.x and GPT-6), Anthropic (Claude 4.x and 5.x), Google (Gemini 3.x and 4), DeepSeek, Qwen, and GLM generations. The default is `gpt-5.4-mini`, and you can change it per project — so a high-traffic marketing site can run a lighter model while your flagship product runs a stronger one.
+
+The catalog follows the gateway: new models appear as LLM Gateway adds them, and models it retires drop out. A project saved on a retired model is moved back to the default automatically.
 
 Model access follows your plan:
 
-- **Starter** — the lighter "basic" model class (mini, nano, haiku, flash, lite, and small-class models).
+- **Starter** — the lighter "basic" model class (mini, nano, haiku, flash, lite, small, and luna-class models).
 - **Growth and Scale** — the full catalog.
 
 See [Pricing](/pricing) for the full plan comparison. If a plan change ever leaves a project saved on a model its plan no longer includes, the agent quietly falls back to the default model instead of going offline — your widget keeps answering.

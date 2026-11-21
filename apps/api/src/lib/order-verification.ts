@@ -34,11 +34,7 @@ const SEND_WINDOW_SECONDS = 3600;
 
 export type StartOutcome = "sent" | "limited" | "unavailable";
 export type ConfirmOutcome =
-	| "verified"
-	| "invalid"
-	| "expired"
-	| "locked"
-	| "unavailable";
+	"verified" | "invalid" | "expired" | "locked" | "unavailable";
 
 interface CodeRecord {
 	/** SHA-256 hex of the code — the plaintext never touches STATE. */

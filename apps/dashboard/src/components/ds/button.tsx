@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
  * `icon` for square icon buttons (e.g. the top-bar Help control). Shared.
  */
 const buttonVariants = cva(
-	"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ck-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ck-card disabled:pointer-events-none disabled:opacity-50",
+	"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[10px] font-semibold transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ck-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ck-card disabled:pointer-events-none disabled:opacity-50",
 	{
 		variants: {
 			variant: {

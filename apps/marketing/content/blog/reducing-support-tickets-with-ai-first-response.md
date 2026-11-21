@@ -1,5 +1,6 @@
 ---
 title: "How to reduce support tickets by 60% with an AI first-response layer"
+seoTitle: "Reduce support tickets 60% with an AI first-response layer"
 description: "A practical guide to deploying an AI first-responder that handles the repetitive stuff so your team can focus on the conversations that matter."
 date: "2026-05-15"
 author: "Ismail Ghallou"

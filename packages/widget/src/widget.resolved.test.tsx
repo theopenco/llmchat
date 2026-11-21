@@ -47,6 +47,7 @@ function mockFeed(archivedAt: string | null) {
 		csatRating: null,
 		escalatedAt: null,
 		archivedAt,
+		feedClientId: null,
 		refresh: vi.fn(),
 	});
 }

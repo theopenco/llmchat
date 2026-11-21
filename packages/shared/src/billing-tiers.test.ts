@@ -230,12 +230,16 @@ describe("INTERNAL_ENTITLEMENTS", () => {
 });
 
 describe("isModelAllowed", () => {
-	it("restricts Starter to basic (mini/nano/haiku/flash/lite/small) models", () => {
+	it("restricts Starter to basic (mini/nano/haiku/flash/lite/small/luna) models", () => {
 		expect(isModelAllowed("starter", "gpt-5.4-mini")).toBe(true);
 		expect(isModelAllowed("starter", "claude-haiku-4-5")).toBe(true);
 		expect(isModelAllowed("starter", "gemini-2.5-flash")).toBe(true);
 		expect(isModelAllowed("starter", "claude-opus-4-8")).toBe(false);
 		expect(isModelAllowed("starter", "gpt-5.4")).toBe(false);
+		expect(isModelAllowed("starter", "gpt-6-luna")).toBe(true);
+		expect(isModelAllowed("starter", "claude-haiku-5-5")).toBe(true);
+		expect(isModelAllowed("starter", "gpt-6-sol")).toBe(false);
+		expect(isModelAllowed("starter", "claude-sonnet-5-5")).toBe(false);
 	});
 
 	it("lets Growth/Scale run any model", () => {

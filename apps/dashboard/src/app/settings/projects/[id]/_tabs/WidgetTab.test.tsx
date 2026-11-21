@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 import { api } from "@/lib/api";
 
@@ -31,7 +31,7 @@ function draft(o: Partial<ProjectDraft> = {}): ProjectDraft {
 	};
 }
 
-let set: ReturnType<typeof vi.fn>;
+let set: Mock<(key: string, value: unknown) => void>;
 
 /** Upload-meta state the avatar query resolves to (null = nothing uploaded). */
 function mockAvatarMeta(

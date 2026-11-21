@@ -55,15 +55,15 @@ describe("streamChat — output cap (shared-key spend ceiling)", () => {
 		});
 		// .at(-1): this file has no per-test mock reset, so target the most recent call.
 		const arg = streamTextMock.mock.calls.at(-1)![0] as unknown as {
-			system: string;
+			instructions: string;
 			messages: Array<{ role: string }>;
 		};
 		// Override + identity ride the ONE top-level `system` string (recency-weighted
 		// the same way by every provider) — not an in-array system message that some
 		// providers (e.g. Anthropic) reject or reorder.
-		expect(arg.system).toContain("# Visitor");
-		expect(arg.system).toContain("Name: Jane");
-		expect(arg.system).toContain(
+		expect(arg.instructions).toContain("# Visitor");
+		expect(arg.instructions).toContain("Name: Jane");
+		expect(arg.instructions).toContain(
 			"This overrides any earlier instruction to collect",
 		);
 		expect(arg.messages.some((m) => m.role === "system")).toBe(false);

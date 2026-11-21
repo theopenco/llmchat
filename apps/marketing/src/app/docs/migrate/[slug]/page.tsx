@@ -253,14 +253,14 @@ export default async function MigratePage({
 							<Link
 								key={m.slug}
 								href={`/docs/migrate/${m.slug}`}
-								className="rounded-full border border-rule px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] text-muted transition-colors hover:border-ink hover:text-ink"
+								className="rounded-full border border-rule px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-muted transition-colors hover:border-ink hover:text-ink"
 							>
 								From {m.name}
 							</Link>
 						))}
 						<a
 							href={DOCS_URL}
-							className="rounded-full border border-rule px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] text-accent transition-colors hover:border-accent"
+							className="rounded-full border border-rule px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-accent transition-colors hover:border-accent"
 						>
 							All docs →
 						</a>

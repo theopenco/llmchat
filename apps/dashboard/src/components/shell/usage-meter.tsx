@@ -44,7 +44,7 @@ export function UsageMeter() {
 				</span>
 			</div>
 			<div className="mt-1.5 flex items-baseline gap-1.5">
-				<span className="font-mono text-[20px] font-extrabold tracking-[-0.02em] text-ck-text tabular-nums">
+				<span className="font-mono text-[20px] font-extrabold tracking-tight-display text-ck-text tabular-nums">
 					{fmt(used)}
 				</span>
 				<span className="text-[12px] text-ck-muted">responses</span>

@@ -1,5 +1,6 @@
 ---
 title: "Two messages, one sequence number: the concurrency bug that never threw"
+seoTitle: "Two messages, one sequence number: a silent SQLite race"
 description: "An escalation marker and the AI reply it interrupted landed in the same conversation with the same sequence number. No exception, no log line, both inserts succeeded, and the thread quietly rendered out of order. This is the read-then-write bug that passes every test, the three-part fix whose deploy order is the point, and the five-second code search that tells you whether your codebase has it too."
 seoDescription: "A silent SQLite race gave two support messages the same sequence number. The atomic INSERT fix, the deploy order that matters, and the 5-second audit."
 date: "2026-07-26"
@@ -143,7 +144,7 @@ The version that works walks the cause chain, with a cycle guard because `cause`
 ```ts
 function isUniqueViolation(err: unknown): boolean {
 	const seen = new Set<unknown>();
-	for (let e: unknown = err; e && !seen.has(e); ) {
+	for (let e: unknown = err; e && !seen.has(e);) {
 		seen.add(e);
 		const msg = e instanceof Error ? e.message : String(e);
 		if (/unique constraint failed/i.test(msg)) {

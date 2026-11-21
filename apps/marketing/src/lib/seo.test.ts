@@ -224,7 +224,6 @@ describe("pageMeta", () => {
 		});
 		// @ts-expect-error twitter card shape is a union; assert the field directly
 		expect(m.twitter?.card).toBe("summary_large_image");
-		// @ts-expect-error twitter card shape is a union; assert the field directly
 		expect(m.twitter?.site).toBe("@ClankrSupport");
 	});
 
@@ -260,7 +259,6 @@ describe("pageMeta", () => {
 		expect(m.openGraph).toMatchObject({
 			images: [{ url: "/blog/cover.jpg" }],
 		});
-		// @ts-expect-error twitter card shape is a union; assert the field directly
 		expect(m.twitter?.images).toEqual(["/blog/cover.jpg"]);
 	});
 
@@ -273,7 +271,6 @@ describe("pageMeta", () => {
 		expect(m.openGraph).toMatchObject({
 			images: [{ url: "/opengraph-image.png" }],
 		});
-		// @ts-expect-error twitter card shape is a union; assert the field directly
 		expect(m.twitter?.images).toEqual(["/opengraph-image.png"]);
 	});
 });

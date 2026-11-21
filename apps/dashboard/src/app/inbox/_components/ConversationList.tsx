@@ -48,7 +48,7 @@ function ConversationRow({
 			className={cn(
 				"flex w-full items-start gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors",
 				selected
-					? "border border-ck-border bg-ck-card shadow-sm"
+					? "border border-ck-border bg-ck-card shadow-xs"
 					: "border border-transparent hover:bg-ck-navhover",
 			)}
 		>

@@ -11,20 +11,20 @@
 		"types": "ploy types"
 	},
 	"dependencies": {
-		"@hono/zod-validator": "^0.7.2",
+		"@hono/zod-validator": "^0.9.1",
 		"@llmchat/db": "workspace:*",
 		"@llmchat/shared": "workspace:*",
-		"@llmgateway/ai-sdk-provider": "3.7.0",
-		"ai": "6.0.27",
-		"better-auth": "1.6.26",
-		"drizzle-orm": "^0.45.2",
-		"hono": "^4.12.34",
-		"stripe": "18.1.1",
-		"zod": "^4.0.0"
+		"@llmgateway/ai-sdk-provider": "4.1.0",
+		"ai": "7.0.179",
+		"better-auth": "1.7.27",
+		"drizzle-orm": "^0.45.4",
+		"hono": "^4.13.19",
+		"zod": "^4.6.7"
 	},
 	"devDependencies": {
-		"@meetploy/types": "^1.18.0",
-		"typescript": "5.9.2",
-		"vitest": "^3.0.0"
+		"@meetploy/types": "^1.32.0",
+		"@types/node": "^22",
+		"typescript": "6.0.3",
+		"vitest": "^5.1.1"
 	}
 }

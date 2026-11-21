@@ -79,7 +79,7 @@ export function PricingPlans({
 								{value === "month" ? "Monthly" : "Annual"}
 								{value === "year" && (
 									<span
-										className={`ml-2 rounded-full px-2 py-0.5 font-mono text-[0.58rem] uppercase tracking-[0.1em] ${
+										className={`ml-2 rounded-full px-2 py-0.5 font-mono text-[0.58rem] uppercase tracking-widest ${
 											active
 												? "bg-white/20 text-white"
 												: "bg-accent/10 text-accent"
@@ -145,7 +145,7 @@ export function PricingPlans({
 									</span>
 								)}
 								{DISCOUNT_ACTIVE && (
-									<span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-accent">
+									<span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[0.58rem] font-semibold uppercase tracking-widest text-accent">
 										{DISCOUNT_PERCENT}% off
 									</span>
 								)}

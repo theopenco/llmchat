@@ -1,5 +1,13 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	vi,
+	type Mock,
+} from "vitest";
 
 import { MessageThread } from "./MessageThread";
 import {
@@ -436,7 +444,7 @@ describe("MessageThread pagination (load older)", () => {
 describe("MessageThread search highlighting", () => {
 	// jsdom has no layout and doesn't implement scrollIntoView; install a spy so
 	// the scroll-to-first-hit effect runs (and is assertable) like in a browser.
-	let scrollSpy: ReturnType<typeof vi.fn>;
+	let scrollSpy: Mock<() => void>;
 	beforeEach(() => {
 		scrollSpy = vi.fn();
 		Element.prototype.scrollIntoView = scrollSpy;

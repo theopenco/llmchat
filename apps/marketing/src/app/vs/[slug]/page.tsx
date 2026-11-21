@@ -100,7 +100,7 @@ export default async function VsPage({
 						{competitor.heroBadges.map((badge) => (
 							<span
 								key={badge}
-								className="rounded-full border border-rule bg-paper-card px-3 py-1 font-mono text-[0.66rem] uppercase tracking-[0.1em] text-ink-soft"
+								className="rounded-full border border-rule bg-paper-card px-3 py-1 font-mono text-[0.66rem] uppercase tracking-widest text-ink-soft"
 							>
 								{badge}
 							</span>
@@ -322,14 +322,14 @@ export default async function VsPage({
 							<Link
 								key={c.id}
 								href={`/vs/${c.id}`}
-								className="rounded-full border border-rule px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] text-muted transition-colors hover:border-ink hover:text-ink"
+								className="rounded-full border border-rule px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-muted transition-colors hover:border-ink hover:text-ink"
 							>
 								vs. {c.name}
 							</Link>
 						))}
 						<Link
 							href="/compare"
-							className="rounded-full border border-rule px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] text-accent transition-colors hover:border-accent"
+							className="rounded-full border border-rule px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-accent transition-colors hover:border-accent"
 						>
 							Full matrix →
 						</Link>

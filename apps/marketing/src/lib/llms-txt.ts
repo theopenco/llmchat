@@ -13,8 +13,10 @@
 
 import {
 	BILLING_TIERS,
+	DEFAULT_MODEL,
 	DISCOUNT_ACTIVE,
 	DISCOUNT_PERCENT,
+	WEB_SEARCH_MODELS,
 	formatUsd,
 } from "@llmchat/shared";
 
@@ -53,6 +55,10 @@ const DETAILS = [
 	"- Script tag: paste one `<script>` before `</body>` — the widget mounts in an isolated shadow DOM, inherits your brand color, and needs no build step.",
 	`- React / Next.js SDK: \`npm install ${RSC_PACKAGE}\` (React 19 — Next.js 15+ App Router or any RSC framework), then render one \`<ClankerSupport apiKey="pk_…" />\` Server Component in your root layout; no script tag. Restyle the default UI with its \`.clanker-*\` classes and \`--clanker-*\` CSS variables, or build a fully custom UI with the headless primitives and \`useClankerSupport()\` hook from \`${RSC_PACKAGE}/headless\` — which also ships a client-rendered \`ClankerSupportWidget\` for non-RSC React apps.`,
 	"- Backend packages: `clankersupport` on PyPI (Python — `script_tag()` for FastAPI, Django, Flask) and on RubyGems (Ruby, with a Rails `clanker_support_tag` view helper), plus `clankersupport/clankersupport-php` on Packagist (PHP, with a Laravel `@clankerSupport` Blade directive) — each renders the same script tag server-side from your project key.",
+	"",
+	// Generated from the same snapshot the dashboard picker and the chat guard
+	// read, so the list here is exactly what a project can select.
+	`Models: ${WEB_SEARCH_MODELS.length} web-search, tool-calling models served through LLM Gateway, chosen per project (default \`${DEFAULT_MODEL}\`; Starter runs the lighter mini/nano/haiku/flash/lite/small/luna class, Growth and Scale the full catalog): ${WEB_SEARCH_MODELS.join(", ")}.`,
 	"",
 	"The agent answers from a per-project knowledge base (page URLs, text snippets, and Q&A pairs) with your own system prompt and per-project model choice. Visitors introduce themselves by name (email optional). When the visitor asks for a human (the widget offers this after a configurable number of messages, or immediately on an explicit request), the conversation escalates: your team is notified by email and optionally Slack, the visitor sees a recap of the handoff right in the chat, and the agent stands down — fully silent once a human replies. Replies from the team inbox appear in the widget and go out by email when the visitor shared an address; email replies from the visitor thread back into the same conversation, and visitors can mark their conversation resolved. Quality is tracked with per-message thumbs up/down ratings plus a 1–5 CSAT score.",
 ];

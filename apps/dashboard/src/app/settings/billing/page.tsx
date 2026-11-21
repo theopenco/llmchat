@@ -101,7 +101,7 @@ function BillingContent() {
 	return (
 		<PageContainer className="space-y-6">
 			<header className="space-y-1">
-				<h1 className="text-2xl font-extrabold tracking-[-0.02em] text-ck-text">
+				<h1 className="text-2xl font-extrabold tracking-tight-display text-ck-text">
 					Billing &amp; usage
 				</h1>
 				<p className="text-sm text-ck-muted">

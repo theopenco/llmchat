@@ -6,7 +6,7 @@ let autoId = 0;
 
 /** Shared ck input styling for text inputs/textareas inside a Field. */
 export const dsInputClass =
-	"w-full rounded-[10px] border border-ck-border bg-ck-card px-3 py-2 text-sm text-ck-text outline-none placeholder:text-ck-faint focus-visible:border-ck-accent";
+	"w-full rounded-[10px] border border-ck-border bg-ck-card px-3 py-2 text-sm text-ck-text outline-hidden placeholder:text-ck-faint focus-visible:border-ck-accent";
 
 export interface FieldProps {
 	label: string;

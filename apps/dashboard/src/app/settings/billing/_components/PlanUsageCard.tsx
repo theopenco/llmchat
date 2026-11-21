@@ -70,7 +70,7 @@ export function PlanUsageCard({
 						Current plan
 					</div>
 					<div className="mt-1.5 flex items-baseline gap-2">
-						<span className="text-[22px] font-extrabold tracking-[-0.02em] text-ck-text">
+						<span className="text-[22px] font-extrabold tracking-tight-display text-ck-text">
 							{heading}
 						</span>
 						{subscribed && !exempt && priceUsdMonthly != null && (
@@ -110,7 +110,7 @@ export function PlanUsageCard({
 					Responses this period
 				</div>
 				<div className="mt-1 flex items-baseline gap-2">
-					<span className="font-mono text-[28px] font-extrabold tracking-[-0.02em] text-ck-text tabular-nums">
+					<span className="font-mono text-[28px] font-extrabold tracking-tight-display text-ck-text tabular-nums">
 						{fmt(used)}
 					</span>
 					<span className="text-[12.5px] text-ck-muted">responses</span>

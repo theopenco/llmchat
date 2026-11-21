@@ -15,7 +15,7 @@ describe("next.config caching", () => {
 		// after the next deploy. expireTime <= revalidate drops the SWR
 		// directive (formatRevalidate returns just `s-maxage=600, `), so the
 		// HTML is revalidated before paint.
-		const config = (await import("../../next.config")).default;
+		const config = await (await import("../../next.config")).default;
 		expect(config.expireTime).toBeDefined();
 		expect(config.expireTime).toBeLessThanOrEqual(600);
 	});

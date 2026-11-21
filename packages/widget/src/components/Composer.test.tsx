@@ -50,7 +50,7 @@ describe("Composer RTL", () => {
 			<Composer
 				value=""
 				onChange={() => {}}
-				onSend={() => {}}
+				onSubmit={() => {}}
 				disabled={false}
 			/>,
 		);

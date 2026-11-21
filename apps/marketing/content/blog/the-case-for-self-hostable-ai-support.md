@@ -1,5 +1,6 @@
 ---
 title: "The case for self-hostable AI support"
+seoDescription: "Why AI support tooling should be self-hostable: it handles customer PII, sits in your critical path, and should be auditable. Plus when managed is better."
 description: "Why open architecture matters for tools that sit between you and your customers."
 date: "2026-04-28"
 author: "Ismail Ghallou"

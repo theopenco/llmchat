@@ -10,8 +10,22 @@ import { dirname, join } from "node:path";
 
 import { models } from "@llmgateway/models";
 
+// A provider route the support agent can actually serve today: web search
+// (the agent's grounding contract), tool calling (integration actions such as
+// Cal.com booking and Shopify order lookup run as tools), and not yet
+// deactivated by the gateway (calls to a deactivated route fail).
+const now = Date.now();
+const servable = (p) =>
+	p.webSearch === true &&
+	p.tools === true &&
+	!(p.deactivatedAt && new Date(p.deactivatedAt).getTime() <= now);
+
+// Text-out chat models only: image-generation models also advertise web
+// search but can't hold a support conversation.
+const textOnly = (m) => !m.output || m.output.every((o) => o === "text");
+
 const ids = models
-	.filter((m) => m.providers.some((p) => p.webSearch === true))
+	.filter((m) => textOnly(m) && m.providers.some(servable))
 	.map((m) => m.id)
 	.toSorted();
 
@@ -28,8 +42,8 @@ const out = join(here, "..", "src", "web-search-models.generated.ts");
 
 const body = `// GENERATED — do not edit.
 // Run \`pnpm gen:web-search-models\` after bumping @llmgateway/models.
-// Source of truth: @llmgateway/models — models whose providers advertise
-// \`webSearch === true\` (the same filter the llmgateway.io web-search page uses).
+// Source of truth: @llmgateway/models — text chat models with at least one live
+// provider route that advertises \`webSearch\` and \`tools\`.
 
 export const WEB_SEARCH_MODELS: readonly string[] = [
 ${ids.map((id) => `\t${JSON.stringify(id)},`).join("\n")}

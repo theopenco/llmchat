@@ -1,6 +1,98 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+	--font-display: var(--font-display-face), system-ui, sans-serif;
+	--font-sans: var(--font-sans-face), system-ui, sans-serif;
+	--font-mono: var(--font-mono-face), ui-monospace, monospace;
+
+	--color-paper: rgb(var(--paper));
+	--color-paper-deep: rgb(var(--paper-deep));
+	--color-paper-card: rgb(var(--paper-card));
+	--color-paper-raise: rgb(var(--paper-raise));
+	--color-ink: rgb(var(--ink));
+	--color-ink-soft: rgb(var(--ink-soft));
+	--color-muted: rgb(var(--muted));
+	--color-faint: rgb(var(--faint));
+	--color-rule: rgb(var(--rule));
+	--color-rule-soft: rgb(var(--rule-soft));
+	--color-accent: rgb(var(--accent));
+	--color-accent-soft: rgb(var(--accent-soft));
+	--color-accent-deep: rgb(var(--accent-deep));
+
+	--tracking-tight-display: -0.02em;
+
+	--shadow-glow:
+		0 0 0 1px rgba(99, 102, 241, 0.25),
+		0 20px 60px -20px rgba(99, 102, 241, 0.35);
+	--shadow-lift: 0 24px 60px -28px rgba(0, 0, 0, 0.7);
+
+	--animate-rise-in: rise-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+	--animate-fade-in: fade-in 0.9s ease both;
+
+	@keyframes rise-in {
+		0% {
+			opacity: 0;
+			transform: translateY(14px);
+		}
+		100% {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	@keyframes fade-in {
+		0% {
+			opacity: 0;
+		}
+		100% {
+			opacity: 1;
+		}
+	}
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--color-gray-200, currentcolor);
+	}
+}
+
+/*
+  Tailwind v4's preflight resets buttons to `cursor: default`; keep the v3
+  pointer cursor on interactive buttons.
+*/
+@layer base {
+	button:not(:disabled),
+	[role="button"]:not(:disabled) {
+		cursor: pointer;
+	}
+}
+
+@utility kicker {
+	font-family: var(--font-mono), monospace;
+	font-size: 0.7rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: rgb(var(--accent-soft));
+}
+
+@utility grid-backdrop {
+	background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+	background-size: 22px 22px;
+	mask-image: radial-gradient(60% 60% at 50% 40%, #000 0%, transparent 100%);
+}
 
 @layer base {
 	/*
@@ -77,21 +169,5 @@
 	::selection {
 		background-color: rgba(99, 102, 241, 0.35);
 		color: #ffffff;
-	}
-}
-
-@layer components {
-	.kicker {
-		font-family: var(--font-mono), monospace;
-		font-size: 0.7rem;
-		letter-spacing: 0.18em;
-		text-transform: uppercase;
-		color: rgb(var(--accent-soft));
-	}
-
-	.grid-backdrop {
-		background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
-		background-size: 22px 22px;
-		mask-image: radial-gradient(60% 60% at 50% 40%, #000 0%, transparent 100%);
 	}
 }

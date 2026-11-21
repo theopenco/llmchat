@@ -33,7 +33,7 @@ export function ShimmerCta({
 		>
 			<span
 				aria-hidden
-				className="absolute inset-0 -z-30 overflow-visible blur-[2px] [container-type:size]"
+				className="absolute inset-0 -z-30 overflow-visible blur-[2px] @container-size"
 			>
 				<span className="animate-shimmer-slide absolute inset-0 block aspect-square h-[100cqh] rounded-none">
 					<span className="animate-spin-around absolute -inset-full block w-auto rotate-0 [background:conic-gradient(from_calc(270deg-(var(--spread)*0.5)),transparent_0,var(--shimmer-color)_var(--spread),transparent_var(--spread))]" />
@@ -41,13 +41,13 @@ export function ShimmerCta({
 			</span>
 			<span
 				aria-hidden
-				className="absolute inset-[var(--cut)] -z-20 rounded-full [background:var(--bg)]"
+				className="absolute inset-(--cut) -z-20 rounded-full [background:var(--bg)]"
 			/>
 			<TrackedLink
 				href={href}
 				event={event}
 				eventProps={eventProps}
-				className="relative z-10 inline-flex items-center gap-2 rounded-full px-8 py-4 text-base font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-soft"
+				className="relative z-10 inline-flex items-center gap-2 rounded-full px-8 py-4 text-base font-semibold text-white focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-soft"
 			>
 				{children}
 			</TrackedLink>

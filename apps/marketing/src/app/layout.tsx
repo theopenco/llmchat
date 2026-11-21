@@ -20,7 +20,7 @@ const GOOGLE_SITE_VERIFICATION =
 const display = Fraunces({
 	subsets: ["latin"],
 	style: ["normal", "italic"],
-	variable: "--font-display",
+	variable: "--font-display-face",
 	display: "swap",
 	// opsz gives the high-contrast display cut at hero sizes; SOFT/WONK power
 	// the `.wonk` utility — the characterful letterforms on highlighted words.
@@ -31,7 +31,7 @@ const display = Fraunces({
 const sans = Hanken_Grotesk({
 	subsets: ["latin"],
 	weight: ["400", "500", "600", "700"],
-	variable: "--font-sans",
+	variable: "--font-sans-face",
 	display: "swap",
 });
 
@@ -39,7 +39,7 @@ const sans = Hanken_Grotesk({
 const mono = JetBrains_Mono({
 	subsets: ["latin"],
 	weight: ["400", "500", "600", "700"],
-	variable: "--font-mono",
+	variable: "--font-mono-face",
 	display: "swap",
 });
 

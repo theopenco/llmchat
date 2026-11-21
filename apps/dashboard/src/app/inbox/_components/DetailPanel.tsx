@@ -42,7 +42,7 @@ function Field({
 			<span className="shrink-0 text-xs text-ck-faint">{label}</span>
 			<span
 				className={cn(
-					"min-w-0 break-words text-right text-sm font-medium text-ck-text",
+					"min-w-0 wrap-break-word text-right text-sm font-medium text-ck-text",
 					mono && "font-mono text-xs",
 				)}
 			>

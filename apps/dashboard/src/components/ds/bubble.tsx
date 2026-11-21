@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
  * per-message actions (Add-to-knowledge, thumbs) around it.
  */
 const bubbleVariants = cva(
-	"max-w-[75%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words",
+	"max-w-[75%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap wrap-break-word",
 	{
 		variants: {
 			side: { left: "rounded-bl-sm", right: "rounded-br-sm" },
