@@ -3,15 +3,16 @@ import { ANALYTICS_EVENTS } from "@llmchat/shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TrackedLink } from "@/components/TrackedLink";
+import { FaqSection } from "@/components/FaqSection";
 import { JsonLd } from "@/components/JsonLd";
 import { FEATURES } from "@/lib/features";
-import { breadcrumbLd, pageMeta } from "@/lib/seo";
+import { breadcrumbLd, faqPageLd, pageMeta, type Faq } from "@/lib/seo";
 import { CANONICAL_SITE_URL, SIGNUP_URL } from "@/lib/site-urls";
 
 export const metadata = pageMeta({
 	title: "Features — what Clanker Support does",
 	description:
-		"A drop-in AI support widget that answers from your docs, escalates to humans, threads over email, runs the model you pick, and self-hosts. Every feature, explained.",
+		"A drop-in AI support widget that answers from your docs, escalates to humans, threads email, runs the model you pick, and self-hosts. Every feature explained.",
 	path: "/features",
 });
 
@@ -28,10 +29,34 @@ const itemListLd = {
 	})),
 };
 
+const faqs: Faq[] = [
+	{
+		question: "What does Clanker Support do?",
+		answer:
+			"Clanker Support is an AI support agent you add to any site with one script tag, a React Server Component, or the WordPress plugin. It answers visitor questions from your docs, text snippets, and Q&A pairs, hands the conversation to your team when a person is needed, and threads email replies back into the same conversation.",
+	},
+	{
+		question: "Which AI models can the support agent run?",
+		answer:
+			"Any model in a curated catalog served through LLM Gateway, currently spanning GPT-5.x and GPT-6, Claude 4.x and 5.x, Gemini 3.x and 4, DeepSeek, Qwen, and GLM. Every model in it supports web search and tool calling. You pick the model per project; Starter includes the lighter model class and Growth and Scale unlock the full catalog.",
+	},
+	{
+		question: "How does the hand-off to a human work?",
+		answer:
+			"After a per-project number of messages the widget offers a “Talk to a human” option, and an explicit request for a person surfaces it immediately. Escalating emails your notify address and posts to Slack, and the full thread lands in your team inbox.",
+	},
+	{
+		question: "Can I self-host Clanker Support?",
+		answer:
+			"Yes. The code is open source under the MIT license and the self-hosted build is the same code as the hosted service. Bring your own model and email keys and run it on your own infrastructure for free.",
+	},
+];
+
 export default function FeaturesPage() {
 	return (
 		<>
 			<JsonLd data={itemListLd} />
+			<JsonLd data={faqPageLd(faqs)} />
 			<JsonLd
 				data={breadcrumbLd(CANONICAL_SITE_URL, [
 					{ name: "Home", path: "/" },
@@ -84,9 +109,11 @@ export default function FeaturesPage() {
 					</div>
 				</section>
 
+				<FaqSection faqs={faqs} />
+
 				{/* ── Closing CTA ──────────────────────────────────────── */}
 				<section className="my-24">
-					<div className="relative overflow-hidden rounded-[2rem] border border-accent/30 bg-gradient-to-b from-paper-card to-paper px-8 py-16 text-center shadow-glow">
+					<div className="relative overflow-hidden rounded-4xl border border-accent/30 bg-linear-to-b from-paper-card to-paper px-8 py-16 text-center shadow-glow">
 						<div className="grid-backdrop pointer-events-none absolute inset-0" />
 						<div className="relative">
 							<p className="kicker">Ship support today</p>

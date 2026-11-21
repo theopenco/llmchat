@@ -1,5 +1,6 @@
 ---
 title: "Changelog: July 2026, so far — the platform month"
+seoDescription: "July 2026 changelog: an approved WordPress plugin, a Shopify app, agents that take actions, dark mode everywhere, and a smarter widget."
 description: "Two weeks in and July is already our densest month: an approved WordPress plugin, a Shopify app, agents that take actions, dark mode everywhere, and a smarter, chattier widget."
 date: "2026-07-14"
 category: "Changelog"

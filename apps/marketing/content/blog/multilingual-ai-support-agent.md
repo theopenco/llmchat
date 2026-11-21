@@ -1,5 +1,6 @@
 ---
 title: "Your customers write in 12 languages. Your support agent answers in all of them."
+seoTitle: "A multilingual AI support agent that answers in any language"
 description: "I spent an hour throwing 12 languages at our support agent — Spanish, Japanese, Arabic, even Moroccan Darija in Arabizi. It answered every one in the customer's language. There's no language setting. And now it does it out loud."
 seoDescription: "A multilingual AI support agent with no language setting: it detects your customer's language and answers in it — in chat and on live voice calls."
 date: "2026-08-11"

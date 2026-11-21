@@ -11,7 +11,7 @@ import { CANONICAL_SITE_URL } from "@/lib/site-urls";
 export const metadata = pageMeta({
 	title: "AI Support Blog & Guides — Clanker Support",
 	description:
-		"Field notes on AI support: announcements, guides, and engineering from the Clanker Support team.",
+		"Field notes on AI customer support from the Clanker Support team: product announcements, how-to guides, monthly changelogs, and engineering deep dives.",
 	path: "/blog",
 });
 

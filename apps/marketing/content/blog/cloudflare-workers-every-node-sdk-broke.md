@@ -1,5 +1,6 @@
 ---
 title: "We moved our SaaS backend to workerd and every Node SDK broke"
+seoTitle: "We moved our backend to workerd and every Node SDK broke"
 description: "The Resend SDK, the Stripe Node SDK, and Better Auth's passkey plugin all got cut from our workerd build — each over something the package dragged in, not code we call. Here is each casualty, the fetch-and-crypto.subtle code that replaced it, and an honest accounting of whether it was worth it."
 seoDescription: "What actually breaks when you move a Node backend to workerd: the deps we cut (Resend SDK, Stripe SDK, passkeys) and the fetch clients we wrote instead."
 date: "2026-07-11"

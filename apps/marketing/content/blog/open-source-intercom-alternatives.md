@@ -1,5 +1,6 @@
 ---
 title: "6 open-source Intercom alternatives you can self-host in 2026"
+seoTitle: "6 open-source Intercom alternatives to self-host in 2026"
 description: "Six open-source Intercom alternatives you can self-host, compared on license, stack weight, built-in AI, and model choice — checked July 2026."
 date: "2026-07-07"
 author: "Ismail Ghallou"

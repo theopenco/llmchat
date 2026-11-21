@@ -13,6 +13,9 @@ const posts = defineCollection({
 	include: "*.md",
 	schema: z.object({
 		title: z.string(),
+		/** Optional ≤60-char <title> when the on-page headline runs long —
+		 * SERPs truncate titles past ~60 characters. */
+		seoTitle: z.string().max(60).optional(),
 		description: z.string(),
 		/** Optional ≤160-char meta description when `description` (the visible
 		 * standfirst) runs long — SERPs truncate past ~160 characters. */
@@ -31,6 +34,7 @@ const posts = defineCollection({
 		coverAlt: z.string().optional(),
 		category: z.enum(["Announcements", "Guides", "Engineering", "Changelog"]),
 		featured: z.boolean().default(false),
+		content: z.string(),
 	}),
 	transform: async (doc, ctx) => {
 		const html = await compileMarkdown(ctx, doc);

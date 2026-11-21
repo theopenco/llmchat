@@ -1,5 +1,6 @@
 ---
 title: "'Additive columns are always safe' is wrong on Drizzle, Prisma, and preview deploys"
+seoTitle: "Why additive DB migrations break logins on preview deploys"
 description: "Everyone agrees an additive column is the one schema change that can't hurt you. Then a one-line ALTER TABLE on our user table turned out to be capable of 500ing every authenticated request — because Drizzle projects every mapped column, Better Auth reads the user table on every session check, and preview deploys skip migrations. Here is the two-PR discipline we ship our riskiest schema changes with, and the one column we keep out of the ORM entirely."
 seoDescription: "Why 'additive nullable columns are safe' fails with Drizzle/Prisma and preview deploys, and the two-PR migration pattern that keeps auth from 500ing."
 date: "2026-07-20"

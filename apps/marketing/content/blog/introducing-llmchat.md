@@ -1,5 +1,6 @@
 ---
 title: "Introducing Clanker Support: AI support that actually escalates"
+seoTitle: "Introducing Clanker Support: AI support that escalates"
 description: "Today we're launching Clanker Support — a drop-in widget that answers from your docs and hands off to your team when the bot can't help."
 date: "2026-05-20"
 category: "Announcements"

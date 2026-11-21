@@ -14,6 +14,7 @@ export default function TermsOfUsePage() {
 	return (
 		<LegalPage
 			title="Terms of Use"
+			path="/terms-of-use"
 			lastUpdated={LAST_UPDATED}
 			intro="These terms govern your access to and use of Clanker Support. By using the Service, you agree to them. Please read them carefully."
 		>

@@ -1,5 +1,6 @@
 ---
 title: "We diffed our marketing site against our codebase. Six claims didn't survive"
+seoTitle: "We diffed our marketing site against our code: 6 claims fell"
 description: "We put the homepage in one tab and the repo in the other and checked every falsifiable sentence against the code that would have to make it true. Six claims failed, one page undersold us, and an adversarial re-pass caught overclaims we wrote during the honesty pass itself. Every fix shipped in one public pull request."
 seoDescription: "We diffed our marketing site against our codebase: six overclaims, one undersell, and a 5-step checklist for auditing your homepage against your repo."
 date: "2026-07-26"

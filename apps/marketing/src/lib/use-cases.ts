@@ -22,6 +22,9 @@ export type UseCase = {
 	/** Optional ≤160-char meta description when `lead` runs long — SERPs
 	 * truncate past ~160 characters. Falls back to `lead`. */
 	seoDescription?: string;
+	/** Optional <title> stem when "AI support for <name>" runs past ~60 chars
+	 * with the brand suffix. */
+	seoTitle?: string;
 	/** One-sentence problem hook — the pain this industry feels. */
 	problem: string;
 	/** Intro paragraphs. */
@@ -89,6 +92,8 @@ export const USE_CASES: UseCase[] = [
 		slug: "saas-startups",
 		num: "02",
 		name: "SaaS & startups",
+		seoDescription:
+			"Let an AI agent answer setup, billing, and how-to questions from your docs and escalate the rest to founders, so a small SaaS team keeps shipping.",
 		tagline:
 			"Deflect setup, billing, and how-to tickets from your docs so a small team can focus on shipping.",
 		headline: "Deflect support tickets so your small team can ship.",
@@ -137,6 +142,7 @@ export const USE_CASES: UseCase[] = [
 		slug: "documentation",
 		num: "03",
 		name: "Documentation & dev tools",
+		seoTitle: "AI support for docs & dev tools",
 		tagline:
 			"Turn your docs into a conversational assistant that answers technical questions in context.",
 		headline: "Make your docs answer back.",

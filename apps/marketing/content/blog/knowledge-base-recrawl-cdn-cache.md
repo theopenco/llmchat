@@ -1,5 +1,6 @@
 ---
 title: "We set a cache trap for our own support agent — in our own llms.txt headers"
+seoTitle: "The CDN cache trap that served our AI agent stale docs"
 description: 'URL knowledge sources are snapshots, and everyone knows snapshots go stale. What we missed is that the refresh itself can be served by any CDN cache between the crawler and the origin — so "Recrawl → success" can silently re-store the pre-deploy content. The trap on our own site was set by our own cache headers.'
 seoDescription: "A recrawl can be served by a CDN cache and silently re-store stale docs. How we cache-bust knowledge-base fetches: unique param, no-store, no-cache headers."
 date: "2026-07-20"

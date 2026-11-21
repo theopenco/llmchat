@@ -34,7 +34,7 @@ export const metadata = pageMeta({
 	title: "Pricing — flat monthly or annual plans, free to self-host",
 	description: `Clanker Support pricing: flat plans from $${formatUsd(starterPrice)}/mo${
 		DISCOUNT_ACTIVE ? ` (${DISCOUNT_PERCENT}% off)` : ""
-	} with no per-seat fees, two months free on annual, a 14-day money-back guarantee, or self-host free with your own keys.`,
+	}, no per-seat fees, 2 months free on annual, a 14-day money-back guarantee, or self-host free.`,
 	path: "/pricing",
 });
 

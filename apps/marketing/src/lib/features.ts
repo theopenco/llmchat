@@ -11,8 +11,12 @@ export type Feature = {
 	slug: string;
 	/** Two-digit index used as the mono eyebrow + ghost numeral ("01"). */
 	num: string;
-	/** Short display name — nav, cards, eyebrow, page title. */
+	/** Short display name — nav, cards, eyebrow. */
 	name: string;
+	/** Keyword-first <title> for the feature page (≤60 chars with the brand). */
+	seoTitle: string;
+	/** ≤160-char meta description when `lead` runs long. */
+	seoDescription?: string;
 	/** One-line summary — the home grid copy. */
 	tagline: string;
 	/** Benefit-led page H1. */
@@ -36,6 +40,7 @@ export const FEATURES: Feature[] = [
 		slug: "drop-in-widget",
 		num: "01",
 		name: "Drop-in widget",
+		seoTitle: "Embeddable AI Chat Widget, One Script Tag",
 		tagline:
 			"One script tag. Loads in a shadow DOM so your styles never leak — and theirs never leak into you.",
 		headline: "Add AI support in one line — without touching your CSS.",
@@ -86,6 +91,7 @@ export const FEATURES: Feature[] = [
 		slug: "answers-from-your-docs",
 		num: "02",
 		name: "Answers from your docs",
+		seoTitle: "AI Support Agent Trained on Your Docs",
 		tagline:
 			"Paste your knowledge base or system prompt. The agent stays on-topic and admits when it doesn't know.",
 		headline: "Turn your docs into accurate, on-brand answers.",
@@ -137,6 +143,9 @@ export const FEATURES: Feature[] = [
 		slug: "escalates-to-humans",
 		num: "03",
 		name: "Escalates to humans",
+		seoTitle: "AI-to-Human Handoff for Support Chat",
+		seoDescription:
+			"Customers tap “Talk to a human” and the full thread lands in your team inbox, with email and Slack alerts. AI handles the rest. No customer stuck in a loop.",
 		tagline:
 			"Customers reach a human in one tap — the conversation lands in your inbox with full context. No lost threads.",
 		headline:
@@ -189,6 +198,7 @@ export const FEATURES: Feature[] = [
 		slug: "email-threading",
 		num: "04",
 		name: "Email threading",
+		seoTitle: "Email Threading for Support Chat",
 		tagline:
 			"Replies go out as email and customer responses thread back into the same conversation automatically.",
 		headline: "One conversation, from first chat to final email.",
@@ -240,6 +250,7 @@ export const FEATURES: Feature[] = [
 		slug: "any-model-any-time",
 		num: "05",
 		name: "Your model, any time",
+		seoTitle: "Pick Your AI Model: GPT, Claude, Gemini",
 		tagline:
 			"Built on LLM Gateway. Pick from a curated catalog of web-search-capable models per project — a config change, not a rewrite.",
 		headline: "Pick the right model. Switch the moment a better one ships.",
@@ -248,12 +259,12 @@ export const FEATURES: Feature[] = [
 			"Hard-wire one model and you're stuck with it — every upgrade becomes a migration.",
 		body: [
 			"You shouldn't have to re-architect your support stack every time a better model ships. Clanker Support runs on LLM Gateway, so the model behind your bot is a setting you control, not a dependency baked into your code.",
-			"The catalog is curated to web-search-capable models — GPT, Claude, Gemini and more. Use a frontier model for complex products or a lighter one for simple FAQs, without touching a line of integration code. Growth and Scale unlock the full catalog.",
+			"The catalog is curated to web-search-capable models — GPT-6, Claude 5.5, Gemini 4, DeepSeek, Qwen, GLM and more. Use a frontier model for complex products or a lighter one for simple FAQs, without touching a line of integration code. Growth and Scale unlock the full catalog.",
 		],
 		points: [
 			{
 				heading: "A curated, multi-provider catalog",
-				body: "GPT, Claude, Gemini and more via LLM Gateway — interchangeable behind the same support experience, every one of them web-search-capable.",
+				body: "GPT-6, Claude 5.5, Gemini 4, DeepSeek, Qwen, GLM and more via LLM Gateway — interchangeable behind the same support experience, every one of them web-search-capable.",
 			},
 			{
 				heading: "Per-project choice",
@@ -273,7 +284,7 @@ export const FEATURES: Feature[] = [
 			{
 				question: "Which AI models can I use with Clanker Support?",
 				answer:
-					"A curated catalog of web-search-capable models served through LLM Gateway — GPT, Claude, Gemini and more. Starter includes the lighter model class; Growth and Scale unlock the full catalog. The model is a per-project setting you control, so you're never tied to one provider's roadmap.",
+					"A curated catalog of web-search-capable models served through LLM Gateway — GPT-6, Claude 5.5, Gemini 4, DeepSeek, Qwen, GLM and more. Starter includes the lighter model class; Growth and Scale unlock the full catalog. The model is a per-project setting you control, so you're never tied to one provider's roadmap.",
 			},
 			{
 				question: "How do I switch models?",
@@ -291,6 +302,7 @@ export const FEATURES: Feature[] = [
 		slug: "self-hostable",
 		num: "06",
 		name: "Self-hostable",
+		seoTitle: "Self-Hosted, Open-Source AI Support",
 		tagline:
 			"Open architecture on serverless edge infra. Run the whole stack on your own account. No surprise vendors.",
 		headline: "Your support stack, on infrastructure you own.",

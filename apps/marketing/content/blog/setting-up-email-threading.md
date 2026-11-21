@@ -1,5 +1,6 @@
 ---
 title: "Setting up email threading for your support widget"
+seoDescription: "Step by step: set a notify email, an inbound domain with Resend MX records, and a reply address so customer email replies thread back into the conversation."
 description: "A step-by-step guide to configuring inbound email so customer replies thread back into the same conversation."
 date: "2026-05-05"
 author: "Ismail Ghallou"

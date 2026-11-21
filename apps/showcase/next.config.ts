@@ -19,6 +19,7 @@ if (process.env.NODE_ENV === "production") {
 
 const config: NextConfig = {
 	reactStrictMode: true,
+	poweredByHeader: false,
 	transpilePackages: ["@llmchat/widget"],
 };
 

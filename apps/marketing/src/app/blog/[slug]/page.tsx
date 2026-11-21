@@ -22,15 +22,15 @@ export async function generateMetadata({
 	const { slug } = await params;
 	const post = allPosts.find((p) => p.slug === slug);
 	if (!post) return {};
-	// Bare post title: the old "— Clanker Support Journal" suffix (26 chars)
-	// pushed every post past the ~60-char SERP cutoff. Google appends the site
-	// name to the displayed title on its own.
+	// Bare post title (Google appends the site name itself); a long headline
+	// carries a ≤60-char seoTitle so the SERP title isn't truncated.
 	return pageMeta({
-		title: post.title,
+		title: post.seoTitle ?? post.title,
 		description: post.seoDescription ?? post.description,
 		path: `/blog/${slug}`,
 		type: "article",
 		publishedTime: post.date,
+		modifiedTime: post.updated,
 		image: post.cover,
 	});
 }
@@ -147,7 +147,7 @@ export default async function PostPage({
 							<img
 								src={post.cover}
 								alt={post.coverAlt ?? ""}
-								className="w-full rounded-2xl border border-rule shadow-sm"
+								className="w-full rounded-2xl border border-rule shadow-xs"
 								loading="eager"
 								fetchPriority="high"
 							/>
