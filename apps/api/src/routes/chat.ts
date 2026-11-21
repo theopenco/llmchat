@@ -141,7 +141,7 @@ const ACTION_DAILY_WINDOW = 24 * 60 * 60;
 const ESCALATE_RATE_LIMIT_MAX = 5;
 // Visitor-resolve is a cheap idempotent DB write (no email/Slack); modest cap.
 const RESOLVE_RATE_LIMIT_MAX = 10;
-// Hard ceiling on the in-chat visitor recap generation so a slow/hung gpt-5-nano
+// Hard ceiling on the in-chat visitor recap generation so a slow/hung summary-model
 // call can never delay the escalate response. On timeout the recap is dropped
 // (summary: null) — the escalation itself is already recorded.
 const VISITOR_SUMMARY_TIMEOUT_MS = 4_500;
@@ -616,7 +616,7 @@ export const chat = new Hono<AppContext>()
 			orderBy: (mt, { asc }) => asc(mt.sequence),
 		});
 
-		// Start the visitor-facing recap now so the gpt-5-nano call overlaps the email
+		// Start the visitor-facing recap now so the summary-model call overlaps the email
 		// round-trips below; it's awaited (timeout-bounded) just before the response.
 		// The escalation is ALREADY durably recorded above, so a slow/failed/empty
 		// recap can never fail or hang the visitor's human request. RECAP_ROLES is an

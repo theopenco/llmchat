@@ -1,12 +1,15 @@
--- Heal projects saved on a model LLM Gateway has since deactivated (Claude 3.x,
--- Gemini 2.5, the GPT-4o search previews, the GPT-5.1/5.2 Codex routes, Kimi K2,
--- …). The chat path already coerces these through effectiveModel(), so this
--- only realigns the stored value with what is actually served and what the
--- dashboard model picker can show. Projects on an offered model are untouched.
+-- Heal projects saved on a model LLM Gateway has deactivated or scheduled for
+-- deactivation: Claude 3.x and Sonnet 4.5, Gemini 2.5 and 3.7 Flash, GPT-4o,
+-- GPT-5 / 5 mini / 5 nano, the GPT-4o search previews, the GPT-5.1/5.2 Codex
+-- routes, Kimi K2, and others. The chat path already coerces these through
+-- effectiveModel(), so this only realigns the stored value with what is
+-- actually served and what the dashboard model picker can show. Projects on an
+-- offered model are untouched.
 --
 -- One-shot: the id list is the WEB_SEARCH_MODELS snapshot as of this migration
 -- (packages/shared/src/web-search-models.generated.ts). Later regenerations
--- don't need to edit this file; the runtime guard covers future retirements.
+-- don't need to edit this file: retirements after that point are handled at
+-- runtime by isWebSearchModel() reading WEB_SEARCH_MODEL_RETIREMENTS.
 UPDATE `project`
 SET `model` = 'gpt-5.4-mini'
 WHERE `model` NOT IN (
@@ -19,8 +22,6 @@ WHERE `model` NOT IN (
 	'claude-opus-4-8',
 	'claude-opus-5',
 	'claude-opus-5-5',
-	'claude-sonnet-4-5',
-	'claude-sonnet-4-5-20250929',
 	'claude-sonnet-4-6',
 	'claude-sonnet-5',
 	'claude-sonnet-5-5',
@@ -32,7 +33,6 @@ WHERE `model` NOT IN (
 	'gemini-3.5-flash',
 	'gemini-3.5-flash-lite',
 	'gemini-3.6-flash',
-	'gemini-3.7-flash',
 	'gemini-3.8-flash',
 	'gemini-4-argon',
 	'gemini-4-carbon',
@@ -46,10 +46,6 @@ WHERE `model` NOT IN (
 	'glm-5.1',
 	'glm-5.2',
 	'glm-5.3',
-	'gpt-4o',
-	'gpt-5',
-	'gpt-5-mini',
-	'gpt-5-nano',
 	'gpt-5-pro',
 	'gpt-5.1',
 	'gpt-5.2',

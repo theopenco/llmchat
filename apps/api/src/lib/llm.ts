@@ -343,12 +343,14 @@ export async function streamChat(env: Env, input: LlmCallInput) {
 	});
 }
 
-// Cheapest adequate model for internal one-line triage summaries (gateway
-// pricing ~$0.05/$0.40 per 1M tokens → ~0.009¢/summary). Hardcoded on purpose —
-// NOT routed through effectiveModel()/the web-search guard (that would coerce it
-// to the pricier agent default; summarizing an existing transcript needs no web
-// search). Internal, operator-absorbed cost.
-const SUMMARY_MODEL = "gpt-5-nano";
+// Cheap, current small model for internal one-line triage summaries (gateway
+// pricing ~$0.10/$0.50 per 1M tokens → ~0.01¢/summary). GPT-6 Luna has no
+// scheduled route deactivation, unlike gpt-5-nano (retiring Dec 2026 on
+// OpenAI, Feb 2027 on Azure). Hardcoded on purpose — NOT routed through
+// effectiveModel()/the web-search guard (that would coerce it to the pricier
+// agent default; summarizing an existing transcript needs no web search).
+// Internal, operator-absorbed cost.
+const SUMMARY_MODEL = "gpt-6-luna";
 
 const SUMMARY_SYSTEM =
 	'You write ONE short line summarizing a customer-support conversation for an agent scanning their inbox. Capture the visitor\'s core intent or issue — e.g. "Refund request for order #1234", "Asking about international shipping". Plain text, no surrounding quotes, no leading label like "Summary:". Max ~12 words.';

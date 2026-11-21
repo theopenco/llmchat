@@ -127,7 +127,7 @@ async function runOnce(model, cell) {
 	return await res.text;
 }
 
-// --- grading: deterministic regex pre-filter + a strict gpt-5-nano judge --------------
+// --- grading: deterministic regex pre-filter + a strict gpt-6-luna judge --------------
 const judgeGateway = createLLMGateway({
 	apiKey: LLMGATEWAY_API_KEY,
 	baseURL: LLMGATEWAY_BASE_URL,
@@ -156,7 +156,7 @@ function gradeRegex(text) {
 async function gradeJudge(text) {
 	try {
 		const { text: out } = await generateText({
-			model: judgeGateway("gpt-5-nano"),
+			model: judgeGateway("gpt-6-luna"),
 			instructions:
 				'You grade a customer-support agent\'s reply. Output STRICT minified JSON only, no prose, no code fence. Keys (all boolean): asksForName (the reply asks the visitor to provide/share/confirm their name), asksForEmail (asks for their email address), asksForNote (asks for a description/note of the issue), reassuresDetailsOnFile (reassures the visitor their contact details are already on file/known). Example: {"asksForName":false,"asksForEmail":false,"asksForNote":true,"reassuresDetailsOnFile":true}',
 			prompt: `Agent reply:\n"""\n${text}\n"""`,

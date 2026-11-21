@@ -3,7 +3,10 @@
 // wraps that snapshot with the helpers the app uses; it is the single source of
 // truth for "web-search only" across the dashboard picker, API chat guard, and
 // data migration.
-import { WEB_SEARCH_MODELS } from "./web-search-models.generated";
+import {
+	WEB_SEARCH_MODEL_RETIREMENTS,
+	WEB_SEARCH_MODELS,
+} from "./web-search-models.generated";
 
 // Loud failure, never a blank picker: if the generated snapshot is ever empty
 // (a botched regen), fail at import rather than silently offer no models.
@@ -13,7 +16,7 @@ if (WEB_SEARCH_MODELS.length === 0) {
 	);
 }
 
-export { WEB_SEARCH_MODELS };
+export { WEB_SEARCH_MODEL_RETIREMENTS, WEB_SEARCH_MODELS };
 
 export const WEB_SEARCH_MODEL_IDS: ReadonlySet<string> = new Set(
 	WEB_SEARCH_MODELS,
@@ -22,18 +25,37 @@ export const WEB_SEARCH_MODEL_IDS: ReadonlySet<string> = new Set(
 /** Default model for new projects — always a member of the set above. */
 export const DEFAULT_MODEL = "gpt-5.4-mini";
 
-/** True when `id` is a web-search-capable gateway model. */
-export function isWebSearchModel(id: string): boolean {
-	return WEB_SEARCH_MODEL_IDS.has(id);
+/**
+ * True when `id` is an offered web-search gateway model at `now`: in the
+ * snapshot and not past the date the gateway retires its last servable route.
+ * The date check means a scheduled retirement takes effect on the day itself,
+ * whether or not the snapshot has been regenerated since.
+ */
+export function isWebSearchModel(
+	id: string,
+	now: number = Date.now(),
+): boolean {
+	if (!WEB_SEARCH_MODEL_IDS.has(id)) return false;
+	const retires = WEB_SEARCH_MODEL_RETIREMENTS[id];
+	return !retires || now < Date.parse(retires);
+}
+
+/** The snapshot narrowed to the models still offered at `now`. */
+export function offeredWebSearchModels(now: number = Date.now()): string[] {
+	return WEB_SEARCH_MODELS.filter((id) => isWebSearchModel(id, now));
 }
 
 /**
  * The model to actually run for a given saved value: the saved model when it's
- * still a valid web-search model, otherwise the default. Guards the live chat
- * path against projects stuck on a model that's no longer offered.
+ * still an offered web-search model, otherwise the default. Guards the live
+ * chat path against projects stuck on a model that's no longer offered or
+ * whose gateway routes have since retired.
  */
-export function effectiveModel(model: string | null | undefined): string {
-	return model && isWebSearchModel(model) ? model : DEFAULT_MODEL;
+export function effectiveModel(
+	model: string | null | undefined,
+	now: number = Date.now(),
+): string {
+	return model && isWebSearchModel(model, now) ? model : DEFAULT_MODEL;
 }
 
 // Markers in a model id that denote the cheaper/smaller "basic" class — the

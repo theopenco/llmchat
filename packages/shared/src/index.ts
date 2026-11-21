@@ -16,7 +16,9 @@ export {
 	effectiveModel,
 	isBasicModel,
 	isWebSearchModel,
+	offeredWebSearchModels,
 	WEB_SEARCH_MODEL_IDS,
+	WEB_SEARCH_MODEL_RETIREMENTS,
 	WEB_SEARCH_MODELS,
 } from "./models";
 export {

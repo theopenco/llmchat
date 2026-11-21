@@ -25,8 +25,8 @@ The list of models you can pick is not hand-maintained. It is generated from LLM
 
 - **Web search** on at least one provider route, so the agent can look things up when your knowledge base runs out.
 - **Tool calling**, because integration actions such as booking a Cal.com slot or looking up a Shopify order run as tools.
-- **Still live.** Routes the gateway has deactivated are dropped, and text-only chat models are kept (image generators that also advertise search are left out).
+- **Not on its way out.** Deprecated routes, and routes the gateway has scheduled to switch off within 90 days, are not offered for new selections. Text-only chat models are kept (image generators that also advertise search are left out).
 
-As of November 2026 that is 67 models across OpenAI (GPT-5.x and GPT-6), Anthropic (Claude 4.x and 5.x), Google (Gemini 3.x and 4), DeepSeek, Alibaba (Qwen) and Z.ai (GLM). When the gateway ships a new model, it shows up in the picker after a regenerate; when it retires one, any project still saved on it falls back to the default model instead of erroring, so the widget keeps answering.
+As of November 2026 that is 60 models across OpenAI (GPT-5.x and GPT-6), Anthropic (Claude 4.x and 5.x), Google (Gemini 3.x and 4), DeepSeek, Alibaba (Qwen) and Z.ai (GLM). When the gateway ships a new model, it shows up in the picker after a regenerate. When a model's routes have a retirement date further out, that date ships with the list: on the day, the model leaves the picker and any project still saved on it falls back to the default model instead of erroring, so the widget keeps answering.
 
 We're believers in the principle that the model layer should be a runtime concern, not a compile-time one. LLM Gateway makes that real.

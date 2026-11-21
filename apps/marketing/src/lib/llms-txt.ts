@@ -16,8 +16,8 @@ import {
 	DEFAULT_MODEL,
 	DISCOUNT_ACTIVE,
 	DISCOUNT_PERCENT,
-	WEB_SEARCH_MODELS,
 	formatUsd,
+	offeredWebSearchModels,
 } from "@llmchat/shared";
 
 import {
@@ -58,7 +58,7 @@ const DETAILS = [
 	"",
 	// Generated from the same snapshot the dashboard picker and the chat guard
 	// read, so the list here is exactly what a project can select.
-	`Models: ${WEB_SEARCH_MODELS.length} web-search, tool-calling models served through LLM Gateway, chosen per project (default \`${DEFAULT_MODEL}\`; Starter runs the lighter mini/nano/haiku/flash/lite/small/luna class, Growth and Scale the full catalog): ${WEB_SEARCH_MODELS.join(", ")}.`,
+	`Models: ${offeredWebSearchModels().length} web-search, tool-calling models served through LLM Gateway, chosen per project (default \`${DEFAULT_MODEL}\`; Starter runs the lighter mini/nano/haiku/flash/lite/small/luna class, Growth and Scale the full catalog): ${offeredWebSearchModels().join(", ")}.`,
 	"",
 	"The agent answers from a per-project knowledge base (page URLs, text snippets, and Q&A pairs) with your own system prompt and per-project model choice. Visitors introduce themselves by name (email optional). When the visitor asks for a human (the widget offers this after a configurable number of messages, or immediately on an explicit request), the conversation escalates: your team is notified by email and optionally Slack, the visitor sees a recap of the handoff right in the chat, and the agent stands down — fully silent once a human replies. Replies from the team inbox appear in the widget and go out by email when the visitor shared an address; email replies from the visitor thread back into the same conversation, and visitors can mark their conversation resolved. Quality is tracked with per-message thumbs up/down ratings plus a 1–5 CSAT score.",
 ];

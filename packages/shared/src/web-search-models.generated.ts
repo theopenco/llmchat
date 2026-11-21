@@ -1,7 +1,8 @@
 // GENERATED — do not edit.
 // Run `pnpm gen:web-search-models` after bumping @llmgateway/models.
-// Source of truth: @llmgateway/models — text chat models with at least one live
-// provider route that advertises `webSearch` and `tools`.
+// Source of truth: @llmgateway/models — text chat models with at least one
+// provider route that advertises `webSearch` and `tools`, is not deprecated,
+// and is not deactivating within 90 days of generation.
 
 export const WEB_SEARCH_MODELS: readonly string[] = [
 	"claude-haiku-4-5",
@@ -13,8 +14,6 @@ export const WEB_SEARCH_MODELS: readonly string[] = [
 	"claude-opus-4-8",
 	"claude-opus-5",
 	"claude-opus-5-5",
-	"claude-sonnet-4-5",
-	"claude-sonnet-4-5-20250929",
 	"claude-sonnet-4-6",
 	"claude-sonnet-5",
 	"claude-sonnet-5-5",
@@ -26,7 +25,6 @@ export const WEB_SEARCH_MODELS: readonly string[] = [
 	"gemini-3.5-flash",
 	"gemini-3.5-flash-lite",
 	"gemini-3.6-flash",
-	"gemini-3.7-flash",
 	"gemini-3.8-flash",
 	"gemini-4-argon",
 	"gemini-4-carbon",
@@ -40,10 +38,6 @@ export const WEB_SEARCH_MODELS: readonly string[] = [
 	"glm-5.1",
 	"glm-5.2",
 	"glm-5.3",
-	"gpt-4o",
-	"gpt-5",
-	"gpt-5-mini",
-	"gpt-5-nano",
 	"gpt-5-pro",
 	"gpt-5.1",
 	"gpt-5.2",
@@ -72,3 +66,11 @@ export const WEB_SEARCH_MODELS: readonly string[] = [
 	"qwen3.8-max",
 	"qwen35-397b-a17b",
 ];
+
+// Models whose every servable route has a scheduled deactivation: the date
+// (UTC, YYYY-MM-DD) after which isWebSearchModel() stops accepting them.
+export const WEB_SEARCH_MODEL_RETIREMENTS: Readonly<Record<string, string>> = {
+	"gpt-5.1": "2027-04-01",
+	"gpt-5.3-codex": "2027-04-01",
+	"gpt-5.4-nano": "2027-09-21",
+};
