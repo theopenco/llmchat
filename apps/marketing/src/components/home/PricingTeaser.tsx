@@ -72,7 +72,7 @@ export function PricingTeaser() {
 											<span className="text-sm text-faint line-through">
 												${formatUsd(originalUsd(tier.priceUsdMonthly))}
 											</span>
-											<span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-accent">
+											<span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[0.58rem] font-semibold uppercase tracking-widest text-accent">
 												{DISCOUNT_PERCENT}% off
 											</span>
 										</>

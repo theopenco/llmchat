@@ -1,6 +1,82 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme inline {
+	--font-sans: var(--font-sans-face), system-ui, sans-serif;
+	--font-mono: var(--font-mono-face), ui-monospace, monospace;
+
+	--color-bg: rgb(var(--c-bg));
+	--color-panel: rgb(var(--c-panel));
+	--color-raise: rgb(var(--c-raise));
+	--color-line: rgb(var(--c-line));
+	--color-text: rgb(var(--c-text));
+	--color-muted: rgb(var(--c-muted));
+	--color-faint: rgb(var(--c-faint));
+
+	--color-accent: rgb(var(--c-accent));
+	--color-accent-soft: rgb(var(--c-accent-soft));
+
+	--color-pos: rgb(var(--c-pos));
+	--color-warn: rgb(var(--c-warn));
+	--color-neg: rgb(var(--c-neg));
+
+	--radius-lg: 0.75rem;
+	--radius-md: 0.5rem;
+	--radius-sm: 0.375rem;
+
+	--tracking-label: 0.14em;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--color-gray-200, currentcolor);
+	}
+}
+
+/*
+  Tailwind v4's preflight resets buttons to `cursor: default`; keep the v3
+  pointer cursor on interactive buttons.
+*/
+@layer base {
+	button:not(:disabled),
+	[role="button"]:not(:disabled) {
+		cursor: pointer;
+	}
+}
+
+@utility label {
+	/* Uppercase, letter-spaced micro-label — the console's signature. */
+	font-family: var(--font-mono), ui-monospace, monospace;
+	font-size: 0.6875rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: rgb(var(--c-faint));
+}
+
+@utility num {
+	/* Tabular monospace numerals for every metric. */
+	font-family: var(--font-mono), ui-monospace, monospace;
+	font-variant-numeric: tabular-nums;
+	font-feature-settings: "tnum";
+}
+
+@utility card {
+	background-color: rgb(var(--c-panel) / 0.7);
+	border: 1px solid rgb(var(--c-line));
+	border-radius: 0.75rem;
+	backdrop-filter: blur(6px);
+}
 
 /*
  * Admin console theme — dark-only "operations console". Monospace-forward,
@@ -64,30 +140,5 @@
 		border-radius: 9999px;
 		border: 2px solid transparent;
 		background-clip: content-box;
-	}
-}
-
-@layer components {
-	/* Uppercase, letter-spaced micro-label — the console's signature. */
-	.label {
-		font-family: var(--font-mono), ui-monospace, monospace;
-		font-size: 0.6875rem;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		color: rgb(var(--c-faint));
-	}
-
-	/* Tabular monospace numerals for every metric. */
-	.num {
-		font-family: var(--font-mono), ui-monospace, monospace;
-		font-variant-numeric: tabular-nums;
-		font-feature-settings: "tnum";
-	}
-
-	.card {
-		background-color: rgb(var(--c-panel) / 0.7);
-		border: 1px solid rgb(var(--c-line));
-		border-radius: 0.75rem;
-		backdrop-filter: blur(6px);
 	}
 }

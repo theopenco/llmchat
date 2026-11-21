@@ -122,7 +122,7 @@ export function EmbedSnippet({
 							value={url}
 							aria-label="Embed URL"
 							onFocus={(e) => e.currentTarget.select()}
-							className="h-9 min-w-0 flex-1 truncate rounded-[10px] border border-ck-border bg-ck-card px-3 font-mono text-xs text-ck-text outline-none"
+							className="h-9 min-w-0 flex-1 truncate rounded-[10px] border border-ck-border bg-ck-card px-3 font-mono text-xs text-ck-text outline-hidden"
 						/>
 						<CopyButton
 							value={url}

@@ -149,8 +149,8 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 				<div
 					className={
 						preview
-							? "flex w-[452px] flex-shrink-0 items-center"
-							: "flex w-full flex-shrink-0 items-center lg:w-[420px]"
+							? "flex w-[452px] shrink-0 items-center"
+							: "flex w-full shrink-0 items-center lg:w-[420px]"
 					}
 				>
 					<div
@@ -222,7 +222,7 @@ export function LaunchHero({ preview = false }: { preview?: boolean }) {
 							</div>
 							<div className="flex max-w-[88%] gap-[9px] self-start">
 								<div
-									className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
+									className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
 									style={{ background: "#e07a5f" }}
 								>
 									P

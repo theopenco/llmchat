@@ -28,7 +28,7 @@ export const NavItem = React.forwardRef<HTMLElement, NavItemProps>(
 			"flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-[13.5px] font-medium transition-colors",
 			"[&_svg]:size-[18px] [&_svg]:shrink-0",
 			active
-				? "border border-ck-border bg-ck-card text-ck-text shadow-sm [&_svg]:text-ck-text"
+				? "border border-ck-border bg-ck-card text-ck-text shadow-xs [&_svg]:text-ck-text"
 				: "text-ck-muted hover:bg-ck-navhover hover:text-ck-text [&_svg]:text-ck-muted",
 			className,
 		);

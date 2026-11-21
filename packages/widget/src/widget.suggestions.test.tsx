@@ -47,6 +47,7 @@ function mockFeed(messages: ServerMessage[]) {
 		csatRating: null,
 		escalatedAt: null,
 		archivedAt: null,
+		feedClientId: null,
 		refresh: vi.fn(),
 	});
 }

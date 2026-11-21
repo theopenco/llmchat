@@ -1,6 +1,204 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@utility container {
+	margin-inline: auto;
+	padding-inline: 2rem;
+	@media (width >= --theme(--breakpoint-sm)) {
+		max-width: none;
+	}
+	@media (width >= 1400px) {
+		max-width: 1400px;
+	}
+}
+
+@theme inline {
+	--font-display: var(--font-display-face), Georgia, serif;
+	--font-sans: var(--font-sans-face), system-ui, sans-serif;
+	--font-mono: var(--font-mono-face), ui-monospace, monospace;
+
+	--color-border: hsl(var(--border));
+	--color-input: hsl(var(--input));
+	--color-ring: hsl(var(--ring));
+
+	--color-ck-board: rgb(var(--ck-board));
+	--color-ck-app: rgb(var(--ck-app));
+	--color-ck-sidebar: rgb(var(--ck-sidebar));
+	--color-ck-topbar: rgb(var(--ck-topbar));
+	--color-ck-border: rgb(var(--ck-border));
+	--color-ck-text: rgb(var(--ck-text));
+	--color-ck-muted: rgb(var(--ck-muted));
+	--color-ck-faint: rgb(var(--ck-faint));
+	--color-ck-disabled: rgb(var(--ck-disabled));
+	--color-ck-navhover: rgb(var(--ck-navhover));
+	--color-ck-card: rgb(var(--ck-card));
+	--color-ck-track: rgb(var(--ck-track));
+	--color-ck-chip: rgb(var(--ck-chip));
+
+	--color-ck-accent: rgb(var(--ck-accent));
+	--color-ck-accent-hover: rgb(var(--ck-accent-hover));
+
+	--color-ck-good: rgb(var(--ck-good));
+	--color-ck-link: rgb(var(--ck-link));
+	--color-ck-warn: rgb(var(--ck-warn));
+
+	--color-background: hsl(var(--background));
+	--color-foreground: hsl(var(--foreground));
+
+	--color-primary: hsl(var(--primary));
+	--color-primary-foreground: hsl(var(--primary-foreground));
+
+	--color-secondary: hsl(var(--secondary));
+	--color-secondary-foreground: hsl(var(--secondary-foreground));
+
+	--color-destructive: hsl(var(--destructive));
+	--color-destructive-foreground: hsl(var(--destructive-foreground));
+
+	--color-success: hsl(var(--success));
+	--color-success-foreground: hsl(var(--success-foreground));
+
+	--color-warning: hsl(var(--warning));
+	--color-warning-foreground: hsl(var(--warning-foreground));
+
+	--color-info: hsl(var(--info));
+	--color-info-foreground: hsl(var(--info-foreground));
+
+	--color-muted: hsl(var(--muted));
+	--color-muted-foreground: hsl(var(--muted-foreground));
+
+	--color-accent: hsl(var(--accent));
+	--color-accent-foreground: hsl(var(--accent-foreground));
+
+	--color-popover: hsl(var(--popover));
+	--color-popover-foreground: hsl(var(--popover-foreground));
+
+	--color-card: hsl(var(--card));
+	--color-card-foreground: hsl(var(--card-foreground));
+
+	--color-sidebar: hsl(var(--sidebar-background));
+	--color-sidebar-foreground: hsl(var(--sidebar-foreground));
+	--color-sidebar-primary: hsl(var(--sidebar-primary));
+	--color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+	--color-sidebar-accent: hsl(var(--sidebar-accent));
+	--color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+	--color-sidebar-border: hsl(var(--sidebar-border));
+	--color-sidebar-ring: hsl(var(--sidebar-ring));
+
+	--radius-lg: var(--radius);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-sm: calc(var(--radius) - 4px);
+
+	--tracking-tight-display: -0.02em;
+
+	--container-prose: 42rem;
+
+	--animate-accordion-down: accordion-down 0.2s ease-out;
+	--animate-accordion-up: accordion-up 0.2s ease-out;
+
+	@keyframes accordion-down {
+		from {
+			height: 0;
+		}
+		to {
+			height: var(--radix-accordion-content-height);
+		}
+	}
+	@keyframes accordion-up {
+		from {
+			height: var(--radix-accordion-content-height);
+		}
+		to {
+			height: 0;
+		}
+	}
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--color-gray-200, currentcolor);
+	}
+}
+
+/*
+  Tailwind v4's preflight resets buttons to `cursor: default`; keep the v3
+  pointer cursor on interactive buttons.
+*/
+@layer base {
+	button:not(:disabled),
+	[role="button"]:not(:disabled) {
+		cursor: pointer;
+	}
+}
+
+@utility kicker {
+	/* Mono eyebrow / kicker — shared with marketing for section labels. */
+	font-family: var(--font-mono), monospace;
+	font-size: 0.7rem;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: hsl(var(--primary));
+}
+
+@utility aurora {
+	/* Ember aurora atmosphere (marketing's) — confined to auth / empty-state
+	   screens. The working dashboard canvas (inbox, tables, settings) stays flat. */
+	background-image:
+		radial-gradient(
+			60rem 40rem at 50% -10%,
+			rgba(214, 72, 12, 0.07),
+			transparent 60%
+		),
+		radial-gradient(
+			40rem 30rem at 100% 0%,
+			rgba(235, 160, 70, 0.09),
+			transparent 55%
+		);
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+	.dark & {
+		background-image:
+			radial-gradient(
+				60rem 40rem at 50% -10%,
+				rgba(234, 88, 12, 0.13),
+				transparent 60%
+			),
+			radial-gradient(
+				40rem 30rem at 100% 0%,
+				rgba(251, 146, 60, 0.07),
+				transparent 55%
+			);
+	}
+}
+
+@utility dark {
+	& .aurora {
+		background-image:
+			radial-gradient(
+				60rem 40rem at 50% -10%,
+				rgba(234, 88, 12, 0.13),
+				transparent 60%
+			),
+			radial-gradient(
+				40rem 30rem at 100% 0%,
+				rgba(251, 146, 60, 0.07),
+				transparent 55%
+			);
+	}
+}
 
 @layer base {
 	/*
@@ -157,66 +355,26 @@
 	}
 }
 
-html,
-body {
-	height: 100%;
-}
-body {
-	font-family:
-		var(--font-sans),
-		system-ui,
-		-apple-system,
-		Segoe UI,
-		sans-serif;
-	background-color: hsl(var(--background));
-	color: hsl(var(--foreground));
-	-webkit-font-smoothing: antialiased;
-	text-rendering: optimizeLegibility;
-}
-
-::selection {
-	background-color: hsl(var(--primary) / 0.35);
-	color: hsl(var(--foreground));
-}
-
-@layer components {
-	/* Mono eyebrow / kicker — shared with marketing for section labels. */
-	.kicker {
-		font-family: var(--font-mono), monospace;
-		font-size: 0.7rem;
-		letter-spacing: 0.16em;
-		text-transform: uppercase;
-		color: hsl(var(--primary));
+@layer utilities {
+	html,
+	body {
+		height: 100%;
+	}
+	body {
+		font-family:
+			var(--font-sans),
+			system-ui,
+			-apple-system,
+			Segoe UI,
+			sans-serif;
+		background-color: hsl(var(--background));
+		color: hsl(var(--foreground));
+		-webkit-font-smoothing: antialiased;
+		text-rendering: optimizeLegibility;
 	}
 
-	/* Ember aurora atmosphere (marketing's) — confined to auth / empty-state
-	   screens. The working dashboard canvas (inbox, tables, settings) stays flat. */
-	.aurora {
-		background-image:
-			radial-gradient(
-				60rem 40rem at 50% -10%,
-				rgba(214, 72, 12, 0.07),
-				transparent 60%
-			),
-			radial-gradient(
-				40rem 30rem at 100% 0%,
-				rgba(235, 160, 70, 0.09),
-				transparent 55%
-			);
-		background-repeat: no-repeat;
-		background-attachment: fixed;
-	}
-	.dark .aurora {
-		background-image:
-			radial-gradient(
-				60rem 40rem at 50% -10%,
-				rgba(234, 88, 12, 0.13),
-				transparent 60%
-			),
-			radial-gradient(
-				40rem 30rem at 100% 0%,
-				rgba(251, 146, 60, 0.07),
-				transparent 55%
-			);
+	::selection {
+		background-color: hsl(var(--primary) / 0.35);
+		color: hsl(var(--foreground));
 	}
 }

@@ -86,8 +86,7 @@ describe("buildAuthOptions", () => {
 	it("enables durable rate limiting backed by a customStorage (not secondaryStorage, so sessions stay in D1)", () => {
 		const rl = buildAuthOptions(env()).rateLimit;
 		expect(rl.enabled).toBe(true);
-		expect(typeof rl.customStorage?.get).toBe("function");
-		expect(typeof rl.customStorage?.set).toBe("function");
+		expect(typeof rl.customStorage?.consume).toBe("function");
 	});
 
 	it("trusts only the configured client-IP header for getIp (default x-real-ip, never bare x-forwarded-for)", () => {

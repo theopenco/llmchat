@@ -30,7 +30,7 @@ export function LivePreview({
 			<p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
 				Live preview · updates as you type
 			</p>
-			<div className="relative h-[34rem] overflow-hidden rounded-2xl border border-border shadow-xl">
+			<div className="relative h-136 overflow-hidden rounded-2xl border border-border shadow-xl">
 				<WidgetFrame
 					inline
 					open

@@ -149,7 +149,7 @@ export function ListFilters({
 					onChange={(e) => onSearch(e.target.value)}
 					placeholder="Search conversations…"
 					aria-label="Search conversations"
-					className="h-9 w-full rounded-[10px] border border-transparent bg-ck-chip pl-9 pr-3 text-sm text-ck-text outline-none placeholder:text-ck-faint focus-visible:border-ck-accent focus-visible:bg-ck-card"
+					className="h-9 w-full rounded-[10px] border border-transparent bg-ck-chip pl-9 pr-3 text-sm text-ck-text outline-hidden placeholder:text-ck-faint focus-visible:border-ck-accent focus-visible:bg-ck-card"
 				/>
 			</div>
 
@@ -283,7 +283,7 @@ export function ListFilters({
 											className="size-2 shrink-0 rounded-full"
 											style={{ backgroundColor: tag.color ?? FALLBACK_DOT }}
 										/>
-										<span className="max-w-[8rem] truncate">{tag.name}</span>
+										<span className="max-w-32 truncate">{tag.name}</span>
 									</button>
 								);
 							})}

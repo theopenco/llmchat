@@ -1,6 +1,14 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	vi,
+	type Mock,
+} from "vitest";
 
 import { InboxPanes, type InboxPanesProps } from "./InboxPanes";
 import { MessageThread } from "./MessageThread";
@@ -147,7 +155,7 @@ function threadScroller(container: HTMLElement): HTMLElement {
 
 describe("InboxPanes reuses MessageThread search + scroll logic in the mobile thread", () => {
 	// MessageThread scrolls the first hit into view; jsdom lacks scrollIntoView.
-	let scrollSpy: ReturnType<typeof vi.fn>;
+	let scrollSpy: Mock<() => void>;
 	beforeEach(() => {
 		scrollSpy = vi.fn();
 		Element.prototype.scrollIntoView = scrollSpy;

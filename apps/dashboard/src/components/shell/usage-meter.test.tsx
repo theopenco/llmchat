@@ -33,6 +33,7 @@ beforeEach(() => {
 		workspaceId: "ws1",
 		setWorkspaceId: vi.fn(),
 		isLoading: false,
+		loaded: true,
 		role: "owner",
 		canManage: true,
 	});

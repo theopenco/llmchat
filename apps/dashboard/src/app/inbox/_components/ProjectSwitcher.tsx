@@ -33,7 +33,7 @@ export function ProjectSwitcher({
 				<MenuTrigger asChild>
 					<button
 						aria-label="Filter by project"
-						className="flex h-9 w-full items-center gap-2 rounded-[10px] border border-ck-border bg-ck-card px-3 text-sm text-ck-text outline-none hover:border-ck-accent focus-visible:border-ck-accent"
+						className="flex h-9 w-full items-center gap-2 rounded-[10px] border border-ck-border bg-ck-card px-3 text-sm text-ck-text outline-hidden hover:border-ck-accent focus-visible:border-ck-accent"
 					>
 						<span className="text-[11px] font-semibold uppercase tracking-wide text-ck-faint">
 							Project
@@ -46,7 +46,7 @@ export function ProjectSwitcher({
 				</MenuTrigger>
 				<MenuContent
 					align="start"
-					className="min-w-[var(--radix-dropdown-menu-trigger-width)]"
+					className="min-w-(--radix-dropdown-menu-trigger-width)"
 				>
 					{projects.map((p) => (
 						<MenuItem

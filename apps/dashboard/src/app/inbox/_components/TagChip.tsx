@@ -35,7 +35,7 @@ export function TagChip({
 		<span
 			style={chipStyle(tag.color)}
 			className={cn(
-				"inline-flex max-w-[10rem] items-center gap-1 rounded-full border px-1.5 py-0 text-[10px] font-medium leading-5 [color-scheme:light] dark:brightness-150",
+				"inline-flex max-w-40 items-center gap-1 rounded-full border px-1.5 py-0 text-[10px] font-medium leading-5 scheme-light dark:brightness-150",
 				className,
 			)}
 		>

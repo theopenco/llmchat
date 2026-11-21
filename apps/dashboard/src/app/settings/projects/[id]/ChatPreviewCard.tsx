@@ -28,7 +28,7 @@ export function ChatPreviewCard({
 	const chips = suggestedQuestions.map((q) => q.trim()).filter(Boolean);
 
 	return (
-		<Card id="chat-preview" className="rounded-2xl shadow-sm">
+		<Card id="chat-preview" className="rounded-2xl shadow-xs">
 			<CardHeader className="pb-3">
 				<CardTitle className="text-base">Chat preview</CardTitle>
 				<CardDescription>

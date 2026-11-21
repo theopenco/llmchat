@@ -573,8 +573,7 @@ describe("model input — a stored note never reaches the chat prompt (Phase-1 t
 		vi.mocked(streamChat).mockResolvedValue({
 			text: Promise.resolve("hello"),
 			usage: Promise.resolve({ inputTokens: 1, outputTokens: 2 }),
-			totalUsage: Promise.resolve({ inputTokens: 1, outputTokens: 2 }),
-			toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
+			stream: new ReadableStream({ start: (c) => c.close() }),
 		} as never);
 		const { ctx, settle } = makeCtx();
 		const res = await chat.request(
@@ -640,8 +639,7 @@ function mockStream() {
 	vi.mocked(streamChat).mockResolvedValue({
 		text: gate.then(() => "the assistant reply"),
 		usage: gate.then(() => ({ inputTokens: 1, outputTokens: 2 })),
-		totalUsage: gate.then(() => ({ inputTokens: 1, outputTokens: 2 })),
-		toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
+		stream: new ReadableStream({ start: (c) => c.close() }),
 	} as never);
 	return release;
 }

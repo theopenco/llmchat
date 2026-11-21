@@ -32,7 +32,7 @@ export function OnboardingAccountMenu({ email }: { email: string }) {
 				<Button
 					variant="outline"
 					aria-label="Account menu"
-					className="h-auto gap-2 bg-background/70 py-1.5 pl-1.5 pr-2 backdrop-blur"
+					className="h-auto gap-2 bg-background/70 py-1.5 pl-1.5 pr-2 backdrop-blur-sm"
 				>
 					<Avatar className="size-7 rounded-md">
 						<AvatarFallback className="rounded-md text-xs">
@@ -41,7 +41,7 @@ export function OnboardingAccountMenu({ email }: { email: string }) {
 					</Avatar>
 					{/* Email hidden on the smallest screens to keep the control compact;
 					    the avatar + chevron remain tappable. */}
-					<span className="hidden max-w-[12rem] truncate text-sm font-medium sm:inline">
+					<span className="hidden max-w-48 truncate text-sm font-medium sm:inline">
 						{email}
 					</span>
 					<ChevronsUpDown className="size-4 shrink-0 opacity-50" />

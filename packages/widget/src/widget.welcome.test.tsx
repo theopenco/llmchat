@@ -45,6 +45,7 @@ function mountLive() {
 		csatRating: null,
 		escalatedAt: null,
 		archivedAt: null,
+		feedClientId: null,
 		refresh: vi.fn(),
 	});
 	render(

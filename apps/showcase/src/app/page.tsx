@@ -45,7 +45,7 @@ export default function Page() {
 								See Clanker Support answer —
 								<br />
 								then{" "}
-								<span className="bg-gradient-to-r from-accent-soft to-accent bg-clip-text text-transparent">
+								<span className="bg-linear-to-r from-accent-soft to-accent bg-clip-text text-transparent">
 									escalate
 								</span>
 								.

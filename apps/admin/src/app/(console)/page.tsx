@@ -218,8 +218,8 @@ function SeriesAxis({ series }: { series: string[] }) {
 	if (series.length === 0) return null;
 	return (
 		<div className="mt-2 flex justify-between">
-			<span className="label !tracking-normal">{shortDay(series[0])}</span>
-			<span className="label !tracking-normal">
+			<span className="label tracking-normal!">{shortDay(series[0])}</span>
+			<span className="label tracking-normal!">
 				{shortDay(series[series.length - 1])}
 			</span>
 		</div>

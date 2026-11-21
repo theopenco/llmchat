@@ -9,13 +9,13 @@ import type { Metadata } from "next";
 const sans = Hanken_Grotesk({
 	subsets: ["latin"],
 	weight: ["400", "500", "600", "700"],
-	variable: "--font-sans",
+	variable: "--font-sans-face",
 	display: "swap",
 });
 const mono = JetBrains_Mono({
 	subsets: ["latin"],
 	weight: ["400", "500", "600", "700"],
-	variable: "--font-mono",
+	variable: "--font-mono-face",
 	display: "swap",
 });
 

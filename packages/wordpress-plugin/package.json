@@ -9,6 +9,6 @@
 		"package": "node scripts/build-zip.mjs"
 	},
 	"devDependencies": {
-		"prettier": "^3.6.2"
+		"prettier": "^3.10.1"
 	}
 }

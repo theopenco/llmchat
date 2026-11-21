@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 import type { ProjectDraft } from "../types";
 import { BehaviorTab } from "./BehaviorTab";
@@ -35,7 +35,7 @@ function draft(o: Partial<ProjectDraft> = {}): ProjectDraft {
 	};
 }
 
-let set: ReturnType<typeof vi.fn>;
+let set: Mock<(key: string, value: unknown) => void>;
 beforeEach(() => {
 	set = vi.fn();
 });

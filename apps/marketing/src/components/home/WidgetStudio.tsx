@@ -333,7 +333,7 @@ export function WidgetStudio() {
 								touch("rating");
 								setRated((r) => ({ ...r, [id]: dir }));
 							}}
-							className="rounded p-0.5 text-xs transition-transform hover:scale-110"
+							className="rounded-sm p-0.5 text-xs transition-transform hover:scale-110"
 							style={{
 								color: rated[id] === dir ? color : t.tx5,
 								opacity: rated[id] && rated[id] !== dir ? 0.4 : 1,
@@ -464,7 +464,7 @@ export function WidgetStudio() {
 								setWelcome(e.target.value);
 							}}
 							onFocus={() => touch("welcome")}
-							className="mt-2 w-full rounded-xl border border-rule bg-paper px-3.5 py-2.5 text-sm text-ink placeholder:text-faint focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/20"
+							className="mt-2 w-full rounded-xl border border-rule bg-paper px-3.5 py-2.5 text-sm text-ink placeholder:text-faint focus:border-accent/60 focus:outline-hidden focus:ring-2 focus:ring-accent/20"
 							placeholder="Hi! How can I help you today?"
 						/>
 					</div>
@@ -505,7 +505,7 @@ export function WidgetStudio() {
 					<fieldset className="mt-6">
 						<legend className="text-sm font-semibold text-ink">
 							Live voice calls
-							<span className="ml-2 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 align-middle font-mono text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-accent-soft">
+							<span className="ml-2 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 align-middle font-mono text-[0.58rem] font-semibold uppercase tracking-widest text-accent-soft">
 								Scale
 							</span>
 						</legend>
@@ -534,7 +534,7 @@ export function WidgetStudio() {
 									: "justify-start border-rule bg-paper-raise"
 							}`}
 						>
-							<span className="mx-0.5 size-4 rounded-full bg-white shadow" />
+							<span className="mx-0.5 size-4 rounded-full bg-white shadow-sm" />
 						</button>
 					</fieldset>
 
@@ -553,7 +553,7 @@ export function WidgetStudio() {
 									}}
 									className={`rounded-lg px-4 py-1.5 text-xs font-semibold capitalize transition-colors ${
 										theme === mode
-											? "bg-paper-card text-ink shadow-sm"
+											? "bg-paper-card text-ink shadow-xs"
 											: "text-muted hover:text-ink"
 									}`}
 								>
@@ -593,11 +593,11 @@ export function WidgetStudio() {
 					<div className="relative h-[540px] bg-paper-deep/40 sm:h-[560px]">
 						{/* Ghost content — "your site", abstracted */}
 						<div aria-hidden className="p-6 opacity-70 sm:p-8">
-							<div className="h-3 w-24 rounded bg-rule" />
-							<div className="mt-5 h-6 w-3/5 rounded bg-rule" />
-							<div className="mt-2.5 h-6 w-2/5 rounded bg-rule/70" />
-							<div className="mt-5 h-2.5 w-1/2 rounded bg-rule/60" />
-							<div className="mt-2 h-2.5 w-2/5 rounded bg-rule/60" />
+							<div className="h-3 w-24 rounded-sm bg-rule" />
+							<div className="mt-5 h-6 w-3/5 rounded-sm bg-rule" />
+							<div className="mt-2.5 h-6 w-2/5 rounded-sm bg-rule/70" />
+							<div className="mt-5 h-2.5 w-1/2 rounded-sm bg-rule/60" />
+							<div className="mt-2 h-2.5 w-2/5 rounded-sm bg-rule/60" />
 							<div className="mt-6 flex gap-3">
 								<div
 									className="h-8 w-28 rounded-full"
@@ -734,10 +734,7 @@ export function WidgetStudio() {
 													onClick={endCall}
 													className="flex size-10 items-center justify-center rounded-full bg-red-600 text-white transition-transform hover:scale-105"
 												>
-													<Stroke
-														d={PHONE_D}
-														className="size-4 rotate-[135deg]"
-													/>
+													<Stroke d={PHONE_D} className="size-4 rotate-135" />
 												</button>
 											</div>
 										</div>
@@ -832,7 +829,7 @@ export function WidgetStudio() {
 													placeholder="Ask a question…"
 													aria-label="Ask the preview widget a question"
 													maxLength={200}
-													className="flex-1 bg-transparent text-[0.82rem] focus:outline-none"
+													className="flex-1 bg-transparent text-[0.82rem] focus:outline-hidden"
 													style={{ color: t.tx, caretColor: color }}
 												/>
 												<button

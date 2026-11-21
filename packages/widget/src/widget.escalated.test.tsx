@@ -43,6 +43,7 @@ function mockFeed(escalatedAt: string | null) {
 		csatRating: null,
 		escalatedAt,
 		archivedAt: null,
+		feedClientId: null,
 		refresh: vi.fn(),
 	});
 }

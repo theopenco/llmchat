@@ -123,7 +123,7 @@ export function ReplyComposer({
 					onChange={(e) => onChange(e.target.value)}
 					onKeyDown={handleKeyDown}
 					placeholder={placeholder}
-					className="w-full resize-none border-0 bg-transparent px-3 py-2.5 text-sm text-ck-text outline-none placeholder:text-ck-faint"
+					className="w-full resize-none border-0 bg-transparent px-3 py-2.5 text-sm text-ck-text outline-hidden placeholder:text-ck-faint"
 				/>
 				<div className="flex items-center justify-between gap-2 px-2 pb-2">
 					<div className="flex items-center gap-1">

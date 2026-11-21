@@ -41,7 +41,7 @@ const env = {
 const lastCall = () =>
 	generateTextMock.mock.calls.at(-1)![0] as unknown as {
 		model: { modelId: string };
-		system: string;
+		instructions: string;
 		prompt: string;
 		maxOutputTokens: number;
 	};
@@ -198,7 +198,7 @@ describe("generateSuggestion — call shape + honesty rails", () => {
 		});
 		const call = lastCall();
 		expect(call.model.modelId).toBe(DEFAULT_MODEL);
-		expect(call.system.startsWith(SUGGEST_BASE_PROMPT)).toBe(true);
+		expect(call.instructions.startsWith(SUGGEST_BASE_PROMPT)).toBe(true);
 		expect(call.maxOutputTokens).toBe(MAX_SUGGEST_OUTPUT_TOKENS);
 		// The frame TEXT names the markers once, then the real fence pair wraps
 		// the transcript: frame | opening | transcript | closing.

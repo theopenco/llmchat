@@ -1,6 +1,319 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+	--font-display: var(--font-display-face), Georgia, serif;
+	--font-sans: var(--font-sans-face), system-ui, sans-serif;
+	--font-mono: var(--font-mono-face), ui-monospace, monospace;
+
+	--color-paper: rgb(var(--paper));
+	--color-paper-deep: rgb(var(--paper-deep));
+	--color-paper-card: rgb(var(--paper-card));
+	--color-paper-raise: rgb(var(--paper-raise));
+	--color-ink: rgb(var(--ink));
+	--color-ink-soft: rgb(var(--ink-soft));
+	--color-muted: rgb(var(--muted));
+	--color-faint: rgb(var(--faint));
+	--color-rule: rgb(var(--rule));
+	--color-rule-soft: rgb(var(--rule-soft));
+	--color-accent: rgb(var(--accent));
+	--color-accent-soft: rgb(var(--accent-soft));
+	--color-accent-deep: rgb(var(--accent-deep));
+
+	--tracking-tight-display: -0.01em;
+
+	--container-prose: 42rem;
+
+	--shadow-glow:
+		0 0 0 1px rgba(234, 88, 12, 0.22), 0 20px 60px -20px rgba(234, 88, 12, 0.3);
+	--shadow-lift: 0 24px 60px -28px rgba(31, 26, 21, 0.45);
+
+	--animate-rise-in: rise-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+	--animate-fade-in: fade-in 0.9s ease both;
+	--animate-marquee: marquee 28s linear infinite;
+	--animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite
+		alternate;
+	--animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
+	--animate-shine: shine var(--duration) infinite linear;
+	--animate-gradient: gradient 8s linear infinite;
+
+	@keyframes rise-in {
+		0% {
+			opacity: 0;
+			transform: translateY(14px);
+		}
+		100% {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	@keyframes fade-in {
+		0% {
+			opacity: 0;
+		}
+		100% {
+			opacity: 1;
+		}
+	}
+	@keyframes marquee {
+		0% {
+			transform: translateX(0);
+		}
+		100% {
+			transform: translateX(-50%);
+		}
+	}
+	@keyframes shimmer-slide {
+		to {
+			transform: translate(calc(100cqw - 100%), 0);
+		}
+	}
+	@keyframes spin-around {
+		0% {
+			transform: translateZ(0) rotate(0);
+		}
+		15%,
+		35% {
+			transform: translateZ(0) rotate(90deg);
+		}
+		65%,
+		85% {
+			transform: translateZ(0) rotate(270deg);
+		}
+		100% {
+			transform: translateZ(0) rotate(360deg);
+		}
+	}
+	@keyframes shine {
+		0% {
+			background-position: 0% 0%;
+		}
+		50% {
+			background-position: 100% 100%;
+		}
+		to {
+			background-position: 0% 0%;
+		}
+	}
+	@keyframes gradient {
+		to {
+			background-position: var(--bg-size, 300%) 0;
+		}
+	}
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--color-gray-200, currentcolor);
+	}
+}
+
+/*
+  Tailwind v4's preflight resets buttons to `cursor: default`; keep the v3
+  pointer cursor on interactive buttons.
+*/
+@layer base {
+	button:not(:disabled),
+	[role="button"]:not(:disabled) {
+		cursor: pointer;
+	}
+}
+
+@utility kicker {
+	/* Mono eyebrow / kicker. */
+	font-family: var(--font-mono), monospace;
+	font-size: 0.7rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: rgb(var(--accent-soft));
+}
+
+@utility wonk {
+	/* Characterful Fraunces cut for highlighted display words — needs the
+	   SOFT/WONK axes loaded in layout.tsx. */
+	font-variation-settings:
+		"SOFT" 70,
+		"WONK" 1;
+}
+
+@utility stamp {
+	/* Rubber-stamp label for the ticket wall — letterpress mono, slightly
+	   rotated by the caller. */
+	font-family: var(--font-mono), monospace;
+	font-size: 0.6rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 0.3rem 0.55rem;
+	border: 1.5px solid currentColor;
+	border-radius: 4px;
+	display: inline-block;
+}
+
+@utility section-rule {
+	/* Editorial section header: mono index + serif title over a hairline. */
+	display: flex;
+	align-items: baseline;
+	gap: 1rem;
+	border-bottom: 1px solid rgb(var(--rule));
+	padding-bottom: 1rem;
+}
+
+@utility grid-backdrop {
+	/* Subtle dotted-grid backdrop for hero/sections. */
+	background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+	background-size: 22px 22px;
+	mask-image: radial-gradient(60% 60% at 50% 40%, #000 0%, transparent 100%);
+}
+
+@utility prose-editorial {
+	/* Long-form article prose rendered from markdown HTML. */
+	color: rgb(var(--ink-soft));
+	font-size: 1.0625rem;
+	line-height: 1.75;
+	& > * + * {
+		margin-top: 1.4em;
+	}
+	& p {
+		text-wrap: pretty;
+	}
+	& strong {
+		color: rgb(var(--ink));
+		font-weight: 600;
+	}
+	& a {
+		color: rgb(var(--accent-soft));
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		text-decoration-thickness: 1px;
+	}
+	& h2 {
+		font-family: var(--font-display), Georgia, serif;
+		font-weight: 600;
+		font-size: 1.6rem;
+		line-height: 1.2;
+		letter-spacing: -0.01em;
+		color: rgb(var(--ink));
+		margin-top: 2.2em;
+	}
+	& h3 {
+		font-family: var(--font-display), Georgia, serif;
+		font-weight: 600;
+		font-size: 1.25rem;
+		color: rgb(var(--ink));
+		margin-top: 1.8em;
+	}
+	& ul {
+		list-style: none;
+		padding-left: 0;
+	}
+	& li {
+		position: relative;
+		padding-left: 1.4em;
+	}
+	& li + li {
+		margin-top: 0.5em;
+	}
+	& li::before {
+		content: "→";
+		position: absolute;
+		left: 0;
+		color: rgb(var(--accent));
+	}
+	& code {
+		font-family: var(--font-mono), monospace;
+		font-size: 0.85em;
+		background-color: rgb(var(--paper-raise));
+		border: 1px solid rgb(var(--rule));
+		padding: 0.1em 0.35em;
+		border-radius: 4px;
+		color: rgb(var(--ink-soft));
+	}
+	& pre {
+		background-color: rgb(var(--paper-raise));
+		border: 1px solid rgb(var(--rule));
+		border-radius: 12px;
+		padding: 1.1em 1.3em;
+		overflow-x: auto;
+	}
+	/* Fenced blocks: the wrapping <pre> owns the chrome; undo the inline-code
+	   pill so nested <code> doesn't render a border-in-border. */
+	& pre code {
+		display: block;
+		background-color: transparent;
+		border: 0;
+		padding: 0;
+		font-size: 0.82em;
+		line-height: 1.7;
+	}
+	& img {
+		display: block;
+		max-width: 100%;
+		border-radius: 12px;
+		border: 1px solid rgb(var(--rule));
+	}
+}
+
+@utility tool-range {
+	/* Range slider for the free tools — accent fill up to --fill (set inline). */
+	appearance: none;
+	width: 100%;
+	height: 4px;
+	border-radius: 9999px;
+	background: linear-gradient(
+		to right,
+		rgb(var(--accent)) var(--fill, 50%),
+		rgb(var(--rule)) var(--fill, 50%)
+	);
+	cursor: pointer;
+	&::-webkit-slider-thumb {
+		appearance: none;
+		width: 18px;
+		height: 18px;
+		border-radius: 9999px;
+		background: rgb(var(--accent));
+		border: 3px solid rgb(var(--paper-card));
+		box-shadow:
+			0 0 0 1px rgb(var(--accent)),
+			0 4px 12px rgba(234, 88, 12, 0.45);
+	}
+	&::-moz-range-thumb {
+		width: 18px;
+		height: 18px;
+		border-radius: 9999px;
+		background: rgb(var(--accent));
+		border: 3px solid rgb(var(--paper-card));
+		box-shadow:
+			0 0 0 1px rgb(var(--accent)),
+			0 4px 12px rgba(234, 88, 12, 0.45);
+	}
+}
+
+@utility dropcap {
+	/* Drop cap for the first paragraph of an article. */
+	& > p:first-of-type::first-letter {
+		font-family: var(--font-display), Georgia, serif;
+		font-weight: 700;
+		float: left;
+		font-size: 3.6rem;
+		line-height: 0.82;
+		padding: 0.04em 0.12em 0 0;
+		color: rgb(var(--accent-soft));
+	}
+}
 
 @layer base {
 	/*
@@ -90,189 +403,6 @@
 	}
 	.dark body::after {
 		opacity: 0.07;
-	}
-}
-
-@layer components {
-	/* Mono eyebrow / kicker. */
-	.kicker {
-		font-family: var(--font-mono), monospace;
-		font-size: 0.7rem;
-		letter-spacing: 0.18em;
-		text-transform: uppercase;
-		color: rgb(var(--accent-soft));
-	}
-
-	/* Characterful Fraunces cut for highlighted display words — needs the
-	   SOFT/WONK axes loaded in layout.tsx. */
-	.wonk {
-		font-variation-settings:
-			"SOFT" 70,
-			"WONK" 1;
-	}
-
-	/* Rubber-stamp label for the ticket wall — letterpress mono, slightly
-	   rotated by the caller. */
-	.stamp {
-		font-family: var(--font-mono), monospace;
-		font-size: 0.6rem;
-		font-weight: 700;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		padding: 0.3rem 0.55rem;
-		border: 1.5px solid currentColor;
-		border-radius: 4px;
-		display: inline-block;
-	}
-
-	/* Editorial section header: mono index + serif title over a hairline. */
-	.section-rule {
-		display: flex;
-		align-items: baseline;
-		gap: 1rem;
-		border-bottom: 1px solid rgb(var(--rule));
-		padding-bottom: 1rem;
-	}
-
-	/* Subtle dotted-grid backdrop for hero/sections. */
-	.grid-backdrop {
-		background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
-		background-size: 22px 22px;
-		mask-image: radial-gradient(60% 60% at 50% 40%, #000 0%, transparent 100%);
-	}
-
-	/* Long-form article prose rendered from markdown HTML. */
-	.prose-editorial {
-		color: rgb(var(--ink-soft));
-		font-size: 1.0625rem;
-		line-height: 1.75;
-	}
-	.prose-editorial > * + * {
-		margin-top: 1.4em;
-	}
-	.prose-editorial p {
-		text-wrap: pretty;
-	}
-	.prose-editorial strong {
-		color: rgb(var(--ink));
-		font-weight: 600;
-	}
-	.prose-editorial a {
-		color: rgb(var(--accent-soft));
-		text-decoration: underline;
-		text-underline-offset: 3px;
-		text-decoration-thickness: 1px;
-	}
-	.prose-editorial h2 {
-		font-family: var(--font-display), Georgia, serif;
-		font-weight: 600;
-		font-size: 1.6rem;
-		line-height: 1.2;
-		letter-spacing: -0.01em;
-		color: rgb(var(--ink));
-		margin-top: 2.2em;
-	}
-	.prose-editorial h3 {
-		font-family: var(--font-display), Georgia, serif;
-		font-weight: 600;
-		font-size: 1.25rem;
-		color: rgb(var(--ink));
-		margin-top: 1.8em;
-	}
-	.prose-editorial ul {
-		list-style: none;
-		padding-left: 0;
-	}
-	.prose-editorial li {
-		position: relative;
-		padding-left: 1.4em;
-	}
-	.prose-editorial li + li {
-		margin-top: 0.5em;
-	}
-	.prose-editorial li::before {
-		content: "→";
-		position: absolute;
-		left: 0;
-		color: rgb(var(--accent));
-	}
-	.prose-editorial code {
-		font-family: var(--font-mono), monospace;
-		font-size: 0.85em;
-		background-color: rgb(var(--paper-raise));
-		border: 1px solid rgb(var(--rule));
-		padding: 0.1em 0.35em;
-		border-radius: 4px;
-		color: rgb(var(--ink-soft));
-	}
-	.prose-editorial pre {
-		background-color: rgb(var(--paper-raise));
-		border: 1px solid rgb(var(--rule));
-		border-radius: 12px;
-		padding: 1.1em 1.3em;
-		overflow-x: auto;
-	}
-	/* Fenced blocks: the wrapping <pre> owns the chrome; undo the inline-code
-	   pill so nested <code> doesn't render a border-in-border. */
-	.prose-editorial pre code {
-		display: block;
-		background-color: transparent;
-		border: 0;
-		padding: 0;
-		font-size: 0.82em;
-		line-height: 1.7;
-	}
-	.prose-editorial img {
-		display: block;
-		max-width: 100%;
-		border-radius: 12px;
-		border: 1px solid rgb(var(--rule));
-	}
-
-	/* Range slider for the free tools — accent fill up to --fill (set inline). */
-	.tool-range {
-		appearance: none;
-		width: 100%;
-		height: 4px;
-		border-radius: 9999px;
-		background: linear-gradient(
-			to right,
-			rgb(var(--accent)) var(--fill, 50%),
-			rgb(var(--rule)) var(--fill, 50%)
-		);
-		cursor: pointer;
-	}
-	.tool-range::-webkit-slider-thumb {
-		appearance: none;
-		width: 18px;
-		height: 18px;
-		border-radius: 9999px;
-		background: rgb(var(--accent));
-		border: 3px solid rgb(var(--paper-card));
-		box-shadow:
-			0 0 0 1px rgb(var(--accent)),
-			0 4px 12px rgba(234, 88, 12, 0.45);
-	}
-	.tool-range::-moz-range-thumb {
-		width: 18px;
-		height: 18px;
-		border-radius: 9999px;
-		background: rgb(var(--accent));
-		border: 3px solid rgb(var(--paper-card));
-		box-shadow:
-			0 0 0 1px rgb(var(--accent)),
-			0 4px 12px rgba(234, 88, 12, 0.45);
-	}
-
-	/* Drop cap for the first paragraph of an article. */
-	.dropcap > p:first-of-type::first-letter {
-		font-family: var(--font-display), Georgia, serif;
-		font-weight: 700;
-		float: left;
-		font-size: 3.6rem;
-		line-height: 0.82;
-		padding: 0.04em 0.12em 0 0;
-		color: rgb(var(--accent-soft));
 	}
 }
 

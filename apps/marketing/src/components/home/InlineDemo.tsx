@@ -182,7 +182,7 @@ export function InlineDemo() {
 
 				{/* Conversation */}
 				<div
-					className="flex min-h-[19rem] flex-col gap-3 bg-paper-deep/40 p-5"
+					className="flex min-h-76 flex-col gap-3 bg-paper-deep/40 p-5"
 					aria-live="polite"
 				>
 					{phase !== "idle" && (

@@ -14,7 +14,7 @@ import { PostHogProvider } from "@/components/PostHogProvider";
 const display = Fraunces({
 	subsets: ["latin"],
 	style: ["normal", "italic"],
-	variable: "--font-display",
+	variable: "--font-display-face",
 	display: "swap",
 	axes: ["opsz", "SOFT", "WONK"],
 });
@@ -23,13 +23,13 @@ const sans = Hanken_Grotesk({
 	// 800 added for the restyle's extrabold headings (still self-hosted by
 	// next/font — no CDN, no layout shift).
 	weight: ["400", "500", "600", "700", "800"],
-	variable: "--font-sans",
+	variable: "--font-sans-face",
 	display: "swap",
 });
 const mono = JetBrains_Mono({
 	subsets: ["latin"],
 	weight: ["400", "500", "600", "700"],
-	variable: "--font-mono",
+	variable: "--font-mono-face",
 	display: "swap",
 });
 

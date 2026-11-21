@@ -128,7 +128,7 @@ export default function LoginPage() {
 }
 
 const inputClass =
-	"w-full rounded-md border border-line bg-bg/60 px-9 py-2.5 text-sm text-text placeholder:text-faint outline-none transition-colors focus:border-accent/60 focus:ring-2 focus:ring-accent/25";
+	"w-full rounded-md border border-line bg-bg/60 px-9 py-2.5 text-sm text-text placeholder:text-faint outline-hidden transition-colors focus:border-accent/60 focus:ring-2 focus:ring-accent/25";
 
 function Field({
 	label,

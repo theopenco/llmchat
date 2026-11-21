@@ -4,7 +4,7 @@
 		"jsx": "react-jsx",
 		"lib": ["DOM", "DOM.Iterable", "ES2023"],
 		"outDir": "./dist",
-		"rootDir": "./src",
+		"rootDir": ".",
 		"types": ["vitest/globals"]
 	},
 	"include": ["src", "vitest.setup.ts"]

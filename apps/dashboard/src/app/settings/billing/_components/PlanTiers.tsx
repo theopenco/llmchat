@@ -84,7 +84,7 @@ export function PlanTiers({
 						</div>
 
 						<div className="mt-2 flex items-baseline gap-1.5">
-							<span className="text-[26px] font-extrabold tracking-[-0.02em] text-ck-text">
+							<span className="text-[26px] font-extrabold tracking-tight-display text-ck-text">
 								${formatUsd(perMonth)}
 							</span>
 							<span className="text-[13px] text-ck-faint">/mo</span>

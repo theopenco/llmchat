@@ -58,7 +58,11 @@ import {
 } from "@llmchat/shared";
 
 import type { AppContext } from "@/env";
-import type { UIMessage } from "ai";
+import {
+	createUIMessageStreamResponse,
+	toUIMessageStream,
+	type UIMessage,
+} from "ai";
 
 const optionalEmail = z
 	.union([z.email(), z.literal("")])
@@ -474,10 +478,9 @@ export const chat = new Hono<AppContext>()
 			(async () => {
 				try {
 					const text = await result.text;
-					// totalUsage sums every step — with integration tools a turn can
-					// span several model steps, and metering must count all of them.
-					// Identical to `usage` for the single-step (no-tools) path.
-					const usage = await result.totalUsage;
+					// usage sums every step — with integration tools a turn can span
+					// several model steps, and metering must count all of them.
+					const usage = await result.usage;
 					// Allocates its sequence at COMMIT time (post-stream), not from a
 					// slot precomputed before the stream — so an operator note or an
 					// escalate marker landing mid-stream takes the earlier sequence and
@@ -532,7 +535,9 @@ export const chat = new Hono<AppContext>()
 			})(),
 		);
 
-		return result.toUIMessageStreamResponse();
+		return createUIMessageStreamResponse({
+			stream: toUIMessageStream({ stream: result.stream }),
+		});
 	})
 	.post("/escalate", zValidator("json", escalateBody), async (c) => {
 		// `messages` is intentionally ignored: the operator notification transcript

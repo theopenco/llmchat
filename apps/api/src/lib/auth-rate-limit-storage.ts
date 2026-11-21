@@ -14,8 +14,8 @@ import type { Env } from "@/env";
  * across isolates.
  *
  * Fail-CLOSED (auth path, per the standing security rule): when STATE is
- * unavailable the read returns a synthetic over-limit bucket so Better Auth
- * responds 429 rather than allowing unbounded auth attempts. (The public widget
+ * unavailable `consume` denies, so Better Auth responds 429 rather than
+ * allowing unbounded auth attempts. (The public widget
  * limiter in `kv.ts` stays fail-open — see its `failClosed` option — so a STATE
  * blip never takes the embed down; PR1's spend caps already bound that cost.)
  *
@@ -29,19 +29,25 @@ import type { Env } from "@/env";
  */
 
 /**
- * The bucket shape Better Auth stores per (ip, path). Window-reset is Better
- * Auth's job, NOT this storage's: its `shouldRateLimit` ignores any bucket whose
- * `lastRequest` is older than the (per-path) window, and its post-response hook
- * rewrites `count:1` once the window elapses. So we deliberately store NO
- * `resetAt`/TTL here and add no expiry logic — doing so would hardcode a single
- * window and fight Better Auth's per-path windows (3/10s vs 3/60s). The synthetic
- * fail-closed bucket below self-heals for the same reason (its `lastRequest`
- * ages out of the window). `lastRequest` is in MILLISECONDS, per Better Auth.
+ * The bucket persisted per (ip, path). `lastRequest` is in MILLISECONDS, and
+ * the window is measured from it — the same rolling-window semantics as Better
+ * Auth's built-in memory and database stores, so per-path rules (3/10s vs
+ * 3/60s) keep their meaning. No TTL is stored: a bucket older than its window
+ * is simply reset on the next request.
  */
 interface RateLimitBucket {
-	key: string;
 	count: number;
 	lastRequest: number;
+}
+
+interface RateLimitRule {
+	window: number;
+	max: number;
+}
+
+interface ConsumeResult {
+	allowed: boolean;
+	retryAfter: number | null;
 }
 
 const KEY_PREFIX = "authrl:";
@@ -59,51 +65,70 @@ export function mayFailOpen(key: string): boolean {
 	return key.endsWith("|/get-session");
 }
 
+function retryAfterSeconds(
+	lastRequest: number,
+	rule: RateLimitRule,
+	now: number,
+) {
+	return Math.max(
+		1,
+		Math.ceil((lastRequest + rule.window * 1000 - now) / 1000),
+	);
+}
+
+/**
+ * Better Auth 1.7's storage contract: one `consume` call records the request
+ * and returns the decision. STATE has no compare-and-swap, so this is a
+ * read-decide-write (bounded, not atomic — the same trade-off as the widget
+ * limiter in `kv.ts`).
+ */
 export interface RateLimitCustomStorage {
-	get(key: string): Promise<RateLimitBucket | null>;
-	set(key: string, value: RateLimitBucket): Promise<void>;
+	consume(key: string, rule: RateLimitRule): Promise<ConsumeResult>;
 }
 
 export function createAuthRateLimitStorage(env: Env): RateLimitCustomStorage {
 	return {
-		async get(key) {
+		async consume(key, rule) {
+			const now = Date.now();
+			let bucket: RateLimitBucket | null = null;
 			try {
 				const raw = await env.STATE.get(KEY_PREFIX + key);
-				if (!raw) return null;
-				try {
-					return JSON.parse(raw) as RateLimitBucket;
-				} catch {
-					// Malformed entry — treat as a fresh window (not an outage).
-					return null;
+				if (raw) {
+					try {
+						bucket = JSON.parse(raw) as RateLimitBucket;
+					} catch {
+						bucket = null;
+					}
 				}
 			} catch (err) {
-				// STATE unavailable. The session read fails OPEN (a 429 here presents
-				// as a spontaneous sign-out on every open dashboard — see mayFailOpen);
-				// every other auth path FAILS CLOSED: hand back a bucket that is
-				// already over any limit so Better Auth denies (429) the attempt.
 				if (mayFailOpen(key)) {
 					console.error(
 						"authRateLimit: STATE read failed, failing open (session read)",
 						err,
 					);
-					return null;
+					return { allowed: true, retryAfter: null };
 				}
 				console.error("authRateLimit: STATE read failed, failing closed", err);
+				return { allowed: false, retryAfter: rule.window };
+			}
+
+			const expired = !bucket || now - bucket.lastRequest >= rule.window * 1000;
+			if (!expired && bucket!.count >= rule.max) {
 				return {
-					key,
-					count: Number.MAX_SAFE_INTEGER,
-					lastRequest: Date.now(),
+					allowed: false,
+					retryAfter: retryAfterSeconds(bucket!.lastRequest, rule, now),
 				};
 			}
-		},
-		async set(key, value) {
+			const next: RateLimitBucket = {
+				count: expired ? 1 : bucket!.count + 1,
+				lastRequest: now,
+			};
 			try {
-				await env.STATE.set(KEY_PREFIX + key, JSON.stringify(value));
+				await env.STATE.set(KEY_PREFIX + key, JSON.stringify(next));
 			} catch (err) {
-				// The deny decision already happened on read; a failed write can't open
-				// a hole. Swallow so we don't surface a 500 from a post-response hook.
 				console.error("authRateLimit: STATE write failed", err);
 			}
+			return { allowed: true, retryAfter: null };
 		},
 	};
 }

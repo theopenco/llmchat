@@ -49,7 +49,7 @@ export function AccountMenu({
 			<MenuTrigger asChild>
 				<button
 					aria-label="Account menu"
-					className="flex items-center rounded-[10px] outline-none focus-visible:ring-2 focus-visible:ring-ck-accent"
+					className="flex items-center rounded-[10px] outline-hidden focus-visible:ring-2 focus-visible:ring-ck-accent"
 				>
 					<span className="flex size-8 items-center justify-center rounded-lg bg-ck-accent text-[11.5px] font-bold text-white">
 						{initials}

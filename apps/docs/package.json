@@ -13,23 +13,23 @@
 	},
 	"dependencies": {
 		"@llmchat/shared": "workspace:*",
-		"fumadocs-core": "16.9.3",
-		"fumadocs-mdx": "15.0.12",
-		"fumadocs-ui": "16.9.3",
-		"lucide-react": "^0.544.0",
-		"next": "16.2.12",
-		"react": "^19.2.0",
-		"react-dom": "^19.2.0"
+		"fumadocs-core": "16.19.6",
+		"fumadocs-mdx": "15.6.4",
+		"fumadocs-ui": "16.19.6",
+		"lucide-react": "^1.77.0",
+		"next": "16.4.6",
+		"react": "^19.3.1",
+		"react-dom": "^19.3.1"
 	},
 	"devDependencies": {
-		"@tailwindcss/postcss": "^4.2.0",
-		"playwright": "^1.61.1",
-		"@types/mdx": "^2.0.13",
-		"@types/node": "^22.10.0",
-		"@types/react": "^19.2.0",
-		"@types/react-dom": "^19.2.0",
-		"postcss": "^8.5.0",
-		"tailwindcss": "^4.2.0",
-		"typescript": "5.9.2"
+		"@tailwindcss/postcss": "^4.3.5",
+		"@types/mdx": "^2.0.14",
+		"@types/node": "^22.20.5",
+		"@types/react": "^19.3.0",
+		"@types/react-dom": "^19.3.0",
+		"playwright": "^1.65.1",
+		"postcss": "^8.5.33",
+		"tailwindcss": "^4.3.5",
+		"typescript": "6.0.3"
 	}
 }

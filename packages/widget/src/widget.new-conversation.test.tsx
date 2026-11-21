@@ -52,6 +52,7 @@ function mockFeed(opts: { csatRating?: number | null } = {}) {
 		csatRating: opts.csatRating ?? null,
 		escalatedAt: null,
 		archivedAt: null,
+		feedClientId: null,
 		refresh: vi.fn(),
 	});
 }

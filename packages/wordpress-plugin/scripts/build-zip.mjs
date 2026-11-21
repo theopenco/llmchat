@@ -129,9 +129,12 @@ writeZip(entries, zipPath);
 
 // Belt and braces: reject the artifact if it somehow isn't zip format.
 const magic = readFileSync(zipPath).subarray(0, 4);
-if (
-	!(magic[0] === 0x50 && magic[1] === 0x4b && magic[2] === 3 && magic[3] === 4)
-) {
+if (!(
+	magic[0] === 0x50 &&
+	magic[1] === 0x4b &&
+	magic[2] === 3 &&
+	magic[3] === 4
+)) {
 	console.error(`${zipName} is not a valid zip (bad magic bytes)`);
 	process.exit(1);
 }

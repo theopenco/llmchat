@@ -208,9 +208,7 @@ const BLOCKING_STATUSES = new Set([
 ]);
 
 export type GateReason =
-	| "active_subscription"
-	| "billing_unverified"
-	| "billing_drift";
+	"active_subscription" | "billing_unverified" | "billing_drift";
 
 export interface GateResult {
 	blocked: boolean;

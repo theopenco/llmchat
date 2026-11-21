@@ -26,11 +26,6 @@ export default defineConfig({
 			name: "LlmchatWidget",
 			fileName: () => "widget.js",
 		},
-		rollupOptions: {
-			output: {
-				inlineDynamicImports: true,
-			},
-		},
 		cssCodeSplit: false,
 	},
 });
