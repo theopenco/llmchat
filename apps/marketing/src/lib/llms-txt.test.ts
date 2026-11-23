@@ -1,4 +1,9 @@
-import { BILLING_TIERS, formatUsd } from "@llmchat/shared";
+import {
+	BILLING_TIERS,
+	DEFAULT_MODEL,
+	WEB_SEARCH_MODELS,
+	formatUsd,
+} from "@llmchat/shared";
 import { describe, expect, it } from "vitest";
 
 import { buildLlmsTxt } from "./llms-txt";
@@ -148,5 +153,25 @@ describe("buildLlmsTxt", () => {
 		const out2 = buildLlmsTxt(BASE, { ...input, posts: [], tools: [] });
 		expect(out2).not.toContain("## Journal");
 		expect(out2).not.toContain("## Free tools");
+	});
+
+	// The #233 AI-SEO audit added a Models line derived from the shared
+	// web-search snapshot (the same list the dashboard picker and chat guard
+	// read), so answer engines ingest the real selectable set. These guard the
+	// derivation: a regression that hardcodes a stale list, drops the default,
+	// or empties the enumeration is what we want to catch.
+	it("enumerates the selectable web-search models from the shared snapshot", () => {
+		expect(out).toContain(`Models: ${WEB_SEARCH_MODELS.length} web-search`);
+		// Every model in the snapshot is listed verbatim — no silent truncation.
+		for (const id of WEB_SEARCH_MODELS) {
+			expect(out).toContain(id);
+		}
+	});
+
+	it("names the default model in the Models line", () => {
+		expect(out).toContain(`default \`${DEFAULT_MODEL}\``);
+		// The snapshot is non-empty (shared throws if it ever blanks) — guard
+		// against a formatting change that drops the count to zero.
+		expect(WEB_SEARCH_MODELS.length).toBeGreaterThan(0);
 	});
 });

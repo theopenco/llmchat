@@ -248,6 +248,37 @@ describe("pageMeta", () => {
 		});
 	});
 
+	// #233 added article:modified_time so answer engines see a freshness signal
+	// on revised posts. Guard both directions: present when supplied, absent
+	// otherwise (never a stale/empty modified_time).
+	it("threads a modified time into the article OG when supplied", () => {
+		const m = pageMeta({
+			title: "Post",
+			description: "d",
+			path: "/blog/x",
+			type: "article",
+			publishedTime: "2026-05-01",
+			modifiedTime: "2026-06-01",
+		});
+		expect(m.openGraph).toMatchObject({
+			publishedTime: "2026-05-01",
+			modifiedTime: "2026-06-01",
+		});
+	});
+
+	it("omits modifiedTime from the OG when none is supplied", () => {
+		const m = pageMeta({
+			title: "Post",
+			description: "d",
+			path: "/blog/x",
+			type: "article",
+			publishedTime: "2026-05-01",
+		});
+		expect(
+			(m.openGraph as Record<string, unknown>).modifiedTime,
+		).toBeUndefined();
+	});
+
 	it("threads a cover image into the OG and Twitter cards", () => {
 		const m = pageMeta({
 			title: "Post",
